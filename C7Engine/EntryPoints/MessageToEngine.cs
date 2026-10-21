@@ -365,6 +365,9 @@ namespace C7Engine {
 			BuildColony,
 			// A unit adds its people to the city it stands in.
 			JoinCity,
+			// A captive is sacrificed in its owner's city (see
+			// MapUnit_Sacrifice.cs).
+			Sacrifice,
 		}
 
 		public ID unitID;
@@ -411,6 +414,9 @@ namespace C7Engine {
 					if (unit.JoinCity()) {
 						new MsgCityChanged(city).send();
 					}
+					break;
+				case Command.Sacrifice:
+					unit.Sacrifice();
 					break;
 			}
 		}

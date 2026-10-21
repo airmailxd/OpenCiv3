@@ -1519,6 +1519,9 @@ namespace C7GameData {
 			if (CanStartScienceAge()) {
 				result.Add(UnitAction.ScienceAge);
 			}
+			if (CanSacrifice()) {
+				result.Add(UnitAction.Sacrifice);
+			}
 			AddAvailableAirMissions(result);
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.

@@ -364,6 +364,15 @@ namespace C7Engine {
 					continue;
 				}
 
+				// A captive that may be sacrificed in one of our cities is,
+				// before anything else, as the stock unit AI does first
+				// (Civ3 FUN_00463630, which sacrifices whenever FUN_005d1f20
+				// allows it). Unlike the stock AI, the unit type must have
+				// the Sacrifice action (see MapUnit_Sacrifice.cs).
+				if (unit.CanSacrifice() && unit.Sacrifice()) {
+					continue;
+				}
+
 				// Nuclear weapons fire at a worthwhile target if there is one,
 				// and otherwise wait (they may be loaded, and so fortified,
 				// aboard a submarine).

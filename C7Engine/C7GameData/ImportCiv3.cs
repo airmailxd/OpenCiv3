@@ -1882,6 +1882,7 @@ namespace C7GameData {
 			if (prto.BuildColony) yield return UnitAction.BuildColony;
 			if (prto.Airlift) yield return UnitAction.Airlift;
 			if (prto.JoinCity) yield return UnitAction.JoinCity;
+			if (prto.Sacrifice) yield return UnitAction.Sacrifice;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -1991,6 +1992,7 @@ namespace C7GameData {
 				if (prto.StealthAttack) prototype.flags.Add(SaveUnitPrototype.Flag.StealthAttack);
 				if (prto.CruiseMissile) prototype.flags.Add(SaveUnitPrototype.Flag.CruiseMissile);
 				if (prto.King) prototype.flags.Add(SaveUnitPrototype.Flag.King);
+				if (prto.FlagUnit) prototype.flags.Add(SaveUnitPrototype.Flag.FlagUnit);
 				if (prto.AIOffense) prototype.flags.Add(SaveUnitPrototype.Flag.AIOffense);
 				if (prto.AIDefense) prototype.flags.Add(SaveUnitPrototype.Flag.AIDefense);
 				if (prto.AINavalTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalTransport);
@@ -2333,6 +2335,7 @@ namespace C7GameData {
 				(bldg.BuildSpaceshipParts, SaveBuilding.Flag.BuildSpaceshipParts),
 				(bldg.AllowsWaterTrade, SaveBuilding.Flag.AllowsWaterTrade),
 				(bldg.AllowsAirTrade, SaveBuilding.Flag.AllowsAirTrade),
+				(bldg.DoublesSacrifice, SaveBuilding.Flag.DoublesSacrifice),
 				// The BIQ has the flag twice, among the improvement flags and
 				// among the small wonder ones; conquests.biq sets the
 				// improvement one on Iron Works ("The city that builds it must

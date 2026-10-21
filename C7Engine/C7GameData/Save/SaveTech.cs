@@ -56,7 +56,8 @@ namespace C7GameData.Save {
 			// The tech can't be traded in diplomacy (see
 			// Player.GetTechsTradableTo).
 			CannotBeTraded,
-			// TODO(consumer): sacrificing citizens (the Sacrifice Altar).
+			// Units whose type has the Sacrifice action may be sacrificed
+			// (Mesoamerica's Ritual Sacrifice; see MapUnit_Sacrifice.cs).
 			PermitsSacrifice,
 			// Learning the tech reveals the whole map (Satellites in
 			// Conquests; see Player.RevealWholeMap).

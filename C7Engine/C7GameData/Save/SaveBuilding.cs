@@ -92,6 +92,10 @@ namespace C7GameData.Save {
 			// TradeNetwork.
 			AllowsWaterTrade,
 			AllowsAirTrade,
+			// Doubles the culture a sacrifice in the city gains (the BIQ's
+			// "Doubles Sacrifice"; Mesoamerica's Sacrificial Altar). See
+			// MapUnit.SacrificeValue.
+			DoublesSacrifice,
 		}
 
 		public class GreatWonderProperties {

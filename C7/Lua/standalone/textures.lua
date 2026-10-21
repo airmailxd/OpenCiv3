@@ -135,6 +135,7 @@ local c7_texture_list = {
   "Art/interface/unit_build_army.png",
   "Art/interface/unit_hurry_building.png",
   "Art/interface/unit_science_age.png",
+  "Art/interface/unit_sacrifice.png",
   "Art/interface/unit_upgrade.png",
   "Art/interface/unit_build_barricade.png",
   "Art/Cities/CityBuildingIcons.png"
@@ -352,6 +353,7 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_build_army = own_button("unit_build_army")
   c7_textures.ui.unit_control.unit_hurry_building = own_button("unit_hurry_building")
   c7_textures.ui.unit_control.unit_science_age = own_button("unit_science_age")
+  c7_textures.ui.unit_control.unit_sacrifice = own_button("unit_sacrifice")
   c7_textures.ui.unit_control.unit_upgrade = own_button("unit_upgrade")
   c7_textures.ui.unit_control.unit_build_barricade = own_button("unit_build_barricade")
 

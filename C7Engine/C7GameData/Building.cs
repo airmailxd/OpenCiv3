@@ -77,6 +77,9 @@ namespace C7GameData {
 		public bool reducesWarWearinessEverywhere;
 		public bool treasuryEarnsInterest;
 		public bool paysTradeMaintenance;
+		// Doubles the culture of a sacrifice in the city (see
+		// MapUnit.SacrificeValue).
+		public bool doublesSacrifice;
 		public bool increasesResearch;
 		public bool doublesResearch;
 		public bool increasesLuxury;
@@ -208,6 +211,7 @@ namespace C7GameData {
 			reducesWarWearinessEverywhere = building.flags.Contains(SaveBuilding.Flag.ReducesWarWearinessEverywhere);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
 			paysTradeMaintenance = building.flags.Contains(SaveBuilding.Flag.PaysTradeMaintenance);
+			doublesSacrifice = building.flags.Contains(SaveBuilding.Flag.DoublesSacrifice);
 			allowsBuildArmy = building.flags.Contains(SaveBuilding.Flag.AllowsBuildArmy);
 			allowsLargerArmies = building.flags.Contains(SaveBuilding.Flag.AllowsLargerArmies);
 			requiresVictoriousArmy = building.flags.Contains(SaveBuilding.Flag.RequiresVictoriousArmy);

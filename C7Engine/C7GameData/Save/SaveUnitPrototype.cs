@@ -83,6 +83,9 @@ namespace C7GameData.Save {
 			// The unit costs no upkeep (the BIQ's PRTO "Requires Support"
 			// left unchecked; in conquests.biq only the King units).
 			NoSupportRequired,
+			// The BIQ's "Flag Unit" ability (the Princess in conquests.biq).
+			// Such a unit can't be sacrificed (see MapUnit_Sacrifice.cs).
+			FlagUnit,
 		}
 
 		public string name { get; set; }

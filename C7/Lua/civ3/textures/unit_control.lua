@@ -43,6 +43,8 @@ local unit_control = {
   -- labels.txt's "Increase Scientific Output", after Seize Treasure, an
   -- unused control and Sacrifice in #UNIT_ACTIONS.
   unit_science_age = make_entry(3, 2),
+  -- labels.txt's "Sacrifice", just before it.
+  unit_sacrifice = make_entry(2, 2),
 
   unit_build_city = make_entry(5, 2),
   -- UNVERIFIED: the cell is the one next to Build City whose picture looks

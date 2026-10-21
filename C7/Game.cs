@@ -3100,6 +3100,21 @@ public partial class Game : Node {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.StartScienceAge).send();
 		}
 
+		if (currentAction == C7Action.UnitSacrifice && CurrentlySelectedUnit.CanSacrifice()) {
+			// Civ3 asks first (script.txt, #SACRIFICE: the domestic advisor).
+			// The unit asked about, not whichever is selected once confirmed.
+			ID sacrificedID = CurrentlySelectedUnit.id;
+			popupOverlay.ShowPopup(
+				new ConfirmationPopup(
+					$"Sacrifice {CurrentlySelectedUnit.name}?\nI know these people aren't native to our land, but do you really want to sacrifice them?\nSacrificing them will gain your city {CurrentlySelectedUnit.SacrificeValue()} points of culture.",
+					"Yes, let the blood flow!",
+					"No. Maybe you are right, advisor.",
+					() => {
+						new MsgUnitCommand(sacrificedID, MsgUnitCommand.Command.Sacrifice).send();
+					}),
+				PopupOverlay.PopupCategory.Advisor);
+		}
+
 		if (currentAction == C7Action.UnitHurryBuilding && CurrentlySelectedUnit.CanOfferHurryProduction()) {
 			string blocker = CurrentlySelectedUnit.HurryProductionBlocker();
 			if (blocker == null) {

@@ -48,6 +48,9 @@ namespace C7GameData {
 		// A unit adds its population cost to the city it stands in (see
 		// MapUnit_JoinCity.cs).
 		JoinCity,
+		// A captive is sacrificed in one of its owner's cities for culture
+		// (see MapUnit_Sacrifice.cs).
+		Sacrifice,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -185,6 +188,7 @@ namespace C7GameData {
 		public bool allTerrainAsRoads => flags.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads);
 		public bool isImmobile => flags.Contains(SaveUnitPrototype.Flag.Immobile);
 		public bool canCarryFootUnitsOnly => flags.Contains(SaveUnitPrototype.Flag.CanCarryFootUnitsOnly);
+		public bool isFlagUnit => flags.Contains(SaveUnitPrototype.Flag.FlagUnit);
 
 		// Whether the unit's type lets it step from one tile onto a
 		// neighbouring one. Wheeled units, like catapults and chariots,

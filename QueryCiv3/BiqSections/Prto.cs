@@ -97,7 +97,10 @@ namespace QueryCiv3.Biq {
 		public bool Immobile { get => Util.GetFlag(Flags1[1], 2); }
 		public bool SinkInSea { get => Util.GetFlag(Flags1[1], 3); }
 		public bool SinkInOcean { get => Util.GetFlag(Flags1[1], 4); }
-		// unused
+		// The "Flag Unit" ability (ability 13). Civ3 FUN_005d0670 tests ability
+		// 13 to forbid sacrificing the unit; ability 18 there is Army and 20
+		// the ICBM's infinite bombard range, as above.
+		public bool FlagUnit { get => Util.GetFlag(Flags1[1], 5); }
 		public bool CanCarryFootUnitsOnly { get => Util.GetFlag(Flags1[1], 6); }
 		public bool StartsGoldenAge { get => Util.GetFlag(Flags1[1], 7); }
 
@@ -177,6 +180,10 @@ namespace QueryCiv3.Biq {
 		public bool Teleportable { get => Util.GetFlag(Flags3[5], 7); }
 		public bool StealthAttack { get => Util.GetFlag(Flags3[6], 0); }
 		public bool Charm { get => Util.GetFlag(Flags3[6], 1); }
+		// The "Sacrifice" special action, bit 20 of the special actions:
+		// Civ3's unit command 0x10100000 (FUN_004e3430) is checked against
+		// this bit of the unit type (FUN_005d0670).
+		public bool Sacrifice { get => Util.GetFlag(Flags3[6], 4); }
 
 		public bool BuildColony { get => Util.GetFlag(Flags3[8], 0); }
 		public bool BuildCity { get => Util.GetFlag(Flags3[8], 1); }

@@ -3,7 +3,7 @@
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
 where Civ3's has Build Outpost, Build Colony, Build Airfield, Build Radar
 Tower, Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
-Building, Increase Scientific Output, Upgrade, Build Barricade and Join City. Each of these is drawn as a
+Building, Increase Scientific Output, Sacrifice, Upgrade, Build Barricade and Join City. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the orders'
@@ -231,6 +231,16 @@ def join_city_glyph(draw):
     draw.polygon([(13 * u, 39 * u), (33 * u, 39 * u), (23 * u, 30 * u)], fill=GLYPH)
     draw.rectangle([34 * u, 34 * u, 48 * u, 50 * u], fill=GLYPH)
     draw.polygon([(31 * u, 35 * u), (51 * u, 35 * u), (41 * u, 25 * u)], fill=GLYPH)
+def sacrifice_glyph(draw):
+    """A stepped temple with a flame on the altar at its top, for
+    Sacrifice."""
+    u = S / 64
+    for i, (left, right) in enumerate(((8, 56), (14, 50), (20, 44), (26, 38))):
+        top = 54 - 8 * (i + 1)
+        draw.rectangle([left * u, top * u, right * u, (top + 7) * u], fill=GLYPH)
+    # the flame
+    draw.polygon([(32 * u, 4 * u), (40 * u, 16 * u), (38 * u, 22 * u), (26 * u, 22 * u),
+                  (24 * u, 16 * u), (29 * u, 12 * u)], fill=GLYPH)
 
 
 def upgrade_glyph(draw):
@@ -289,6 +299,7 @@ if __name__ == '__main__':
     build('unit_build_army', build_army_glyph)
     build('unit_hurry_building', hurry_building_glyph)
     build('unit_science_age', science_age_glyph)
+    build('unit_sacrifice', sacrifice_glyph)
     build('unit_upgrade', upgrade_glyph)
     build('unit_build_barricade', barricade_glyph)
     build('unit_join_city', join_city_glyph)
