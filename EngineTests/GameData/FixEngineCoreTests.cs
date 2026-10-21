@@ -313,28 +313,54 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		return wonder;
 	}
 
+	// Walls a wonder gives a town make it immune to land bombardment: the
+	// shots go at the walls, which come back at once (Lanzelot, C3C 1.22,
+	// CFC 647207 #13; a C3C bug the owner chose to keep, owner's decision,
+	// 2026-10-21). Ships still hit the town's units, and a city past town
+	// size isn't shielded.
 	[Fact]
-	public async Task WallsGrantedByAWonderDoNotStopBombardment() {
+	public async Task WallsGrantedByAWonderMakeATownImmuneToLandBombardment() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 4);
 		Building greatWall = GreatWall();
 		city.AddBuilding(greatWall);
+		Building library = gameData.Buildings.Single(b => b.name == "Library");
+		city.AddBuilding(library);
 		Assert.Contains(city.GetBuildings(), cb => cb.building.providesWalls);
 		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building.providesWalls);
 
-		// With only indestructible walls, the units in the city are hit.
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+		int hitPoints = defender.hitPointsRemaining;
+		int buildings = city.constructed_buildings.Count;
+		for (int i = 0; i < 5; i++) {
+			await BombardOnce(catapult, city.location);
+		}
+		Assert.Equal(hitPoints, defender.hitPointsRemaining);
+		Assert.Equal(buildings, city.constructed_buildings.Count);
+		Assert.Equal(4, city.residents.Count);
+		Assert.True(catapult.hasAttackedThisTurn);
+
+		// With no units either, still nothing.
+		defender.RemoveFromPlay();
+		await BombardOnce(catapult, city.location);
+		Assert.Equal(buildings, city.constructed_buildings.Count);
+		Assert.Equal(4, city.residents.Count);
+
+		// A ship isn't stopped by the walls: it hits the units.
+		MapUnit second = Spawn(them, "Spearman", city.location);
+		MapUnit ship = SpawnBombardingShip(catapult);
+		await BombardOnce(ship, city.location);
+		Assert.True(second.hitPointsRemaining < hitPoints);
+	}
+
+	// Past town size walls shield nothing, wonder's walls included.
+	[Fact]
+	public async Task WallsGrantedByAWonderDoNotShieldACity() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 7);
+		city.AddBuilding(GreatWall());
 		MapUnit defender = Spawn(them, "Spearman", city.location);
 		int hitPoints = defender.hitPointsRemaining;
 		await BombardOnce(catapult, city.location);
 		Assert.True(defender.hitPointsRemaining < hitPoints);
-		Assert.Contains(city.GetBuildings(), cb => cb.building.providesWalls);
-
-		// With no units, the city itself is.
-		defender.RemoveFromPlay();
-		int buildings = city.constructed_buildings.Count;
-		int population = city.residents.Count;
-		await BombardOnce(catapult, city.location);
-		Assert.True(city.constructed_buildings.Count < buildings || city.residents.Count < population);
-		Assert.Contains(city.constructed_buildings, cb => cb.building == greatWall);
 	}
 
 	[Fact]
@@ -359,9 +385,6 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		city.AddBuilding(walls);
 		city.AddBuilding(GreatWall());
 		Assert.True(city.IsProvidedByWonders(walls));
-		// Industrial, so the wonder itself can't be bombarded away either
-		// (see BombardmentDestroysGreatWondersBeforeTheIndustrialAge).
-		them.eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
 
 		// Size 1 with nothing else to hit: nothing is destroyed.
 		for (int i = 0; i < 20; i++) {
@@ -486,9 +509,8 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		}
 	}
 
-	// Once the owner is industrial its great wonders are immune (see
-	// BombardmentDestroysGreatWondersBeforeTheIndustrialAge); small wonders
-	// and the palace always are.
+	// Wonders and the palace are immune to bombardment in every era (see
+	// BombardmentNeverDestroysGreatWonders).
 	[Fact]
 	public async Task BombardmentDoesNotDestroyWonders() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
@@ -509,24 +531,27 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Contains(city.constructed_buildings, cb => cb.building == smallWonder);
 	}
 
-	// "If the bombardement occurs against a settlement of a civilization that
-	// has reached the industrial age," / "then any world wonder in this
-	// settlement is immune against any bombardment." / "Before the target
-	// civilization has reached the industrial age this is not the case"
-	// (justanick, C3C 1.22,
-	// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
-	[Fact]
-	public async Task BombardmentDestroysGreatWondersBeforeTheIndustrialAge() {
+	// Great wonders can never be bombarded away, in any era: the sources
+	// disagree (justanick, CFC 647207 #1: until the Industrial Age;
+	// Flintlock, C3X thread post-16725029: only in the Ancient era; Dominus
+	// Romae, CFC 128868 #9: never), and the owner chose never (owner's
+	// decision, 2026-10-21).
+	[Theory]
+	[InlineData(EraUtils.ANCIENT_TIMES_CVLPD)]
+	[InlineData(EraUtils.MIDDLE_AGES_CVLPD)]
+	public async Task BombardmentNeverDestroysGreatWonders(string era) {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
-		them.eraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;
+		them.eraCivilopediaName = era;
 		Building greatWonder = gameData.Buildings.First(b => b.IsGreatWonder() && b.greatWonderProperties.buildingGainedInEveryCity == null
 			&& b.greatWonderProperties.buildingGainedInEveryCityOnContinent == null);
 		city.AddBuilding(greatWonder);
 
-		// Size 1, so the wonder is the only thing left to hit.
-		await BombardOnce(catapult, city.location);
+		// Size 1, so the wonder is the only building there is to hit.
+		for (int i = 0; i < 10; i++) {
+			await BombardOnce(catapult, city.location);
+		}
 
-		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == greatWonder);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == greatWonder);
 	}
 
 	// "If a regular building(meaning neither a coastal fortress nor city

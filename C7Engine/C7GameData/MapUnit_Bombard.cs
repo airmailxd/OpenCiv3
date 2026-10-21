@@ -273,8 +273,11 @@ namespace C7GameData {
 				}
 			} else {
 				CityBuilding walls = FindDestructibleWalls(city);
+				Building wonderWalls = FindWonderWalls(city);
 				if (walls != null) {
 					await BombardCityDefence(tile, walls);
+				} else if (wonderWalls != null) {
+					await BombardWonderWalls(tile, wonderWalls);
 				} else {
 					// Land artillery can't hit the city's ships or aircraft
 					// (see CanBombardmentDamage), so only its land units.
@@ -347,8 +350,8 @@ namespace C7GameData {
 		// In a bigger city the walls are an ordinary building (see
 		// BombardCity). Only walls built in the city can be knocked down:
 		// per the project owner, walls a wonder provides (e.g. the Great
-		// Wall) can't be bombarded (see IsBombardableBuilding), so with only
-		// those the bombardment goes on to the units or the city.
+		// Wall) can't be bombarded (see IsBombardableBuilding); a town with
+		// those is immune to land bombardment (see FindWonderWalls).
 		private static CityBuilding FindDestructibleWalls(City city) {
 			if (city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize) {
 				return null;
@@ -361,27 +364,55 @@ namespace C7GameData {
 			return null;
 		}
 
+		// The walls a wonder (the Great Wall) gives a town, or null, when a
+		// land bombardment can't get past them. The project owner chose to
+		// keep a C3C bug here (owner's decision, 2026-10-21): "In a town with
+		// "Great Wall - induced" walls, all buildings and units" / "are
+		// immune to bombardment." / "(Because the wall is always hit first,
+		// and if it gets destroyed, the Great Wall immediately "resurrects"
+		// it...)" (Lanzelot, C3C 1.22,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #13);
+		// "It seems the walls are immediately restored." (jarred!, same
+		// thread, page 2). Walls shield only a town (see
+		// FindDestructibleWalls), and only against land bombardment, the
+		// one kind that hits walls first (compendium 01, "Great Wall walls
+		// make a town immune to land bombard"); ships, aircraft and cruise
+		// missiles hit a city in their own order (see BombardCityInOrder).
+		// The compendium also records C3X-thread reports of the bug hitting
+		// another building instead; the owner chose Lanzelot's form.
+		private static Building FindWonderWalls(City city) {
+			if (city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize) {
+				return null;
+			}
+			foreach (CityBuilding cb in city.EffectiveBuildings()) {
+				if (cb.building.providesWalls && city.IsProvidedByWonders(cb.building)) {
+					return cb.building;
+				}
+			}
+			return null;
+		}
+
 		// Whether bombardment can destroy the building: anything built in the
-		// city except small wonders and the palace, and great wonders once
-		// the owner is industrial (below). Per the
-		// project owner, a building a wonder provides can't be bombarded
-		// either: those granted by the wonder aren't stored in the city, and
-		// one also built there is left alone, so the wonder's effect stays.
+		// city except wonders and the palace. Per the project owner, a
+		// building a wonder provides can't be bombarded either: those granted
+		// by the wonder aren't stored in the city, and one also built there
+		// is left alone, so the wonder's effect stays.
 		//
-		// A great wonder can be bombarded away too, until its owner reaches
-		// the Industrial Age: "If the bombardement occurs against a settlement
-		// of a civilization that has reached the industrial age," / "then any
-		// world wonder in this settlement is immune against any bombardment."
-		// / "Before the target civilization has reached the industrial age
-		// this is not the case" (justanick, C3C 1.22,
-		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
-		// Small wonders and the palace stay out of reach.
+		// Great wonders can never be bombarded away (owner's decision,
+		// 2026-10-21). The sources disagree: justanick's C3C 1.22 tests say
+		// they can be until the owner reaches the Industrial Age ("If the
+		// bombardement occurs against a settlement of a civilization that has
+		// reached the industrial age," / "then any world wonder in this
+		// settlement is immune against any bombardment.",
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1);
+		// Flintlock, reading the code, says "only in the ancient era"
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16725029);
+		// Dominus Romae says never, "At least in PTW 1.27f and C3C 1.22"
+		// (https://forums.civfanatics.com/threads/128868/, #9). The owner
+		// chose never.
 		private static bool IsBombardableBuilding(City city, CityBuilding cb) {
 			if (city.IsProvidedByWonders(cb.building)) {
 				return false;
-			}
-			if (cb.building.IsGreatWonder()) {
-				return city.owner == null || city.owner.EraIndex() < EraUtils.GetEraIndex(EraUtils.INDUSTRIAL_AGE_CVLPD);
 			}
 			return IsBombardableBuilding(cb);
 		}
@@ -458,6 +489,23 @@ namespace C7GameData {
 			}
 
 			TriggerPopUp(hitCount, tile, $"The {walls.building.name} of {tile.cityAtTile.name} has been destroyed!");
+		}
+
+		// A land bombardment of a town shielded by a wonder's walls (see
+		// FindWonderWalls): its shots go at the walls, which are back at
+		// once, so nothing in the town is harmed.
+		private async Task BombardWonderWalls(Tile tile, Building walls) {
+			int wallDefence = walls.bombardDefense > 0 ? walls.bombardDefense : Building.DefaultWallBombardDefense;
+			double bombardStrength = StrengthVersus(null, CombatRole.Bombard, facingDirection);
+			double attackerOdds = bombardStrength / (bombardStrength + wallDefence);
+			if (Double.IsNaN(attackerOdds))
+				return;
+
+			await BeginBombard();
+			for (int shot = 0; shot < RateOfFire(); ++shot) {
+				await FireShot(tile, attackerOdds);
+			}
+			TriggerPopUp(0, tile, "");
 		}
 
 		private async Task BombardUnits(Tile tile, MapUnit target) {
