@@ -335,10 +335,17 @@ namespace C7Engine {
 		// stays with its owner until they answer (AnswerOffer). The offer
 		// lapses at the end of the turn. Humans play before the AIs (see
 		// TurnHandling.PlayersInTurnOrder), so an AI owner can't change the
-		// city before the human answers; in a game of several humans one
-		// who owns the city and plays first can. An AI decides at once
+		// city before the human answers. An AI decides at once
 		// (AiAcceptsFlip). Returns whether the city flipped now.
+		//
+		// In a game with more than one human player (hotseat or LAN) no one
+		// is asked: the city flips to a human at once (owner's decision,
+		// 2026-10-21). Single-player keeps the question.
 		public static bool Defect(GameData gameData, City city, Player to) {
+			if (to.isHuman && Volcano.IsMultiplayer(gameData)) {
+				Flip(gameData, city, to);
+				return true;
+			}
 			if (to.isHuman) {
 				city.cultureFlipOfferedTo = to;
 				city.cultureFlipOfferTurn = gameData.turn;

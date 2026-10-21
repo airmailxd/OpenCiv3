@@ -58,6 +58,14 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		}
 	}
 
+	// A single-player game whose one human is the given civ.
+	private void MakeTheOnlyHuman(Player human) {
+		foreach (Player p in gameData.players) {
+			p.isHuman = false;
+		}
+		human.isHuman = true;
+	}
+
 	// Our capital, their capital, and one of our cities, with foreign
 	// citizens of theirs, that they have much more culture than us.
 	private (City ourCapital, City theirCapital, City city) Setup() {
@@ -329,7 +337,7 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void AHumanIsAskedAndMayRebuffTheRebels() {
 		City city = CityCertainToFlip();
-		them.isHuman = true;
+		MakeTheOnlyHuman(them);
 		CultureFlip.ProcessEndOfRound(gameData);
 		Assert.Equal(us, city.owner);
 		Assert.True(CultureFlip.OfferStands(gameData, city, them));
@@ -356,6 +364,22 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(us, city.owner);
 	}
 
+	// With more than one human player (hotseat or LAN) the city flips to
+	// a human at once, with no question (owner's decision, 2026-10-21).
+	[Fact]
+	public void InMultiplayerAHumanTakesTheCityUnasked() {
+		City city = CityCertainToFlip();
+		MakeTheOnlyHuman(them);
+		us.isHuman = true;
+		EngineStorage.messagesToUI.Clear();
+		CultureFlip.ProcessEndOfRound(gameData);
+		Assert.Equal(them, city.owner);
+		Assert.False(CultureFlip.OfferStands(gameData, city, them));
+
+		CultureFlip.AskHuman(gameData, them);
+		Assert.Empty(EngineStorage.messagesToUI.OfType<MsgShowCultureFlipOffer>());
+	}
+
 	// "Great! Install a new governor.", and the wonders go with the city:
 	// "the city contains $WONDER3!" (WE_CONVERT_CITY_WITH_WONDER).
 	[Fact]
@@ -363,7 +387,7 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		City city = CityCertainToFlip();
 		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
 		city.AddBuilding(wonder);
-		them.isHuman = true;
+		MakeTheOnlyHuman(them);
 		CultureFlip.ProcessEndOfRound(gameData);
 
 		EngineStorage.messagesToUI.Clear();
@@ -381,7 +405,7 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void AnOfferLastsTheTurnAndIsSaved() {
 		City city = CityCertainToFlip();
-		them.isHuman = true;
+		MakeTheOnlyHuman(them);
 		CultureFlip.ProcessEndOfRound(gameData);
 		SaveCity saved = new(city);
 		Assert.Equal(them.id, saved.cultureFlipOfferedTo);
