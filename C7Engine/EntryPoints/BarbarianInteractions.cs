@@ -457,42 +457,42 @@ public class BarbarianInteractions {
 
 	}
 
-	// The tech that lets barbarians field their advanced unit (normally
-	// horsemen), and how many civs must know it first: "once two civs know
-	// horseback riding, Barb camps can spawn horsemen" (Padma,
+	// Barbarians field their advanced unit (normally horsemen) instead of
+	// the basic one once the map has four cities per civ. Flintlock, reading
+	// the 1.22 code (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16644538):
+	// "The game starts spawning advanced instead of regular barbs when there
+	// are at least four cities per player on the map." That replaces the
+	// earlier community rule, "once two civs know horseback riding, Barb
+	// camps can spawn horsemen" (Padma,
 	// https://forums.civfanatics.com/threads/barbarian-horsemen.50956/).
-	public const string AdvancedBarbarianTechName = "Horseback Riding";
-	public const int CivsKnowingTechForAdvancedBarbarians = 2;
+	public const int CitiesPerCivForAdvancedBarbarians = 4;
 
-	// Whether barbarians may field their advanced unit yet: once two civs in
-	// the game know Horseback Riding. A ruleset without that tech has
-	// nothing to gate them on, so they may.
+	// Whether barbarians field their advanced unit yet. The players counted
+	// are the civs still in the game; barbarian cities count among the
+	// cities.
 	public static bool AdvancedBarbariansAvailable(GameData gameData) {
-		Tech horsebackRiding = gameData.techs?.Find(t => string.Equals(t.Name, AdvancedBarbarianTechName, StringComparison.OrdinalIgnoreCase));
-		if (horsebackRiding == null) {
-			return true;
-		}
-		int civsKnowing = 0;
+		int civs = 0;
+		int cities = 0;
 		foreach (Player player in gameData.players) {
-			if (!player.isBarbarians && player.knownTechs.Contains(horsebackRiding.id)) {
-				++civsKnowing;
+			cities += player.cities.Count;
+			if (!player.isBarbarians && !player.defeated && player.isIncludedInGame) {
+				++civs;
 			}
 		}
-		return civsKnowing >= CivsKnowingTechForAdvancedBarbarians;
+		return cities >= CitiesPerCivForAdvancedBarbarians * civs;
 	}
 
+	// The unit a camp spawns: a sea unit now and then from a coastal camp,
+	// otherwise the basic barbarian, or the advanced one once it is
+	// available ("advanced instead of regular barbs", above). Civ3 uses only
+	// the RULE's basic and advanced barbarian and barbarian sea unit
+	// (https://forums.civfanatics.com/threads/barbarians-best-way-to-upgrade.47200/).
 	public static UnitPrototype SelectBarbarianUnitType(BarbarianInfo barbInfo, Tile tile, bool advancedAllowed = true) {
 		// Coastal camps have a 20% chance of spawning a sea unit
 		if (tile.NeighborsWater() && GameData.rng.Next(100) < 20) {
 			return barbInfo.barbarianSeaUnitProto;
 		}
-
-		// Land units are generated in a 1:3 ratio, one advanced unit for every three basic barbarians.
-		// UNVERIFIED (no Civ3 source found): Civ3 uses only the RULE's basic and advanced barbarian
-		// and barbarian sea unit (https://forums.civfanatics.com/threads/barbarians-best-way-to-upgrade.47200/),
-		// but no source gives a ratio between them.
-		bool advanced = GameData.rng.Next(100) < 25;
-		return advanced && advancedAllowed && barbInfo.advancedBarbarian != null ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
+		return advancedAllowed && barbInfo.advancedBarbarian != null ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
 	}
 
 	public static Tile SelectSpawnTile(Player player, Tile camp, UnitPrototype unitType) {

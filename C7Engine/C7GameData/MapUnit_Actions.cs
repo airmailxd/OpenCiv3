@@ -703,6 +703,10 @@ public partial class MapUnit {
 	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
 	// An army's members fight through the army, so they have none of their
 	// own.
+	//
+	// Each such tile fires once, with its strongest unit: "The game will
+	// always select the strongest available unit to try to do damage."
+	// (Flintlock, https://forums.civfanatics.com/threads/zones-of-control.682034/, #3).
 	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
 		List<MapUnit> result = new();
 		foreach (Tile t in from.neighbors.Values) {
@@ -710,15 +714,43 @@ public partial class MapUnit {
 				continue;
 			}
 			bool fortified = t.HasFortress() || IsWalledTown(t);
+			MapUnit strongest = null;
 			foreach (MapUnit u in t.unitsOnTile) {
 				if ((u.unitType.hasZoneOfControl || fortified) && !u.IsInArmy() && !u.IsAirUnit() && u.CanAttack()
 					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
-					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)) {
-					result.Add(u);
+					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)
+					&& (strongest == null || u.ZoneOfControlStrength() > strongest.ZoneOfControlStrength())) {
+					strongest = u;
 				}
+			}
+			if (strongest != null) {
+				result.Add(strongest);
 			}
 		}
 		return result;
+	}
+
+	// The strength a unit's zone of control shot hits with: the higher of
+	// its attack and bombard ("A = the higher of the ZOC unit's attack or
+	// bombard", compendium 01, section 1.8, after Flintlock's formula below).
+	public double ZoneOfControlStrength() {
+		return Math.Max(CombatBaseStrength(CombatRole.Attack), unitType.bombard);
+	}
+
+	// The chance a zone of control shot of strength A hits a unit whose
+	// defence is D. Flintlock, reading the 1.22 code
+	// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16537815):
+	// "The formula for the chance to do damage by ZoC is: 1 - (D*16 / (D*16
+	// + A))", which "also applies to coastal fortresses"; his examples are
+	// 55.6% for strength 160 against defence 8 and 5.9% for strength 8. D
+	// is the moving unit's own defence: "The defense value of the moving
+	// units does not enjoy bonuses from the terrain." (Ozymandias,
+	// https://forums.civfanatics.com/threads/zones-of-control.682034/).
+	public static double ZoneOfControlHitChance(double attack, double defence) {
+		if (attack <= 0) {
+			return 0;
+		}
+		return 1 - (defence * 16 / (defence * 16 + attack));
 	}
 
 	// Whether the tile holds a town (size 6 or less in the standard rules)
@@ -738,14 +770,13 @@ public partial class MapUnit {
 			return;
 		}
 
-		double attackStrength = StrengthVersus(target, CombatRole.Attack, location.DirectionTo(target.location));
-		double defenseStrength = target.StrengthVersus(this, CombatRole.Defense, location.DirectionTo(target.location));
+		double hitChance = ZoneOfControlHitChance(ZoneOfControlStrength(), target.CombatBaseStrength(CombatRole.Defense));
 		var originalDirection = facingDirection;
 		facingDirection = GetAttackAnimationDirection(location.DirectionTo(target.location));
 		await animateAsync(AnimatedAction.ATTACK1);
 		facingDirection = originalDirection;
 
-		if (GameData.rng.NextDouble() < attackStrength / (attackStrength + defenseStrength)) {
+		if (GameData.rng.NextDouble() < hitChance) {
 			// An army's hit comes off its pooled hit points (see
 			// MapUnit.Combatant).
 			target.AbsorbBombardHit(lethal: false);

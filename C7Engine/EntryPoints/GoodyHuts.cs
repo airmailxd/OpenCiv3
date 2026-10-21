@@ -513,7 +513,7 @@ public static class GoodyHuts {
 		int count = 1 + (hardness >= 0.5 ? 1 : 0) + (hardness >= 0.85 ? 1 : 0);
 		List<Tile> tiles = BarbarianTiles(tile);
 		UnitPrototype first = null;
-		// Advanced barbarians wait for Horseback Riding (see
+		// Advanced barbarians wait for four cities per civ (see
 		// BarbarianInteractions.AdvancedBarbariansAvailable).
 		bool advancedAllowed = BarbarianInteractions.AdvancedBarbariansAvailable(gameData);
 		for (int i = 0; i < count && tiles.Count > 0; ++i) {

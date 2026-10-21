@@ -114,3 +114,13 @@ AI trials with every civ AI and the same switches for all (8 games of 200 turns)
 | Now, plus `stock-garrison` | 0.7 / 0.6 | 1.5 / 1.2 | 21.4 / 21.2 | 1533 / 1505 |
 
 The faithful rules give rare wars in the engine for two reasons. First, the AI does not keep Civ3's garrison of two defensive units and one offensive unit per city, which justanick says makes the stock AI "eager to start wars". Second, it runs a treasury of about 5 gold a city against the 16 the roll asks for. Other things not from the stock code also hold wars back: no plotting below 3 cities (about 20% of turns), the 20-turn cooldown after a campaign, and targets limited to cities on our landmass within 14 tiles. Overseas targets count in Civ3, at half score.
+
+## Civ3's AI gold reserve (20 October)
+
+This follows Flintlock's code readings in the C3X thread (compendium 08, the upgrade and rush-buying bullets). There were two trials, each 8 games of 200 turns at Monarch on each map: a paired one as above, and an all-civs one (`C7_TRIAL_ALL=1`, every civ with the switch). The all-civs run was compared with a run at the same commit without the switch, on the same seeds. These runs include this branch's rules changes (bankruptcy, capture gold, zone of control, advanced barbarians and the rest), in both arms.
+
+| Change | Where | Trial (score, Continents / Pangaea) | Result |
+|---|---|---|---|
+| `stock-gold-reserve`: the AI keeps 16 gold per city, plus the treasury that earns full interest (1000 gold with Wall Street), before it upgrades a unit or hurries one. It makes no upgrades at all while below that reserve. This replaces a flat 100 for upgrades and 10 + 2 a city for hurrying. Civ3's AI hurries only improvements, but this AI hurries only units, so the reserve applies to unit hurrying. | `DevelopmentAI.StockGoldReserve`, `PlayerAI.UpgradeUnits`, `DevelopmentAI.HurryProduction` | Paired: +9 ± 48 / +14 ± 25 (hurries -1.0* on Continents; citizens +5.7*, disorder +0.4*, wars +0.16* on Pangaea). All civs against the baseline, per civ: Continents score 1632 / 1623, cities 16.8 / 16.8, techs 33.0 / 33.0, units 75.6 / 75.8, war turns 1.7 / 1.3, gold 98 / 63. Pangaea score 1586 / 1576, cities 15.2 / 15.3, techs 39.5 / 39.0, units 69.5 / 71.0, war turns 3.4 / 5.2, gold 113 / 88. | Kept (Civ3's rule, not weaker); the switch is gone |
+
+The first all-civs Pangaea run hung on turn 198 of its last game. An explorer kept stepping back and forth along a railroad, and those moves cost nothing. `UnitAI.PlayTurn` now ends a unit's turn after 300 free steps in a row. The baseline gave the same numbers with and without this fix.

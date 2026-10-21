@@ -146,6 +146,33 @@ public class ZoneOfControlTest : MapBase {
 		Assert.Equal([cavalry], mover.FindZoneOfControlAttackers(from, to));
 	}
 
+	// "The game will always select the strongest available unit to try to
+	// do damage." (Flintlock, https://forums.civfanatics.com/threads/zones-of-control.682034/, #3).
+	[Fact]
+	public void OnlyTheStrongestUnitOnATileFires() {
+		MakeUnit(them, watchTower, zoc: true);
+		MapUnit strong = MakeUnit(them, watchTower, zoc: true);
+		strong.unitType.attack = 6;
+		MapUnit mover = MakeUnit(us, from, zoc: false);
+
+		Assert.Equal([strong], mover.FindZoneOfControlAttackers(from, to));
+	}
+
+	// "The formula for the chance to do damage by ZoC is: 1 - (D*16 / (D*16
+	// + A))", with "strength 160 against defence 8" giving 55.6% and
+	// strength 8 giving 5.9% (Flintlock, C3X thread post-16537815).
+	[Fact]
+	public void TheHitChanceIsFlintlocksFormula() {
+		Assert.Equal(0.556, MapUnit.ZoneOfControlHitChance(160, 8), 3);
+		Assert.Equal(0.059, MapUnit.ZoneOfControlHitChance(8, 8), 3);
+		Assert.Equal(0, MapUnit.ZoneOfControlHitChance(0, 8));
+
+		// The higher of attack and bombard.
+		MapUnit guard = MakeUnit(them, watchTower, zoc: true);
+		guard.unitType.bombard = 8;
+		Assert.Equal(8, guard.ZoneOfControlStrength());
+	}
+
 	[Fact]
 	public void AirUnitsHaveNoZoneOfControl() {
 		MapUnit fighter = MakeUnit(them, watchTower, zoc: true);

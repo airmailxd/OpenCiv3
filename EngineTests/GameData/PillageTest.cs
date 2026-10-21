@@ -63,6 +63,21 @@ public class PillageTest {
 		Assert.Equal(2, unit.movementPoints.remaining);
 	}
 
+	// The pillage code "also checks whether the tile has a barricade, if it
+	// does the unit loses all of its remaining moves" (Flintlock, C3X thread
+	// post-16401798), even for an army.
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void PillagingOnABarricadeCostsAllMoves(bool army) {
+		TerrainImprovement fortress = new("fortress", TerrainImprovement.Layer.Holdings);
+		tile.overlays.Add(new TerrainImprovement("barricade", TerrainImprovement.Layer.Holdings, upgradesFrom: fortress));
+		MapUnit unit = MakePillager(movement: 3, army: army);
+
+		Assert.True(unit.Pillage());
+		Assert.False(unit.movementPoints.canMove);
+	}
+
 	[Fact]
 	public void OnlyArmiesPillageMoreThanOncePerTurn() {
 		tile.overlays.Add(railroad);

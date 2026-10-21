@@ -28,7 +28,7 @@ namespace C7Engine.AI {
 			}
 			bool fogRefreshed = false;
 			foreach (City city in player.cities.ToArray()) {
-				if (city.residents.Count < City.MinimumPopulationToDraft) {
+				if (city.residents.Count < City.MinimumPopulationToDraft(player.rules)) {
 					continue;
 				}
 				if (!fogRefreshed) {

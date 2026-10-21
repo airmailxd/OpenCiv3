@@ -42,10 +42,17 @@ public partial class MapUnit {
 	// one movement point. Armies pillage for nothing: in Conquests "Armies
 	// now have blitz ... and can pillage without expending a movement point"
 	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+	//
+	// On a barricade, pillaging costs all the unit's remaining moves, an
+	// army's too: the pillage code "also checks whether the tile has a
+	// barricade, if it does the unit loses all of its remaining moves"
+	// (Flintlock, reading the 1.22 code,
+	// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16401798).
 	public bool Pillage() {
 		if (!CanPillage()) {
 			return false;
 		}
+		bool onBarricade = location.overlays.HasImprovementWithKey(Tile.TileOverlays.BARRICADE, TerrainImprovement.Layer.Holdings);
 		foreach (TerrainImprovement target in PillageTargets()) {
 			log.Information("{Unit} pillages the {Improvement} at {Tile}", this, target.key, location);
 			location.overlays.Remove(target);
@@ -53,7 +60,9 @@ public partial class MapUnit {
 				location.overlays.Add(target.upgradesFrom);
 		}
 		location.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
-		if (!IsArmy())
+		if (onBarricade)
+			movementPoints.onConsumeAll();
+		else if (!IsArmy())
 			movementPoints.onUnitMove(1);
 		hasPillagedThisTurn = true;
 		Wake();

@@ -133,6 +133,99 @@ public class BankruptcyTest {
 		Assert.Equal(unitGoes, city.constructed_buildings.Contains(bank));
 	}
 
+	private void RunTurnWithRolls(params int[] rolls) {
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new ScriptedRandom(rolls);
+			player.DoPerTurnFinanceUpdates(gameData);
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// "The game will only disband at most one unit per turn due to failure
+	// to pay maintenance." (Flintlock, C3X thread post-16606869,
+	// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/)
+	[Fact]
+	public void AtMostOneUnitIsDisbandedPerTurn() {
+		player.government = new Government { unitCost = 1 };
+		AddUnit();
+		AddUnit();
+		AddUnit();
+		AddUnit(nationality: new Civilization("Rome")).unitType.actions.Add(UnitAction.BuildCity);
+		player.gold = 0;
+
+		RunTurnWithRolls(0);
+		Assert.Equal(3, player.units.Count);
+		Assert.Equal(0, player.gold);
+
+		RunTurnWithRolls(0);
+		Assert.Equal(2, player.units.Count);
+	}
+
+	// "The game tries to pick the least valuable unit to disband", skipping
+	// King units (Flintlock, post-16356899 and post-16871456).
+	[Fact]
+	public void TheLeastValuableNonKingUnitIsDisbanded() {
+		player.government = new Government { unitCost = 1 };
+		MapUnit king = AddUnit();
+		king.unitType.shieldCost = 0;
+		king.unitType.isKing = true;
+		MapUnit dear = AddUnit();
+		dear.unitType.shieldCost = 60;
+		MapUnit cheap = AddUnit();
+		cheap.unitType.shieldCost = 20;
+		MapUnit alsoCheap = AddUnit();
+		alsoCheap.unitType.shieldCost = 20;
+		AddUnit(nationality: new Civilization("Rome")).unitType.actions.Add(UnitAction.BuildCity);
+		player.gold = 0;
+
+		RunTurnWithRolls(0);
+
+		Assert.DoesNotContain(cheap, player.units);
+		Assert.Contains(alsoCheap, player.units);
+		Assert.Contains(dear, player.units);
+		Assert.Contains(king, player.units);
+	}
+
+	// Buildings are deleted from a random city, "There's a method in the
+	// game whose job is to delete a building from a random city" / "The
+	// buildings are simply deleted." (Flintlock, post-16789620): no gold
+	// comes back.
+	[Fact]
+	public void ABuildingIsDeletedFromARandomCityForNoGold() {
+		City other = new(Tile.NONE, player, "Poorer", ID.None("city"));
+		player.cities.Add(other);
+		CityBuilding bank = AddBuilding("Bank", 2);
+		SaveBuilding sb = new() { name = "Bank", maintenanceCost = 2 };
+		other.AddBuilding(new Building(sb, gameData));
+		CityBuilding otherBank = other.constructed_buildings[^1];
+		player.gold = 2;
+
+		// Buildings are paid first, then the second city is picked.
+		RunTurnWithRolls(0, 1);
+
+		Assert.Contains(bank, city.constructed_buildings);
+		Assert.DoesNotContain(otherBank, other.constructed_buildings);
+		Assert.Equal(0, player.gold);
+	}
+
+	// Wall Street's interest is capped "at 50 gold per turn" (Civilopedia
+	// BLDG_Wall_Street), and the game "separately computes the interest
+	// then applies the limit" (Flintlock, C3X thread post-16881426), so two
+	// interest buildings share the one cap.
+	[Fact]
+	public void InterestIsCappedInTotal() {
+		AddBuilding("Wall Street", 0, SaveBuilding.Flag.TreasuryEarnsInterest);
+		player.gold = 600;
+		Assert.Equal(30, player.AggregateFlows().interest);
+		Assert.Equal(1000, player.GoldForFullInterest());
+
+		AddBuilding("Wall Street 2", 0, SaveBuilding.Flag.TreasuryEarnsInterest);
+		Assert.Equal(50, player.AggregateFlows().interest);
+		Assert.Equal(500, player.GoldForFullInterest());
+	}
+
 	// Anarchy: "No maintenance costs or unit upkeep needed"
 	// (https://civfanatics.com/civ3/civilopedia/governments/), so a broke
 	// civ in anarchy keeps its buildings.

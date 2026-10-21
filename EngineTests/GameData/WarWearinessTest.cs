@@ -277,6 +277,31 @@ public class WarWearinessTest {
 		Assert.Same(democracy, player.government);
 	}
 
+	// "it checks against total WW divided by the number of contacts the
+	// player has", and revolts "if their WW is over 90" (Flintlock, reading
+	// the 1.22 code, C3X thread post-16199613): a civ at peace with a second
+	// contact halves the weariness of its one war.
+	[Theory]
+	[InlineData(150, false)]
+	[InlineData(180, false)]
+	[InlineData(182, true)]
+	public void TheRevoltTestDividesTotalWearinessByContacts(int points, bool revolts) {
+		(C7GameData.GameData gameData, Player player) = WearyPlayer(warWearinessLevel: 2, weariness: 0);
+		player.id = ID.FromString("player-1");
+		gameData.players.Add(player);
+		Player enemy = new() { civilization = new Civilization("Enemy"), id = ID.FromString("player-2") };
+		Player friend = new() { civilization = new Civilization("Friend"), id = ID.FromString("player-3") };
+		gameData.players.Add(enemy);
+		gameData.players.Add(friend);
+		player.playerRelationships[enemy.id] = new PlayerRelationship { warWearinessPoints = points };
+		player.playerRelationships[friend.id] = new PlayerRelationship();
+		Government democracy = player.government;
+
+		player.RevoltFromWarWeariness(gameData);
+
+		Assert.Equal(revolts, !ReferenceEquals(democracy, player.government));
+	}
+
 	[Fact]
 	public void LowWarWearinessGovernmentsDontRevolt() {
 		(C7GameData.GameData gameData, Player player) = WearyPlayer(warWearinessLevel: 1, weariness: 200);

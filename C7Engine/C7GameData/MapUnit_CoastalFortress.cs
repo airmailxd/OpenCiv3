@@ -12,9 +12,12 @@ namespace C7GameData {
 	// those 8 tiles", one shot each such move, and "the shot will not always
 	// hit"; a hit takes one hit point
 	// (https://forums.civfanatics.com/threads/coastal-forts-and-bombardment.690690/).
-	// UNVERIFIED (no Civ3 source found): the shot hits with the BIQ's naval
-	// power (8 for the Coastal Fortress) against the ship's bombard defence,
-	// A/(A+D), and, like a zone of control attack, never sinks the ship.
+	// The shot hits with the BIQ's naval power (8 for the Coastal Fortress)
+	// by the zone of control formula, which "also applies to coastal
+	// fortresses" (Flintlock, reading the 1.22 code,
+	// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16537815;
+	// see MapUnit.ZoneOfControlHitChance), and, like a zone of control
+	// attack, never sinks the ship.
 	public partial class MapUnit {
 		// The enemy cities with a coastal fortress that this ship passes as
 		// it moves from one tile to the next: those next to both.
@@ -53,8 +56,8 @@ namespace C7GameData {
 				return false;
 			}
 			double attack = CoastalFortressPower(city);
-			double defence = StrengthVersus(null, CombatRole.BombardDefense, null);
-			if (attack <= 0 || GameData.rng.NextDouble() >= attack / (attack + defence)) {
+			double chance = ZoneOfControlHitChance(attack, CombatBaseStrength(CombatRole.Defense));
+			if (attack <= 0 || GameData.rng.NextDouble() >= chance) {
 				await location.AnimateAsync(AnimatedEffect.WaterMiss);
 				return false;
 			}

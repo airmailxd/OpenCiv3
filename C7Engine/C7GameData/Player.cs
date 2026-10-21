@@ -240,7 +240,7 @@ namespace C7GameData {
 
 		// The amount of gold this player has. It never goes below zero: the
 		// callers that spend gold (hurrying, espionage, upgrades, deals) check
-		// the treasury first, and the turn's deficit is handled by selling
+		// the treasury first, and the turn's deficit is handled by deleting
 		// buildings and disbanding units. Should anything still overspend,
 		// the treasury is emptied and a warning logged rather than the turn
 		// crashing.
@@ -824,9 +824,41 @@ namespace C7GameData {
 
 			result.unitSupport = unitSupport;
 
-			if (interestBuildings > 0) result.interest = interestBuildings * Math.Min((int)(gold * rules.TreasuryInterestRate), rules.MaxInterest);
+			result.interest = TreasuryInterest(interestBuildings);
 
 			return result;
+		}
+
+		// Interest on the treasury: 5% per interest building (Wall Street),
+		// "with a maximum cap of 50 gold per turn" (Civilopedia
+		// BLDG_Wall_Street). The cap is on the total: "Whenever the game
+		// needs to compute a player's gold income, it separately computes
+		// the interest then applies the limit." (Flintlock, reading the 1.22
+		// code, https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16881426).
+		// Stock Conquests has one such building per civ, so this matters only
+		// with more than one.
+		private int TreasuryInterest(int interestBuildings) {
+			if (interestBuildings <= 0) {
+				return 0;
+			}
+			return Math.Min(interestBuildings * (int)(gold * rules.TreasuryInterestRate), rules.MaxInterest);
+		}
+
+		// The treasury that earns the most interest: 1000 gold with one
+		// interest building, less with more. Zero without one.
+		public int GoldForFullInterest() {
+			int interestBuildings = 0;
+			foreach (City c in cities) {
+				foreach (CityBuilding cb in c.constructed_buildings) {
+					if (cb.building.treasuryEarnsInterest) {
+						++interestBuildings;
+					}
+				}
+			}
+			if (interestBuildings == 0 || rules.TreasuryInterestRate <= 0) {
+				return 0;
+			}
+			return (int)Math.Ceiling(rules.MaxInterest / (rules.TreasuryInterestRate * interestBuildings));
 		}
 
 		// The same as CalculateGoldPerTurn, from per-city flows computed
@@ -1444,58 +1476,79 @@ namespace C7GameData {
 			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 
 			// As in Civ 3, a deficit is fine while the treasury can pay for it.
-			// When it can't, units over the support limit are disbanded or
-			// city improvements are lost, but the sliders are left alone.
+			// When it can't, a unit is disbanded or city improvements are
+			// lost, but the sliders are left alone.
 			//
-			// Which goes first is random: the stock game pays building and
-			// unit upkeep in a random order, so whichever is paid second
-			// takes the shortfall. The C3X mod notes that the building upkeep
-			// sum "is called in two places as part of the randomization of
-			// whether improv or unit maintenance gets paid first"
+			// Which upkeep is paid first is random, and whichever is paid
+			// second takes the shortfall. The C3X mod notes that the building
+			// upkeep sum "is called in two places as part of the randomization
+			// of whether improv or unit maintenance gets paid first"
 			// (https://github.com/maxpetul/C3X/blob/master/injected_code.c).
 			// It's rolled only when the treasury falls short, so other turns
 			// leave the random numbers alone.
+			//
+			// What is lost, from Flintlock's reading of the 1.22 code
+			// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/):
+			// buildings go one at a time from a random city, "There's a method
+			// in the game whose job is to delete a building from a random city"
+			// / "The buildings are simply deleted." (post-16789620), so no gold
+			// comes back; and "The game will only disband at most one unit per
+			// turn due to failure to pay maintenance." (post-16606869), so an
+			// empire short on unit upkeep can stay short for several turns.
 			List<string> disbandedUnits = new();
 			List<string> lostImprovements = new();
-			bool? unitsGoFirst = null;
-			while (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
-				unitsGoFirst ??= GameData.rng.Next(2) == 0;
-				if (unitsGoFirst.Value ? TryDisbandUnsupportedUnit() || TryLoseImprovement() : TryLoseImprovement() || TryDisbandUnsupportedUnit()) {
-					continue;
+			if (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
+				bool buildingsPaidFirst = GameData.rng.Next(2) == 0;
+				if (buildingsPaidFirst) {
+					// Building upkeep is short only if the treasury can't
+					// cover it before units are paid for.
+					while (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) + unitSupportCost < 0 && TryLoseImprovement()) { }
+					if (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
+						TryDisbandUnsupportedUnit();
+					}
+				} else {
+					if (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) + BuildingUpkeep() < 0) {
+						TryDisbandUnsupportedUnit();
+					}
+					while (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0 && TryLoseImprovement()) { }
 				}
-
-				// Nothing left to give up, for example when the deficit comes
-				// from gold-per-turn deals. The treasury bottoms out at zero.
-				log.Warning("{Player} was unable to get the budget under control despite disbanding units and losing improvements (gold={Gold}, gpt={GoldPerTurn})",
-					this, gold, GoldPerTurnFrom(cityFlows, unitSupportCost));
-				break;
+				if (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
+					// Units still unpaid wait for next turn's disbanding, and
+					// a deficit from gold-per-turn deals has nothing to give
+					// up. The treasury bottoms out at zero.
+					log.Information("{Player} is still short of gold after paying upkeep (gold={Gold}, gpt={GoldPerTurn})",
+						this, gold, GoldPerTurnFrom(cityFlows, unitSupportCost));
+				}
 			}
 
-			// Disbands one unit at a time, so the budget is checked again and
-			// no more are disbanded than needed. Captives and units of types
-			// that need no support are free, so disbanding one wouldn't lower
-			// the support cost.
-			bool TryDisbandUnsupportedUnit() {
-				int disbandableCount = 0;
-				foreach (MapUnit u in units) {
-					if (NeedsSupport(u)) {
-						++disbandableCount;
-					}
+			int BuildingUpkeep() {
+				int result = 0;
+				foreach (CityFlows flows in cityFlows) {
+					result += flows.maintenance;
 				}
-				if (unitSupportCost <= 0 || disbandableCount == 0) {
-					return false;
+				return result;
+			}
+
+			// Disbands the least valuable unit that needs support. Captives and
+			// units of types that need no support are free, so disbanding one
+			// wouldn't lower the support cost.
+			void TryDisbandUnsupportedUnit() {
+				if (unitSupportCost <= 0) {
+					return;
 				}
-				MapUnit unitToRemove = SupportedUnitAt(GameData.rng.Next(disbandableCount));
+				MapUnit unitToRemove = LeastValuableSupportedUnit();
+				if (unitToRemove == null) {
+					return;
+				}
 				log.Information("{Player} is out of gold, disbanding {Unit} at {Location}", this, unitToRemove, unitToRemove.location);
 				disbandedUnits.Add(unitToRemove.name);
 				gameData.RemoveUnit(unitToRemove);
 				unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
-				return true;
 			}
 
-			// Gives up the improvement that costs the most to maintain.
+			// Deletes an improvement from a random city that has one to lose.
 			bool TryLoseImprovement() {
-				(City city, CityBuilding building) = MostExpensiveImprovementToMaintain();
+				(City city, CityBuilding building) = ImprovementToLoseInRandomCity();
 				if (city == null) {
 					return false;
 				}
@@ -1525,39 +1578,58 @@ namespace C7GameData {
 		// and of a type that requires support.
 		private static bool NeedsSupport(MapUnit u) => !u.IsCaptive() && u.unitType.requiresSupport;
 
-		// The index'th unit that needs support, in the order of the units
-		// list.
-		private MapUnit SupportedUnitAt(int index) {
+		// The unit to disband when unit upkeep can't be paid. Flintlock
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16356899):
+		// "The game tries to pick the least valuable unit to disband",
+		// avoiding captured units, King units and armies, with ties broken by
+		// list order. How the game values a unit isn't given; we use its
+		// shield cost. Captives cost nothing here anyway, Kings are never
+		// picked, and armies (and their members) go only when nothing else
+		// is left. The stock search "forgot about the requires support flag"
+		// (post-16874607), a bug we don't copy: such units are free.
+		private MapUnit LeastValuableSupportedUnit() {
+			MapUnit best = null;
+			bool bestInArmy = false;
 			foreach (MapUnit u in units) {
-				if (!NeedsSupport(u)) {
+				if (!NeedsSupport(u) || u.unitType.isKing) {
 					continue;
 				}
-				if (index == 0) {
-					return u;
+				bool inArmy = u.IsArmy() || u.IsInArmy();
+				if (best == null
+					|| (bestInArmy && !inArmy)
+					|| (bestInArmy == inArmy && u.unitType.shieldCost < best.unitType.shieldCost)) {
+					best = u;
+					bestInArmy = inArmy;
 				}
-				--index;
 			}
-			throw new ArgumentOutOfRangeException(nameof(index));
+			return best;
 		}
 
-		// The improvement (not the palace or a wonder) with the highest
-		// maintenance cost, or (null, null) if nothing costs anything.
-		private (City, CityBuilding) MostExpensiveImprovementToMaintain() {
-			City bestCity = null;
-			CityBuilding best = null;
+		// An improvement (not the palace or a wonder) that costs upkeep, from a
+		// random city that has one, or (null, null) if nothing costs
+		// anything. Which of the city's buildings the game deletes isn't
+		// known (compendium 02, open question 7); we take its most expensive.
+		private (City, CityBuilding) ImprovementToLoseInRandomCity() {
+			List<(City, CityBuilding)> choices = new();
 			foreach (City c in cities) {
+				CityBuilding best = null;
 				foreach (CityBuilding cb in c.constructed_buildings) {
 					Building b = cb.building;
 					if (b.maintenanceCost <= 0 || b.isCenterOfEmpire || b.isSmallWonder || b.IsGreatWonder()) {
 						continue;
 					}
 					if (best == null || b.maintenanceCost > best.building.maintenanceCost) {
-						bestCity = c;
 						best = cb;
 					}
 				}
+				if (best != null) {
+					choices.Add((c, best));
+				}
 			}
-			return (bestCity, best);
+			if (choices.Count == 0) {
+				return (null, null);
+			}
+			return choices[choices.Count == 1 ? 0 : GameData.rng.Next(choices.Count)];
 		}
 
 		public void HandleCityUpdates(GameData gameData) {
@@ -2248,31 +2320,41 @@ namespace C7GameData {
 			RevoltFromWarWeariness(gameData);
 		}
 
-		// The level at which a government with high war weariness falls: the
-		// article above gives Democracy "Level 1: 50% unhappy people, Level
-		// 2: 100% unhappy people, Level 3: Revolt", and the Civilopedia's
-		// government summary says Anarchy "occurs when WW reaches 100% when
-		// under Democracy" (https://civfanatics.com/civ3/civilopedia/governments/).
+		// A government with high war weariness falls into anarchy when its
+		// war weariness, summed over every civ and divided by the number of
+		// civs it has met, is over 90. Flintlock, reading the 1.22 code
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16199613):
+		// "a player gets kicked into anarchy if their WW is over 90", and "it
+		// checks against total WW divided by the number of contacts the
+		// player has." 91 points is where the community's level 3 begins:
+		// Democracy "Level 1: 50% unhappy people, Level 2: 100% unhappy
+		// people, Level 3: Revolt"
+		// (https://www.civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/).
 		// Democracy is the only government with high war weariness in the
-		// standard rules, so that is the BIQ value we go by.
-		private const int WarWearinessRevoltLevel = 3;
+		// standard rules.
+		private const int WarWearinessRevoltThreshold = 90;
 
-		// A government with high war weariness that reaches the revolt level
-		// against any civ is overthrown, as a revolution started by the
-		// player would be: "Our people are overthrowing our $GOVERNMENT0. Our
-		// Civilization is descending into Anarchy!" (Civ3's Script.txt,
-		// REVOLUTION).
+		// A government with high war weariness that passes the threshold is
+		// overthrown, as a revolution started by the player would be: "Our
+		// people are overthrowing our $GOVERNMENT0. Our Civilization is
+		// descending into Anarchy!" (Civ3's Script.txt, REVOLUTION).
 		internal bool RevoltFromWarWeariness(GameData gameData) {
 			if (isBarbarians || government == null || government.transitionType || government.warWeariness < 2) {
 				return false;
 			}
-			bool revolt = false;
-			foreach (int points in WarWearinessPointSources()) {
-				if (WarWearinessLevel(points) >= WarWearinessRevoltLevel) {
-					revolt = true;
-					break;
+			// Points kept from saves made before they were kept per civ count
+			// too.
+			int total = warWeariness;
+			int contacts = 0;
+			foreach (Player other in gameData.players) {
+				if (other == this || other.isBarbarians || other.defeated || other.id == null
+					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
+					continue;
 				}
+				total += pr.warWearinessPoints;
+				++contacts;
 			}
+			bool revolt = total / Math.Max(1, contacts) > WarWearinessRevoltThreshold;
 			Government anarchy = gameData.governments.Find(g => g.transitionType);
 			if (!revolt || anarchy == null) {
 				return false;

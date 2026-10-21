@@ -35,8 +35,15 @@ namespace C7GameData {
 		// keeps doing so would never end the unit's turn.
 		private const int MAX_STEPS_WITHOUT_PROGRESS = 4;
 
+		// How many steps in a row may cost no movement points. Moves along a
+		// railroad are free, so a plan that walks back and forth on one
+		// would never end the unit's turn either (an AI trial hung on turn
+		// 198 with an explorer doing that). No railroad trip is this long.
+		private const int MAX_FREE_STEPS = 300;
+
 		public async Task<Result> PlayTurn(Player player, MapUnit unit) {
 			int stepsWithoutProgress = 0;
+			int freeSteps = 0;
 			while (unit.movementPoints.canMove && !unit.isFortified) {
 				Tile locationBefore = unit.location;
 				float movementPointsBefore = unit.movementPoints.remaining;
@@ -57,6 +64,13 @@ namespace C7GameData {
 					}
 				} else {
 					stepsWithoutProgress = 0;
+				}
+				if (unit.movementPoints.remaining == movementPointsBefore) {
+					if (++freeSteps >= MAX_FREE_STEPS) {
+						break;
+					}
+				} else {
+					freeSteps = 0;
 				}
 			}
 			return Result.InProgress;
