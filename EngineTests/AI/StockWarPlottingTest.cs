@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.AI;
 using C7GameData;
@@ -155,7 +157,7 @@ public sealed class StockWarPlottingTest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.False(StockWarPlotting.IsOffensive(worker) || StockWarPlotting.IsDefensive(worker));
 	}
 
-	// On trial (stock-garrison): the AI favours the units its garrison is
+	// The AI favours the units its garrison is
 	// short of, against the two defensive and one offensive unit per city
 	// the plotting rolls look for.
 	[Fact]
@@ -180,6 +182,76 @@ public sealed class StockWarPlottingTest : IClassFixture<SaveGameFixture>, IDisp
 			gameData.SpawnUnit(us, warrior, city.location);
 		}
 		Assert.Equal(0, ChooseProducible.StockGarrisonBonus(us, warrior));
+	}
+
+	// Only Civ3's own gates decide on a war (owner's decision, 2026-10-20):
+	// the engine's own are gone. Our one city, and theirs, built where
+	// asked; their other cities are razed after theirs is built, so they
+	// stay in the game.
+	private (City ours, City theirs) OneCityEach(Func<Tile, Tile, bool> where) {
+		foreach (City c in us.cities.ToList()) {
+			CityInteractions.DestroyCity(c);
+		}
+		City ours = BuildCity(us);
+		List<City> old = them.cities.ToList();
+		Tile tile = gameData.map.tiles.FirstOrDefault(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity()) && where(ours.location, t));
+		Assert.NotNull(tile);
+		City theirs = CityInteractions.BuildCity(tile, them, "Theirs");
+		foreach (City c in old) {
+			CityInteractions.DestroyCity(c);
+		}
+		return (ours, theirs);
+	}
+
+	// A civ with one city plots a war (no more "3 cities first"), on a
+	// city of theirs however far away on our landmass (no more 14 tiles).
+	[Fact]
+	public void AOneCityCivPlotsAWarOnAFarCity() {
+		gameData.random = new LowRandom();
+		(City ours, City theirs) = OneCityEach((o, t) => t.continent == o.continent && t.DistanceTo(o) > 20);
+		Assert.Equal(them, WarCampaign.PlotWar(us, gameData, out City target));
+		Assert.Equal(theirs, target);
+	}
+
+	// A civ with no city on our landmass is a target too, at half score
+	// ("If the AI and the target do not share a continent, X = X // 2").
+	// With no campaign to march overseas, the war is declared at once.
+	[Fact]
+	public async Task AnOverseasCivIsATargetAndTheWarIsDeclaredAtOnce() {
+		gameData.random = new LowRandom();
+		(City ours, City theirs) = OneCityEach((o, t) => t.continent != o.continent);
+		Assert.Equal(them, WarCampaign.PlotWar(us, gameData, out City target));
+		Assert.Null(target);
+		Assert.False(AtWar(us, them));
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.True(AtWar(us, them));
+	}
+
+	// The cooldown after a campaign no longer holds off plotting a war.
+	[Fact]
+	public async Task NoCooldownHoldsOffAPlottedWar() {
+		gameData.random = new LowRandom();
+		OneCityEach((o, t) => t.continent != o.continent);
+		WarCampaign.StartCooldown(us);
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.True(AtWar(us, them));
+	}
+
+	// A civ planning a war keeps its plan when a third civ attacks it, and
+	// still plots while at war with a civ within reach (Civ3's one in 16
+	// roll for being at war is the only gate).
+	[Fact]
+	public async Task BeingAttackedKeepsTheWarItPlots() {
+		gameData.random = new LowRandom();
+		OneCityEach((o, t) => t.continent == o.continent && t.DistanceTo(o) > 6);
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.True(WarCampaign.IsPlannedTarget(us, them));
+		Player third = gameData.players.First(p => !p.isBarbarians && p != us && p != them);
+		third.EnsureRelationshipExists(us);
+		third.DeclareWarOn(us, gameData.turn);
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.True(WarCampaign.IsPlannedTarget(us, them));
 	}
 
 	// AIs talk trade with each other only on "the base game's 1-in-4 gate
