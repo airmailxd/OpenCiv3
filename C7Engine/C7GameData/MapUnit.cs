@@ -1493,6 +1493,9 @@ namespace C7GameData {
 			if (CanBuildColony()) {
 				result.Add(UnitAction.BuildColony);
 			}
+			if (CanJoinCity()) {
+				result.Add(UnitAction.JoinCity);
+			}
 
 			if (CanBoardTransportOnTile(this.location, explicitLoad: true) && this.loadedOnUnitId == null) {
 				result.Add(UnitAction.Load);

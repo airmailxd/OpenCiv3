@@ -78,6 +78,7 @@ public partial class UnitButtons : VBoxContainer {
 		AddNewButton(specializedControls, C7Action.UnitScienceAge);
 		AddNewButton(specializedControls, C7Action.UnitBuildCity);
 		AddNewButton(specializedControls, C7Action.UnitBuildColony);
+		AddNewButton(specializedControls, C7Action.UnitJoinCity);
 
 		SetUpTerraformButtons();
 

@@ -81,6 +81,7 @@ public static class C7Action {
 	public const string UnitBuildRadarTower = "unit_build_radar_tower";
 	public const string UnitBuildOutpost = "unit_build_outpost";
 	public const string UnitBuildColony = "unit_build_colony";
+	public const string UnitJoinCity = "unit_join_city";
 	public const string UnitBuildBarricade = "unit_build_barricade";
 	public const string UnitAutomate = "unit_automate";
 	public const string UnitDisband = "unit_disband";
@@ -119,6 +120,7 @@ public static class C7Action {
 		[UnitHurryBuilding] = UnitAction.HurryBuilding,
 		[UnitScienceAge] = UnitAction.ScienceAge,
 		[UnitBuildColony] = UnitAction.BuildColony,
+		[UnitJoinCity] = UnitAction.JoinCity,
 		[UnitSentry] = UnitAction.Sentry,
 		[UnitSentryEnemyOnly] = UnitAction.SentryEnemyOnly,
 		[UnitWait] = UnitAction.Wait,
@@ -152,6 +154,8 @@ public static class C7Action {
 		[UnitBuildRadarTower] = "Build Radar Tower",
 		[UnitBuildOutpost] = "Build Outpost",
 		[UnitBuildColony] = "Build Colony",
+		// labels.txt's "Join City (B)" (#UNIT_ACTIONS).
+		[UnitJoinCity] = "Join City",
 		[UnitBuildBarricade] = "Build Barricade",
 		[UnitAutomate] = "Automate",
 		[UnitDisband] = "Disband",

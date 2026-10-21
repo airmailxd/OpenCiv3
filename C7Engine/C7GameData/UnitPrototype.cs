@@ -45,6 +45,9 @@ namespace C7GameData {
 		// A land unit flies from one of its owner's airports or airfields to
 		// another (see MapUnit_Airlift.cs).
 		Airlift,
+		// A unit adds its population cost to the city it stands in (see
+		// MapUnit_JoinCity.cs).
+		JoinCity,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {

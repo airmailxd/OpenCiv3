@@ -1113,6 +1113,15 @@ namespace C7GameData {
 			return gameData != null && FoodGrowthPerTurn() > 0 && CanGrowPopulationByOne(gameData);
 		}
 
+		// Whether a unit may join the city (see MapUnit.CanJoinCity): Civ3
+		// lets one join a city with room to grow past its present size
+		// (FUN_004b8d50) whose food surplus isn't negative (FUN_005d0670
+		// tests the city's food surplus, city+0x250, against 0).
+		public bool CanBeJoined() {
+			GameData gameData = EngineStorage.gameData;
+			return gameData != null && CanGrowPopulationByOne(gameData) && FoodGrowthPerTurn() >= 0;
+		}
+
 		internal bool CanGrowPopulationByOne(GameData gD) {
 			// We can always grow up to size 6.
 			if (residents.Count + 1 <= gD.rules.MaximumLevel1CitySize) {

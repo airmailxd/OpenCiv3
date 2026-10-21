@@ -2961,6 +2961,13 @@ public partial class Game : Node {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.BuildColony).send();
 		}
 
+		// In a city, B joins it instead: "Join City (B)" (labels.txt,
+		// #UNIT_ACTIONS).
+		if ((currentAction == C7Action.UnitJoinCity || (currentAction == C7Action.UnitBuildCity && !CurrentlySelectedUnit.canBuildCity()))
+			&& CurrentlySelectedUnit.CanJoinCity()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.JoinCity).send();
+		}
+
 		if (currentAction == C7Action.UnitBuildArmy && CurrentlySelectedUnit.CanFormArmy()) {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.FormArmy).send();
 		}

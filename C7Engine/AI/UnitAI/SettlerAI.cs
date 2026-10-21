@@ -459,24 +459,12 @@ namespace C7Engine {
 			return Math.Max(1, unit.unitType.populationCost);
 		}
 
+		// Joins the city the way a human's unit does (see MapUnit.JoinCity),
+		// without needing the Join City ability, which units in saves made
+		// before it was imported lack.
 		private static void AddPopulation(City city, MapUnit unit) {
-			GameData gameData = EngineStorage.gameData;
-			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
-			for (int i = 0; i < PopulationOf(unit); ++i) {
-				CityResident resident = new() {
-					citizenType = defaultCitizen,
-					// Captured settlers keep their nationality and "if ordered to
-					// join a city, become foreign nationals" (Civilopedia,
-					// GCON_Nationality).
-					nationality = unit.nationality ?? unit.owner.civilization,
-					city = city
-				};
-				city.AddCitizen(resident);
-				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, resident);
-			}
-			city.RecalculateCitizenMoods(gameData);
-			log.Information($"Settler {unit.id} joined {city}");
-			unit.RemoveFromPlay();
+			log.Information($"Settler {unit.id} joining {city}");
+			unit.AddPopulationTo(city);
 		}
 
 		public string SummarizePlan() {

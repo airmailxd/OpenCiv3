@@ -3,7 +3,7 @@
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
 where Civ3's has Build Outpost, Build Colony, Build Airfield, Build Radar
 Tower, Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
-Building, Increase Scientific Output, Upgrade and Build Barricade. Each of these is drawn as a
+Building, Increase Scientific Output, Upgrade, Build Barricade and Join City. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the orders'
@@ -215,6 +215,24 @@ def science_age_glyph(draw):
         draw.ellipse([(x - r) * u, (y - r) * u, (x + r) * u, (y + r) * u], fill=GLYPH)
 
 
+def join_city_glyph(draw):
+    """A settler with an arrow pointing down into a town, as Civ3's Join
+    City button has."""
+    u = S / 64
+    # the settler: a head and a body
+    draw.ellipse([15 * u, 6 * u, 23 * u, 14 * u], fill=GLYPH)
+    draw.polygon([(13 * u, 30 * u), (25 * u, 30 * u), (23 * u, 16 * u), (15 * u, 16 * u)], fill=GLYPH)
+    # the arrow, down to the right into the town
+    draw.line([(30 * u, 10 * u), (30 * u, 26 * u)], fill=GLYPH, width=int(4 * u))
+    draw.polygon([(24 * u, 24 * u), (36 * u, 24 * u), (30 * u, 32 * u)], fill=GLYPH)
+    # the town: two houses on a piece of land
+    draw.polygon([(8 * u, 54 * u), (56 * u, 54 * u), (50 * u, 49 * u), (14 * u, 49 * u)], fill=GLYPH)
+    draw.rectangle([16 * u, 38 * u, 30 * u, 50 * u], fill=GLYPH)
+    draw.polygon([(13 * u, 39 * u), (33 * u, 39 * u), (23 * u, 30 * u)], fill=GLYPH)
+    draw.rectangle([34 * u, 34 * u, 48 * u, 50 * u], fill=GLYPH)
+    draw.polygon([(31 * u, 35 * u), (51 * u, 35 * u), (41 * u, 25 * u)], fill=GLYPH)
+
+
 def upgrade_glyph(draw):
     """A bolt of lightning, as on Civ3's Upgrade button."""
     u = S / 64
@@ -273,5 +291,6 @@ if __name__ == '__main__':
     build('unit_science_age', science_age_glyph)
     build('unit_upgrade', upgrade_glyph)
     build('unit_build_barricade', barricade_glyph)
+    build('unit_join_city', join_city_glyph)
     air_missions.main()
     city_icons.main()

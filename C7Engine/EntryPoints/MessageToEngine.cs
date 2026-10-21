@@ -363,6 +363,8 @@ namespace C7Engine {
 			StartScienceAge,
 			// A worker founds a colony where it stands.
 			BuildColony,
+			// A unit adds its people to the city it stands in.
+			JoinCity,
 		}
 
 		public ID unitID;
@@ -403,6 +405,12 @@ namespace C7Engine {
 					break;
 				case Command.BuildColony:
 					unit.BuildColony();
+					break;
+				case Command.JoinCity:
+					City city = unit.location.cityAtTile;
+					if (unit.JoinCity()) {
+						new MsgCityChanged(city).send();
+					}
 					break;
 			}
 		}

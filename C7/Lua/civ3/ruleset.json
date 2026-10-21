@@ -1034,7 +1034,8 @@
         "goto",
         "explore",
         "load",
-        "sentry"
+        "sentry",
+        "joinCity"
       ]
     },
     {
@@ -1122,7 +1123,8 @@
         "load",
         "sentry",
         "buildColony",
-        "airlift"
+        "airlift",
+        "joinCity"
       ],
       "terraformActions": [
         "Terraform-4",

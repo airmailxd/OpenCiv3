@@ -210,6 +210,21 @@ public class Civ3RuleImportTest {
 		Assert.Equal(8, game.Buildings.Single(b => b.name == "SAM Missile Battery").airPower);
 	}
 
+	// The BIQ's PRTO "Join City" worker action: "when the settler is active
+	// on a city, click the "Join City" button" (Conquests Civilopedia,
+	// PRTO_Settler; the same for workers, PRTO_Worker).
+	[SkippableFact]
+	public void JoinCityIsImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+		SaveUnitPrototype Unit(string name) => game.UnitPrototypes.Single(p => p.name == name);
+
+		Assert.Contains(UnitAction.JoinCity, Unit("Settler").actions);
+		Assert.Contains(UnitAction.JoinCity, Unit("Worker").actions);
+		Assert.DoesNotContain(UnitAction.JoinCity, Unit("Warrior").actions);
+	}
+
 	// "[Submarines] can operate invisibly to enemy units ... However, other
 	// submarines and AEGIS Cruisers and Destroyers can see them plainly. In
 	// addition, Submarines have Stealth Attack" (Conquests Civilopedia,
