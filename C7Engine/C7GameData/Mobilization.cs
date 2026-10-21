@@ -1,6 +1,5 @@
 using System.Linq;
 using C7Engine;
-using C7Engine.AI;
 using C7GameData.Save;
 using Serilog;
 
@@ -124,9 +123,6 @@ public static class Mobilization {
 		return owner != null && owner.mobilized ? culture / 2 : culture;
 	}
 
-	// The AiExperiments switch for the AI's use of mobilization.
-	public const string AiSwitch = "ai-mobilize";
-
 	// HEURISTIC: the AI mobilizes when it is at war with a civ it shares a
 	// landmass with whose military is at least this share of its own, and
 	// returns to Normalcy, once it may, when it is at war with no civ.
@@ -135,7 +131,9 @@ public static class Mobilization {
 	// The AI's use of mobilization (owner's decision, 2026-10-21: mobilize
 	// during a major war). The stock AI's own rule isn't known; Predator145
 	// reports it builds military-flagged buildings only when mobilized
-	// (CFC 666881, pages 65-66; reading-log-05), so it does mobilize.
+	// (CFC 666881, pages 65-66; reading-log-05), so it does mobilize. AI
+	// trials of 350 turns (doc/ai-review-2026-10.md, 21 October) found it
+	// within the noise.
 	public static void PlayAi(Player player, GameData gameData) {
 		if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
 			return;

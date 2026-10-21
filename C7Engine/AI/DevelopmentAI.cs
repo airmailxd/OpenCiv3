@@ -345,9 +345,11 @@ namespace C7Engine.AI {
 		// cities, attackers and siege engines for a war campaign, escorts for
 		// waiting settlers, settlers, and workers while short of them.
 		//
+		// Improvements are bought too, after every unit, above Civ3's
+		// reserve (see IsHurriableImprovement).
+		//
 		// Not hurried, as AI trials (AiTrialTest) found no gain or a loss:
-		// buildings (the gold went to units first anyway, and with the taxes
-		// below they cost beakers); any soldier at war (it mostly bought
+		// any soldier at war (it mostly bought
 		// obsolete warriors and archers); and units bought with citizens
 		// under Despotism and the like (fewer units and lower scores).
 		// Hurrying as it is, with the taxes at war, civs had some 66 more
@@ -365,9 +367,8 @@ namespace C7Engine.AI {
 			// sliders (PlayerAI.AdjustSliders, which tolerates a deficit of a
 			// tenth of the treasury) needn't take beakers for taxes.
 			int deficit = Math.Max(0, -player.CalculateGoldPerTurn());
-			// Civ3's reserve (see StockGoldReserve). Civ3's AI rushes only
-			// improvements; this AI rushes only units, so the reserve is
-			// applied to those.
+			// Civ3's reserve (see StockGoldReserve), which Civ3's AI keeps
+			// when it rushes improvements; this AI keeps it for units too.
 			int reserve = Math.Max(StockGoldReserve(player), ReserveDeficitTurns * deficit);
 			// At war, or gathering for one, gold kept back is worth less than
 			// soldiers in the field.
@@ -380,7 +381,7 @@ namespace C7Engine.AI {
 					continue;
 				}
 				RushReason reason = UnitRushReason(player, city, staging, workers);
-				if (reason == RushReason.None && AiExperiments.Has(player, ImprovementHurry) && IsHurriableImprovement(city.itemBeingProduced)) {
+				if (reason == RushReason.None && IsHurriableImprovement(city.itemBeingProduced)) {
 					reason = RushReason.Improvement;
 				}
 				if (reason == RushReason.None) {
@@ -422,18 +423,18 @@ namespace C7Engine.AI {
 			}
 		}
 
-		// On trial: Civ3's AI also rushes improvements, never letting its
-		// treasury fall below the stock reserve (see StockGoldReserve):
-		// "it won't rush an improvement if doing so would leave its
-		// treasury below that level" (Flintlock, reading the 1.22 code,
+		// Civ3's AI also rushes improvements, never letting its treasury
+		// fall below the stock reserve (see StockGoldReserve): "it won't
+		// rush an improvement if doing so would leave its treasury below
+		// that level" (Flintlock, reading the 1.22 code,
 		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16787843;
 		// compendium 08). Per the owner's decision, 2026-10-21, the AI
 		// hurries improvements as well as units. Improvements come after
 		// every unit reason, so units bought for defence or a campaign keep
 		// first call on the gold. Great and small wonders are not
-		// improvements and are never bought.
-		public const string ImprovementHurry = "stock-improvement-hurry";
-
+		// improvements and are never bought. AI trials found it neutral
+		// (doc/ai-review-2026-10.md, 21 October): the treasury is seldom
+		// above the reserve.
 		private static bool IsHurriableImprovement(IProducible item) {
 			return item is Building b && !b.IsGreatWonder() && !b.isSmallWonder && !b.isCenterOfEmpire && !b.IsSpaceshipPart;
 		}

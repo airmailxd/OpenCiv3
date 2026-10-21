@@ -108,7 +108,6 @@ public class OwnerRulingsTest : IClassFixture<SaveGameFixture>, System.IDisposab
 	[Fact]
 	public void TheAiHurriesAnImprovementAboveItsReserve() {
 		City city = CityBuildingTemple(5000);
-		AiExperiments.Enable(us, DevelopmentAI.ImprovementHurry);
 		int reserve = DevelopmentAI.StockGoldReserve(us);
 		Assert.True(us.gold > reserve);
 
@@ -121,7 +120,6 @@ public class OwnerRulingsTest : IClassFixture<SaveGameFixture>, System.IDisposab
 	[Fact]
 	public void TheAiKeepsItsReserveRatherThanHurryAnImprovement() {
 		City city = CityBuildingTemple(0);
-		AiExperiments.Enable(us, DevelopmentAI.ImprovementHurry);
 		us.gold = DevelopmentAI.StockGoldReserve(us) + 1;
 
 		DevelopmentAI.HurryProduction(us);
@@ -342,6 +340,27 @@ public class OwnerRulingsTest : IClassFixture<SaveGameFixture>, System.IDisposab
 		Assert.True(Mobilization.Demobilize(us));
 		Assert.False(us.mobilized);
 		Assert.Equal(culture, city.GetCulturePerTurn());
+	}
+
+	[Fact]
+	public void TheAiMobilizesForAMajorWarAndDemobilizesAfterPeace() {
+		City ours = BuildCity(us);
+		City theirs = BuildCity(them, t => t.continent == ours.location.continent);
+		gameData.SpawnUnit(us, Prototype("Swordsman"), ours.location);
+		gameData.SpawnUnit(them, Prototype("Swordsman"), theirs.location);
+		LearnNationalism(us);
+
+		Mobilization.PlayAi(us, gameData);
+		Assert.False(us.mobilized);
+
+		us.DeclareWarOn(them, gameData.turn);
+		Mobilization.PlayAi(us, gameData);
+		Assert.True(us.mobilized);
+
+		// Still at war: it stays mobilized even once it may stop.
+		Mobilization.OnWarEnded(us);
+		Mobilization.PlayAi(us, gameData);
+		Assert.True(us.mobilized);
 	}
 
 	[Fact]

@@ -160,16 +160,19 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		Assert.Equal(1000, player.gold);
 	}
 
+	// Civ3's AI rushes improvements above its gold reserve (owner's
+	// decision, 2026-10-21; see DevelopmentAI.IsHurriableImprovement).
 	[Fact]
-	public void HurryLeavesImprovementsAlone() {
+	public void HurryBuysImprovementsAboveTheReserve() {
 		player.government = Government("Monarchy");
 		player.gold = 1000;
 		StartTemple(1);
 
 		DevelopmentAI.HurryProduction(player);
 
-		Assert.Equal(1, city.shieldsStored);
-		Assert.Equal(1000, player.gold);
+		Assert.True(city.hurriedThisTurn);
+		Assert.True(player.gold < 1000);
+		Assert.True(player.gold >= DevelopmentAI.StockGoldReserve(player));
 	}
 
 	[Fact]
