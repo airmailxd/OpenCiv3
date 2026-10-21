@@ -124,3 +124,35 @@ This follows Flintlock's code readings in the C3X thread (compendium 08, the upg
 | `stock-gold-reserve`: the AI keeps 16 gold per city, plus the treasury that earns full interest (1000 gold with Wall Street), before it upgrades a unit or hurries one. It makes no upgrades at all while below that reserve. This replaces a flat 100 for upgrades and 10 + 2 a city for hurrying. Civ3's AI hurries only improvements, but this AI hurries only units, so the reserve applies to unit hurrying. | `DevelopmentAI.StockGoldReserve`, `PlayerAI.UpgradeUnits`, `DevelopmentAI.HurryProduction` | Paired: +9 ± 48 / +14 ± 25 (hurries -1.0* on Continents; citizens +5.7*, disorder +0.4*, wars +0.16* on Pangaea). All civs against the baseline, per civ: Continents score 1632 / 1623, cities 16.8 / 16.8, techs 33.0 / 33.0, units 75.6 / 75.8, war turns 1.7 / 1.3, gold 98 / 63. Pangaea score 1586 / 1576, cities 15.2 / 15.3, techs 39.5 / 39.0, units 69.5 / 71.0, war turns 3.4 / 5.2, gold 113 / 88. | Kept (Civ3's rule, not weaker); the switch is gone |
 
 The first all-civs Pangaea run hung on turn 198 of its last game. An explorer kept stepping back and forth along a railroad, and those moves cost nothing. `UnitAI.PlayTurn` now ends a unit's turn after 300 free steps in a row. The baseline gave the same numbers with and without this fix.
+
+## Civ3's war starting without the engine's own gates (20 October)
+
+The owner's decision, 2026-10-20: "Defer to Civ3's logic on AI war starting. Strip away the restrictions we made as the default option." Civ3's plotting rolls and target score (`StockWarPlotting`) now decide alone. These engine gates are gone:
+
+| Removed | Where |
+|---|---|
+| No war plotting below 3 cities | `WarCampaign.MaybeStartCampaign` |
+| No plotting for 20 turns after a campaign ends. The cooldown now only holds off the next campaign in a war already under way, so its attackers fight on their own for a while | `WarCampaign.MaybeStartCampaign` |
+| No plotting while at war with a civ within reach by land. Civ3's own one in 16 roll for being at war stays | `WarCampaign.MaybeStartCampaign` |
+| Targets only among civs with a known city on our landmass within 14 tiles. Every civ we may declare on is now scored, and one with no city on a landmass we share gets half score, as in Civ3. A campaign city on our landmass may be at any distance | `WarCampaign.PlotWar`, `PickTarget` |
+| A civ planning a war dropped the plan when a third civ attacked it | `WarCampaign.PlayCampaign` |
+| `stock-garrison` is now the default (the AI builds toward 2 defensive and 1 offensive unit per city, justanick and Ision); the switch is gone | `ChooseProducible.StockGarrisonBonus` |
+
+The engine has no seaborne campaigns. A target with no city our land units can march on (an overseas civ, or one whose cities we don't know) therefore gets the declaration at once, rather than when an attack is ready. The war is then fought by whatever the unit AI can do. `AiTrialTest` can now list each war (`C7_TRIAL_WARS=1`).
+
+AI trials with every civ AI and no switches (8 games of 200 turns at Monarch, seeds 1000 to 1007), per civ. Before is Development at fc577537:
+
+| Run | Wars declared | War turns | Captured | Lost | Attacks | Units | Cities | Score | Techs |
+|---|---|---|---|---|---|---|---|---|---|
+| Continents, before | 0.17 | 6.1 | 0.5 | 0.5 | 12.2 | 78.3 | 16.8 | 1626 | 32.8 |
+| Continents, after | 0.44 | 18.1 | 0.7 | 0.7 | 16.7 | 91.3 | 16.5 | 1564 | 31.6 |
+| Pangaea, before | 0.42 | 18.9 | 0.9 | 0.9 | 17.9 | 78.1 | 15.3 | 1564 | 38.7 |
+| Pangaea, after | 0.97 | 43.7 | 1.5 | 1.5 | 26.1 | 93.6 | 15.3 | 1516 | 34.8 |
+
+What the war lists show (after, all 16 games):
+
+- Wars: 28 on Continents (11 before) and 62 on Pangaea (27 before). All but 3 came from war plotting; those 3 were allies joining by a pact. No run hung.
+- Overseas wars: 3, all on Continents. None saw a single attack, and each ended in peace within 8 to 9 turns: `PeaceAI` takes a white peace with a civ it cannot fight. So an overseas war is in practice a short declaration with no fighting.
+- Wars with no attacks on the same landmass: 2 of 28 on Continents and 6 of 62 on Pangaea (one of them a pact ally's). Before, there were 1 of 11 and 4 of 27. They end by the 30-turn stalemate peace, or were still under way at turn 200, so no civ stayed at war forever without fighting.
+- Peace broken again at once: in 4 wars on Continents and 13 on Pangaea (2 and 3 before), the two signed peace and one declared war again within the same round of turns. Every case came from war plotting: once at peace, the at-war roll no longer applies, and peace only halves the target score and adds 2 to the exclusion roll. Flintlock believed there is a cooldown "within 8 turns of signing peace", but he left it unverified (compendium 08, section 3.4.1), so it is not applied. This is the main behaviour for the owner to look at.
+- Scores are 62 and 48 lower per civ, and techs 1.2 and 3.9 lower, with about 13 and 15 more units per civ. That matches the all-civs `stock-garrison` run above (scores 77 and 47 lower).
