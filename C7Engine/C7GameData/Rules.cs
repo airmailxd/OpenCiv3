@@ -164,6 +164,12 @@ namespace C7GameData {
 		// in.
 		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";
 
+		// What each era calls its researchers (the BIQ ERAS section's
+		// researcher names in use, such as "Wise Men"), by the era's
+		// civilopedia name, for the era splash's $WISEMEN1. Empty in saves
+		// from before they were imported.
+		public Dictionary<string, List<string>> EraResearcherNames = new();
+
 		// The food each citizen eats a turn: the BIQ RULE's food consumption
 		// per citizen (2 in conquests.biq).
 		public int FoodConsumptionPerCitizen = 2;

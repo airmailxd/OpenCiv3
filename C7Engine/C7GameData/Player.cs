@@ -1950,6 +1950,12 @@ namespace C7GameData {
 				eraCivilopediaName = GetNextEraNameByIndex(EraIndex());
 				// The last era has no next one to enter.
 				if (eraCivilopediaName != previousEra) {
+					// Civ3 shows its era splash to the human whose era it is,
+					// and not on the game's first turn (Civ3 FUN_0056a220,
+					// before the scientific civ's free tech).
+					if (isHuman && gameData.turn > 0) {
+						new MsgEnteredNewEra(this, previousEra, eraCivilopediaName).send();
+					}
 					GrantScientificEraTech(gameData);
 				}
 			}

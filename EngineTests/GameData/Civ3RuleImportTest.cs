@@ -103,6 +103,22 @@ public class Civ3RuleImportTest {
 		Assert.Equal(10, game.Rules.StartingTreasury);
 	}
 
+	// The era splash's words: each era's researcher names (the BIQ ERAS
+	// section's) and each government's ruler titles (its GOVT pairs in use).
+	[SkippableFact]
+	public void TheEraSplashWordsComeFromTheBiq() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal(4, game.Rules.EraResearcherNames.Count);
+		Assert.All(game.Rules.EraResearcherNames.Values, Assert.NotEmpty);
+		Assert.All(game.Governments, g => Assert.Equal(g.maleRulerTitles.Count, g.femaleRulerTitles.Count));
+		Assert.Equal(["Wise-Men", "Alchemists", "Sooth Sayers"], game.Rules.EraResearcherNames["ERAS_Middle_Ages"]);
+		Government communism = Assert.Single(game.Governments, g => g.name == "Communism");
+		Assert.Equal(["Comrade"], communism.maleRulerTitles);
+	}
+
 	// City Walls are the only building with both a land defense bonus and a
 	// bombard defense; Civil Defense has only the first, and a Coastal
 	// Fortress guards against ships

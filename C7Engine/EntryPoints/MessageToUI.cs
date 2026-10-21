@@ -461,6 +461,19 @@ namespace C7Engine {
 		protected override string OwnHeadline() => OneLine(message);
 	}
 
+	// A human player has entered a new era: the UI shows Civ3's era splash
+	// (Civ3 FUN_0052d140).
+	public class MsgEnteredNewEra : MessageToUI {
+		public string previousEraCivilopediaName;
+		public string eraCivilopediaName;
+
+		public MsgEnteredNewEra(Player recipient, string previousEraCivilopediaName, string eraCivilopediaName) {
+			this.recipient = recipient;
+			this.previousEraCivilopediaName = previousEraCivilopediaName;
+			this.eraCivilopediaName = eraCivilopediaName;
+		}
+	}
+
 	public class MsgShowTemporaryPopup : MessageToUI {
 		public string message;
 		public Tile location;

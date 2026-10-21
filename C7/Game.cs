@@ -1173,6 +1173,36 @@ public partial class Game : Node {
 		}
 	}
 
+	// Civ3's era splash for a human entering a new era (see EraSplash). Civ3
+	// leaves it out of a network game (FUN_0056a220 skips it when
+	// FUN_0049f9f0 says the game is networked), so a LAN game does too.
+	private void ShowEraSplash(MsgEnteredNewEra msg) {
+		if (LanSession.IsActive) {
+			return;
+		}
+		GameData gameData = EngineStorage.gameData;
+		Player player = msg.recipient ?? controller;
+		if (gameData == null || player == null) {
+			return;
+		}
+		Random random = new();
+		string text = NewEra.Announcement(player, gameData.rules, random);
+		EraSplash splash = new(msg.previousEraCivilopediaName, msg.eraCivilopediaName, text, () => {
+			// "What's the big picture?" sets the player researching one of the
+			// new era's techs and opens the Science Advisor.
+			GameData current = EngineStorage.gameData;
+			Player us = current?.GetPlayer(player.id);
+			Tech tech = us == null ? null : NewEra.BigPictureResearch(us, current, random);
+			if (tech != null) {
+				new MsgChooseResearch(tech, MsgChooseResearch.AdvisorState.Show).send();
+			} else {
+				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
+			}
+		});
+		popupOverlay.ShowPopup(splash, PopupOverlay.PopupCategory.EraChange);
+		InterestingEvent();
+	}
+
 	// Shows a message to the player at the screen: the popups, screens and
 	// other reactions to the message. Held messages are shown when they're
 	// replayed.
@@ -1246,6 +1276,9 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 					break;
 				}
+			case MsgEnteredNewEra mENE:
+				ShowEraSplash(mENE);
+				break;
 			case MsgWonderCompleted mWC: {
 					// Like the space race news, this is too important to drop, so
 					// it waits its turn behind any popup already showing.

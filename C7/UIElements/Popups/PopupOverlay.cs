@@ -39,7 +39,8 @@ public partial class PopupOverlay : HBoxContainer {
 		Advisor,
 		Console,
 		Info,    //Sounds similar to the above, but lower-pitched in the second half
-		TileInfo
+		TileInfo,
+		EraChange, // Civ3's Sounds\Era Change.wav, which it plays as the era splash comes up (Civ3 FUN_0056a220)
 	}
 
 	public void OnHidePopup() {
@@ -187,6 +188,7 @@ public partial class PopupOverlay : HBoxContainer {
 			PopupCategory.Advisor => "popups.advisor",
 			PopupCategory.Console => "popups.console",
 			PopupCategory.Info => "popups.info",
+			PopupCategory.EraChange => "popups.era_change",
 			_ => null
 		};
 

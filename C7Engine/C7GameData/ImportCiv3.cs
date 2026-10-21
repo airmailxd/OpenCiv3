@@ -2799,6 +2799,12 @@ namespace C7GameData {
 			ERAS[] eras = biq.Eras ?? defaultBiq.Eras;
 			if (eras?.Length > 0) {
 				save.Rules.FirstEraCivilopediaName = eras[0].CivilopediaEntry;
+				foreach (ERAS era in eras) {
+					int used = Math.Clamp(era.NumberOfUsedResearcherNames, 0, 5);
+					save.Rules.EraResearcherNames[era.CivilopediaEntry] =
+						new[] { era.Researcher1, era.Researcher2, era.Researcher3, era.Researcher4, era.Researcher5 }
+							.Take(used).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+				}
 			}
 			save.Rules.FoodConsumptionPerCitizen = rule.FoodConsumptionPerCitizen;
 			save.Rules.MovementAlongRoads = rule.MovementAlongRoads;

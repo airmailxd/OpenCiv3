@@ -17,7 +17,8 @@ audio.popups = {
   advisor = SOUNDS .. "PopupAdvisor.wav",
   console = SOUNDS .. "PopupConsole.wav",
   info = SOUNDS .. "PopupInfo.wav",
-  wonder = SOUNDS .. "Wonder.wav"
+  wonder = SOUNDS .. "Wonder.wav",
+  era_change = SOUNDS .. "Era Change.wav"
 }
 
 return audio
