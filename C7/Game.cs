@@ -1616,6 +1616,7 @@ public partial class Game : Node {
 			case MsgVictory mV:
 				RecordInHallOfFame((gameData, player, date, now) =>
 					HallOfFame.ForVictory(gameData, player, mV.winner, mV.victory, date, now));
+				bool campaignWon = RecordCampaignVictory(mV);
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
 					+ $"Final score: {mV.finalScore}"
@@ -1628,7 +1629,11 @@ public partial class Game : Node {
 						"Good! I’m Done!",
 						"Wait, lemme just play a couple of more turns...",
 						() => {
-							OnRetire();
+							if (campaignWon) {
+								ShowCampaignRecord(OnRetire);
+							} else {
+								OnRetire();
+							}
 						}),
 					PopupOverlay.PopupCategory.Advisor);
 
@@ -2107,6 +2112,42 @@ public partial class Game : Node {
 			recordedInHallOfFame = true;
 			HallOfFame.Add(HallOfFameScreen.GlobalPath, makeEntry(gameData, player, date, DateTime.UtcNow));
 		});
+	}
+
+	// Whether this game's win is in the Campaign Record yet.
+	private bool recordedCampaignVictory = false;
+
+	// Puts a win at one of Conquests' campaigns into the Campaign Record, if
+	// the player playing here won it. Returns whether it went in, for the
+	// record to be shown (Civ3 FUN_004f9fb0 records and shows it when the
+	// winner is the human player).
+	private bool RecordCampaignVictory(MsgVictory victory) {
+		if (recordedCampaignVictory) {
+			return false;
+		}
+		bool recorded = false;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			Player player = gameData.GetUIControllerPlayer();
+			if (player == null || !player.isHuman || victory.winner != player) {
+				return;
+			}
+			recordedCampaignVictory = true;
+			recorded = CampaignRecordScreen.RecordVictory(gameData, player, victory.victory, victory.finalScore);
+		});
+		return recorded;
+	}
+
+	// The Campaign Record over the game, as Civ3 shows it after a campaign
+	// is won: without its Next and Hall of Fame buttons.
+	private void ShowCampaignRecord(Action closed) {
+		CanvasLayer layer = new() { Layer = 20 };
+		CampaignRecordScreen screen = new(fromMainMenu: false);
+		screen.Closed += () => {
+			layer.QueueFree();
+			closed();
+		};
+		layer.AddChild(screen);
+		AddChild(layer);
 	}
 
 	public void OnSaveGame() {

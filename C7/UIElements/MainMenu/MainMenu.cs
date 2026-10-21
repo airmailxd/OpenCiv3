@@ -260,14 +260,42 @@ public partial class MainMenu : Node {
 		GetTree().ChangeSceneToFile("res://Credits.tscn");
 	}
 
-	// Civ3's Hall of Fame, over the menu until it's closed.
+	// The main menu's Hall of Fame: as in Conquests, its Campaign Record
+	// first, from which the Hall of Fame itself is a button away (Civ3
+	// FUN_0055a5e0, menu item 6). Without Conquests' campaigns, straight to
+	// the Hall of Fame.
 	public void HallOfFame() {
 		PlayButtonPressedSound();
-		CanvasLayer layer = new() { Layer = 10 };
+		if (CampaignRecordScreen.LoadRecord().Count == 0) {
+			ShowHallOfFame();
+			return;
+		}
+		CampaignRecordScreen screen = new(fromMainMenu: true);
+		screen.HallOfFameRequested += ShowHallOfFame;
+		screen.NextCampaignRequested += PlayCampaign;
+		ShowOverMenu(screen, h => screen.Closed += h);
+	}
+
+	// Civ3's Hall of Fame, over the menu until it's closed.
+	private void ShowHallOfFame() {
 		HallOfFameScreen screen = new();
-		screen.Closed += () => layer.QueueFree();
+		ShowOverMenu(screen, h => screen.Closed += h);
+	}
+
+	private void ShowOverMenu(Control screen, Action<Action> onClosed) {
+		CanvasLayer layer = new() { Layer = 10 };
+		onClosed(() => layer.QueueFree());
 		layer.AddChild(screen);
 		AddChild(layer);
+	}
+
+	// The Campaign Record's Next: the campaign's scenario, set up as Load
+	// Scenario would.
+	private void PlayCampaign(string path) {
+		log.Information($"playing the campaign {path}");
+		LanSession.HostNextGame = false;
+		Global.LoadGamePath = path;
+		GetTree().ChangeSceneToFile("res://UIElements/NewGame/scenario_setup.tscn");
 	}
 
 	public void ShowSettings() {

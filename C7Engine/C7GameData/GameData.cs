@@ -171,6 +171,10 @@ namespace C7GameData {
 
 		public string scenarioSearchPath;   //legacy from Civ3, we'll probably have a more modern format someday but this keeps legacy compatibility
 
+		// The scenario file the game began from, without its extension (see
+		// SaveGame.ScenarioName).
+		public string scenarioName;
+
 		internal BehaviorEngine luaBehaviorEngine;
 		internal GameMode.Config gameModeConfig;
 

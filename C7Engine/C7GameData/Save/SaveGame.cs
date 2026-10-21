@@ -88,6 +88,7 @@ namespace C7GameData.Save {
 				Cities = data.cities.ConvertAll(city => new SaveCity(city)),
 				ExperienceLevels = data.experienceLevels,
 				ScenarioSearchPath = data.scenarioSearchPath,
+				ScenarioName = data.scenarioName,
 				DefaultExperienceLevel = data.defaultExperienceLevelKey,
 				Techs = data.techs.ConvertAll(t => t.ToSaveTech()),
 				CitizenTypes = data.citizenTypes,
@@ -315,6 +316,7 @@ namespace C7GameData.Save {
 				terrainTypes = TerrainTypes,
 				Resources = Resources,
 				scenarioSearchPath = ScenarioSearchPath,
+				scenarioName = ScenarioName,
 				civilizations = Civilizations,
 				cultureGroups = CultureGroups,
 				alliances = Alliances,
@@ -697,6 +699,11 @@ namespace C7GameData.Save {
 		// The relative directory that can be used to find scenario-specific
 		// assets.
 		public string ScenarioSearchPath;
+
+		// The scenario file the game began from, without its extension, as
+		// "1 Mesopotamia"; none for a game that didn't. A win at one of
+		// Conquests' campaigns goes into the Campaign Record by it.
+		public string ScenarioName;
 
 		public List<Difficulty> Difficulties = new();
 		public Difficulty GameDifficulty = new();

@@ -187,6 +187,25 @@ textures.screens = {
   hall_of_fame = {
     background = ADVISORS .. "hall_o_fame_background.pcx",
   },
+  -- Conquests' Campaign Record (Civ3 FUN_004b0ba0): its background, and
+  -- its "Next" button's three states, 86x24 each, down campRec.pcx.
+  campaign_record = {
+    background = ADVISORS .. "CampRecBG.pcx",
+    next = {
+      normal = {
+        path = INTERFACE .. "campRec.pcx",
+        crop_region = { 0, 0, 86, 24 },
+      },
+      hover = {
+        path = INTERFACE .. "campRec.pcx",
+        crop_region = { 0, 24, 86, 24 },
+      },
+      pressed = {
+        path = INTERFACE .. "campRec.pcx",
+        crop_region = { 0, 48, 86, 24 },
+      },
+    },
+  },
   standing = {
     victory_status = {
       background = ROOT .. "histograph-win5_final.pcx",

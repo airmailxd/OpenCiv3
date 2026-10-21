@@ -34,6 +34,10 @@ namespace C7Engine {
 				SaveFileFormat.C7 => SaveGame.Load(path, getPediaIconsPath),
 				_ => throw new FileLoadException($"{Path.GetFileName(path)} is not a save C7 can load (.sav, .biq or .json)"),
 			};
+			// A scenario remembers which it was, for the Campaign Record.
+			if (getFileFormat(path) == SaveFileFormat.Biq && string.IsNullOrEmpty(save.ScenarioName)) {
+				save.ScenarioName = Path.GetFileNameWithoutExtension(path);
+			}
 			return save;
 		}
 
