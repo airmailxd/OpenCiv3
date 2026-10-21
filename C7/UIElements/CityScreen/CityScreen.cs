@@ -54,6 +54,9 @@ public partial class CityScreen : Control {
 	[Export] private TextureButton previousCity;
 	[Export] private TextureButton nextCity;
 	private Button governorButton;
+	// Civ3's City View and its button, when there's Civ3 art for it.
+	private CityViewScreen cityView;
+	private TextureButton cityViewButton;
 
 	[Export] private ProductionMenu productionMenu;
 
@@ -268,6 +271,9 @@ public partial class CityScreen : Control {
 		popHeadEffectLayer = new Control() { MouseFilter = MouseFilterEnum.Ignore };
 		background.AddChild(popHeadEffectLayer);
 
+		// Over all of it.
+		AddCityView();
+
 		WrapBackgroundInFrame();
 
 		RenderShieldBox(shieldCost: 30, shieldsInBox: 15);
@@ -473,6 +479,7 @@ public partial class CityScreen : Control {
 		if (!Visible) {
 			mapZoomBeforeOpening = mapView.cameraZoom;
 		}
+		cityView?.Hide();
 		this.Show();
 		mapView.cameraZoom = fitScale;
 		mapView.centerCameraOnTile(city.Value.location.neighbors[TileDirection.SOUTH]);
@@ -532,7 +539,35 @@ public partial class CityScreen : Control {
 		RenderPenalties(city);
 	}
 
+	// Civ3's City View button (the eye of xandview.pcx, which Civ3
+	// FUN_00418160 puts at (871, 22), with labels.txt's "City View"), which
+	// shows the picture of the city (CityViewScreen). It's left out when
+	// there's no Civ3 art to show.
+	private void AddCityView() {
+		if (!CityViewScreen.Available()) {
+			return;
+		}
+		cityView = new CityViewScreen() { Name = "CityView" };
+		background.AddChild(cityView);
+
+		cityViewButton = new TextureButton() {
+			Position = new Vector2(871, 22),
+			TooltipText = "City View",
+			FocusMode = FocusModeEnum.None,
+		};
+		TextureLoader.SetButtonTextures(cityViewButton, "city_screen.buttons.view");
+		cityViewButton.Pressed += () => {
+			if (tileAssignmentLayer.city != null) {
+				productionMenu.Hide();
+				cityView.ShowFor(tileAssignmentLayer.city);
+			}
+		};
+		background.AddChild(cityViewButton);
+		background.MoveChild(cityViewButton, cityView.GetIndex());
+	}
+
 	private void OnExit() {
+		cityView?.Hide();
 		EndForeignView();
 		productionMenu.Hide();
 		tileAssignmentLayer.city = null;

@@ -525,8 +525,42 @@ textures.city_screen = {
         crop_region = { 231, 0, 115, 95 },
       },
     },
+    -- The City View button, cut as Civ3 FUN_00418160 cuts it.
+    view = {
+      normal = {
+        path = CITY_SCREEN .. "xandview.pcx",
+        crop_region = { 0, 1, 72, 42 },
+      },
+      hover = {
+        path = CITY_SCREEN .. "xandview.pcx",
+        crop_region = { 72, 1, 72, 42 },
+      },
+      pressed = {
+        path = CITY_SCREEN .. "xandview.pcx",
+        crop_region = { 144, 1, 72, 42 },
+      },
+    },
   },
   production_queue = CITY_SCREEN .. "ProductionQueueBox.pcx",
+}
+
+-- The City View's exit button (Civ3 FUN_005551b0 cuts it; it's at
+-- (972, 15) on Civ3's full screen views).
+textures.city_view = {
+  exit = {
+    normal = {
+      path = "Art/City View/City Interface/ExitX.pcx",
+      crop_region = { 1, 1, 36, 38 },
+    },
+    hover = {
+      path = "Art/City View/City Interface/ExitX.pcx",
+      crop_region = { 42, 1, 36, 38 },
+    },
+    pressed = {
+      path = "Art/City View/City Interface/ExitX.pcx",
+      crop_region = { 83, 1, 36, 38 },
+    },
+  },
 }
 
 textures.world_setup = require "textures.world_setup"
