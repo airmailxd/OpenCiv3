@@ -1430,7 +1430,7 @@ public partial class Game : Node {
 						"Raze it to the ground!",
 						() => { },
 						() => {
-							new MsgAbandonCity(mDRCP.city).send();
+							new MsgAbandonCity(mDRCP.city, raze: true).send();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
 				break;

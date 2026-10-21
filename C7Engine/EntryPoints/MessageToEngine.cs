@@ -439,6 +439,25 @@ namespace C7Engine {
 
 	// Switches the player government to anarchy and determines when the player
 	// can exit anarchy.
+	// Puts the sender's economy on a war footing ("War-Time") or returns it
+	// to Normalcy, from the Domestic Advisor (see Mobilization).
+	public class MsgSetMobilization : MessageToEngine {
+		public bool mobilize;
+
+		public MsgSetMobilization(bool mobilize) {
+			this.mobilize = mobilize;
+		}
+
+		protected override void ProcessAllowed() {
+			Player player = Sender;
+			if (player == null) return;
+			bool changed = mobilize ? Mobilization.Mobilize(player) : Mobilization.Demobilize(player);
+			if (changed) {
+				new MsgUpdateUiAfterDomesticChange().send();
+			}
+		}
+	}
+
 	public class StartGovernmentTransitionMsg : MessageToEngine {
 		protected override void ProcessAllowed() {
 			GameData gD = EngineStorage.gameData;
@@ -628,15 +647,24 @@ namespace C7Engine {
 
 	public class MsgAbandonCity : MessageToEngine {
 		public City city;
+		// Whether this razes a city just captured (which gives slave
+		// workers, see CityInteractions.RazeCity) rather than abandons one.
+		public bool raze;
 
-		public MsgAbandonCity(City city) {
+		public MsgAbandonCity(City city, bool raze = false) {
 			this.city = city;
+			this.raze = raze;
 		}
 
 		protected override void ProcessAllowed() {
-			if (!IsSendersCity(city) || !CityInteractions.MayAbandon(Sender, city, EngineStorage.gameData)) return;
+			GameData gameData = EngineStorage.gameData;
+			if (!IsSendersCity(city) || !CityInteractions.MayAbandon(Sender, city, gameData)) return;
 
-			CityInteractions.DestroyCity(city);
+			if (raze && CityInteractions.MayRaze(Sender, city, gameData)) {
+				CityInteractions.RazeCity(city);
+			} else {
+				CityInteractions.DestroyCity(city);
+			}
 		}
 	}
 

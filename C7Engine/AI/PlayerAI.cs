@@ -76,6 +76,11 @@ namespace C7Engine {
 			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
+			// On trial: mobilize for a major war, and back to Normalcy when
+			// the wars are over (see Mobilization.PlayAi).
+			if (AiExperiments.Has(player, Mobilization.AiSwitch)) {
+				Mobilization.PlayAi(player, gameData);
+			}
 			// Draft defenders in cities about to be attacked (see DraftAI).
 			DraftAI.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();

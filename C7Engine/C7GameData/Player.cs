@@ -346,6 +346,12 @@ namespace C7GameData {
 		// like any war's after peace. New points never go here.
 		public int warWeariness = 0;
 
+		// Whether the civ's economy is mobilized for war ("War-Time"), and
+		// whether it may return to Normalcy, which it may once a peace treaty
+		// is signed or an enemy destroyed (see Mobilization).
+		public bool mobilized = false;
+		public bool mayEndMobilization = false;
+
 		// Each civ gets one golden age per game.
 		public bool hadGoldenAge = false;
 		public int goldenAgeTurnsRemaining = 0;
@@ -784,7 +790,7 @@ namespace C7GameData {
 			result.commerce = city.CurrentCommerceYield();
 			result.maintenance = city.MaintenanceCosts();
 			foreach (CityBuilding cb in city.constructed_buildings) {
-				if (cb.building.treasuryEarnsInterest) {
+				if (cb.building.treasuryEarnsInterest && cb.building.TakesEffectFor(city.owner)) {
 					++result.interestBuildings;
 				}
 			}
@@ -850,7 +856,7 @@ namespace C7GameData {
 			int interestBuildings = 0;
 			foreach (City c in cities) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
-					if (cb.building.treasuryEarnsInterest) {
+					if (cb.building.treasuryEarnsInterest && cb.building.TakesEffectFor(this)) {
 						++interestBuildings;
 					}
 				}
@@ -975,6 +981,8 @@ namespace C7GameData {
 			log.Information("  {Other} gives {Offer}, worth {Gold} gold)", other, theirOffer.ToString(), theirOffer.GoldEquivalentFor(gameData, this));
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				SignPeaceAfterWar(this, other, gameData);
+				Mobilization.OnWarEnded(this);
+				Mobilization.OnWarEnded(other);
 			}
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				RightOfPassage.Sign(gameData, this, other);
@@ -1376,7 +1384,7 @@ namespace C7GameData {
 				// supply small wonders like forbidden palaces, so we can avoid
 				// doing extra work for each city.
 				foreach (CityBuilding cb in c.constructed_buildings) {
-					if (cb.building.WorksAsForbiddenPalaceFor(this)) {
+					if (cb.building.WorksAsForbiddenPalaceFor(this) && cb.building.TakesEffectFor(this)) {
 						++numCorruptionReducingSmallWondersInEmpire;
 					}
 				}
@@ -2046,6 +2054,8 @@ namespace C7GameData {
 				}
 			}
 
+			// The units inside an army are in units too, so each needs
+			// support like any other (owner's decision, 2026-10-21).
 			int totalUnits = units.Count;
 			int allowedUnits = freeUnits;
 			// "Players with no cities don't pay unit maintenance, per the
@@ -2567,6 +2577,11 @@ namespace C7GameData {
 		// "Capture or build a needed wonder, capture another needed wonder,
 		// self-build any wonder = Golden Age" (Puppeteer,
 		// https://forums.civfanatics.com/threads/golden-age-triggers-by-great-wonders.411703/).
+		// Owner's decision, 2026-10-21: a golden age comes only from a
+		// unique unit's victory (see MapUnit.Fight) or from great wonders
+		// covering both traits; small wonders never count, and captured
+		// wonders count toward the traits but never start one by themselves,
+		// as capturing a city doesn't run this check.
 		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
 			if (hadGoldenAge || civilization.traits.Count == 0) {
 				return;
@@ -2600,7 +2615,7 @@ namespace C7GameData {
 				// We use constructed_buildings here because great wonders can't
 				// supply small wonders like forbidden palaces, so we can avoid
 				// doing extra work for each city.
-				if (c.constructed_buildings.Any(x => x.building.WorksAsForbiddenPalaceFor(this))) {
+				if (c.constructed_buildings.Any(x => x.building.WorksAsForbiddenPalaceFor(this) && x.building.TakesEffectFor(this))) {
 					citiesWithCorruptionWonders.Add(c);
 				}
 			}
@@ -2784,15 +2799,15 @@ namespace C7GameData {
 			}
 			foreach (City c in cities.ToArray()) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
+					bool isGreatWonder = cb.building.greatWonderProperties != null;
+					if (isGreatWonder && cb.building.isGreatWonderObsolete(this)) {
+						continue;
+					}
 					if (cb.building.allowsLargerArmies) {
 						snapshot.hasLargerArmies = true;
 					}
 					if (cb.building.increasedArmyValue) {
 						snapshot.hasIncreasedArmyValue = true;
-					}
-					bool isGreatWonder = cb.building.greatWonderProperties != null;
-					if (isGreatWonder && cb.building.isGreatWonderObsolete(this)) {
-						continue;
 					}
 					// Combat and movement effects (the Great Wall, the Great
 					// Lighthouse, Magellan's Voyage, the Heroic Epic) come from

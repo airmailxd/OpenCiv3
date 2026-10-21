@@ -283,7 +283,7 @@ namespace C7GameData {
 
 			internal ProductionContext(City city) {
 				this.city = city;
-				foreach (CityBuilding cb in city.EffectiveBuildings()) {
+				foreach (CityBuilding cb in city.AllEffectiveBuildings()) {
 					cityBuildings.Add(cb.building);
 					hasForbiddenPalace |= cb.building.isForbiddenPalace;
 				}
@@ -543,6 +543,13 @@ namespace C7GameData {
 				}
 			}
 			return (int)(shieldCost * costFactor);
+		}
+
+		// Whether the building's effects apply for the owner: every building
+		// but a great wonder obsolete for it (see City.EffectiveBuildings;
+		// owner's decision, 2026-10-21).
+		public bool TakesEffectFor(Player owner) {
+			return !isGreatWonderObsolete(owner);
 		}
 
 		public bool isGreatWonderObsolete(Player owner) {

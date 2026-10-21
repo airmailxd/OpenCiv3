@@ -332,6 +332,7 @@ namespace C7Engine.AI {
 		// Why a unit is worth hurrying, least urgent first.
 		private enum RushReason {
 			None,
+			Improvement,
 			Worker,
 			Settler,
 			Escort,
@@ -379,6 +380,9 @@ namespace C7Engine.AI {
 					continue;
 				}
 				RushReason reason = UnitRushReason(player, city, staging, workers);
+				if (reason == RushReason.None && AiExperiments.Has(player, ImprovementHurry) && IsHurriableImprovement(city.itemBeingProduced)) {
+					reason = RushReason.Improvement;
+				}
 				if (reason == RushReason.None) {
 					continue;
 				}
@@ -416,6 +420,22 @@ namespace C7Engine.AI {
 				city.HurryProduction();
 				AiExperiments.onHurry?.Invoke(city, cost);
 			}
+		}
+
+		// On trial: Civ3's AI also rushes improvements, never letting its
+		// treasury fall below the stock reserve (see StockGoldReserve):
+		// "it won't rush an improvement if doing so would leave its
+		// treasury below that level" (Flintlock, reading the 1.22 code,
+		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16787843;
+		// compendium 08). Per the owner's decision, 2026-10-21, the AI
+		// hurries improvements as well as units. Improvements come after
+		// every unit reason, so units bought for defence or a campaign keep
+		// first call on the gold. Great and small wonders are not
+		// improvements and are never bought.
+		public const string ImprovementHurry = "stock-improvement-hurry";
+
+		private static bool IsHurriableImprovement(IProducible item) {
+			return item is Building b && !b.IsGreatWonder() && !b.isSmallWonder && !b.isCenterOfEmpire && !b.IsSpaceshipPart;
 		}
 
 		// HEURISTIC: a base and so much per city, which sets how long the AI

@@ -13,6 +13,9 @@ public partial class DomesticAdvisor : Control {
 	[Export] TextureButton close;
 	[Export] TextureButton changeGovernment;
 	[Export] Label governmentLabel;
+	// Made in code, under the government button (see CreateFrame).
+	private readonly TextureButton changeMobilization = new();
+	private readonly Label mobilizationLabel = new();
 	[Export] Label scienceStatus;
 	[Export] Label treasury;
 	[Export] Label incomeDetails;
@@ -91,6 +94,18 @@ public partial class DomesticAdvisor : Control {
 		changeGovernment.Pressed += ChangeGovernments;
 		TextureLoader.SetButtonTextures(close, "ui.exit");
 		TextureLoader.SetButtonTextures(changeGovernment, "advisors.domestic.button");
+
+		// Civ3's Mobilization button, under the government's: "Mobilize your
+		// economy using the "Mobilization" button on the Domestic Advisor"
+		// (Conquests Civilopedia, GCON_Mobilization). Its label is the
+		// current level, "Normalcy" or "War Time" (labels.txt).
+		changeMobilization.SetPosition(changeGovernment.Position + new Vector2(0, changeGovernment.Size.Y + 4));
+		changeMobilization.Size = changeGovernment.Size;
+		changeMobilization.Pressed += ChangeMobilization;
+		TextureLoader.SetButtonTextures(changeMobilization, "advisors.domestic.button");
+		mobilizationLabel.SetPosition(new Vector2(6, 2));
+		changeMobilization.AddChild(mobilizationLabel);
+		background.AddChild(changeMobilization);
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "DOMESTIC ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Domestic);
@@ -392,6 +407,10 @@ public partial class DomesticAdvisor : Control {
 			// switch to.
 			changeGovernment.Disabled = playerController.GetAvailableGovernments(gameData).Count == 1;
 
+			// Mobilization is offered once the civ knows Nationalism.
+			changeMobilization.Visible = playerController.mobilized || Mobilization.CanMobilize(playerController);
+			mobilizationLabel.Text = playerController.mobilized ? "War Time" : "Normalcy";
+
 			if (playerController.government.transitionType && playerController.inAnarchyUntilTurn > gameData.turn) {
 				DialogBoxAdvise.Text = $"{playerController.inAnarchyUntilTurn - gameData.turn} turns of anarchy left";
 			} else {
@@ -471,6 +490,29 @@ public partial class DomesticAdvisor : Control {
 					"Yes, you know it's gonna be alright.",
 					"No. You can count me out.",
 					() => { new StartGovernmentTransitionMsg().send(); }),
+				PopupOverlay.PopupCategory.Advisor);
+		});
+	}
+
+	// Civ3's "Set mobilization level to..." choice (script.txt
+	// #CHANGEMOBILIZATION: Normalcy or War-Time).
+	private void ChangeMobilization() {
+		EngineStorage.ReadGameData((GameData gameData) => {
+			Player player = gameData.GetUIControllerPlayer();
+			string blocker = Mobilization.WhyCannotToggle(player);
+			if (blocker != null) {
+				popupOverlay.ShowPopup(new InformationalPopup(blocker), PopupOverlay.PopupCategory.Advisor);
+				return;
+			}
+			bool mobilize = !player.mobilized;
+			popupOverlay.ShowPopup(
+				new ConfirmationPopup(
+					mobilize
+						? "Set mobilization level to War-Time? Our cities will build only military units and improvements, and our culture will be halved, until a peace treaty is signed."
+						: "Set mobilization level to Normalcy?",
+					mobilize ? "War-Time" : "Normalcy",
+					"Never mind.",
+					() => { new MsgSetMobilization(mobilize).send(); }),
 				PopupOverlay.PopupCategory.Advisor);
 		});
 	}
