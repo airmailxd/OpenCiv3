@@ -54,6 +54,11 @@ jobs:
         else
           godot -v --headless --export-release "${{ matrix.preset }}" ../build/OpenCiv3/${EXPORT_NAME}.exe
         fi
+    # Godot can't give a Windows executable its icon without rcedit and Wine,
+    # so it's set after the export (see the script).
+    - name: Set the icon
+      if: matrix.platform == 'windows'
+      run: godot --headless --path Launcher -s ../.github/workflows/scripts/set_exe_icon.gd -- "$PWD/build/OpenCiv3/${EXPORT_NAME}.exe" "$PWD/C7/icon.ico"
     # Besides the full download, each platform gets a game package (the game
     # plus Text, Lua and Civilopedia) for the launcher, which fetches the art
     # separately and only when it changes (owner's decision, 2026-10-12). Its
@@ -145,6 +150,8 @@ jobs:
         # Import once first, so the export finds the project's resources.
         godot --headless --path Launcher --import || true
         godot -v --headless --path Launcher --export-release "Windows Desktop" "$PWD/build/windows/OpenCiv3/OpenCiv3 Launcher.exe"
+        # Godot can't give it its icon without rcedit and Wine (see the script).
+        godot --headless --path Launcher -s ../.github/workflows/scripts/set_exe_icon.gd -- "$PWD/build/windows/OpenCiv3/OpenCiv3 Launcher.exe" "$PWD/C7/icon.ico"
         godot -v --headless --path Launcher --export-release "Linux/X11" "$PWD/build/linux/OpenCiv3/OpenCiv3-Launcher.x86_64"
         godot -v --headless --path Launcher --export-release "macOS" "$PWD/build/launcher-mac.zip"
         (cd build/windows && zip -q -r ../launcher-windows.zip OpenCiv3)
