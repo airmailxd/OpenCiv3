@@ -22,6 +22,10 @@ public partial class HistographGraph : Control {
 
 	private int X(HistographPoint p) => byYears ? p.date : p.turn;
 
+	// The turns the time axis spans, whatever the lines reach, or null to
+	// span the lines: the replay's graph grows across a fixed axis.
+	public (int first, int last)? fixedTurns;
+
 	public override void _Draw() {
 		Font font = GetThemeDefaultFont();
 		const int fontSize = 12;
@@ -35,6 +39,10 @@ public partial class HistographGraph : Control {
 				minX = Math.Min(minX, X(p));
 				maxX = Math.Max(maxX, X(p));
 			}
+		}
+		if (fixedTurns is (int first, int last) && !byYears) {
+			minX = first;
+			maxX = last;
 		}
 		if (minX > maxX) {
 			minX = 0;

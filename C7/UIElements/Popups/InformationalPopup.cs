@@ -9,6 +9,8 @@ public partial class InformationalPopup : Popup {
 	string message;
 	AdvisorHead.Advisor advisor;
 	AdvisorHead.Mood mood;
+	// The popup's caption, if not the advisor's title.
+	public string header;
 
 	public InformationalPopup(string message, AdvisorHead.Advisor advisor = AdvisorHead.Advisor.Foreign, AdvisorHead.Mood mood = AdvisorHead.Mood.Happy) {
 		alignment = BoxContainer.AlignmentMode.End;
@@ -43,7 +45,7 @@ public partial class InformationalPopup : Popup {
 
 		AddTexture(width, height);
 		AddBackground(width, height - 110, 110);
-		AddHeader(HeaderFor(advisor), 120);
+		AddHeader(header ?? HeaderFor(advisor), 120);
 
 		// Drawn over the background.
 		MoveChild(messageLabel, -1);

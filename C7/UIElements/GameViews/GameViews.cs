@@ -18,10 +18,14 @@ public partial class GameViews : CenterContainer {
 
 	// Reached from the Victory Status screen rather than by a key of its own.
 	private HistographView histographView;
+	// Shown at the end of the game (see ReplayView).
+	private ReplayView replayView;
 
 	public override void _Ready() {
 		histographView = new HistographView { Name = "HistographView", Visible = false };
 		AddChild(histographView);
+		replayView = new ReplayView { Name = "ReplayView", Visible = false };
+		AddChild(replayView);
 		Hide();
 	}
 
@@ -30,6 +34,13 @@ public partial class GameViews : CenterContainer {
 		HideGameViews();
 		histographView.ShowView();
 		Show();
+	}
+
+	// Shows the game's replay; onExit runs once it is closed.
+	public void ShowReplay(System.Action onExit) {
+		HideGameViews();
+		Show();
+		replayView.ShowView(onExit);
 	}
 
 	public void ShowVictoryStatus() {
@@ -89,5 +100,6 @@ public partial class GameViews : CenterContainer {
 		spaceRaceView.Hide();
 		demographicsView.Hide();
 		histographView?.Hide();
+		replayView?.Hide();
 	}
 }

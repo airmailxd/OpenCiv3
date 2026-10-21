@@ -1320,6 +1320,9 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 					break;
 				}
+			case MsgGreatHistoryBook mGHB:
+				ShowGreatHistoryBook(mGHB);
+				break;
 			case MsgShowDomesticAdvisorPopup mSDAP: {
 					// Like the military advisor's news, this waits its turn.
 					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
@@ -1507,21 +1510,28 @@ public partial class Game : Node {
 			case MsgNoHumansRemain:
 				RecordInHallOfFame(HallOfFame.ForDefeat);
 				InterestingEvent();
-				void ShowNoHumansRemain() {
+				void ShowNoHumansRemain(bool withReplay) {
 					popupOverlay.ShowPopup(
 						new ConfirmationPopup(
 							"Every human player has been defeated.\nThis game is over.\n\n",
 							"Return to the main menu.",
 							"Let me look around first.",
 							() => {
-								OnRetire();
+								// Civ3 shows the replay as the game ends (see ReplayView),
+								// unless its defeat screen has already shown it.
+								if (withReplay) {
+									gameViews.ShowReplay(OnRetire);
+								} else {
+									OnRetire();
+								}
 							}),
 						PopupOverlay.PopupCategory.Advisor);
 				}
 				// Civ3's announcement of the loss and its defeat screen
 				// first, when the Civ3 install has them (see EndOfGame).
-				if (!EndOfGame.Show(this, popupOverlay, null, null, recordedInHallOfFame, ShowNoHumansRemain)) {
-					ShowNoHumansRemain();
+				EndOfGame.ShowReplay = (host, done) => gameViews.ShowReplay(done);
+				if (!EndOfGame.Show(this, popupOverlay, null, null, recordedInHallOfFame, () => ShowNoHumansRemain(false))) {
+					ShowNoHumansRemain(true);
 				}
 				break;
 			case MsgShowDealProposal mSDP:
@@ -1686,6 +1696,7 @@ public partial class Game : Node {
 				InterestingEvent();
 				// Civ3's announcement, victory screen, replay and Hall of
 				// Fame, then its "Game Over, Man!" (see EndOfGame).
+				EndOfGame.ShowReplay = (host, done) => gameViews.ShowReplay(done);
 				if (EndOfGame.Show(this, popupOverlay, VictoryScreenLayout.ReasonFor(mV.victory), mV.winner, recordedInHallOfFame,
 						() => EndOfGame.ShowGameOver(popupOverlay, retire))) {
 					break;
@@ -1702,11 +1713,45 @@ public partial class Game : Node {
 						"Good! I’m Done!",
 						"Wait, lemme just play a couple of more turns...",
 						() => {
-							retire();
+							// Civ3 shows the replay as the game ends (see ReplayView).
+							gameViews.ShowReplay(retire);
 						}),
 					PopupOverlay.PopupCategory.Advisor);
 				break;
 		}
+	}
+
+	// One of Civ3's Great Books (see GreatBooks), worded by the player's Civ3
+	// Text/Great Books.txt, as Civ3 FUN_00548d80 shows it: the popup's
+	// #ADVISOR and #CAPTION, and its text with the historian, the title and
+	// the ranks filled in. Without the file (standalone mode) there is no
+	// book to show.
+	private void ShowGreatHistoryBook(MsgGreatHistoryBook book) {
+		const string path = "Text/Great Books.txt";
+		GreatBooksText text = Util.HasCiv3Media(path) ? GreatBooksText.Load(Util.Civ3MediaPath(path)) : null;
+		string message = text?.Format(new GreatBooks.Book(book.historian, book.title, book.ranking ?? []), AdvisorUtils.CivName);
+		if (message == null) {
+			log.Information("No Great Books text to show a book with");
+			return;
+		}
+		(AdvisorHead.Advisor advisor, AdvisorHead.Mood mood) = GreatBookAdvisor(text.Advisor);
+		InformationalPopup popup = new(message, advisor, mood) { header = text.Caption };
+		popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
+	}
+
+	// The advisor of a text file's "#ADVISOR Cultural Happy" line.
+	private static (AdvisorHead.Advisor, AdvisorHead.Mood) GreatBookAdvisor(string line) {
+		AdvisorHead.Advisor advisor = AdvisorHead.Advisor.Culture;
+		AdvisorHead.Mood mood = AdvisorHead.Mood.Happy;
+		string[] words = (line ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		if (words.Length > 0 && !words[0].StartsWith("Cultur", StringComparison.OrdinalIgnoreCase)
+			&& Enum.TryParse(words[0], true, out AdvisorHead.Advisor named)) {
+			advisor = named;
+		}
+		if (words.Length > 1 && Enum.TryParse(words[1], true, out AdvisorHead.Mood felt)) {
+			mood = felt;
+		}
+		return (advisor, mood);
 	}
 
 	// The cities waiting to tell their owner they've finished building
@@ -2167,6 +2212,7 @@ public partial class Game : Node {
 			// defeat screen (Civ3 FUN_004f9fb0's ending 6), then the Hall of
 			// Fame, before the main menu.
 			popupOverlay.OnHidePopup();
+			EndOfGame.ShowReplay = (host, done) => gameViews.ShowReplay(done);
 			if (EndOfGame.Show(this, popupOverlay, GameEndReason.Retirement, null, recordedInHallOfFame, OnRetire)) {
 				return;
 			}
