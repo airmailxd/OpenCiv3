@@ -183,11 +183,10 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(us.ShieldCost(building), city.shieldsStored);
 	}
 
-	// On trial ("leader-choice"): at war, a leader with good attackers at
+	// At war, a leader with good attackers at
 	// hand forms an army.
 	[Fact]
 	public void ChoosingLeaderFormsAnArmyAtWarWithGoodAttackers() {
-		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
 		City city = BuildCity(us);
 		while (!us.CanSupportAnotherArmy()) {
 			BuildCity(us);
@@ -202,11 +201,10 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		Assert.Single(us.units, u => u.IsArmy());
 	}
 
-	// On trial: at peace with no war planned, the leader rushes a building
+	// At peace with no war planned, the leader rushes a building
 	// rather than form an army, though attackers are at hand.
 	[Fact]
 	public void ChoosingLeaderAtPeaceRushesABuildingInstead() {
-		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
 		City city = BuildCity(us);
 		while (!us.CanSupportAnotherArmy()) {
 			BuildCity(us);
@@ -226,11 +224,10 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(us.units, u => u.IsArmy());
 	}
 
-	// On trial: a build that's nearly done is never chosen; the city will
+	// A build that's nearly done is never chosen; the city will
 	// finish it soon anyway.
 	[Fact]
 	public void ChoosingLeaderNeverRushesABuildThatIsNearlyDone() {
-		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
 		City city = BuildCity(us);
 		Building current = city.ListProductionOptions(gameData).OfType<Building>()
 			.Where(b => !b.IsGreatWonder()).OrderByDescending(b => us.ShieldCost(b)).First();

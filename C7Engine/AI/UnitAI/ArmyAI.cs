@@ -63,7 +63,7 @@ namespace C7Engine.AI.UnitAI {
 			return recruits >= 3 && player.ArmyCount() == 0;
 		}
 
-		// On trial ("leader-choice"): whether a leader should form an army
+		// Whether a leader should form an army
 		// rather than rush a build. HEURISTIC: only at war or with a war
 		// campaign planned, and with at least two good attackers within
 		// RecruitRange to fill it: offensive units (IsRecruit) with at least

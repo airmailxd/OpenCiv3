@@ -156,3 +156,34 @@ What the war lists show (after, all 16 games):
 - Wars with no attacks on the same landmass: 2 of 28 on Continents and 6 of 62 on Pangaea (one of them a pact ally's). Before, there were 1 of 11 and 4 of 27. They end by the 30-turn stalemate peace, or were still under way at turn 200, so no civ stayed at war forever without fighting.
 - Peace broken again at once: in 4 wars on Continents and 13 on Pangaea (2 and 3 before), the two signed peace and one declared war again within the same round of turns. Every case came from war plotting: once at peace, the at-war roll no longer applies, and peace only halves the target score and adds 2 to the exclusion roll. Flintlock believed there is a cooldown "within 8 turns of signing peace", but he left it unverified (compendium 08, section 3.4.1), so it is not applied. This is the main behaviour for the owner to look at.
 - Scores are 62 and 48 lower per civ, and techs 1.2 and 3.9 lower, with about 13 and 15 more units per civ. That matches the all-civs `stock-garrison` run above (scores 77 and 47 lower).
+
+## Great leaders (21 October)
+
+The owner asked for better choices on using great leaders, labelled as heuristics and kept unless clearly weaker. These follow C3C's rules: a military leader forms an army or hurries an improvement or small wonder, never a great wonder.
+
+| Change | Where |
+|---|---|
+| A military leader forms an army only when the civ is at war or has a war campaign planned, and at least 2 good attackers are within 6 tiles. A good attacker is an offensive unit with at least 3/4 of the attack of the civ's best one. Before, it also formed one at peace when the civ had no army. | `ArmyAI.ShouldFormArmyForWar` |
+| Otherwise it rushes the improvement or small wonder with the most shields left, in any of the civ's cities, and goes there if need be. A build counts if the city is building it, or if the city would want it once the penalty for its build time is put back (the leader saves that time). Defensive buildings in a threatened city count half again, and production buildings a quarter again. The value drops by 3 shields for each tile the leader has to walk. A build is skipped if it is nearly done (less than half its cost, or 3 turns of the city's shields, left), and so is any non-defensive build in a threatened city. With nothing that qualifies, the older choice applies. | `PlayerAI.BestBuildForMilitaryLeader`, `UseMilitaryLeaderByChoice` |
+| A scientific leader standing in a safe city of its civ is used there if it would save at least half as many shields as at the empire's best target. A probe of the trial games showed why: as cities switched production, the best target moved every turn, and one scientific leader visited 12 cities in 12 turns without being used. | `PlayerAI.UseScientificLeader` |
+
+The trials were 8 games of 200 turns at Monarch on each map: a paired one, and an all-civs one compared with a run at the same commit without the switch.
+
+| Trial | Continents | Pangaea |
+|---|---|---|
+| Paired (score) | +3 ± 4 | +58 ± 53 |
+| All civs, score with / without | 1562 / 1562 | 1523 / 1506 |
+| All civs, techs with / without | 30.3 / 30.3 | 35.9 / 35.2 |
+
+Kept, and the switch is gone. Military leaders almost never appear in these AI-only games (about 0.1 per civ, with very few elite units), so the trials mostly measure the scientific leader change. With only the military changes, the first round played exactly the same games as the baseline.
+
+## Other rulings of 21 October
+
+These are rules changes, not trial changes:
+
+- **Goody-hut techs** are now a weighted roll by `DevelopmentAI.TechValue`, the same way research picks. This replaces the inverse-cost weighting (`GoodyHuts.PickTech`).
+- **Barbarians** search both ways: the 6 steps all round as before, and the stock game's NW/SE diagonal out to 12 steps. A reachable target on the diagonal comes first (`CombatAI.BarbarianDiagonalTiles`).
+- **Air superiority** used to be cleared at the end of the round, so a fighter set by a civ late in the turn order lost the next round's interturn. It now lasts until its owner's next turn begins (`TurnHandling.BeginPlayersTurn`, `MapUnit.airSuperiorityTurn`, which is saved).
+- **AI-vs-AI war weariness** already gave each side its own points; a test now covers it.
+- **Railroads:** the engine has no separate "railroad to" command. Every railroad tile, whether a human or an automated worker builds it, goes through the same Iron, Coal and terrain check; a test now covers it.
+- **Bombardment:** in a town of size 6 or less, walls from the Great Wall make it immune to land bombardment (the C3C bug, kept on purpose), and great wonders can never be bombarded away.

@@ -566,7 +566,7 @@ namespace C7Engine {
 			if (!unit.IsLeader() || !unit.CanOfferHurryProduction()) {
 				return false;
 			}
-			if (AiExperiments.Has(player, LeaderChoice) && UseMilitaryLeaderByChoice(unit, player) is bool used) {
+			if (UseMilitaryLeaderByChoice(unit, player) is bool used) {
 				return used;
 			}
 			if (ArmyAI.ShouldFormArmy(unit, player)) {
@@ -609,22 +609,27 @@ namespace C7Engine {
 			return false;
 		}
 
-		// On trial: a military leader's choices made by the heuristics below
-		// (UseMilitaryLeaderByChoice). C3C's rules: "A Military Leader can be
-		// used to either create an army or to hurry production of an
+		// The rules a military leader follows in C3C: "A Military Leader can
+		// be used to either create an army or to hurry production of an
 		// Improvement or Small Wonder in a city" (Civilopedia, GCON_Leaders;
 		// compendium 01, 1.3), never a great wonder (compendium 04, "Great
-		// Leader hurry"), and it forms an army in any of our cities, without
-		// a Military Academy, which only lets a city build armies.
-		internal const string LeaderChoice = "leader-choice";
-
-		// HEURISTIC (on trial, "leader-choice"): a military leader forms an
-		// army when we are at war or planning one and good attackers are at
-		// hand (ArmyAI.ShouldFormArmyForWar). Otherwise it rushes the most
+		// Leader hurry"). It forms an army in any of our cities, without a
+		// Military Academy, which only lets a city build armies.
+		//
+		// HEURISTIC: a military leader forms an army when we are at war or
+		// planning one and good attackers are at hand
+		// (ArmyAI.ShouldFormArmyForWar). Otherwise it rushes the most
 		// valuable improvement or small wonder in any of our cities
 		// (BestBuildForMilitaryLeader), going there if need be. Returns
 		// whether the leader was used up, or null with nothing worth its
-		// while anywhere, to fall back on the usual choice.
+		// while anywhere, to fall back on the older choice below.
+		//
+		// In AI trials (AiTrialTest, 8 games of 200 turns on each map) this
+		// and the scientific leader's change (see UseScientificLeader) were
+		// no weaker, so they were adopted: paired, +3 +- 4 on Continents and
+		// +58 +- 53 on Pangaea; all civs, 1562 against 1562 and 1523 against
+		// 1506 without. Military leaders hardly ever arose in those games,
+		// so what the trials saw is mostly the scientific leader's change.
 		private static bool? UseMilitaryLeaderByChoice(MapUnit unit, Player player) {
 			if (ArmyAI.ShouldFormArmyForWar(unit, player)) {
 				return ArmyAI.FormArmy(unit, player) != null;
@@ -649,10 +654,11 @@ namespace C7Engine {
 			return false;
 		}
 
-		// HEURISTIC (on trial, "leader-choice"): the city, and improvement
+		// HEURISTIC: the city, and improvement
 		// or small wonder, a military leader would do most good rushing: of
 		// what each city is building and the buildings it wants
-		// (ChooseProducible.ScoreBuilding above 0), the one with the most
+		// (ChooseProducible.ScoreBuilding above 0 once the penalty for the
+		// turns it takes, which the leader saves, is put back), the one with the most
 		// shields left, counted half again for a defensive building (walls
 		// or a defence bonus) in a threatened city and a quarter again for
 		// one that adds production, and less 3 shields for each tile the
@@ -704,7 +710,7 @@ namespace C7Engine {
 				ChooseProducible.ProducibleStats stats = ChooseProducible.CalculateStats(city, player, options);
 				foreach (IProducible p in options) {
 					if (p is Building b && b != city.itemBeingProduced && city.CanChangeProduction(b)
-							&& ChooseProducible.ScoreBuilding(stats, city, player, b) > 0) {
+							&& ChooseProducible.ScoreBuilding(stats, city, player, b) + city.TurnsToProduce(b) > 0) {
 						Consider(b);
 					}
 				}
@@ -764,6 +770,18 @@ namespace C7Engine {
 			if (target == null || item == null) {
 				return false;
 			}
+			// The empire's best build changes
+			// from turn to turn as cities switch production, so a leader
+			// chasing it could wander for many turns (seen in AI trials: a
+			// scientific leader visited a dozen cities without being used).
+			// HEURISTIC: in a safe city of ours where it would save at least
+			// half as many shields as at the best target, it is used here.
+			if (unit.location.cityAtTile is City here && here.owner == player
+					&& here != target && !here.hurriedThisTurn && !WonderPlanner.IsThreatened(here, player)
+					&& BestBuildHereForScientificLeader(here) is (IProducible local, int saved)
+					&& 2 * saved >= player.ShieldCost(item) - target.shieldsStored) {
+				(target, item) = (here, local);
+			}
 			if (unit.location == target.location && unit.CanOfferHurryProduction()) {
 				if (target.itemBeingProduced != item) {
 					target.ChangeProduction(item);
@@ -810,6 +828,28 @@ namespace C7Engine {
 			}
 			City capital = player.cities.FirstOrDefault(c => c.capital);
 			return capital == null ? (null, null) : (capital, BestNonWonderForScientificLeader(capital).Item1);
+		}
+
+		// The build in the city a scientific leader would save the most
+		// shields on, wonder or not, and the shields, or null with nothing
+		// (see UseScientificLeader).
+		private static (IProducible, int)? BestBuildHereForScientificLeader(City city) {
+			(IProducible best, int bestRemaining) = BestNonWonderForScientificLeader(city);
+			void Consider(Building b) {
+				int remaining = city.owner.ShieldCost(b) - city.shieldsStored;
+				if (remaining > bestRemaining) {
+					(best, bestRemaining) = (b, remaining);
+				}
+			}
+			if (city.itemBeingProduced is Building current && City.IsWonder(current)) {
+				Consider(current);
+			}
+			foreach (IProducible p in city.ListProductionOptions(EngineStorage.gameData)) {
+				if (p is Building b && City.IsWonder(b) && city.CanChangeProduction(b)) {
+					Consider(b);
+				}
+			}
+			return best == null ? null : (best, bestRemaining);
 		}
 
 		// The non-wonder build in the city that would save the most shields,
@@ -887,7 +927,7 @@ namespace C7Engine {
 			if (unit.IsScientificLeader()) {
 				scientificTarget = BestBuildForScientificLeader(player).Item1
 					?? player.cities.FirstOrDefault(c => c.capital);
-			} else if (AiExperiments.Has(player, LeaderChoice)) {
+			} else {
 				// The city the leader would rush a build in (see
 				// UseMilitaryLeaderByChoice), if any.
 				scientificTarget = BestBuildForMilitaryLeader(player, unit).Item1;
