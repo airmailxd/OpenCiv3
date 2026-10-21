@@ -539,6 +539,30 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Null(Espionage.Unavailable(gameData, actor, EspionageMission.SabotageProduction, target, city));
 	}
 
+	// An embassy reopened at peace has the capital report it had when it
+	// was founded (owner's decision, 2026-10-21), kept through the war and
+	// across a save.
+	[Fact]
+	public void AReopenedEmbassyKeepsItsCapitalReport() {
+		City city = SetUpEmbassy();
+		actor.playerRelationships[target.id].embassyReport = Espionage.Investigate(city, 3);
+		Assert.True(Espionage.HasEmbassy(actor, target));
+
+		actor.DeclareWarOn(target, gameData.turn);
+		Assert.Null(actor.playerRelationships[target.id].embassyReport);
+		SaveGame save = SaveGame.FromGameData(gameData);
+		SavePlayer saved = SaveGame.FromJSON(save.ToCompactJSON()).Players.First(p => p.id.ToString() == actor.id.ToString());
+		Assert.Equal(3, saved.playerRelationships[target.id.ToString()].closedEmbassyReport.turn);
+
+		PlayerRelationship.SignPeaceAfterWar(actor, target, gameData);
+		Assert.True(Espionage.HasEmbassy(actor, target));
+		Espionage.CityReport report = actor.playerRelationships[target.id].embassyReport;
+		Assert.NotNull(report);
+		Assert.Equal(3, report.turn);
+		Assert.Equal(city.name, report.cityName);
+		Assert.Null(actor.playerRelationships[target.id].closedEmbassyReport);
+	}
+
 	// After peace the embassy must be established again, which the AI does.
 	[Fact]
 	public void AIReestablishesItsEmbassyAfterPeace() {

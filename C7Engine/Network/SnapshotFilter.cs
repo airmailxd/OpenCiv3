@@ -385,6 +385,7 @@ public static class SnapshotFilter {
 				// Their spies' reports are theirs alone.
 				PlayerRelationship copy = relationship.ShallowCopy();
 				copy.embassyReport = null;
+				copy.closedEmbassyReport = null;
 				relationships[otherID] = copy;
 			}
 		}

@@ -142,6 +142,10 @@ public class PlayerRelationship {
 	// or null if p1 has no embassy or it came from a scenario.
 	public Espionage.CityReport embassyReport = null;
 
+	// The embassyReport of an embassy closed by war, kept until peace opens
+	// it again with the report it had (see ReopenEmbassy), or null.
+	public Espionage.CityReport closedEmbassyReport = null;
+
 	// p1.playerRelationships[p2].hasSpy is true if p1 has planted a spy in
 	// p2's capital (needs the Intelligence Agency), which espionage missions
 	// against p2 need.
@@ -337,16 +341,26 @@ public class PlayerRelationship {
 	}
 
 	private static void CloseEmbassy(PlayerRelationship relationship) {
-		relationship.embassyClosedByWar |= relationship.hasEmbassy;
+		if (relationship.hasEmbassy) {
+			relationship.embassyClosedByWar = true;
+			relationship.closedEmbassyReport = relationship.embassyReport;
+		}
 		relationship.hasEmbassy = false;
 		relationship.embassyReport = null;
 	}
 
+	// An embassy reopened at peace has the capital report it had when it
+	// was founded, kept while the war closed it, rather than a new one
+	// (owner's decision, 2026-10-21): it was never established again, so
+	// it makes no new investigation of the capital (see Espionage,
+	// EstablishEmbassy).
 	private static void ReopenEmbassy(PlayerRelationship relationship) {
 		if (relationship.embassyClosedByWar) {
 			relationship.hasEmbassy = true;
 			relationship.embassyClosedByWar = false;
+			relationship.embassyReport = relationship.closedEmbassyReport;
 		}
+		relationship.closedEmbassyReport = null;
 	}
 
 	// Civ3's trading reputation. A civ that breaks a deal with an AI is
