@@ -146,6 +146,24 @@ public class Civ3RuleImportTest {
 		Assert.Equal(0, game.Buildings.Single(b => b.name == "Walls").navalDefenseBonus);
 	}
 
+	// The BIQ's TERR "Pollution Effect", what global warming turns a terrain
+	// into (see GlobalWarming): 14 is "Base Terrain Type", -1 none.
+	[SkippableFact]
+	public void PollutionEffectsAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		string Effect(string key) => game.TerrainTypes.Single(t => t.Key == key).pollutionEffect;
+		Assert.Equal("plains", Effect("grassland"));
+		Assert.Equal("desert", Effect("plains"));
+		Assert.Equal(TerrainType.PollutionEffectBaseTerrain, Effect("forest"));
+		Assert.Equal(TerrainType.PollutionEffectBaseTerrain, Effect("jungle"));
+		Assert.Equal("coast", Effect("marsh"));
+		Assert.Equal(TerrainType.PollutionEffectNone, Effect("desert"));
+		Assert.Equal(TerrainType.PollutionEffectNone, Effect("hills"));
+	}
+
 	// Wheeled units "cannot cross mountains or jungle tiles without a road"
 	// (https://sullla.com/Civ3/CQ/CQ_units.html); the Helicopter carries
 	// only foot soldiers, and the Explorer treats all terrain as roads

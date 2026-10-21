@@ -36,8 +36,8 @@ namespace C7Engine {
 	//   size 1 city keeps its citizen.
 	// - Only the land tiles of the eight around the city are polluted, as
 	//   pollution elsewhere only strikes land (see City.MaybePollute).
-	// - Meltdowns don't add to world pollution; global warming isn't
-	//   modelled (see City.MaybePollute).
+	// - Each meltdown adds to world pollution for the rest of the game (see
+	//   GlobalWarming).
 	public static class Meltdown {
 		private static readonly ILogger log = Log.ForContext(typeof(Meltdown));
 
@@ -73,6 +73,12 @@ namespace C7Engine {
 				if (Tile.TryAddPollution(t)) {
 					polluted.Add(t);
 				}
+			}
+
+			// The meltdown adds to world pollution (Civ3 FUN_004bb970 counts
+			// it in the counter GlobalWarming squares).
+			if (gameData != null) {
+				++gameData.nuclearEvents;
 			}
 
 			int lost = city.residents.Count / 2;

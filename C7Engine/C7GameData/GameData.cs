@@ -145,6 +145,10 @@ namespace C7GameData {
 		// The United Nations elections (see C7Engine.UnitedNations).
 		public UnitedNationsState unitedNations = new();
 
+		// The nuclear explosions and meltdowns so far this game, which add to
+		// world pollution (see GlobalWarming).
+		public int nuclearEvents;
+
 		public BarbarianInfo barbarianInfo = new BarbarianInfo();
 
 		public StrengthBonus fortificationBonus;

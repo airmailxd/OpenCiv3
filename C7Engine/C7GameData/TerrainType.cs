@@ -54,6 +54,19 @@ namespace C7GameData {
 		public bool diseaseCanBeCured { get; set; }
 		public int diseaseStrength { get; set; }
 
+		// What global warming turns the terrain into (see GlobalWarming):
+		// the BIQ's TERR "Pollution Effect", "the terrain type (if any) that
+		// a tile of the selected terrain type will become" (editor help). The
+		// key of another terrain; PollutionEffectBaseTerrain, the BIQ's
+		// "Base Terrain Type" (index 14), for the terrain under the tile's
+		// forest or jungle; or PollutionEffectNone. conquests.biq has
+		// Grassland -> Plains, Plains -> Desert, Forest and Jungle -> base
+		// terrain, and Marsh -> Coast. Saves made before this was saved have
+		// null, read as conquests.biq's (see PollutionEffect).
+		public string pollutionEffect { get; set; }
+		public const string PollutionEffectNone = "none";
+		public const string PollutionEffectBaseTerrain = "base terrain";
+
 		// These enum and field are kept for compatibility with CIV3 saves.
 		public enum Civ3FoliageAction {
 			None,
@@ -133,6 +146,19 @@ namespace C7GameData {
 			return DisplayName + "(" + baseFoodProduction + ", " + baseShieldProduction + ", " + baseCommerceProduction + ")";
 		}
 
+		// The terrain's pollution effect (see pollutionEffect), with
+		// conquests.biq's for saves that don't have one.
+		public string PollutionEffect() {
+			if (pollutionEffect != null) {
+				return pollutionEffect;
+			}
+			if (IsGrassland) return "plains";
+			if (IsPlains) return "desert";
+			if (IsForest || IsJungle) return PollutionEffectBaseTerrain;
+			if (IsMarsh) return "coast";
+			return PollutionEffectNone;
+		}
+
 		public static TerrainType NONE = new TerrainType();
 
 
@@ -160,6 +186,11 @@ namespace C7GameData {
 				causesDisease = civ3Terrain.CausesDisease,
 				diseaseCanBeCured = civ3Terrain.DiseaseCanBeCured,
 				diseaseStrength = civ3Terrain.DiseaseStrength,
+				pollutionEffect = civ3Terrain.PollutionEffect switch {
+					14 => PollutionEffectBaseTerrain,
+					int i when civTerrainKeyLookup.TryGetValue(i, out string target) => target,
+					_ => PollutionEffectNone,
+				},
 			};
 
 			if (c7Terrain.Key == "mountains" || c7Terrain.Key == "volcano") {

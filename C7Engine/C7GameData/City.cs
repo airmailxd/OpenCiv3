@@ -1502,13 +1502,9 @@ namespace C7GameData {
 		// https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive-aa/54340-pollution)
 		// that isn't already polluted. None, no pollution.
 		//
-		// Global warming isn't modelled. The Conquests Civilopedia
-		// (GCON_Pollution) says only that "If world pollution reaches
-		// sufficiently critical levels, there is a chance that global warming
-		// will occur. It can cause forests and jungles to disappear, and
-		// grasslands to become plains, and plains to become desert. World
-		// pollution is the sum of all city pollution, nuclear explosions, and
-		// meltdowns"; no source found gives the level or the chance.
+		// The city's pollution icons also add to world pollution, which
+		// brings global warming (see GlobalWarming); pollution lying on the
+		// map doesn't.
 		private const int PollutionSearchTiles = 20;
 
 		public Tile MaybePollute(GameData gameData) {

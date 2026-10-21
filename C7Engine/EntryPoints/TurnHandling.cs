@@ -164,6 +164,10 @@ namespace C7Engine {
 				// Volcanoes may erupt.
 				Volcano.ProcessEndOfRound(gameData);
 
+				// World pollution may bring global warming (after the
+				// volcanoes, as in Civ3).
+				GlobalWarming.ProcessEndOfRound(gameData);
+
 				// The United Nations votes once everyone has played the
 				// voting turn, and may elect a winner.
 				UnitedNations.ProcessEndOfRound(gameData);

@@ -266,6 +266,12 @@ namespace C7GameData {
 				return result;
 			}
 
+			// The explosion adds to world pollution (Civ3 FUN_005c29d0 counts
+			// it in the counter GlobalWarming squares).
+			if (gameData != null) {
+				++gameData.nuclearEvents;
+			}
+
 			foreach (Tile t in NuclearBlastArea(tile)) {
 				MapUnit[] units = t.unitsOnTile.ToArray();
 				foreach (MapUnit unit in units) {

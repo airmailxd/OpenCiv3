@@ -19,6 +19,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Desert",
         "amount": 0.1
@@ -50,6 +51,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "desert",
       "defenseBonus": {
         "description": "Plains",
         "amount": 0.1
@@ -83,6 +85,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "plains",
       "defenseBonus": {
         "description": "Grassland",
         "amount": 0.1
@@ -115,6 +118,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Tundra",
         "amount": 0.1
@@ -146,6 +150,7 @@
       "causesDisease": true,
       "diseaseCanBeCured": true,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Flood Plain",
         "amount": 0.1
@@ -174,6 +179,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Hills",
         "amount": 0.5
@@ -211,6 +217,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Mountains",
         "amount": 1
@@ -244,6 +251,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "base terrain",
       "defenseBonus": {
         "description": "Forest",
         "amount": 0.25
@@ -279,6 +287,7 @@
       "causesDisease": true,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "base terrain",
       "defenseBonus": {
         "description": "Jungle",
         "amount": 0.25
@@ -313,6 +322,7 @@
       "causesDisease": true,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "coast",
       "defenseBonus": {
         "description": "Marsh",
         "amount": 0.2
@@ -344,6 +354,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Volcano",
         "amount": 0.8
@@ -369,6 +380,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Coast",
         "amount": 0.1
@@ -397,6 +409,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Sea",
         "amount": 0.1
@@ -426,6 +439,7 @@
       "causesDisease": false,
       "diseaseCanBeCured": false,
       "diseaseStrength": 50,
+      "pollutionEffect": "none",
       "defenseBonus": {
         "description": "Ocean",
         "amount": 0.1
