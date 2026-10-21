@@ -132,12 +132,10 @@ namespace C7Engine {
 			}
 		}
 
-		// Upgrade units sitting in cities that can upgrade them, keeping a
-		// reserve of gold for emergencies.
-		//
-		// On trial ("stock-gold-reserve"): Civ3's own reserve, 16 gold per
-		// city plus the treasury that earns full interest, and no upgrades
-		// at all below it. Flintlock, reading the 1.22 code
+		// Upgrade units sitting in cities that can upgrade them, keeping
+		// Civ3's own reserve of gold: 16 gold per city plus the treasury that
+		// earns full interest, and no upgrades at all below it (see
+		// doc/ai-review-2026-10.md for the trial). Flintlock, reading the 1.22 code
 		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16937054):
 		// the upgrade pass is "behind a weird little check", "The reserve
 		// amount is 16 gold per city plus enough to earn the AI full interest
@@ -145,12 +143,9 @@ namespace C7Engine {
 		// not upgrade anything when it's below the minimum gold reserve even
 		// if the upgrade is free."
 		private static void UpgradeUnits(Player player) {
-			int GOLD_RESERVE = 100;
-			if (AiExperiments.Has(player, "stock-gold-reserve")) {
-				GOLD_RESERVE = DevelopmentAI.StockGoldReserve(player);
-				if (player.gold < GOLD_RESERVE) {
-					return;
-				}
+			int GOLD_RESERVE = DevelopmentAI.StockGoldReserve(player);
+			if (player.gold < GOLD_RESERVE) {
+				return;
 			}
 			Dictionary<City, CityUpgradeInfo> upgradeInfo = new();
 			foreach (MapUnit unit in player.units.ToList()) {

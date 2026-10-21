@@ -364,12 +364,10 @@ namespace C7Engine.AI {
 			// sliders (PlayerAI.AdjustSliders, which tolerates a deficit of a
 			// tenth of the treasury) needn't take beakers for taxes.
 			int deficit = Math.Max(0, -player.CalculateGoldPerTurn());
-			// On trial ("stock-gold-reserve"): Civ3's reserve (see
-			// StockGoldReserve) in place of the base one. Civ3's AI rushes
-			// only improvements; this AI rushes only units, so the reserve
-			// is applied to those.
-			int baseReserve = AiExperiments.Has(player, "stock-gold-reserve") ? StockGoldReserve(player) : BaseReserve(player);
-			int reserve = Math.Max(baseReserve, ReserveDeficitTurns * deficit);
+			// Civ3's reserve (see StockGoldReserve). Civ3's AI rushes only
+			// improvements; this AI rushes only units, so the reserve is
+			// applied to those.
+			int reserve = Math.Max(StockGoldReserve(player), ReserveDeficitTurns * deficit);
 			// At war, or gathering for one, gold kept back is worth less than
 			// soldiers in the field.
 			int warReserve = atWar ? reserve / 2 : reserve;
@@ -420,9 +418,10 @@ namespace C7Engine.AI {
 			}
 		}
 
-		// HEURISTIC: the gold kept back from hurrying: a base and so much per
-		// city, or ten turns of deficit if that is more. A reserve of 30 and
-		// 5 a city left the AI's small treasuries nearly untouched.
+		// HEURISTIC: a base and so much per city, which sets how long the AI
+		// at war raises taxes (see WantedGoldPerTurn); it was once also the
+		// gold kept back from hurrying, which is now Civ3's StockGoldReserve.
+		// Hurrying also keeps ten turns of any deficit.
 		private const int ReserveBase = 10;
 		private const int ReservePerCity = 2;
 		private const int ReserveDeficitTurns = 10;
