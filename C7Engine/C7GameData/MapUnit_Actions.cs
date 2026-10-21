@@ -521,6 +521,7 @@ public partial class MapUnit {
 
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = DefenderAgainstAttackOn(newLoc, stealthTarget);
+		bool fought = false;
 		bool enemyOnTile = defender != MapUnit.NONE && MayAttack(defender);
 		// A hidden nationality unit attacking a civ it is at peace with (see
 		// MapUnit_HiddenNationality.cs).
@@ -544,6 +545,7 @@ public partial class MapUnit {
 		} else if (enemyOnTile) {
 			CombatResult combatResult = await Fight(defender);
 			hasAttackedThisTurn = true;
+			fought = true;
 			this.path = TilePath.NONE;
 			// If we were killed then of course there's nothing more to do. If the combat couldn't happen for whatever
 			// reason, just give up on trying to move.
@@ -577,6 +579,12 @@ public partial class MapUnit {
 
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc, unitType.allTerrainAsRoads);
+		// A won fight costs a full movement point even along a road or
+		// railroad, so moving into the tile takes at least that; a unit with
+		// one move ends its turn (owner's decision, 2026-10-21).
+		if (fought) {
+			movementCost = Math.Max(movementCost, 1);
+		}
 		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
 		List<City> coastalFortresses = FindCoastalFortressesAlong(location, newLoc);
 

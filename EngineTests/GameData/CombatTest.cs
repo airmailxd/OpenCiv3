@@ -572,15 +572,18 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// A won fight costs a full movement point, even along a road or
+	// railroad (owner's decision, 2026-10-21); the move into the tile costs
+	// no more than that.
 	[Fact]
-	public async Task WinningAttackerPaysOnlyForTheMove() {
+	public async Task WinningAttackerPaysAFullMoveForTheFight() {
 		GoToWar();
 		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
 		// A tank against a badly wounded warrior, so the attack can't fail.
 		MapUnit tank = Spawn(us, "Tank", from);
 		MapUnit warrior = Spawn(them, "Warrior", to);
 		warrior.hitPointsRemaining = 1;
-		float moveCost = TilePath.GetMovementCost(us, from, dir, to);
+		float moveCost = System.Math.Max(1, TilePath.GetMovementCost(us, from, dir, to));
 		float startingMovement = tank.movementPoints.remaining;
 
 		Assert.True(await tank.Move(dir));
@@ -588,6 +591,30 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(to, tank.location);
 		Assert.DoesNotContain(warrior, gameData.mapUnits);
 		Assert.Equal(startingMovement - moveCost, tank.movementPoints.remaining, 3);
+	}
+
+	[Fact]
+	public async Task AFightAlongARoadStillCostsAFullMove() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		TerrainImprovement road = gameData.terrainImprovements.Single(ti => ti.key == Tile.TileOverlays.ROAD);
+		from.overlays.Add(road);
+		to.overlays.Add(road);
+		Assert.True(TilePath.GetMovementCost(us, from, dir, to) < 1);
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit target = Spawn(them, "Warrior", to);
+		target.hitPointsRemaining = 1;
+		warrior.hitPointsRemaining = warrior.maxHitPoints;
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			// Every round goes to the attacker.
+			C7GameData.GameData.rng = new FixedRandom(0);
+			Assert.True(await warrior.Move(dir));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+		Assert.Equal(to, warrior.location);
+		Assert.False(warrior.movementPoints.canMove);
 	}
 
 	[Fact]

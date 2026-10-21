@@ -2132,14 +2132,14 @@ namespace C7GameData {
 		// Assumptions: the gold goes straight to the treasury, untouched by
 		// corruption or the tax rate; a wonder still attracts tourists after
 		// its city changes hands; and the bands start at 1000 years
-		// inclusive. An obsolete wonder attracts none, as it loses its
-		// effects (owner's decision, 2026-10-21; see EffectiveBuildings).
-		// Its culture is a separate matter and goes on.
+		// inclusive. An obsolete wonder still attracts tourists, as it keeps
+		// its culture, though its other effects stop (owner's decision,
+		// 2026-10-21; see EffectiveBuildings).
 		public int TourismGold() {
 			int currentGameYear = CurrentGameYear();
 			int result = 0;
 			foreach (CityBuilding cb in constructed_buildings) {
-				if (cb.building.touristAttraction && cb.building.IsGreatWonder() && cb.building.TakesEffectFor(owner)) {
+				if (cb.building.touristAttraction && cb.building.IsGreatWonder()) {
 					result += TourismGoldForAge(currentGameYear - cb.year);
 				}
 			}

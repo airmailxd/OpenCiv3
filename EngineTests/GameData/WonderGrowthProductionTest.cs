@@ -207,6 +207,14 @@ public class WonderGrowthProductionTest {
 
 		Assert.Equal(14, city.TourismGold());
 
+		// An obsolete wonder keeps drawing tourists (owner's decision,
+		// 2026-10-21).
+		Tech obsoleting = new() { id = ID.FromString("tech-9998"), Name = "Obsoleting" };
+		pyramids.renderedObsoleteBy = obsoleting;
+		city.owner.knownTechs.Add(obsoleting.id);
+		Assert.True(pyramids.isGreatWonderObsolete(city.owner));
+		Assert.Equal(14, city.TourismGold());
+
 		PlayerCommerceBreakdown flows = city.owner.AggregateFlows();
 		Assert.Equal(14, flows.tourism);
 		Assert.Equal(flows.Inflows() - flows.Outflows(), flows.Netflows());
