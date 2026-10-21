@@ -138,14 +138,6 @@ namespace C7GameData {
 
 			var hasTargetUnit = target != NONE && target.owner != owner;
 			var hasForeignCity = tile.HasCity() && tile.cityAtTile.owner != owner;
-			// Only land bombarders hit the walls first; ships and planes hit
-			// them like any other building (see BombardCity), per the project
-			// owner. Only walls built in the city can be knocked down: walls
-			// a wonder provides (e.g. the Great Wall) are indestructible, so
-			// with only those the bombardment goes on to the units or the
-			// city.
-			CityBuilding destructibleWalls = hasForeignCity && IsLandUnit() ? FindDestructibleWalls(tile.cityAtTile) : null;
-			var hasCityWalls = destructibleWalls != null;
 			var hasTileImprovements = tile.HasImprovements;
 
 			if (!(hasTargetUnit || hasTileImprovements || hasForeignCity))
@@ -154,20 +146,15 @@ namespace C7GameData {
 			facingDirection = location.DirectionTo(tile);
 			hasAttackedThisTurn = true;
 
-			// After the walls (see BombardCityWalls), units are hit before
-			// the city itself: "starting in Conquests
-			// the bombardment units always hit units first in cities, never
-			// improvements or population"
-			// (https://forums.civfanatics.com/threads/citizen-and-buildings-defense-bonus.693504/).
-			// Per the project owner, only lethal bombardment kills a unit;
+			// A city is hit in a fixed order that depends on the bombarder
+			// (see BombardCityInOrder). Elsewhere the units are hit before the
+			// tile's improvements. Only lethal bombardment kills a unit;
 			// otherwise the units are hit until all are down to their last
 			// hit point (see Tile.FindTopDefenderForBombard).
-			if (hasCityWalls)
-				await BombardCityWalls(tile, destructibleWalls);
+			if (hasForeignCity)
+				await BombardCityInOrder(tile);
 			else if (hasTargetUnit)
 				await BombardUnits(tile, target);
-			else if (hasForeignCity)
-				await BombardCity(tile);
 			else
 				await BombardTileImprovements(tile);
 
@@ -181,6 +168,174 @@ namespace C7GameData {
 			}
 		}
 
+		// Whether this unit's bombardment can damage the unit at all. Land
+		// artillery can't hurt aircraft anywhere, nor ships in a city:
+		// "land artillery can't damage aircraft" (Flintlock, reading the
+		// 1.22 code, https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16021251)
+		// and "Ships and air units cannot be hit with land based artillery"
+		// (justanick, C3C 1.22 tests of bombarding settlements,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		// UNVERIFIED: whether land artillery can hit a ship out at sea;
+		// justanick's statement is about settlements, so here it still can.
+		public bool CanBombardmentDamage(MapUnit target) {
+			if (!IsLandUnit() || unitType.isCruiseMissile) {
+				return true;
+			}
+			if (target.IsAirUnit()) {
+				return false;
+			}
+			return !(target.IsWaterUnit() && target.location != null && target.location.HasCity());
+		}
+
+		// What a bombardment of a city may hit once no defence or unit is
+		// left in its way (see BombardCity).
+		[Flags]
+		private enum CityHit {
+			Buildings = 1,
+			Citizens = 2,
+			Either = Buildings | Citizens,
+		}
+
+		// The order in which a bombardment hits a city follows Conquests
+		// 1.22, per the project owner ("Follow Civ3", owner's decision,
+		// 2026-10-20). This replaces the owner's earlier ruling that ships
+		// and planes hit a city like land artillery, its units first, with
+		// walls an ordinary building for them. justanick's 1.22 tests
+		// (https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1)
+		// give a fixed priority by the kind of bombarder:
+		// - Land artillery: "City walls are hit first." / "If there is are no
+		//   city walls or the settlement has already reached city level, then
+		//   land units are hit." / "If neither city walls nor land units are
+		//   left to be hit, then citizens or buildings are hit," /
+		//   "apparently with same probability." / "Ships and air units cannot
+		//   be hit with land based artillery."
+		// - Ships: "A coastal fortress is hit first.", then ships, then air
+		//   units, then land units, then citizens or buildings.
+		// - Air units: "If air units are left in the settlement, then air
+		//   units or citizens are hit." / "If no air units are left in the
+		//   settlement, then ships, citizens or buildings are hit.", then
+		//   land units, citizens or buildings.
+		// - Cruise missiles: "Ships are hits first.", then air units, land
+		//   units, citizens or buildings.
+		// Flintlock, reading the 1.22 code, agrees that "the normal bombard
+		// method prioritizes damaging units" and that it "rolls first to
+		// determine a target then rolls for damage" (C3X thread,
+		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16393188
+		// and post-16311320); Predator145 there: C3C artillery "only targets
+		// units until all of them have been redlined", and cruise missiles
+		// "will always target sea units first" (post-16262382). A unit is
+		// "left to be hit" while the bombardment can still take a hit point
+		// from it (see Tile.FindTopDefenderForBombard).
+		//
+		// Disputed: Lanzelot (same thread, page 2) suggests the order may be
+		// a strong bias rather than a rule ("city walls are hit with 95%
+		// probability"), and the C3X mod's notes say Conquests artillery
+		// "always goes after units first" without mentioning walls; this
+		// follows justanick's tests, walls first in a town. Predator145 says
+		// air bombardment targets aircraft first, where justanick has
+		// aircraft or citizens; this follows justanick, as does Civinator
+		// (post-16273890: "Air bombardment at first destroys planes and
+		// citizens of a city").
+		// UNVERIFIED: that the choices justanick lists together for air
+		// units (e.g. "ships, citizens or buildings") are equally likely; he
+		// says so only of citizens and buildings. The target is chosen once
+		// per bombardment and all its shots go at it (see BombardUnits);
+		// against citizens and buildings each shot chooses again (see
+		// BombardCity).
+		private async Task BombardCityInOrder(Tile tile) {
+			City city = tile.cityAtTile;
+			MapUnit Top(Func<MapUnit, bool> kind) {
+				MapUnit u = tile.FindTopDefenderForBombard(this, kind);
+				return u != NONE && u.owner != owner ? u : NONE;
+			}
+			MapUnit ship = Top(u => u.IsWaterUnit());
+			MapUnit plane = Top(u => u.IsAirUnit());
+			MapUnit landUnit = Top(u => u.IsLandUnit());
+
+			if (unitType.isCruiseMissile) {
+				await BombardFirstOf(tile, ship, plane, landUnit);
+			} else if (IsAirUnit()) {
+				if (plane != NONE) {
+					await BombardUnitOrCity(tile, plane, CityHit.Citizens);
+				} else if (ship != NONE) {
+					await BombardUnitOrCity(tile, ship, CityHit.Either);
+				} else if (landUnit != NONE) {
+					await BombardUnitOrCity(tile, landUnit, CityHit.Either);
+				} else {
+					await BombardCity(tile);
+				}
+			} else if (IsWaterUnit()) {
+				CityBuilding fortress = FindDestructibleCoastalFortress(city);
+				if (fortress != null) {
+					await BombardCityDefence(tile, fortress);
+				} else {
+					await BombardFirstOf(tile, ship, plane, landUnit);
+				}
+			} else {
+				CityBuilding walls = FindDestructibleWalls(city);
+				if (walls != null) {
+					await BombardCityDefence(tile, walls);
+				} else {
+					// Land artillery can't hit the city's ships or aircraft
+					// (see CanBombardmentDamage), so only its land units.
+					await BombardFirstOf(tile, landUnit);
+				}
+			}
+		}
+
+		// Bombards the first of the units there is, or else the city.
+		private async Task BombardFirstOf(Tile tile, params MapUnit[] targets) {
+			foreach (MapUnit target in targets) {
+				if (target != NONE) {
+					await BombardUnits(tile, target);
+					return;
+				}
+			}
+			await BombardCity(tile);
+		}
+
+		// Bombards the unit, or what of the city's buildings and citizens
+		// `cityTargets` allows and there is to hit, each with the same
+		// chance (see BombardCityInOrder).
+		private async Task BombardUnitOrCity(Tile tile, MapUnit unit, CityHit cityTargets) {
+			City city = tile.cityAtTile;
+			bool citizens = cityTargets.HasFlag(CityHit.Citizens) && CanBombardCitizens(city);
+			bool buildings = cityTargets.HasFlag(CityHit.Buildings) && BombardableBuildings(city).Count > 0;
+			int choices = 1 + (citizens ? 1 : 0) + (buildings ? 1 : 0);
+			if (GameData.rng.Next(0, choices) == 0) {
+				await BombardUnits(tile, unit);
+			} else {
+				await BombardCity(tile, allowed: cityTargets);
+			}
+		}
+
+		// Per the project owner, bombardment never kills a city's last
+		// citizen.
+		private static bool CanBombardCitizens(City city) {
+			return city.residents.Count > 1;
+		}
+
+		// The buildings of the city bombardment can destroy (see
+		// IsBombardableBuilding).
+		private static List<CityBuilding> BombardableBuildings(City city) {
+			return city.constructed_buildings.Where(cb => IsBombardableBuilding(city, cb)).ToList();
+		}
+
+		// The coastal fortress a ship's bombardment has to break first, or
+		// null: "A coastal fortress is hit first." (justanick, C3C 1.22, see
+		// BombardCityInOrder). He gives it no size limit, unlike walls. A
+		// coastal fortress is a building with the BIQ's naval power or naval
+		// defense bonus (see IsWallsOrCoastalFortress).
+		private static CityBuilding FindDestructibleCoastalFortress(City city) {
+			foreach (CityBuilding cb in city.constructed_buildings) {
+				Building b = cb.building;
+				if (!b.providesWalls && (b.navalPower > 0 || b.navalDefenseBonus != null) && IsBombardableBuilding(city, cb)) {
+					return cb;
+				}
+			}
+			return null;
+		}
+
 		// The walls a land bombardment has to break first, or null. Only a
 		// town's walls shield it: "If the walls win, then all improvements,
 		// citizens, and units in the city are safe." / "This happens only if
@@ -190,7 +345,10 @@ namespace C7GameData {
 		// city level, then land units are hit." (justanick,
 		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
 		// In a bigger city the walls are an ordinary building (see
-		// BombardCity).
+		// BombardCity). Only walls built in the city can be knocked down:
+		// per the project owner, walls a wonder provides (e.g. the Great
+		// Wall) can't be bombarded (see IsBombardableBuilding), so with only
+		// those the bombardment goes on to the units or the city.
 		private static CityBuilding FindDestructibleWalls(City city) {
 			if (city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize) {
 				return null;
@@ -269,17 +427,15 @@ namespace C7GameData {
 			return !b.isCenterOfEmpire && !b.isSmallWonder && !b.IsGreatWonder();
 		}
 
-		private async Task BombardCityWalls(Tile tile, CityBuilding walls) {
-			// Walls are hit first, defending with the BIQ's bombard defense
-			// (8 for city walls in the standard rules, see
-			// Building.bombardDefense): "When you use a ground unit to
-			// bombard a city with walls, you have to first destroy the walls
-			// (by damaging them as if they were a unit with a defensive
-			// strength of 8) before you can harm anything else"
-			// (alexman, https://codehappy.net/apolyton/threads/84569-1.htm).
-			// Only land units: he adds that for ships and planes "walls are
-			// just as likely to be destroyed as any other improvement", which
-			// is how they hit them here, per the project owner (see Bombard).
+		// Bombards the walls or coastal fortress that shields the city (see
+		// BombardCityInOrder). It defends with the BIQ's bombard defense (8
+		// for both in the standard rules, see Building.bombardDefense): "When
+		// you use a ground unit to bombard a city with walls, you have to
+		// first destroy the walls (by damaging them as if they were a unit
+		// with a defensive strength of 8) before you can harm anything else"
+		// (alexman, https://codehappy.net/apolyton/threads/84569-1.htm, #25);
+		// naval bombardment works the same way with a coastal fortress (#1).
+		private async Task BombardCityDefence(Tile tile, CityBuilding walls) {
 			int wallDefence = walls.building.bombardDefense > 0 ? walls.building.bombardDefense : Building.DefaultWallBombardDefense;
 
 			var hitCount = 0;
@@ -291,8 +447,8 @@ namespace C7GameData {
 				return;
 
 			// Each shot of the unit's rate of fire is rolled on its own (see
-			// RateOfFire). Once the walls are down there is nothing left for
-			// a shot at them to hit, so the bombardment ends there.
+			// RateOfFire). Once the defence is down there is nothing left for
+			// a shot at it to hit, so the bombardment ends there.
 			await BeginBombard();
 			for (int shot = 0; shot < RateOfFire() && tile.cityAtTile.constructed_buildings.Contains(walls); ++shot) {
 				if (await FireShot(tile, attackerOdds)) {
@@ -301,7 +457,7 @@ namespace C7GameData {
 				}
 			}
 
-			TriggerPopUp(hitCount, tile, $"The Walls of {tile.cityAtTile.name} have been destroyed.");
+			TriggerPopUp(hitCount, tile, $"The {walls.building.name} of {tile.cityAtTile.name} has been destroyed!");
 		}
 
 		private async Task BombardUnits(Tile tile, MapUnit target) {
@@ -361,18 +517,19 @@ namespace C7GameData {
 			TriggerPopUp(hitCount, tile, "Artillery bombardment successful! Enemy units injured.");
 		}
 
-		// Once a city has no walls or defenders left to hit, its buildings
-		// and citizens are hit with the same probability: "a 25% chance of
-		// targetting population, and a 25% chance of targetting
-		// improvements" (alexman, https://codehappy.net/apolyton/threads/84569-1.htm),
-		// a 50/50 roll per the project owner. They defend with the rules'
-		// building and citizen defensive bonuses (see
-		// Rules.BuildingDefensiveBonus).
+		// Once a city has nothing left to hit in its way (see
+		// BombardCityInOrder), its buildings and citizens are hit with the
+		// same probability: "then citizens or buildings are hit," /
+		// "apparently with same probability." (justanick, C3C 1.22,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		// They defend with the rules' building and citizen defensive bonuses
+		// (see Rules.BuildingDefensiveBonus).
 		private const float BuildingOrPopulationOdds = 0.5f;
 
 		// A precision strike (see MapUnit_Air.cs) hits only the city's
-		// buildings, or its citizens if it has none to hit.
-		private async Task BombardCity(Tile tile, bool precision = false) {
+		// buildings, or its citizens if it has none to hit. Otherwise the
+		// shots hit what `allowed` lets them (see BombardUnitOrCity).
+		private async Task BombardCity(Tile tile, bool precision = false, CityHit allowed = CityHit.Either) {
 			City city = tile.cityAtTile;
 			Rules rules = EngineStorage.gameData.rules;
 			double bombardStrength = StrengthVersus(null, CombatRole.Bombard, facingDirection);
@@ -390,19 +547,19 @@ namespace C7GameData {
 			await BeginBombard();
 			for (int shot = 0; shot < shots; ++shot) {
 				// Only buildings actually built in the city can be destroyed,
-				// and not wonders, the palace or what a wonder provides (see
-				// IsBombardableBuilding). Walls are among them when a ship or
-				// plane bombards.
+				// and not small wonders, the palace or what a wonder provides
+				// (see IsBombardableBuilding). Walls are among them when a ship
+				// or plane bombards, or the city is past town size.
 				// TODO: probably not canon to exclude palace
-				List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(cb => IsBombardableBuilding(city, cb)).ToList();
+				List<CityBuilding> eligibleBuildingsForBombardment = BombardableBuildings(city);
 
-				// Per the project owner, bombardment never kills a city's
-				// last citizen. What can't be hit isn't rolled for, so a size
-				// 1 city only loses buildings, and a city with neither
-				// buildings to lose nor citizens to spare takes the shot for
-				// nothing. Later shots with nothing left to hit aren't fired.
-				bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0;
-				bool canHitCitizens = city.residents.Count > 1;
+				// What can't be hit isn't rolled for, so a size 1 city only
+				// loses buildings (see CanBombardCitizens), and a city with
+				// neither buildings to lose nor citizens to spare takes the
+				// shot for nothing. Later shots with nothing left to hit aren't
+				// fired.
+				bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0 && (precision || allowed.HasFlag(CityHit.Buildings));
+				bool canHitCitizens = CanBombardCitizens(city) && (precision || allowed.HasFlag(CityHit.Citizens));
 				if (!canHitBuildings && !canHitCitizens) {
 					if (shot == 0) {
 						await FireShot(tile, 0);
@@ -437,46 +594,77 @@ namespace C7GameData {
 			TriggerPopUp(hitCount, tile, string.Join(" ", destroyMsgs));
 		}
 
-		// The strength a tile improvement defends with against bombardment,
-		// per the project owner. It is in no rule; an estimate from play:
-		// "arty seems to wipe out improvement on 75% or more of the shots",
-		// i.e. artillery's 12 against 3.
-		private const int TileImprovementBombardDefence = 3;
+		// Tile improvements defend against bombardment as Conquests 1.22
+		// does, per the project owner ("Follow Civ3", owner's decision,
+		// 2026-10-20, replacing the earlier ruling of a fixed defence of 3).
+		// "In the base game, tile defense is hardcoded at 16." (the C3X mod's
+		// notes, https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+		// Flintlock, reading the 1.22 code: "the chance to do damage on each
+		// roll equals 1 - X/(S + X)", with S the bombard strength and X =
+		// "floor((100 + D) * 16 / 100)", D the tile's defence in per cent,
+		// and "The chance to do damage depends only on the tile's terrain,
+		// whether it has a fortress or barricade" (C3X thread,
+		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16584231
+		// and post-16583488). C3X's re-implementation keeps "the game's
+		// integer rounding and 1..1023 threshold": the defender's share is
+		// clamp(1, 1023, 1024 * X / (X + S)) out of 1024
+		// (https://github.com/maxpetul/C3X/blob/master/injected_code.c,
+		// get_tile_bombard_defense_threshold).
+		internal const int TileBombardDefence = 16;
 
+		// The chance that one roll of a bombardment damages the tile.
+		internal static double TileBombardHitChance(double bombardStrength, int defencePercent) {
+			int x = (int)Math.Floor((100 + defencePercent) * TileBombardDefence / 100.0);
+			if (bombardStrength + x <= 0) {
+				return 0;
+			}
+			int threshold = Math.Clamp((int)(1024 * x / (x + bombardStrength)), 1, 1023);
+			return (1024 - threshold) / 1024.0;
+		}
+
+		// The tile's defence against bombardment, in per cent: its terrain's
+		// and its fortress's or barricade's (see TileBombardDefence).
+		internal static int TileBombardDefencePercent(Tile tile) {
+			double bonus = tile.overlayTerrainType?.defenseBonus.amount ?? 0;
+			foreach (StrengthBonus sb in tile.overlays.GetDefenseBonuses()) {
+				bonus += sb.amount;
+			}
+			return (int)Math.Round(bonus * 100);
+		}
+
+		// The bombarder rolls up to its rate of fire times, and the first
+		// roll that succeeds damages the tile, once: (paraphrase of
+		// Flintlock, post-16584231) "The attacker gets to roll multiple
+		// times up to its rate of fire and if it succeeds on any roll then
+		// the tile is damaged", as in C3X's patch_Fighter_roll_for_bombard,
+		// which answers the whole bombardment with one success or failure.
+		// The improvement hit is one of those on the tile; a railroad goes
+		// back to a road.
 		private async Task BombardTileImprovements(Tile tile) {
-			const int tileImprovementDefence = TileImprovementBombardDefence;
-
 			var hitCount = 0;
 			List<string> destroyed = new();
 
-			double bombardStrength  = StrengthVersus(null, CombatRole.Bombard, facingDirection);
-			double defenderStrength = tileImprovementDefence;
-			double attackerOdds = bombardStrength / (bombardStrength + defenderStrength);
+			double bombardStrength = StrengthVersus(null, CombatRole.Bombard, facingDirection);
+			double attackerOdds = TileBombardHitChance(bombardStrength, TileBombardDefencePercent(tile));
 			if (Double.IsNaN(attackerOdds))
 				return;
 
-			// Each shot of the unit's rate of fire (see RateOfFire) picks one
-			// of the improvements still on the tile, as a single shot would.
-			// A road left by a destroyed railroad can be hit by the next
-			// shot. Once nothing is left, the remaining shots aren't fired.
 			await BeginBombard();
-			for (int shot = 0; shot < RateOfFire(); ++shot) {
-				var improvement = tile.overlays.GetManMadeImprovements()
-					.OrderBy(x => GameData.rng.Next()).FirstOrDefault();
-				if (improvement == null && shot > 0)
-					break;
-
+			for (int roll = 0; roll < RateOfFire(); ++roll) {
 				if (!await FireShot(tile, attackerOdds))
 					continue;
 				hitCount += 1;
-				// Remove top improvement
-				tile.overlays.Remove(improvement);
-				// "Replace" with downgraded improvement if it exists
-				tile.overlays.Add(improvement?.upgradesFrom);
+				var improvement = tile.overlays.GetManMadeImprovements()
+					.OrderBy(x => GameData.rng.Next()).FirstOrDefault();
 				if (improvement != null) {
+					// Remove top improvement
+					tile.overlays.Remove(improvement);
+					// "Replace" with downgraded improvement if it exists
+					tile.overlays.Add(improvement.upgradesFrom);
 					tile.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
 					destroyed.Add(improvement.key);
 				}
+				break;
 			}
 
 			TriggerPopUp(hitCount, tile, $"Artillery bombardment successful! Destroyed {string.Join(", ", destroyed)}.");

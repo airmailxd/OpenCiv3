@@ -542,6 +542,12 @@ namespace C7GameData {
 			return FindTopCombatUnit(opponent, tile.unitsOnTile, CandidateFilter.BombardTarget);
 		}
 
+		// FindTopDefenderForBombard among the units of one kind only (e.g.
+		// the ships in a city, see MapUnit.BombardCityInOrder).
+		public MapUnit FindTopDefenderForBombard(MapUnit opponent, Func<MapUnit, bool> kind) {
+			return FindTopCombatUnit(opponent, unitsOnTile.Where(kind).ToList(), CandidateFilter.BombardTarget);
+		}
+
 		public MapUnit FindTopDefender(MapUnit opponent) {
 			return FindTopDefender(opponent, unitsOnTile);
 		}
@@ -570,6 +576,7 @@ namespace C7GameData {
 					// UNVERIFIED: a bombarder can't single out an
 					// invisible unit its owner doesn't see.
 					return u.IsCombatUnit() && !u.IsInArmy() && u.IsSeenBy(opponent.owner)
+						&& opponent.CanBombardmentDamage(u)
 						&& (u.CompositeHitPoints() > 1 || opponent.IsBombardmentLethalAgainst(u));
 				default:
 					return true;

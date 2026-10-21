@@ -338,7 +338,7 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	}
 
 	[Fact]
-	public async Task BuiltWallsAreBombardedFirstByLandUnits() {
+	public async Task BuiltWallsAreBombardedFirstByArtillery() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 2);
 		Building walls = Walls();
 		city.AddBuilding(walls);
@@ -371,17 +371,15 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Contains(city.GetBuildings(), cb => cb.building.providesWalls);
 	}
 
-	// Per the project owner, ships and planes don't hit walls first: they
-	// hit the units, and then the walls like any other building.
+	// Ships don't hit walls first: "A coastal fortress is hit first.", then
+	// the units, and the walls are like any other building (justanick, C3C
+	// 1.22; owner's decision, 2026-10-20, see MapUnit.BombardCityInOrder).
 	[Fact]
 	public async Task ShipsHitWallsLikeAnyOtherBuilding() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
 		Building walls = Walls();
 		city.AddBuilding(walls);
-		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.bombard > 0);
-		shipType.bombard = 1_000_000;
-		gameData.SpawnUnit(us, shipType, catapult.location);
-		MapUnit ship = catapult.location.unitsOnTile.Last();
+		MapUnit ship = SpawnBombardingShip(catapult);
 		Assert.False(ship.IsLandUnit());
 
 		MapUnit defender = Spawn(them, "Spearman", city.location);
@@ -435,7 +433,7 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	// Per the project owner, a bombarder with lethal land bombardment can
 	// kill land units, and only then hits the city.
 	[Fact]
-	public async Task LethalLandBombardmentKillsLandUnits() {
+	public async Task LethalGroundBombardmentKillsGroundUnits() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 3);
 		catapult.unitType.isLandBombardmentLethal = true;
 		catapult.unitType.isSeaBombardmentLethal = false;
@@ -453,23 +451,33 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Equal(2, city.residents.Count);
 	}
 
+	// A bombarding ship of ours next to their city, never missing.
+	private MapUnit SpawnBombardingShip(MapUnit catapult) {
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.bombard > 0);
+		shipType.bombard = 1_000_000;
+		gameData.SpawnUnit(us, shipType, catapult.location);
+		return catapult.location.unitsOnTile.Last();
+	}
+
 	// Per the project owner, lethal land bombardment doesn't kill ships;
-	// lethal sea bombardment does.
+	// lethal sea bombardment does. Land artillery can't hit ships in a city
+	// at all, so a ship bombards them here.
 	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]
 	public async Task OnlyLethalSeaBombardmentKillsShips(bool lethalSea) {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
-		catapult.unitType.isLandBombardmentLethal = true;
-		catapult.unitType.isSeaBombardmentLethal = lethalSea;
-		catapult.unitType.rateOfFire = 1_000;
-		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.defense > 0);
+		MapUnit bombarder = SpawnBombardingShip(catapult);
+		bombarder.unitType.isLandBombardmentLethal = true;
+		bombarder.unitType.isSeaBombardmentLethal = lethalSea;
+		bombarder.unitType.rateOfFire = 1_000;
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.defense > 0 && p != bombarder.unitType);
 		gameData.SpawnUnit(them, shipType, city.location);
 		MapUnit ship = city.location.unitsOnTile.Last();
 		Assert.True(ship.IsCombatUnit());
-		Assert.True(catapult.IsBombardmentLethalAgainst(ship) == lethalSea);
+		Assert.True(bombarder.IsBombardmentLethalAgainst(ship) == lethalSea);
 
-		await BombardOnce(catapult, city.location);
+		await BombardOnce(bombarder, city.location);
 		if (lethalSea) {
 			Assert.DoesNotContain(ship, city.location.unitsOnTile);
 		} else {
@@ -559,19 +567,184 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	}
 
 	// "Air units can be destroyed by bombardment." / "There is no such
-	// attribute as "lethal air bombardment"." (justanick, #1). A catapult
-	// isn't lethal, yet it finishes off a fighter at its last hit point.
+	// attribute as "lethal air bombardment"." (justanick, #1). A ship
+	// without lethal bombardment finishes off a fighter at its last hit
+	// point (land artillery can't hit aircraft at all).
 	[Fact]
 	public async Task AnyBombardmentKillsAircraftInACity() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
-		Assert.False(catapult.unitType.isLandBombardmentLethal);
+		MapUnit ship = SpawnBombardingShip(catapult);
+		ship.unitType.isLandBombardmentLethal = false;
+		ship.unitType.isSeaBombardmentLethal = false;
 		MapUnit fighter = Spawn(them, "Fighter", city.location);
 		fighter.hitPointsRemaining = 1;
 
-		await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, city.location));
+		await WithRateOfFire(ship, 1, () => BombardOnce(ship, city.location));
 
 		Assert.DoesNotContain(fighter, city.location.unitsOnTile);
 		Assert.DoesNotContain(fighter, them.units);
+	}
+
+	// ---- The order in which each kind of bombarder hits a city ----
+	// Conquests 1.22, per justanick's tests (owner's decision, 2026-10-20;
+	// see MapUnit.BombardCityInOrder).
+
+	private MapUnit SpawnEnemyShip(City city) {
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.defense > 0);
+		return gameData.SpawnUnit(them, shipType, city.location);
+	}
+
+	// One of our bombarders of the prototype next to their city, firing
+	// once and never missing, without lethal bombardment.
+	private MapUnit SpawnBombarder(string prototype, MapUnit catapult) {
+		MapUnit unit = Spawn(us, prototype, catapult.location);
+		unit.unitType.bombard = 1_000_000;
+		unit.unitType.rateOfFire = 1;
+		unit.unitType.isLandBombardmentLethal = false;
+		unit.unitType.isSeaBombardmentLethal = false;
+		return unit;
+	}
+
+	private async Task WithRandom(Random rng, Func<Task> action) {
+		Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = rng;
+		try {
+			await action();
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// "Ships and air units cannot be hit with land based artillery."
+	[Fact]
+	public async Task ArtilleryNeverHitsShipsOrAircraftInACity() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		MapUnit fighter = Spawn(them, "Fighter", city.location);
+		MapUnit ship = SpawnEnemyShip(city);
+		int fighterHitPoints = fighter.hitPointsRemaining;
+		int shipHitPoints = ship.hitPointsRemaining;
+
+		await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, city.location));
+
+		Assert.Equal(fighterHitPoints, fighter.hitPointsRemaining);
+		Assert.Equal(shipHitPoints, ship.hitPointsRemaining);
+		Assert.Equal(2, city.residents.Count);
+	}
+
+	// "A coastal fortress is hit first.", in a city too, then ships, air
+	// units, land units, and then citizens or buildings.
+	[Fact]
+	public async Task ShipsHitACoastalFortressThenShipsAircraftAndGroundUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 8);
+		MapUnit bombarder = SpawnBombardingShip(catapult);
+		bombarder.unitType.rateOfFire = 1;
+		bombarder.unitType.isLandBombardmentLethal = false;
+		bombarder.unitType.isSeaBombardmentLethal = false;
+		Building fortress = gameData.Buildings.Single(b => b.name == "Coastal Fortress");
+		city.AddBuilding(fortress);
+		MapUnit spearman = Spawn(them, "Spearman", city.location);
+		MapUnit fighter = Spawn(them, "Fighter", city.location);
+		MapUnit ship = SpawnEnemyShip(city);
+		int spearmanHitPoints = spearman.hitPointsRemaining;
+		int fighterHitPoints = fighter.hitPointsRemaining;
+		int shipHitPoints = ship.hitPointsRemaining;
+
+		await BombardOnce(bombarder, city.location);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == fortress);
+		Assert.Equal(shipHitPoints, ship.hitPointsRemaining);
+		Assert.Equal(fighterHitPoints, fighter.hitPointsRemaining);
+
+		await BombardOnce(bombarder, city.location);
+		Assert.Equal(shipHitPoints - 1, ship.hitPointsRemaining);
+		Assert.Equal(fighterHitPoints, fighter.hitPointsRemaining);
+		Assert.Equal(spearmanHitPoints, spearman.hitPointsRemaining);
+
+		ship.RemoveFromPlay();
+		await BombardOnce(bombarder, city.location);
+		Assert.Equal(fighterHitPoints - 1, fighter.hitPointsRemaining);
+		Assert.Equal(spearmanHitPoints, spearman.hitPointsRemaining);
+
+		fighter.RemoveFromPlay();
+		await BombardOnce(bombarder, city.location);
+		Assert.Equal(spearmanHitPoints - 1, spearman.hitPointsRemaining);
+		Assert.Equal(8, city.residents.Count);
+
+		spearman.RemoveFromPlay();
+		await BombardOnce(bombarder, city.location);
+		Assert.Equal(7, city.residents.Count);
+	}
+
+	// "Ships are hits first.", then air units, then land units.
+	[Fact]
+	public async Task CruiseMissilesHitShipsThenAircraftThenGroundUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		MapUnit spearman = Spawn(them, "Spearman", city.location);
+		MapUnit fighter = Spawn(them, "Fighter", city.location);
+		MapUnit ship = SpawnEnemyShip(city);
+		int spearmanHitPoints = spearman.hitPointsRemaining;
+		int fighterHitPoints = fighter.hitPointsRemaining;
+		int shipHitPoints = ship.hitPointsRemaining;
+
+		MapUnit missile = SpawnBombarder("Cruise Missile", catapult);
+		Assert.True(missile.unitType.isCruiseMissile);
+		await BombardOnce(missile, city.location);
+		Assert.Equal(shipHitPoints - 1, ship.hitPointsRemaining);
+		Assert.Equal(fighterHitPoints, fighter.hitPointsRemaining);
+		Assert.Equal(spearmanHitPoints, spearman.hitPointsRemaining);
+
+		ship.RemoveFromPlay();
+		await BombardOnce(SpawnBombarder("Cruise Missile", catapult), city.location);
+		Assert.Equal(fighterHitPoints - 1, fighter.hitPointsRemaining);
+		Assert.Equal(spearmanHitPoints, spearman.hitPointsRemaining);
+
+		fighter.RemoveFromPlay();
+		await BombardOnce(SpawnBombarder("Cruise Missile", catapult), city.location);
+		Assert.Equal(spearmanHitPoints - 1, spearman.hitPointsRemaining);
+		Assert.Equal(3, city.residents.Count);
+	}
+
+	// "If air units are left in the settlement, then air units or citizens
+	// are hit." / "If no air units are left in the settlement, then ships,
+	// citizens or buildings are hit.", then land units, citizens or
+	// buildings. Which of those is hit is a roll: the lowest picks the unit.
+	[Fact]
+	public async Task AircraftHitAircraftOrCitizensThenShipsThenGroundUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		Building library = gameData.Buildings.Single(b => b.name == "Library");
+		city.AddBuilding(library);
+		MapUnit spearman = Spawn(them, "Spearman", city.location);
+		MapUnit fighter = Spawn(them, "Fighter", city.location);
+		MapUnit ship = SpawnEnemyShip(city);
+		int spearmanHitPoints = spearman.hitPointsRemaining;
+		int fighterHitPoints = fighter.hitPointsRemaining;
+		int shipHitPoints = ship.hitPointsRemaining;
+		MapUnit bomber = SpawnBombarder("Bomber", catapult);
+		Assert.True(bomber.IsAirUnit());
+
+		await WithRandom(new ScriptedRandom([], 0.0), () => BombardOnce(bomber, city.location));
+		Assert.Equal(fighterHitPoints - 1, fighter.hitPointsRemaining);
+		Assert.Equal(shipHitPoints, ship.hitPointsRemaining);
+		Assert.Equal(3, city.residents.Count);
+
+		// The other choice is the citizens, never the buildings.
+		await WithRandom(new ScriptedRandom([], 0.0, highest: true), () => BombardOnce(bomber, city.location));
+		Assert.Equal(fighterHitPoints - 1, fighter.hitPointsRemaining);
+		Assert.Equal(2, city.residents.Count);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == library);
+
+		fighter.RemoveFromPlay();
+		await WithRandom(new ScriptedRandom([], 0.0), () => BombardOnce(bomber, city.location));
+		Assert.Equal(shipHitPoints - 1, ship.hitPointsRemaining);
+		Assert.Equal(spearmanHitPoints, spearman.hitPointsRemaining);
+
+		ship.RemoveFromPlay();
+		await WithRandom(new ScriptedRandom([], 0.0), () => BombardOnce(bomber, city.location));
+		Assert.Equal(spearmanHitPoints - 1, spearman.hitPointsRemaining);
+
+		// Now the buildings can be hit too, before the land units.
+		await WithRandom(new ScriptedRandom([], 0.0, highest: true), () => BombardOnce(bomber, city.location));
+		Assert.Equal(spearmanHitPoints - 1, spearman.hitPointsRemaining);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == library);
 	}
 
 	// ---- Rate of fire against cities, walls and improvements ----
@@ -659,8 +832,11 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
 	}
 
+	// The bombarder rolls up to its rate of fire times, and the first roll
+	// that hits damages the tile once (Flintlock, reading the 1.22 code; see
+	// MapUnit.BombardTileImprovements).
 	[Fact]
-	public async Task EachShotAtATileHitsAnImprovement() {
+	public async Task ABombardmentDamagesATileOnceWhateverItsRateOfFire() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
 		Tile field = catapult.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0);
 		TerrainImprovement railroad = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.RAILROAD);
@@ -669,11 +845,42 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		field.overlays.Add(railroad);
 		field.overlays.Add(mine);
 
-		// Three shots: the railroad, the road under it, and the mine. Each
-		// shot picks among what's left, so all three go whatever the order.
-		await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, field));
+		// The first two rolls miss, the third hits, and that is all.
+		Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ScriptedRandom([0.9999999, 0.9999999], 0.0);
+		try {
+			await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, field));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
 
-		Assert.Empty(field.overlays.GetManMadeImprovements());
+		Assert.Equal(2, field.overlays.GetManMadeImprovements().Count());
+	}
+
+	// "the chance to do damage on each roll equals 1 - X/(S + X)", X =
+	// "floor((100 + D) * 16 / 100)" (Flintlock, C3X thread post-16584231),
+	// with the game's 1024 scale clamped to 1..1023 (C3X,
+	// get_tile_bombard_defense_threshold).
+	[Theory]
+	[InlineData(12, 0, (1024 - 585) / 1024.0)]   // X = 16, 1024 * 16 / 28 = 585
+	[InlineData(12, 50, (1024 - 682) / 1024.0)]  // a fortress: X = 24, 1024 * 24 / 36 = 682
+	[InlineData(8, 25, (1024 - 731) / 1024.0)]   // X = 20, 1024 * 20 / 28 = 731
+	[InlineData(1_000_000, 0, 1023 / 1024.0)]    // never certain
+	public void TileBombardOddsFollowTheGame(double strength, int defencePercent, double expected) {
+		Assert.Equal(expected, MapUnit.TileBombardHitChance(strength, defencePercent), 9);
+	}
+
+	// D is only the tile's terrain and fortress or barricade (Flintlock,
+	// post-16583488).
+	[Fact]
+	public void TileBombardDefenceIsTheTerrainsAndTheFortresss() {
+		Tile field = SettlerTile(us).neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity());
+		int terrain = (int)Math.Round(field.overlayTerrainType.defenseBonus.amount * 100);
+		Assert.Equal(terrain, MapUnit.TileBombardDefencePercent(field));
+
+		TerrainImprovement fortress = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.FORTRESS);
+		field.overlays.Add(fortress);
+		Assert.Equal(terrain + (int)Math.Round(fortress.defenseBonus.Value.amount * 100), MapUnit.TileBombardDefencePercent(field));
 	}
 
 	[Fact]
@@ -693,11 +900,13 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	}
 
 	// Returns the given rolls in order, then `rest` forever.
-	private class ScriptedRandom(double[] rolls, double rest) : Random {
+	// With `highest`, Next(min, max) gives the highest value, else the
+	// lowest.
+	private class ScriptedRandom(double[] rolls, double rest, bool highest = false) : Random {
 		private readonly Queue<double> queue = new(rolls);
 		protected override double Sample() => queue.Count > 0 ? queue.Dequeue() : rest;
 		public override double NextDouble() => Sample();
-		public override int Next(int minValue, int maxValue) => minValue;
+		public override int Next(int minValue, int maxValue) => highest ? maxValue - 1 : minValue;
 		public override int Next() => 0;
 	}
 
