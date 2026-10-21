@@ -1329,6 +1329,26 @@ namespace C7Engine {
 		}
 	}
 
+	// The sender spends a palace upgrade on building a piece of their palace
+	// in one of the palace cultures (see PalaceUpgrades.Build).
+	public class MsgBuildPalacePiece : MessageToEngine {
+		public int piece;
+		public int culture;
+
+		public MsgBuildPalacePiece(int piece, int culture) {
+			this.piece = piece;
+			this.culture = culture;
+		}
+
+		protected override bool IsAllowed() {
+			return base.IsAllowed() && Sender.palace.CanBuild(piece, culture);
+		}
+
+		protected override void ProcessAllowed() {
+			Sender.palace.Build(piece, culture);
+		}
+	}
+
 	// The sender sends a diplomatic or espionage mission against another
 	// civ, or one of its cities.
 	public class MsgPerformEspionage : MessageToEngine {

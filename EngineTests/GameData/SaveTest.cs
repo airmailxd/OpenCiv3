@@ -119,6 +119,8 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			case MsgVictory:
 			case MsgCityChanged:
 			case MsgCityProductionCompleted:
+			// The human's palace may have earned upgrades in the first turn.
+			case MsgShowPalaceUpgrade:
 			// The AIs that play before the human player may already hit the
 			// human's units, as AI bombers do in the WWII scenarios, before
 			// the human is made an AI too.

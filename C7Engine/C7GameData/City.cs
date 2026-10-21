@@ -1546,13 +1546,25 @@ namespace C7GameData {
 			return tile;
 		}
 
+		// The commerce the city's tiles make, before corruption takes its
+		// share: Civ3's corruption plus the city's income (City_Body's
+		// Corruption and CashIncome in C3X's Civ3Conquests.h), which Civ3
+		// FUN_00569720 adds up over a civ's cities.
+		public int TotalCommerce() {
+			return TotalCommerce(EffectiveBuildings());
+		}
+
+		private int TotalCommerce(List<CityBuilding> buildings) {
+			int commerce = location.CommerceYield(this, buildings).yield;
+			foreach (CityResident r in WorkingResidents()) {
+				commerce += r.tileWorked.CommerceYield(this, buildings).yield;
+			}
+			return commerce * YieldMultiplier();
+		}
+
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {
 			List<CityBuilding> buildings = EffectiveBuildings();
-			int uncorruptedCommerce = location.CommerceYield(this, buildings).yield;
-			foreach (CityResident r in WorkingResidents()) {
-				uncorruptedCommerce += r.tileWorked.CommerceYield(this, buildings).yield;
-			}
-			uncorruptedCommerce *= YieldMultiplier();
+			int uncorruptedCommerce = TotalCommerce(buildings);
 
 			// Using our value of corruption, figure out how much useful
 			// commerce we have to work with. Special case anarchy, where no

@@ -76,6 +76,9 @@ namespace C7GameData.Save {
 		public int warWeariness;
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
+		// See Player.palace. Left out while the palace has earned nothing,
+		// and absent from older saves.
+		public PalaceUpgrades palace;
 		// See Player.mobilized. False in older saves.
 		public bool mobilized;
 		public bool mayEndMobilization;
@@ -161,6 +164,8 @@ namespace C7GameData.Save {
 				warWeariness = warWeariness,
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
+				// Copied, so that the game doesn't change the save.
+				palace = palace?.Copy() ?? new(),
 				mobilized = mobilized,
 				mayEndMobilization = mayEndMobilization,
 				scienceAgeTurnsRemaining = scienceAgeTurnsRemaining,
@@ -296,6 +301,7 @@ namespace C7GameData.Save {
 			warWeariness = player.warWeariness;
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
+			palace = player.palace.IsEmpty ? null : player.palace.Copy();
 			mobilized = player.mobilized;
 			mayEndMobilization = player.mayEndMobilization;
 			scienceAgeTurnsRemaining = player.scienceAgeTurnsRemaining;

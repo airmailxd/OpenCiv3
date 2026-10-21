@@ -681,6 +681,15 @@ namespace C7Engine {
 		}
 	}
 
+	// Tells a human their people offer to expand their palace: upgrades have
+	// been earned to place in the palace view (PalaceUpgrades), where they
+	// answer with MsgBuildPalacePiece.
+	public class MsgShowPalaceUpgrade : MessageToUI {
+		public MsgShowPalaceUpgrade(Player recipient) {
+			this.recipient = recipient;
+		}
+	}
+
 	// Asks the human who owns the United Nations whether to hold an election
 	// for Secretary General between the candidates; they answer with
 	// MsgHoldUnitedNationsElection.

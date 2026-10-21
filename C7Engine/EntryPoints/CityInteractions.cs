@@ -345,7 +345,7 @@ namespace C7Engine {
 				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false) { newsEvent = capture }.send();
 			}
 
-			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);
+			gameData.CheckForCivDestructionAndNotifyUi(oldOwner, captor);
 			if (wasCapital) {
 				MovePalaceAfterLosingCapital(oldOwner, tile);
 			}

@@ -152,6 +152,10 @@ namespace C7Engine {
 
 					player.UpdateHistory(gameData);
 					player.AdvanceGoldenAge();
+
+					// Civ3 checks each civ's palace achievements every turn
+					// (FUN_0056c5a0 calls FUN_00589ae0).
+					PalaceUpgrades.CheckAchievements(player, gameData);
 				}
 
 				// In the interturn, cities may flip to a civ whose culture
@@ -281,6 +285,7 @@ namespace C7Engine {
 				PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
 			}
 			new MsgStartTurn(player).send();
+			PalaceUpgrades.AnnounceToHuman(player);
 			UnitedNations.AskHumanToVote(gameData, player);
 			CultureFlip.AskHuman(gameData, player);
 		}

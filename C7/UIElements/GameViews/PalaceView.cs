@@ -27,5 +27,8 @@ public partial class PalaceView : Control {
 
 	public void ShowView() {
 		Show();
+		// The palace may have changed since it was last shown.
+		PalaceBuildingsLayer pieces = (buildingsLayer ?? background.GetNodeOrNull<TextureRect>("PalaceBuildings")) as PalaceBuildingsLayer;
+		pieces?.Refresh();
 	}
 }

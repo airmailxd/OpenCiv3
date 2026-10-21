@@ -618,7 +618,8 @@ namespace C7GameData {
 			TileChangeJournal.Record(city.location);
 		}
 
-		public void CheckForCivDestructionAndNotifyUi(Player player) {
+		// destroyer is the civ that took the player's last city, if known.
+		public void CheckForCivDestructionAndNotifyUi(Player player, Player destroyer = null) {
 			// A civ being destroyed loses its cities and units, each of
 			// which checks again.
 			if (player.defeated) {
@@ -626,6 +627,7 @@ namespace C7GameData {
 			}
 			if (this.CheckForCivDestruction(player)) {
 				this.CivDestructionCallback(player);
+				PalaceUpgrades.OnCivDestroyed(player, destroyer);
 				// Let the UI know about the civ destruction.
 				new MsgCivilizationDestroyed(player.civilization).send();
 			}

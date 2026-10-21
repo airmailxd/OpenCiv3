@@ -1590,6 +1590,26 @@ public partial class Game : Node {
 					InterestingEvent();
 					break;
 				}
+			case MsgShowPalaceUpgrade: {
+					// Civ3's popup (script.txt, PALACE_VIEW_UPGRADE), after
+					// which the palace view opens to place the upgrade (Civ3
+					// FUN_0056c5a0). Without Civ3's text, as in standalone
+					// mode, there is no palace art to build with either, so
+					// no popup.
+					ScriptEntry upgrade = Util.HasCiv3Media("Text/script.txt")
+						? ScriptText.Load(Util.Civ3MediaPath("Text/script.txt")).Get("PALACE_VIEW_UPGRADE")
+						: null;
+					if (upgrade == null || C7Settings.UseStandaloneMode()) {
+						break;
+					}
+					popupOverlay.ShowPopup(
+						new ChoicePopup(upgrade.Caption ?? "", string.Join("\n", upgrade.Lines),
+							[new ChoicePopup.Choice("OK", () => EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView))],
+							cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
+				}
 			case MsgShowCultureFlipOffer mSCFO: {
 					// Civ3's wording (script.txt, WE_CONVERT_CITY and
 					// WE_CONVERT_CITY_WITH_WONDER).

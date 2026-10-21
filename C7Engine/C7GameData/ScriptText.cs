@@ -30,6 +30,15 @@ namespace C7GameData {
 
 		// The mood of the entry's "#advisor" line, or null if it has none.
 		public AdvisorMood? Mood;
+
+		// The title its "#caption" line gives a popup, or null if it has none.
+		public string Caption;
+
+		// Every line of the entry up to the next key, blank ones included
+		// (but not at either end), without the ^ that starts some of them:
+		// the whole text of a popup such as PALACE_VIEW_UPGRADE, one
+		// paragraph per line.
+		public List<string> Lines = new();
 	}
 
 	// The entries of Civ3's Conquests\Text\script.txt, by key. The game reads
@@ -82,6 +91,12 @@ namespace C7GameData {
 			void Finish() {
 				if (entry != null) {
 					entry.Text = string.Join(" ", textLines);
+					while (entry.Lines.Count > 0 && entry.Lines[^1].Length == 0) {
+						entry.Lines.RemoveAt(entry.Lines.Count - 1);
+					}
+					while (entry.Lines.Count > 0 && entry.Lines[0].Length == 0) {
+						entry.Lines.RemoveAt(0);
+					}
 				}
 			}
 
@@ -106,12 +121,19 @@ namespace C7GameData {
 					if (entry != null && textLines.Count == 0 && afterHash.StartsWith("advisor", StringComparison.Ordinal)) {
 						entry.Mood ??= ParseMood(afterHash);
 					}
+					if (entry != null && afterHash.StartsWith("caption", StringComparison.Ordinal)) {
+						entry.Caption ??= afterHash.Substring("caption".Length).Trim();
+					}
 					if (textLines?.Count > 0) {
 						textDone = true;
 					}
 					continue;
 				}
-				if (entry == null || textDone) {
+				if (entry == null) {
+					continue;
+				}
+				entry.Lines.Add(line.TrimStart('^').TrimEnd());
+				if (textDone) {
 					continue;
 				}
 				if (line.Trim().Length == 0) {

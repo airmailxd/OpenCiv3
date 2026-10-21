@@ -15,6 +15,17 @@ public class Culture {
 	public string Name;
 	public List<Building> Buildings = [];
 	public ButtonTextures ButtonTextures = new();
+
+	// Civ3's number for the culture, as the culture groups are numbered
+	// (C7GameData.PalaceUpgrades), or -1 for a culture Civ3 doesn't have.
+	public int Index => IndexOf(Name);
+
+	// Civ3 reads the sections in this order (FUN_00588430).
+	private static readonly string[] Civ3Order = ["american", "european", "mediterranean", "mideast", "asian"];
+
+	public static int IndexOf(string name) {
+		return System.Array.IndexOf(Civ3Order, name?.ToLowerInvariant());
+	}
 }
 
 public class Building {

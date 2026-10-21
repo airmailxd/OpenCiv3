@@ -356,6 +356,10 @@ namespace C7GameData {
 		public bool hadGoldenAge = false;
 		public int goldenAgeTurnsRemaining = 0;
 
+		// The upgrades the civ's palace has earned, and the pieces built
+		// with them.
+		public PalaceUpgrades palace = new();
+
 		// How many cities this player has founded, used to pick the next
 		// name from the civ's city name list.
 		public int citiesFounded = 0;
@@ -1946,6 +1950,7 @@ namespace C7GameData {
 			ResearchQueue = new Queue<Tech>(ResearchQueue.Where(t => t.id != tech.id));
 
 			if (CanAdvanceToNextEra(gameData)) {
+				PalaceUpgrades.OnEraCompleted(this, gameData, EraIndex());
 				string previousEra = eraCivilopediaName;
 				eraCivilopediaName = GetNextEraNameByIndex(EraIndex());
 				// The last era has no next one to enter.
