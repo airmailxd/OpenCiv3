@@ -69,12 +69,24 @@ public partial class MapUnit {
 		return ProduceLeader();
 	}
 
+	// Records a new leader for the replay, by its name or, without one, its
+	// unit type's (Civ3 FUN_0056d9e0 and FUN_005cdb10 record military and
+	// scientific leaders alike).
+	internal static void RecordGreatLeader(GameData gameData, MapUnit leader) {
+		if (gameData?.gameHistory == null || leader == null) {
+			return;
+		}
+		string name = string.IsNullOrEmpty(leader.name) ? leader.unitType?.name : leader.name;
+		gameData.gameHistory.Record(gameData.turn, ReplayEventType.GreatLeader, leader.owner, leader.location, name);
+	}
+
 	internal MapUnit ProduceLeader() {
 		UnitPrototype proto = LeaderPrototype();
 		if (proto == null || !Tile.IsTileValid(location))
 			return null;
 		hasProducedLeader = true;
 		MapUnit leader = EngineStorage.gameData.SpawnUnit(owner, proto, location);
+		RecordGreatLeader(EngineStorage.gameData, leader);
 		log.Information("{Unit}'s victory has produced a great leader, {Leader}", this, leader);
 		if (owner.IsToldNews) {
 			new MsgShowMilitaryAdvisorPopup(owner, $"Our {name}'s great victory has inspired a new leader!\nA leader can form an army or hurry production in one of our cities.", happy: true).send();

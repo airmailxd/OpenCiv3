@@ -924,6 +924,8 @@ namespace C7GameData {
 				// this situation?
 				if (building.greatWonderProperties != null) {
 					gameData.GreatWondersBuilt.Add(building.name);
+					// At the city, for its owner (Civ3 FUN_004b3f20).
+					gameData.gameHistory.Record(gameData.turn, ReplayEventType.WonderBuilt, owner, location, building.name);
 					VictoryPoints.OnWonderBuilt(owner, building, gameData.victoryConditions);
 					owner.MaybeStartGoldenAgeFromWonders(gameData);
 					AnnounceWonder(gameData, building);

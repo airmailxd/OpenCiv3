@@ -132,6 +132,8 @@ namespace C7GameData {
 		public Rules rules;
 		public TimeOptions timeOptions;
 		public Dictionary<string, List<HistTurnRecord>> history;
+		// The events of the game for its replay (see GameHistory).
+		public GameHistory gameHistory = new();
 
 		public VictoryConditions victoryConditions;
 		public List<IVictory> victories = new();
@@ -369,6 +371,7 @@ namespace C7GameData {
 			try {
 				ResolveCityBorders();
 				ResolveBorderGaps();
+				gameHistory?.RecordTerritoryChanges(turn);
 			} finally {
 				cultureCache = null;
 				foundingOrderCache = null;
@@ -565,10 +568,11 @@ namespace C7GameData {
 		// Changes the city that owns a tile. All ownership changes should go
 		// through here, so that the players' active tiles are kept up to date,
 		// and so that borders take in the colonies and outposts they reach.
-		private static void SetTileOwner(Tile t, City city) {
+		private void SetTileOwner(Tile t, City city) {
 			if (t.owningCity != city) {
 				t.owningCity = city;
 				TileChangeJournal.Record(t);
+				gameHistory?.NoteTerritory(t);
 				if (city != null) {
 					t.CheckHoldingAgainstBorders();
 				}
@@ -617,6 +621,8 @@ namespace C7GameData {
 					SetTileOwner(t, null);
 				} else {
 					TileChangeJournal.Record(t);
+					// Still the city's, but now another civ's.
+					gameHistory?.NoteTerritory(t);
 				}
 			}
 			TileChangeJournal.Record(city.location);

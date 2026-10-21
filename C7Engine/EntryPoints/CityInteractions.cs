@@ -49,6 +49,8 @@ namespace C7Engine {
 			// accurate. We do this after adding the resident though, because
 			// cities with zero residents are considered destroyed.
 			gameData.UpdateTileOwners();
+			// After its borders, as Civ3 records them (Civ3 FUN_004b5280).
+			gameData.gameHistory.Record(gameData.turn, ReplayEventType.CityFounded, owner, tileWithNewCity, name);
 
 			// Goody huts next to the new city are opened for its owner.
 			GoodyHuts.OpenNextToNewCity(gameData, newCity);
@@ -325,6 +327,8 @@ namespace C7Engine {
 			gameData.UpdateTileOwners();
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 			gameData.InvalidateCachedTradeNetwork();
+			// Recorded for the captor (Civ3 FUN_00570bb0).
+			gameData.gameHistory.Record(gameData.turn, ReplayEventType.CityCaptured, captor, tile, city.name);
 
 			// Choosing production needs the trade network to know the new owner.
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, captor));
@@ -562,6 +566,10 @@ namespace C7Engine {
 
 			gameData.UpdateTileOwnersOnCityDestruction(city);
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
+			// Civ3 FUN_004b5c80 tells apart a city whose owner still holds its
+			// tile afterwards.
+			ReplayEventType destroyed = tile.owningCity?.owner == owner ? ReplayEventType.CityDestroyedOwnerKeepsTile : ReplayEventType.CityDestroyed;
+			gameData.gameHistory.Record(gameData.turn, destroyed, owner, tile, city.name);
 
 			new MsgCityDestroyed(city).send();
 

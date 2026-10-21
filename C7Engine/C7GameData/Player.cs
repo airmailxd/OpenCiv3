@@ -2530,6 +2530,11 @@ namespace C7GameData {
 			hadGoldenAge = true;
 			goldenAgeTurnsRemaining = gameData.rules.GoldenAgeDuration;
 			log.Information("{Player} starts a golden age: {Reason}", this, reason);
+			// At the capital, if there is one (Civ3 FUN_00568940).
+			City capital = cities.FirstOrDefault(c => c.capital);
+			if (capital != null) {
+				gameData.gameHistory?.Record(gameData.turn, ReplayEventType.GoldenAge, this, capital.location);
+			}
 			if (IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(this, $"{reason}\nOur civilization enters a Golden Age!", happy: true).send();
 			}

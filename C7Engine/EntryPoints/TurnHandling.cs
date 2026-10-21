@@ -121,6 +121,14 @@ namespace C7Engine {
 				// With every player's turn over, Victory Locations score.
 				VictoryPoints.ScoreVictoryLocations(gameData);
 
+				// Now and then a historian writes one of the Great Books, as
+				// Civ3 does before the turn advances (see GreatBooks).
+				if (GreatBooks.MaybeWrite(gameData, GameData.rng) is GreatBooks.Book book) {
+					foreach (Player reader in gameData.players.Where(p => p.isHuman && !p.defeated)) {
+						new MsgGreatHistoryBook(reader, book).send();
+					}
+				}
+
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {

@@ -91,6 +91,7 @@ public partial class MapUnit {
 		MapUnit leader = gameData.SpawnUnit(player, proto, city.location);
 		leader.isScientificLeader = true;
 		leader.name = ScientificLeaderName;
+		RecordGreatLeader(gameData, leader);
 		log.Information("{Player}'s discovery of {Tech} has produced a scientific leader in {City}", player, tech.Name, city);
 		if (player.IsToldNews) {
 			new MsgShowScienceAdvisorPopup(player,

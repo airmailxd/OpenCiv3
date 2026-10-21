@@ -21,7 +21,7 @@ internal static class SnapshotDetacher {
 	// The parts of a save and of its players that FromGameData builds afresh
 	// for each save. Anything not named here is copied, so a part added
 	// later is safe, if a little slower, until it's added here.
-	private static readonly HashSet<string> FreshSaveMembers = ["Map", "Units", "Players", "Cities", "History"];
+	private static readonly HashSet<string> FreshSaveMembers = ["Map", "Units", "Players", "Cities", "History", "Replay"];
 	// knownTileIndices is a string, which can't change, so it's shared as is.
 	// outdatedTiles is built from what the player remembers of the map, like
 	// tileKnowledge.
@@ -35,6 +35,8 @@ internal static class SnapshotDetacher {
 		// soon outweighs the rest. Its records never change once made, so
 		// only its lists are copied.
 		save.History = save.History?.ToDictionary(entry => entry.Key, entry => entry.Value?.ToList());
+		// So is the replay's list of events, whose events never change either.
+		save.Replay = save.Replay?.ToList();
 
 		SaveGame shared = new();
 		foreach (Member member in SharedSaveMembers) {

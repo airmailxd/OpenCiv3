@@ -88,6 +88,14 @@ public static class InstantElimination {
 	public static void OnUnitLost(MapUnit unit, Player owner) {
 		if (unit.unitType.isKing && !owner.defeated) {
 			++owner.kingsLost;
+			// Civ3 FUN_005ca720 records a King lost in a Regicide game, by its
+			// name or its unit type's, where it was.
+			GameData gameData = EngineStorage.gameData;
+			VictoryConditions conditions = gameData?.victoryConditions;
+			if (conditions != null && (conditions.Regicide || conditions.MassRegicide) && gameData.gameHistory != null) {
+				string name = string.IsNullOrEmpty(unit.name) ? unit.unitType.name : unit.name;
+				gameData.gameHistory.Record(gameData.turn, ReplayEventType.KingKilled, owner, unit.location, name);
+			}
 		}
 	}
 

@@ -755,6 +755,25 @@ namespace C7Engine {
 		protected override string OwnHeadline() => OneLine(message);
 	}
 
+	// One of Civ3's Great Books has been written (see GreatBooks): the
+	// indexes of its historian and title in Text/Great Books.txt, and the
+	// civs it ranks, first first.
+	public class MsgGreatHistoryBook : MessageToUI {
+		public int historian;
+		public GreatBooks.Title title;
+		public List<Player> ranking;
+
+		public MsgGreatHistoryBook(Player recipient, GreatBooks.Book book) {
+			this.recipient = recipient;
+			historian = book.historian;
+			title = book.title;
+			ranking = book.ranking;
+		}
+
+		[JsonConstructor]
+		public MsgGreatHistoryBook() { }
+	}
+
 	public class MsgVictory : MessageToUI {
 		public Player winner;
 		public IVictory victory;

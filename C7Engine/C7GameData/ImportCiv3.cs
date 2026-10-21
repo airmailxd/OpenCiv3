@@ -161,6 +161,7 @@ namespace C7GameData {
 			}
 
 			ImportSavHistory();
+			ImportSavReplay();
 			ImportSavVictory();
 			save.Rules.AcceleratedProduction = savData.Game.AcceleratedProduction;
 			save.Rules.AllowCultureFlips = savData.Game.AllowCulturalConversions;
@@ -428,6 +429,44 @@ namespace C7GameData {
 					});
 				}
 			}
+		}
+
+		// The SAV's replay (its RPLS section) as the game's replay events (see
+		// GameHistory). Civs are LEAD indexes; a territory change to or from
+		// LEAD 0 is to or from no one (Civ3 FUN_00598f60 clears the tile's
+		// owner for civ 0).
+		private void ImportSavReplay() {
+			if (savData.Rplt == null) {
+				return;
+			}
+			for (int i = 0; i < savData.Rplt.Length; ++i) {
+				int turn = savData.Rplt[i].TurnNumber;
+				for (int j = 0; j < savData.RpltRple[i].Length; ++j) {
+					QueryCiv3.Sav.RPLE e = savData.RpltRple[i][j];
+					ReplayEventType type = (ReplayEventType)e.EventType;
+					if (!Enum.IsDefined(type)) {
+						continue;
+					}
+					bool territory = type == ReplayEventType.TerritoryChanged;
+					string text = savData.RpltRpleDescription[i][j];
+					save.Replay.Add(new ReplayEvent {
+						Turn = turn,
+						Type = type,
+						Civ = ReplayCiv(e.CivID, territory),
+						X = e.XLocation,
+						Y = e.YLocation,
+						Text = string.IsNullOrEmpty(text) ? null : text,
+						PreviousCiv = territory ? ReplayCiv(e.PreviousOwner, true) : null,
+					});
+				}
+			}
+		}
+
+		private string ReplayCiv(int lead, bool territory) {
+			if (territory && lead == 0) {
+				return null;
+			}
+			return SavPlayer(lead)?.id.ToString();
 		}
 
 		/**

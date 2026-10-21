@@ -101,6 +101,7 @@ namespace C7GameData.Save {
 				Rules = data.rules,
 				TimeOptions = data.timeOptions,
 				History = data.history,
+				Replay = data.gameHistory.Events,
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
 				SimultaneousTurns = data.simultaneousTurns,
@@ -178,6 +179,9 @@ namespace C7GameData.Save {
 
 			data.RemoveRelationshipsWithDefeatedCivs();
 
+			// Before the tile owners are worked out, which records what has
+			// changed since the events last had them.
+			data.gameHistory.Begin(data);
 			data.UpdateTileOwners();
 			HostFacts?.ApplyTo(data);
 			data.InvalidateCachedTradeNetwork();
@@ -337,6 +341,7 @@ namespace C7GameData.Save {
 				timeOptions = TimeOptions,
 				victoryConditions = VictoryConditions,
 				history = History,
+				gameHistory = new GameHistory { Events = Replay ?? new() },
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
 				tutorial = Tutorial ?? new TutorialState(),
@@ -710,6 +715,10 @@ namespace C7GameData.Save {
 		public List<Government> Governments = new();
 		public List<WorldSize> WorldSizes = new();
 		public Dictionary<string, List<HistTurnRecord>> History = new();
+		// The events of the game for its replay (see GameHistory). Older
+		// saves, without them, record their cities and borders as they stand
+		// when loaded.
+		public List<ReplayEvent> Replay = new();
 
 		// The relative directory that can be used to find scenario-specific
 		// assets.

@@ -15,15 +15,39 @@ namespace C7GameData {
 	// (Conquests/Text/labels.txt: "HISTOGRAPH", "Show", "Power", "Score",
 	// "Victory Points", "Scale by", "Turns", "Years").
 	public static class HistographReport {
+		// Culture and VictoryPoints are shown by the replay's graph, which
+		// Civ3 shows by "Power", "Score", "Culture" and, in a game with
+		// victory points, "Victory Points" (Civ3 FUN_00599d00).
 		public enum Measure {
 			Score,
 			Power,
+			Culture,
+			VictoryPoints,
 		}
 
 		public static int ValueOf(HistTurnRecord record, Measure measure) => measure switch {
 			Measure.Power => record.Power,
+			Measure.Culture => record.Culture,
+			Measure.VictoryPoints => record.VP,
 			_ => record.Score,
 		};
+
+		// Every civ's line, barbarians aside, whether met or not, up to and
+		// including the date: what the replay at the end of the game shows.
+		public static List<HistographSeries> AllSeries(GameData gameData, Measure measure, int upToDate) {
+			List<HistographSeries> result = new();
+			foreach (Player civ in gameData.players) {
+				if (civ.isBarbarians || gameData.history == null || !gameData.history.TryGetValue(civ.HistoryKey, out List<HistTurnRecord> records)) {
+					continue;
+				}
+				List<HistographPoint> points = new(records.Count);
+				for (int i = 0; i < records.Count && records[i].Date <= upToDate; ++i) {
+					points.Add(new HistographPoint(i, records[i].Date, ValueOf(records[i], measure)));
+				}
+				result.Add(new HistographSeries(civ, points));
+			}
+			return result;
+		}
 
 		// The lines of the viewer and the civs they have met, the viewer
 		// first. UNVERIFIED: that civs the viewer hasn't met are left out,
