@@ -86,6 +86,7 @@ public partial class ForeignAdvisor : Control {
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
+		AdvisorUtils.SpeakOnClickAndInTime(this, _dialogBox, Speak);
 
 		// The leaders and their ties, on the left.
 		_web = new ForeignWeb { Position = new Vector2(67, 65), Size = new Vector2(683, 652) };
@@ -207,11 +208,28 @@ public partial class ForeignAdvisor : Control {
 			_web.SetShownKinds(_shownKinds);
 			FillTab(gameData, player, selected);
 
-			_dialogBoxLabel.Text = Advice(gameData, player, civs, selected);
-			_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Foreign,
-				Mood(gameData, player, civs, selected), player.EraIndex());
+			if (!SpeakWith(gameData, player, selected)) {
+				_dialogBoxLabel.Text = Advice(gameData, player, civs, selected);
+				_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Foreign,
+					Mood(gameData, player, civs, selected), player.EraIndex());
+			}
 		});
 	}
+
+	// The advisor's next words, in Civ3's script.txt: about the leader
+	// picked, if any, and about trade while the Trades tab is open.
+	// UNVERIFIED: that the Trades tab is what Civ3's trade view of the
+	// advisor's words (FUN_0053f1e0) goes with.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) => {
+			Player player = gameData.GetUIControllerPlayer();
+			SpeakWith(gameData, player, ForeignReport.Civs(gameData, player).FirstOrDefault(c => c.id == _selected));
+		});
+	}
+
+	private bool SpeakWith(GameData gameData, Player player, Player selected) =>
+		AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Foreign, gameData, player,
+			selectedForeignCiv: selected == player ? null : selected, foreignTradeView: _tab == Tab.Trades);
 
 	private void FillTab(GameData gameData, Player player, Player selected) {
 		for (int i = 0; i < 3; i++) {

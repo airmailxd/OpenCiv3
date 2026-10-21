@@ -46,6 +46,7 @@ public partial class MilitaryAdvisor : Control {
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
+		AdvisorUtils.SpeakOnClickAndInTime(this, _dialogBox, Speak);
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "MILITARY ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Military);
@@ -87,6 +88,8 @@ public partial class MilitaryAdvisor : Control {
 	}
 
 	public void ShowAdvisor() {
+		// The advisor speaks as the screen opens, not when it's redrawn.
+		bool opening = !IsVisibleInTree();
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
@@ -109,10 +112,21 @@ public partial class MilitaryAdvisor : Control {
 			}
 			FillProduction(player);
 
-			_dialogBoxLabel.Text = Advice(gameData, player, totalUnits, allowedUnits, unitSupportCost);
-			_advisorHead.Texture =
-				AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Military, AdvisorHead.Mood.Happy, player.EraIndex());
+			if (opening ? !AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Military, gameData, player)
+					: !AdvisorUtils.HasScript()) {
+				_dialogBoxLabel.Text = Advice(gameData, player, totalUnits, allowedUnits, unitSupportCost);
+				_advisorHead.Texture =
+					AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Military, AdvisorHead.Mood.Happy, player.EraIndex());
+			}
 		});
+	}
+
+	// The advisor's next words, in Civ3's script.txt. Civ3's advisor also
+	// compares our army with that of the civ picked on its screen, which
+	// this screen has no way to pick yet.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) =>
+			AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Military, gameData, gameData.GetUIControllerPlayer()));
 	}
 
 	private void FillIntelligence(GameData gameData, Player player) {

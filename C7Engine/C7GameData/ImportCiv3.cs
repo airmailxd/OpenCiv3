@@ -858,6 +858,7 @@ namespace C7GameData {
 					noun = race.Noun,
 					adjective = race.Adjective,
 					leader = race.LeaderName,
+					leaderTitle = race.LeaderTitle,
 					leaderGender = race.LeaderGender == 0 ? Gender.Male : Gender.Female,
 					primaryColorIndex = race.DefaultColor,
 					secondaryColorIndex = race.UniqueColor,

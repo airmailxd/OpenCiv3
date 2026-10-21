@@ -61,6 +61,7 @@ public partial class ScienceAdvisor : Control {
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
+		AdvisorUtils.SpeakOnClickAndInTime(this, _dialogBox, Speak);
 
 		AdvisorUtils.CreateAdvisorTitle(background, AncientBackground.GetWidth(), "SCIENCE ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Science);
@@ -255,11 +256,13 @@ public partial class ScienceAdvisor : Control {
 
 		Show();
 
-		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetUIControllerPlayer();
+		Speak();
+	}
 
-			// TODO: Choose advisor head
-			// _advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Science, AdvisorHead.Mood.Happy, player.EraIndex());
-		});
+	// The advisor's next words, in Civ3's script.txt. Without it the box
+	// keeps the default words, as before.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) =>
+			AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Science, gameData, gameData.GetUIControllerPlayer()));
 	}
 }

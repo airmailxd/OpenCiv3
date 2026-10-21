@@ -39,6 +39,7 @@ public partial class CulturalAdvisor : Control {
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
+		AdvisorUtils.SpeakOnClickAndInTime(this, _dialogBox, Speak);
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "CULTURAL ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Culture);
@@ -80,9 +81,17 @@ public partial class CulturalAdvisor : Control {
 			FillCities(player);
 			FillInfluence(gameData, player, total);
 
-			_dialogBoxLabel.Text = Advice(player, perTurn);
-			_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Culture, AdvisorHead.Mood.Happy, player.EraIndex());
+			if (!AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Culture, gameData, player)) {
+				_dialogBoxLabel.Text = Advice(player, perTurn);
+				_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Culture, AdvisorHead.Mood.Happy, player.EraIndex());
+			}
 		});
+	}
+
+	// The advisor's next words, in Civ3's script.txt.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) =>
+			AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Culture, gameData, gameData.GetUIControllerPlayer()));
 	}
 
 	private void FillCities(Player player) {

@@ -47,6 +47,7 @@ public partial class DomesticAdvisor : Control {
 
 	TextureRect advisorHead = new();
 	Label DialogBoxAdvise = new();
+	// What the advisor says without Civ3's script.txt to speak from.
 	private const string DefaultAdvice = "You are running OpenCiv3!";
 
 	// The Y position of the two sliders.
@@ -120,10 +121,15 @@ public partial class DomesticAdvisor : Control {
 		DialogBox.SetPosition(new Vector2(806, 110));
 		background.AddChild(DialogBox);
 
-		//TODO: Multi-line capabilities
+		// The advice wraps within the box, leaving room for its border.
 		DialogBoxAdvise.Text = DefaultAdvice;
 		DialogBoxAdvise.SetPosition(new Vector2(815, 119));
+		if (DialogBoxTexture != null) {
+			DialogBoxAdvise.Size = DialogBoxTexture.GetSize() - new Vector2(18, 18);
+			DialogBoxAdvise.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		}
 		background.AddChild(DialogBoxAdvise);
+		AdvisorUtils.SpeakOnClickAndInTime(this, DialogBox, Speak);
 	}
 
 	// The science and luxury sliders, their rates and their plus and minus
@@ -273,6 +279,12 @@ public partial class DomesticAdvisor : Control {
 		};
 	}
 
+	// The advisor's next words, in Civ3's script.txt.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) =>
+			AdvisorUtils.Speak(DialogBoxAdvise, advisorHead, AdvisorHead.Advisor.Domestic, gameData, gameData.GetUIControllerPlayer()));
+	}
+
 	private void SortBy(SortColumn column) {
 		if (column == sortColumn) {
 			sortReversed = !sortReversed;
@@ -361,6 +373,8 @@ public partial class DomesticAdvisor : Control {
 	}
 
 	public void ShowAdvisor() {
+		// The advisor speaks as the screen opens, not when it's redrawn.
+		bool opening = !IsVisibleInTree();
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
@@ -401,7 +415,9 @@ public partial class DomesticAdvisor : Control {
 
 			//TODO: Randomize or set logically
 			int eraIndex = playerController.EraIndex();
-			advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy, eraIndex);
+			if (opening || !AdvisorUtils.HasScript()) {
+				advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy, eraIndex);
+			}
 
 			// Disable the change government button unless we have a government to
 			// switch to.
@@ -411,10 +427,16 @@ public partial class DomesticAdvisor : Control {
 			changeMobilization.Visible = playerController.mobilized || Mobilization.CanMobilize(playerController);
 			mobilizationLabel.Text = playerController.mobilized ? "War Time" : "Normalcy";
 
-			if (playerController.government.transitionType && playerController.inAnarchyUntilTurn > gameData.turn) {
-				DialogBoxAdvise.Text = $"{playerController.inAnarchyUntilTurn - gameData.turn} turns of anarchy left";
-			} else {
-				DialogBoxAdvise.Text = DefaultAdvice;
+			// Civ3's words, from script.txt, said as the screen opens.
+			bool spoken = opening
+				? AdvisorUtils.Speak(DialogBoxAdvise, advisorHead, AdvisorHead.Advisor.Domestic, gameData, playerController)
+				: AdvisorUtils.HasScript();
+			if (!spoken) {
+				if (playerController.government.transitionType && playerController.inAnarchyUntilTurn > gameData.turn) {
+					DialogBoxAdvise.Text = $"{playerController.inAnarchyUntilTurn - gameData.turn} turns of anarchy left";
+				} else {
+					DialogBoxAdvise.Text = DefaultAdvice;
+				}
 			}
 
 			// Reuse the rows already made, only adding or removing rows when

@@ -40,6 +40,9 @@ namespace C7GameData {
 		// `adjective` is "American" for "America", or "Celtic" for "Celts", etc.
 		public string adjective;
 		public string leader;
+		// The leader's title from the BIQ (RACE's leader title), or null in
+		// saves from before it was imported.
+		public string leaderTitle;
 		public int primaryColorIndex;
 		public int secondaryColorIndex;
 		public Gender leaderGender;

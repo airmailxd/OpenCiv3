@@ -45,6 +45,7 @@ public partial class TradeAdvisor : Control {
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
+		AdvisorUtils.SpeakOnClickAndInTime(this, _dialogBox, Speak);
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "TRADE ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Trade);
@@ -75,6 +76,8 @@ public partial class TradeAdvisor : Control {
 	}
 
 	public void ShowAdvisor() {
+		// The advisor speaks as the screen opens, not when it's redrawn.
+		bool opening = !IsVisibleInTree();
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
@@ -93,9 +96,18 @@ public partial class TradeAdvisor : Control {
 			FillNetworks(gameData, player);
 			FillPartners(gameData, player);
 
-			_dialogBoxLabel.Text = Advice(gameData, player);
-			_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Trade, AdvisorHead.Mood.Happy, player.EraIndex());
+			if (opening ? !AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Trade, gameData, player)
+					: !AdvisorUtils.HasScript()) {
+				_dialogBoxLabel.Text = Advice(gameData, player);
+				_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Trade, AdvisorHead.Mood.Happy, player.EraIndex());
+			}
 		});
+	}
+
+	// The advisor's next words, in Civ3's script.txt.
+	private void Speak() {
+		EngineStorage.ReadGameData((GameData gameData) =>
+			AdvisorUtils.Speak(_dialogBoxLabel, _advisorHead, AdvisorHead.Advisor.Trade, gameData, gameData.GetUIControllerPlayer()));
 	}
 
 	private static void FillResources(HBoxContainer band, IEnumerable<(Resource resource, string tooltip)> resources, float iconSize) {

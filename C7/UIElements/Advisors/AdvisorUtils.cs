@@ -247,6 +247,93 @@ public static class AdvisorUtils {
 		return button;
 	}
 
+	// ---- What the advisors say ----
+
+	// Which topic each advisor is on, kept from one visit to the next as in
+	// Civ3, and started over for each game.
+	private static readonly AdvisorSpeech speech = new();
+	private static GameData speechGameData;
+	// The advisors' choices are their own, so they never touch the game's
+	// random numbers (which must match between LAN players).
+	private static readonly System.Random speechRandom = new();
+
+	private static ScriptText script;
+	private static string scriptPath;
+
+	// Civ3's script.txt, from the scenario's folder or the install, read
+	// again only if that changes. Null without one, as in standalone mode.
+	private static ScriptText Script() {
+		string path = Util.HasCiv3Media("Text/script.txt") ? Util.Civ3MediaPath("Text/script.txt") : null;
+		if (path != scriptPath) {
+			scriptPath = path;
+			script = path == null ? null : ScriptText.Load(path);
+		}
+		return script;
+	}
+
+	// Whether the advisors speak in the words of script.txt.
+	public static bool HasScript() => Script()?.Count > 0;
+
+	/// <summary>
+	/// Has the advisor say the next thing Civ3's advisor would, in the words
+	/// of script.txt, and shows the face that goes with it. Returns false,
+	/// leaving the box as it was, when there's no script.txt to say it with.
+	/// </summary>
+	public static bool Speak(Label box, TextureRect head, AdvisorHead.Advisor advisor, GameData gameData, Player player,
+			Player selectedForeignCiv = null, bool foreignTradeView = false, Player militaryRival = null) {
+		ScriptText text = Script();
+		if (text == null || text.Count == 0 || gameData == null || player == null) {
+			return false;
+		}
+		if (!ReferenceEquals(gameData, speechGameData)) {
+			speech.Reset();
+			speechGameData = gameData;
+		}
+		AdvisorKind kind = (AdvisorKind)(int)advisor;
+		AdvisorFacts facts;
+		try {
+			facts = AdvisorFactsGatherer.Gather(gameData, player, kind, selectedForeignCiv, foreignTradeView, militaryRival);
+		} catch (System.Exception e) {
+			log.Error(e, "Couldn't work out what the {Advisor} advisor would say", advisor);
+			return false;
+		}
+		(string words, AdvisorMood mood)? said = speech.Next(kind, facts, speechRandom)?.Say(text);
+		if (said == null) {
+			return false;
+		}
+		box.Text = said.Value.words;
+		if (head != null) {
+			head.Texture = AdvisorHead.GetPopupImage(advisor, (AdvisorHead.Mood)(int)said.Value.mood, player.EraIndex());
+		}
+		return true;
+	}
+
+	/// <summary>
+	/// Has the advisor say something new when their box is clicked, and
+	/// after about five seconds of saying the same thing (Civ3 FUN_004a4a20
+	/// and FUN_004a4dd0: five seconds, then a quarter of a second's fade).
+	/// </summary>
+	public static void SpeakOnClickAndInTime(Control screen, TextureButton box, System.Action speak) {
+		Timer timer = new() { WaitTime = 5.25, Autostart = true };
+		void Next() {
+			timer.Start();
+			speak();
+		}
+		box.Pressed += Next;
+		// The five seconds start over when the screen opens.
+		screen.VisibilityChanged += () => {
+			if (screen.IsVisibleInTree()) {
+				timer.Start();
+			}
+		};
+		timer.Timeout += () => {
+			if (screen.IsVisibleInTree()) {
+				speak();
+			}
+		};
+		screen.AddChild(timer);
+	}
+
 	// How the advisors name another civ, as in "the Romans".
 	public static string CivName(Player player) => player.civilization?.noun ?? player.civilization?.name ?? "";
 
