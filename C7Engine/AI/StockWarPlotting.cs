@@ -18,10 +18,13 @@ namespace C7Engine.AI {
 	// - Which civ it plots against, by Civ3's target score (Excluded,
 	//   TargetScore), in place of the weakest neighbour 1.3 times weaker
 	//   than us.
-	// The campaign's own rule (a city it can reach and take) still
-	// applies, but not, since 21 October, a check of our strength against
-	// the target's before declaring, which the stock code doesn't have (see
-	// WarCampaign.MaybeStartCampaign).
+	// Since 21 October there is no check of our strength against the
+	// target's before declaring, which the stock code doesn't have, and
+	// since the owner's decision, 2026-10-20 ("Defer to Civ3's logic on AI
+	// war starting"), none of the engine's own gates either: these rolls
+	// and this score alone pick the war (see WarCampaign.PlotWar). A
+	// target our land units can reach gets a campaign, declared once its
+	// attackers are gathered; one overseas gets the declaration at once.
 	//
 	// Paired AI trials (8 games of 200 turns, score per civ against the
 	// same civs without it): the rolls alone +32 +- 44 on Continents and

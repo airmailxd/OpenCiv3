@@ -88,7 +88,9 @@ namespace C7Engine.AI {
 		private static readonly HashSet<MapUnit> triedToAttack = new();
 		private static readonly ConditionalWeakTable<Player, StrongBox<int>> nextCampaignTurn = new();
 
-		// HEURISTIC: how many turns to wait after giving up a campaign.
+		// HEURISTIC: how many turns to wait after giving up a campaign before
+		// starting another in a war we are in. It doesn't hold off plotting
+		// a new war (see MaybeStartCampaign).
 		private const int CooldownTurns = 20;
 		// HEURISTIC: how long to wait for the attackers to gather.
 		private const int MaxGatherTurns = 25;
@@ -101,9 +103,6 @@ namespace C7Engine.AI {
 		private const double MinMarchOdds = 0.2;
 		// HEURISTIC: how long the march may take.
 		private const int MaxMarchTurns = 15;
-		// HEURISTIC: how far from our nearest city a city may be to be worth
-		// marching on.
-		private const int MaxTargetDistance = 14;
 
 		// A unit taking part in a campaign. The campaign moves it, so the
 		// ordinary unit AI leaves it alone (see PlayerAI.DoUnitActions).
@@ -227,8 +226,12 @@ namespace C7Engine.AI {
 			campaign.units.Clear();
 			campaigns.Remove(player);
 			if (cooldown) {
-				nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + CooldownTurns));
+				StartCooldown(player);
 			}
+		}
+
+		internal static void StartCooldown(Player player) {
+			nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + CooldownTurns));
 		}
 
 		private static void Release(MapUnit u) {
@@ -262,13 +265,11 @@ namespace C7Engine.AI {
 			}
 			bool atWar = AtWarWith(player, c.enemy);
 
-			// A civ planning a war that is attacked by someone else meets
-			// that war instead of starting a second one.
-			if (!atWar && PlayerRelationship.IsInAnyWar(player, gameData.players)) {
-				log.Information("{Player} is attacked, so drops its plan to attack {Enemy}", player, c.enemy);
-				c.cooldown = false;
-				return false;
-			}
+			// A civ planning a war that is attacked by someone else keeps
+			// its plan: Civ3's plotting weighs being at war only in the roll
+			// to plot (StockWarPlotting.RollsToPlot), and the engine's rule
+			// that it dropped the plan to meet the other war is gone
+			// (owner's decision, 2026-10-20).
 			// Peace was made since the march began.
 			if (!atWar && c.phase != Phase.Gather) {
 				return false;
@@ -378,15 +379,17 @@ namespace C7Engine.AI {
 		// Starts a campaign against the enemy we are at war with, or, at
 		// peace, against the civ Civ3's war plotting picks.
 		private static Campaign MaybeStartCampaign(Player player, GameData gameData) {
-			if (nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value) {
-				return null;
-			}
-
 			Player enemy = null;
 			City target = null;
 			float best = float.MinValue;
+			// The cooldown after a campaign holds off only the next campaign
+			// in a war we are already in, so that its attackers fight on
+			// their own for a while (see CombatAI). It no longer holds off
+			// plotting a new war (owner's decision, 2026-10-20: "Defer to
+			// Civ3's logic on AI war starting").
+			bool coolingDown = nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value;
 			foreach (Player p in gameData.players) {
-				if (p == player || p.isBarbarians || p.defeated || !AtWarWith(player, p)) {
+				if (coolingDown || p == player || p.isBarbarians || p.defeated || !AtWarWith(player, p)) {
 					continue;
 				}
 				City t = PickTarget(player, p, out float score);
@@ -397,37 +400,18 @@ namespace C7Engine.AI {
 				}
 			}
 
-			// A war with a civ we can't reach (one on other landmasses) doesn't
-			// stop us from planning one we can fight.
-			if (enemy == null && !InReachableWar(player, gameData.players)
-					&& player.cities.Count >= 3) {
-				// Civ3's own rules (see StockWarPlotting): the rolls to plot
-				// a war at all, and the score of whom to plot it against.
-				// The war is declared once the attackers are gathered, with
-				// no check of our strength against theirs: the stock code
-				// has none (Flintlock, who read it, CFC thread 703785, page
-				// 2: "War is declared only when the attack actually
-				// happens"), and its target score favours the stronger civs
-				// (compendium 08, section 3.4.1). The 1.3 times the
-				// target's strength we used to need turned down 10 of 18
-				// plotted wars on Continents and 22 of 29 on Pangaea in AI
-				// trials (8 games of 200 turns, every civ AI). Paired trials
-				// without it: score +11 +- 7 on Continents and -2 +- 38 on
-				// Pangaea, wars declared +0.1 and +0.2 per civ.
-				if (!StockWarPlotting.RollsToPlot(gameData, player)) {
+			if (enemy == null) {
+				enemy = PlotWar(player, gameData, out target);
+				if (enemy != null && target == null) {
+					// No city of theirs our land units can march on (they
+					// are overseas, or we know none of their cities). The
+					// engine has no seaborne campaigns to wait for, so the
+					// war is declared now and fought by whatever the unit AI
+					// can do: warships, bombers, units that find a way there.
+					player.DeclareWarOn(enemy, gameData.turn);
+					log.Information("{Player} declared war on {Enemy}, which it cannot reach by land", player, enemy);
+					MsgWarDeclaration.Announce(player, enemy);
 					return null;
-				}
-				foreach (Player p in gameData.players) {
-					if (!CanDeclareWarOn(player, p) || StockWarPlotting.Excluded(gameData, player, p)) {
-						continue;
-					}
-					City t = PickTarget(player, p);
-					float score = StockWarPlotting.TargetScore(gameData, player, p);
-					if (t != null && score > best) {
-						best = score;
-						enemy = p;
-						target = t;
-					}
 				}
 			}
 
@@ -440,13 +424,48 @@ namespace C7Engine.AI {
 			return c;
 		}
 
-		// Whether we're at war with a civ (not the barbarians) that has a
-		// city on a landmass where we have one, so that our land units could
-		// fight it.
-		private static bool InReachableWar(Player player, List<Player> players) {
-			HashSet<int> ours = player.cities.Select(c => c.location.continent).ToHashSet();
-			return players.Any(p => p != player && !p.isBarbarians && !p.defeated && AtWarWith(player, p)
-				&& p.cities.Any(c => ours.Contains(c.location.continent)));
+		// The civ Civ3's war plotting picks to go to war with this turn, or
+		// null, and the city of theirs our land units would march on first,
+		// or null if there is none (see StockWarPlotting). These are the
+		// rolls to plot a war at all, and then the best target score among
+		// the civs not left out. Only Civ3's own gates apply (owner's
+		// decision, 2026-10-20). The engine's own are gone: no plotting
+		// below 3 cities, none for 20 turns after a campaign, none while at
+		// war with a civ within reach by land (Civ3 has its own one in 16
+		// roll for being at war), and targets only among civs with a city
+		// on our landmass within 14 tiles. In Civ3 a civ with no city on a
+		// continent we share is a target too, at half score (see
+		// StockWarPlotting.TargetScore).
+		//
+		// The war is declared once the attackers are gathered, with no check
+		// of our strength against theirs: the stock code has none
+		// (Flintlock, who read it, CFC thread 703785, page 2: "War is
+		// declared only when the attack actually happens"), and its target
+		// score favours the stronger civs (compendium 08, section 3.4.1).
+		// The 1.3 times the target's strength we used to need turned down
+		// 10 of 18 plotted wars on Continents and 22 of 29 on Pangaea in AI
+		// trials (8 games of 200 turns, every civ AI).
+		internal static Player PlotWar(Player player, GameData gameData, out City target) {
+			target = null;
+			if (!StockWarPlotting.RollsToPlot(gameData, player)) {
+				return null;
+			}
+			Player enemy = null;
+			int best = int.MinValue;
+			foreach (Player p in gameData.players) {
+				if (!CanDeclareWarOn(player, p) || p.cities.Count == 0 || StockWarPlotting.Excluded(gameData, player, p)) {
+					continue;
+				}
+				int score = StockWarPlotting.TargetScore(gameData, player, p);
+				if (score > best) {
+					best = score;
+					enemy = p;
+				}
+			}
+			if (enemy != null) {
+				target = PickTarget(player, enemy);
+			}
+			return enemy;
 		}
 
 		private static City PickTarget(Player player, Player enemy) {
@@ -467,7 +486,11 @@ namespace C7Engine.AI {
 						distance = Math.Min(distance, ours.location.DistanceTo(city.location));
 					}
 				}
-				if (distance > MaxTargetDistance) {
+				// Only a city on a landmass where we have one: our land
+				// units march there. There is no cap on the distance
+				// (owner's decision, 2026-10-20): the score below favours
+				// the near.
+				if (distance == int.MaxValue) {
 					continue;
 				}
 				float value = 2 + city.residents.Count;

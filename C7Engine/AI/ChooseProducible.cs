@@ -305,9 +305,7 @@ namespace C7Engine {
 				score += DevelopmentAI.LeanMilitaryAdjustment(stats, unit);
 			}
 
-			if (AiExperiments.Has(player, StockGarrison)) {
-				score += StockGarrisonBonus(player, unit);
-			}
+			score += StockGarrisonBonus(player, unit);
 
 			if (isSettler) {
 				// Don't build settlers if we don't have anywhere to go or if we
@@ -681,23 +679,22 @@ namespace C7Engine {
 		// military.
 		private const float SettlerSiteBonus = 20;
 
-		// On trial: the AI builds up to the garrison Civ3's war plotting
-		// looks for, two defensive units per city and one offensive unit
-		// per city by the units' BIQ AI strategy (see
-		// StockWarPlotting.RollsToPlot). justanick (CFC 703785, #13): "Once
-		// AI has 2 defenders and 1 attacker per city it is eager to start
-		// wars, but not before that"; Ision (CFC 92917): the AI keeps
-		// "heavy garrisons in every city" (compendium 08, sections 3.4.1 and
-		// 3.5). Without it the AI kept about 1.5 of each per city, so the
-		// plotting rolls for the garrison nearly always failed.
-		// AI trials (8 games of 200 turns): paired, score -67 +- 54 on
-		// Continents and +64 +- 72 on Pangaea, with 9 and 15 more units per
-		// civ. With every civ on it, 2.3 defensive units per city, and wars
-		// declared per civ 0.7 and 0.6 (from 0.2 and 0.4), cities captured
-		// 1.5 and 1.2 (from 0.7 and 1.2), but scores 77 and 47 lower. Not
-		// adopted: left for the owner to decide.
-		public const string StockGarrison = "stock-garrison";
-
+		// The AI builds up to the garrison Civ3's war plotting looks for,
+		// two defensive units per city and one offensive unit per city by
+		// the units' BIQ AI strategy (see StockWarPlotting.RollsToPlot).
+		// justanick (CFC 703785, #13): "Once AI has 2 defenders and 1
+		// attacker per city it is eager to start wars, but not before
+		// that"; Ision (CFC 92917): the AI keeps "heavy garrisons in every
+		// city" (compendium 08, sections 3.4.1 and 3.5). Without it the AI
+		// kept about 1.5 of each per city, so the plotting rolls for the
+		// garrison nearly always failed. AI trials (8 games of 200 turns):
+		// paired, score -67 +- 54 on Continents and +64 +- 72 on Pangaea,
+		// with 9 and 15 more units per civ. With every civ on it, 2.3
+		// defensive units per city, and wars declared per civ 0.7 and 0.6
+		// (from 0.2 and 0.4), cities captured 1.5 and 1.2 (from 0.7 and
+		// 1.2), but scores 77 and 47 lower. Adopted as Civ3's logic (owner's
+		// decision, 2026-10-20); the stock-garrison switch is gone.
+		//
 		// HEURISTIC: what a unit the garrison is short of adds to its
 		// score: as much as the best attack or defence on offer.
 		private const float GarrisonShortBonus = 10;
