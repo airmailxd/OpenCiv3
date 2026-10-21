@@ -77,6 +77,7 @@ How to read this section:
 - **All civs start at peace.** Manual p.~154. Quote: "You are naturally at
   peace with all your rivals at the start of the game". Also p.~158: peace is
   "the natural state when you first meet a rival".
+- **First contact gives an automatic peace treaty.** Being at peace and having a peace treaty are the same state. Manual tutorial (printed p.~51-52), meeting the Germans: "Unless we declare war against the Germans, we'll come out of this encounter with an automatic peace treaty with them". Manual p.~163: the "Peace treaty" trade item "is only available if you are at war". Flintlock, reading the stock war-plotting code (https://forums.civfanatics.com/threads/all-about-ai-aggression-levels-and-war-plotting.703785/ #1): "the only way the peace treaty check wouldn't pass is if the target is already at war with every other player in the game". So the code's peace-treaty bit (C3X `Civ3Conquests.h`, `Relation_Treaties[32]`, "& 1 // 1 = peace treaty") is set for every pair that has met and isn't at war. Whether breaking it by declaring war on a newly met civ costs reputation, rather than only attitude, is still disputed (see Disputed).
 - **Units in your territory invite contact.** Manual p.~162 lists, among ways
   to open talks: "Move one of your units into the other nation's territory and
   wait for them to contact you (not recommended unless your intention is to
