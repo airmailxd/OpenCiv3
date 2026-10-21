@@ -34,6 +34,46 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Workers ----
 
+	// A railroad needs Iron and Coal access and terrain that allows it on
+	// every tile it is built on (owner's decision, 2026-10-21: no "railroad
+	// to" that skips the resource check, which the shipped game's does).
+	// The engine has no separate railroad-to command: a human's worker and
+	// the automated ones (WorkerAI, which checks each tile with
+	// CanPerformTerraformAction before starting a job there) build a
+	// railroad one tile at a time, through the same check as a single
+	// build.
+	[Fact]
+	public void EveryRailroadStepNeedsIronCoalAndTerrainThatAllowsIt() {
+		Terraform railroad = gameData.Terraforms.Single(t => t.UIAction == C7Action.UnitBuildRailroad);
+		Assert.Contains(railroad.RequiredResources, r => r.Key.Contains("iron", System.StringComparison.OrdinalIgnoreCase)
+			|| r.Name == "Iron");
+		Assert.Contains(railroad.RequiredResources, r => r.Key.Contains("coal", System.StringComparison.OrdinalIgnoreCase)
+			|| r.Name == "Coal");
+		us.knownTechs.Add(railroad.RequiredTech);
+
+		// Roaded flat land with no Iron or Coal anywhere on our network.
+		Tile tile = gameData.map.tiles.First(t => IsEmptyLand(t) && t.OwningPlayer() == null
+			&& (t.overlayTerrainType.Key == "grassland" || t.overlayTerrainType.Key == "plains"));
+		tile.overlays.Add(gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.ROAD));
+		MapUnit worker = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+		Assert.False(worker.CanPerformTerraformAction(railroad, tile));
+		worker.PerformTerraformAction(railroad);
+		Assert.Null(worker.WorkerJob);
+
+		// The resources are what stops it there: without them, the tile
+		// would take a railroad.
+		System.Collections.Generic.List<Resource> needed = railroad.RequiredResources;
+		railroad.RequiredResources = [];
+		try {
+			Assert.True(worker.CanPerformTerraformAction(railroad, tile));
+			// Terrain that allows no railroad (here water) never does.
+			Tile water = gameData.map.tiles.First(t => t.IsWater());
+			Assert.False(worker.CanPerformTerraformAction(railroad, water));
+		} finally {
+			railroad.RequiredResources = needed;
+		}
+	}
+
 	// Each worker's points a turn are rounded down, never below one.
 	[Fact]
 	public void WorkerPointsAreWholeNumbersRoundedDown() {
