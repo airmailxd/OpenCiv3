@@ -422,7 +422,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}
 				HashSet<int> land = aggressor.cities.Select(c => c.location.continent).ToHashSet();
 				warRecords.Add(new WarRecord {
-					aggressor = aggressor, defender = defender, start = gameData.turn,
+					aggressor = aggressor,
+					defender = defender,
+					start = gameData.turn,
 					overseas = !defender.cities.Any(c => land.Contains(c.location.continent)),
 					via = DeclaredBy(),
 				});
