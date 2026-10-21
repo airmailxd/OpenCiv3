@@ -1137,7 +1137,9 @@ C3X-THREAD posters describe the bug differently: the hit goes to another buildin
 (post-16319627, page-46 #916): &quot;bombarding a city with a wall given by a wonder will instead destroy
 random other buildings&quot;; Pifou42 (post-16891617, page-160 #3187) calls it a known vanilla bug where &quot;bombarding a city
 with virtual walls given by Great Wall&quot; can destroy the next building. Both are play reports, and both call it a bug.
-The intended handling of a hit on a free wall is not documented; the engine should not reproduce either form.</p>
+The intended handling of a hit on a free wall is not documented. Engine ruling (owner, 2026-10-21): Lanzelot's
+form is kept on purpose; a town with wonder-given walls is immune to land bombardment, while ships, aircraft and
+cruise missiles hit it in their own order.</p>
 </li>
 <li>
 <p><strong>Great Wonders can be destroyed by bombardment until the owner reaches the Industrial Age</strong> (C3C 1.22, community).
@@ -1950,7 +1952,7 @@ collective health goes down.&quot; The readme is Firaxis's; the post is a 2013 r
 <li>~~<strong>Militaristic and promotion.</strong>~~ <em>Resolved: Militaristic doubles the chance.</em> The routine Antal1987 posted
 (CFC-LCODE #8) halves the promotion ratio when <code>CheckBonus(race, 0)</code> is true, and index 0 is <code>RB_Militaristic</code> in
 the C3X header for the same executable (§1.2). His &quot;no militaristic check&quot; missed what that call tests.</li>
-<li><strong>Can bombardment destroy Great Wonders?</strong> justanick (CFC-BOMB122, C3C 1.22): yes, until the owner reaches the
+<li><strong>Can bombardment destroy Great Wonders?</strong> <em>Engine ruling (owner, 2026-10-21): never, in any era.</em> justanick (CFC-BOMB122, C3C 1.22): yes, until the owner reaches the
 Industrial Age; zerksees (thread 278312, C3C 1.22) destroyed Sun Tzu's with a trebuchet. Dominus Romae (thread
 128868, #9, &quot;At least in PTW 1.27f and C3C 1.22&quot;): no. TimBentley (#12): the Great Wall itself can be bombed away in
 a town of size 6 or less, &quot;a rather annoying bug&quot;. <em>C3X-THREAD (code reading):</em> Flintlock (post-16725029,
