@@ -2676,6 +2676,14 @@ public partial class Game : Node {
 			}
 		}
 
+		// Civ3's hidden Soren advisor, a developer screen Civ3 itself never
+		// opens (see SorenReport), behind a developer key.
+		if (eventKeyDown.Keycode == Godot.Key.S && eventKeyDown.ShiftPressed && eventKeyDown.IsCommandOrControlPressed()
+			&& eventKeyDown.AltPressed && !eventKeyDown.Echo && SorenAdvisor.IsAvailable()) {
+			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowSorenAdvisor);
+			return;
+		}
+
 		int screen = AdvisorScreenFor(eventKeyDown);
 		if (screen >= 0) {
 			(string action, _, bool isAdvisor) = C7Action.AdvisorScreens[screen];

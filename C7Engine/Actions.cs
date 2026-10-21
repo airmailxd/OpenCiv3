@@ -35,6 +35,9 @@ public static class C7Action {
 	public const string ShowCulturalAdvisor = "show_cultural_advisor";
 	public const string ShowScienceAdvisor = "show_science_advisor"; // F6
 
+	// Civ3's hidden developer advisor (Ctrl+Shift+Alt+S, no input action).
+	public const string ShowSorenAdvisor = "show_soren_advisor";
+
 	public const string ShowWondersView = "show_wonders_view"; // F7
 	public const string ShowVictoryStatusView = "show_victory_status_view";
 	public const string ShowPalaceView = "show_palace_view";

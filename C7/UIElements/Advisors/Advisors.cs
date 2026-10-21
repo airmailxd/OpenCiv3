@@ -19,7 +19,12 @@ public partial class Advisors : CenterContainer {
 	[Export] public CulturalAdvisor culturalAdvisor;
 	[Export] public ScienceAdvisor scienceAdvisor;
 
+	// Civ3's hidden developer advisor, built here rather than in the scene.
+	private SorenAdvisor sorenAdvisor;
+
 	public override void _Ready() {
+		sorenAdvisor = new SorenAdvisor { Name = "SorenAdvisor", Visible = false };
+		AddChild(sorenAdvisor);
 		Hide();
 	}
 
@@ -82,6 +87,9 @@ public partial class Advisors : CenterContainer {
 			case C7Action.ShowScienceAdvisor:
 				scienceAdvisor.ShowAdvisor();
 				break;
+			case C7Action.ShowSorenAdvisor:
+				sorenAdvisor.ShowAdvisor();
+				break;
 			default:
 				log.Warning("Unknown advisor type: " + advisorType);
 				break;
@@ -108,5 +116,6 @@ public partial class Advisors : CenterContainer {
 		foreignAdvisor.Hide();
 		culturalAdvisor.Hide();
 		scienceAdvisor.Hide();
+		sorenAdvisor.Hide();
 	}
 }
