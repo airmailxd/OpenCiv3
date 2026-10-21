@@ -1503,17 +1503,23 @@ public partial class Game : Node {
 				break;
 			case MsgNoHumansRemain:
 				RecordInHallOfFame(HallOfFame.ForDefeat);
-				popupOverlay.ShowPopup(
-					new ConfirmationPopup(
-						"Every human player has been defeated.\nThis game is over.\n\n",
-						"Return to the main menu.",
-						"Let me look around first.",
-						() => {
-							OnRetire();
-						}),
-					PopupOverlay.PopupCategory.Advisor);
-
 				InterestingEvent();
+				void ShowNoHumansRemain() {
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(
+							"Every human player has been defeated.\nThis game is over.\n\n",
+							"Return to the main menu.",
+							"Let me look around first.",
+							() => {
+								OnRetire();
+							}),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				// Civ3's announcement of the loss and its defeat screen
+				// first, when the Civ3 install has them (see EndOfGame).
+				if (!EndOfGame.Show(this, popupOverlay, null, null, recordedInHallOfFame, ShowNoHumansRemain)) {
+					ShowNoHumansRemain();
+				}
 				break;
 			case MsgShowDealProposal mSDP:
 				Action showProposal = () => {
@@ -1671,6 +1677,16 @@ public partial class Game : Node {
 				RecordInHallOfFame((gameData, player, date, now) =>
 					HallOfFame.ForVictory(gameData, player, mV.winner, mV.victory, date, now));
 				bool campaignWon = RecordCampaignVictory(mV);
+				// A won campaign shows its record once the player is done (Civ3
+				// FUN_004f9fb0).
+				Action retire = campaignWon ? () => ShowCampaignRecord(OnRetire) : OnRetire;
+				InterestingEvent();
+				// Civ3's announcement, victory screen, replay and Hall of
+				// Fame, then its "Game Over, Man!" (see EndOfGame).
+				if (EndOfGame.Show(this, popupOverlay, VictoryScreenLayout.ReasonFor(mV.victory), mV.winner, recordedInHallOfFame,
+						() => EndOfGame.ShowGameOver(popupOverlay, retire))) {
+					break;
+				}
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
 					+ $"Final score: {mV.finalScore}"
@@ -1683,15 +1699,9 @@ public partial class Game : Node {
 						"Good! I’m Done!",
 						"Wait, lemme just play a couple of more turns...",
 						() => {
-							if (campaignWon) {
-								ShowCampaignRecord(OnRetire);
-							} else {
-								OnRetire();
-							}
+							retire();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
-
-				InterestingEvent();
 				break;
 		}
 	}
@@ -2139,6 +2149,13 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => over = gameData.gameOver);
 		if (!over) {
 			RecordInHallOfFame(HallOfFame.ForRetirement);
+			// Civ3 sees a retiring player off with its loss announcement and
+			// defeat screen (Civ3 FUN_004f9fb0's ending 6), then the Hall of
+			// Fame, before the main menu.
+			popupOverlay.OnHidePopup();
+			if (EndOfGame.Show(this, popupOverlay, GameEndReason.Retirement, null, recordedInHallOfFame, OnRetire)) {
+				return;
+			}
 		}
 		OnRetire();
 	}
