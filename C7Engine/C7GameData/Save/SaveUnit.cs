@@ -46,6 +46,7 @@ namespace C7GameData.Save {
 		// MapUnit_Air.cs).
 		public bool isOnAirSuperiority;
 		public bool hasInterceptedThisTurn;
+		public int airSuperiorityTurn;
 
 		// The city that made the army, and whether the army has left it since
 		// (see MapUnit_ArmyOrigin.cs). Saves made before armies remembered
@@ -89,6 +90,7 @@ namespace C7GameData.Save {
 			defensiveBombardsRemaining = unit.defensiveBombardsRemaining;
 			isOnAirSuperiority = unit.isOnAirSuperiority;
 			hasInterceptedThisTurn = unit.hasInterceptedThisTurn;
+			airSuperiorityTurn = unit.airSuperiorityTurn;
 			armyOriginCityId = unit.armyOriginCityId;
 			hasLeftArmyOrigin = unit.hasLeftArmyOrigin;
 			facingDirection = unit.facingDirection;
@@ -176,6 +178,7 @@ namespace C7GameData.Save {
 				defensiveBombardsRemaining = defensiveBombardsRemaining,
 				isOnAirSuperiority = isOnAirSuperiority,
 				hasInterceptedThisTurn = hasInterceptedThisTurn,
+				airSuperiorityTurn = airSuperiorityTurn,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = workerJob,

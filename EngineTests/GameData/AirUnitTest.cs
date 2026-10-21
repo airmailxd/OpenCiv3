@@ -206,9 +206,46 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		Assert.True(await WithRandomAsync(0, 0.0, () => second.AirBomb(target)));
 
 		// The stance ends when its owner's turn begins.
-		fighter.OnBeginTurn();
+		gameData.turn += 1;
+		TurnHandling.BeginPlayersTurn(them, gameData);
 		Assert.False(fighter.isOnAirSuperiority);
 		Assert.False(fighter.hasInterceptedThisTurn);
+	}
+
+	// A fighter set on air superiority intercepts from the moment it is
+	// set, through the whole interturn: the rest of the round, the round's
+	// end, and the turns of the civs that move before its owner in the next
+	// round. There is no lost turn (owner's decision, 2026-10-21).
+	[Fact]
+	public async Task AFighterSetOnAirSuperiorityInterceptsBeforeItsOwnersNextTurn() {
+		GoToWar();
+		City ours = FoundCity(us);
+		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
+		MapUnit fighter = Spawn(them, "Fighter", theirs.location);
+		Tile target = EmptyLandAt(theirs.location, 1);
+		Spawn(them, "Warrior", target);
+		MapUnit bomber = Spawn(us, "Bomber", ours.location);
+
+		// Set this turn; then the round ends and the next round's other
+		// civs begin their turns, while its owner's hasn't come yet.
+		fighter.FlyAirSuperiority();
+		TurnHandling.InitTurnData();
+		gameData.turn += 1;
+		TurnHandling.BeginPlayersTurn(us, gameData);
+		Assert.True(fighter.isOnAirSuperiority);
+
+		Assert.False(await WithRandomAsync(0, 0.0, () => bomber.AirBomb(target)));
+		Assert.True(fighter.hasInterceptedThisTurn);
+
+		// A stance set on the owner's current turn survives its turn
+		// beginning again, as when a save made that turn is loaded.
+		MapUnit second = Spawn(them, "Fighter", theirs.location);
+		second.FlyAirSuperiority();
+		TurnHandling.BeginPlayersTurn(them, gameData);
+		Assert.True(second.isOnAirSuperiority);
+		gameData.turn += 1;
+		TurnHandling.BeginPlayersTurn(them, gameData);
+		Assert.False(second.isOnAirSuperiority);
 	}
 
 	[Fact]
@@ -421,9 +458,11 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		fighter.FlyAirSuperiority();
 		fighter.hasInterceptedThisTurn = true;
 
+		fighter.airSuperiorityTurn = 7;
 		SaveUnit saved = new(fighter);
 
 		Assert.True(saved.isOnAirSuperiority);
 		Assert.True(saved.hasInterceptedThisTurn);
+		Assert.Equal(7, saved.airSuperiorityTurn);
 	}
 }
