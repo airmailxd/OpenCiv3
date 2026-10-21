@@ -85,7 +85,8 @@ public partial class PopupOverlay : HBoxContainer {
 		player.Play();
 	}
 
-	public void ShowPopup(Popup child, PopupCategory category) {
+	// With no category, no sound plays (the popup may play its own).
+	public void ShowPopup(Popup child, PopupCategory? category) {
 		if (child is null) {
 			// not necessary if we don't pass null?
 			log.Error("Received request to show null popup");

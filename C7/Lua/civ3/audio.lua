@@ -16,7 +16,8 @@ audio.buttons = {
 audio.popups = {
   advisor = SOUNDS .. "PopupAdvisor.wav",
   console = SOUNDS .. "PopupConsole.wav",
-  info = SOUNDS .. "PopupInfo.wav"
+  info = SOUNDS .. "PopupInfo.wav",
+  wonder = SOUNDS .. "Wonder.wav"
 }
 
 return audio

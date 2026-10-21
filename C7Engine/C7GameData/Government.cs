@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace C7GameData {
@@ -115,6 +116,29 @@ namespace C7GameData {
 		public int freeUnitsPerCity;
 		public int freeUnitsPerMetropolis;
 		public int unitCost;
+
+		// The ruler titles a leader is addressed by under this government,
+		// male and female, in the BIQ's pairs (only the RulerTitlePairsUsed
+		// of them). Empty in saves from before they were imported.
+		public List<string> maleRulerTitles = new();
+		public List<string> femaleRulerTitles = new();
+
+		// The title for a leader of the gender, from the pair at the index
+		// (which Civ3 picks at random among those used: FUN_00544d70). A
+		// pair without a female title uses its male one, as in Civ3. Null if
+		// there are no titles.
+		public string RulerTitle(Gender gender, int pairIndex) {
+			int pairs = maleRulerTitles?.Count ?? 0;
+			if (pairs == 0) {
+				return null;
+			}
+			int pair = ((pairIndex % pairs) + pairs) % pairs;
+			if (gender == Gender.Female && femaleRulerTitles != null && pair < femaleRulerTitles.Count
+					&& !string.IsNullOrWhiteSpace(femaleRulerTitles[pair])) {
+				return femaleRulerTitles[pair];
+			}
+			return string.IsNullOrWhiteSpace(maleRulerTitles[pair]) ? null : maleRulerTitles[pair];
+		}
 
 		private static void TradeBonus(Tile.Yield yield) {
 			if (yield.type == Tile.YieldType.Commerce && yield.baseYield > 0) {

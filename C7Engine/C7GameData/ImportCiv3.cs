@@ -2728,6 +2728,12 @@ namespace C7GameData {
 				g.freeUnitsPerCity = govt.FreeUnitsPerCity;
 				g.freeUnitsPerMetropolis = govt.FreeUnitsPerMetropolis;
 				g.unitCost = govt.UnitCost;
+				string[] maleTitles = [govt.MaleRulerTitle1, govt.MaleRulerTitle2, govt.MaleRulerTitle3, govt.MaleRulerTitle4];
+				string[] femaleTitles = [govt.FemaleRulerTitle1, govt.FemaleRulerTitle2, govt.FemaleRulerTitle3, govt.FemaleRulerTitle4];
+				for (int i = 0; i < Math.Clamp(govt.RulerTitlePairsUsed, 1, maleTitles.Length); i++) {
+					g.maleRulerTitles.Add(maleTitles[i]?.Trim() ?? "");
+					g.femaleRulerTitles.Add(femaleTitles[i]?.Trim() ?? "");
+				}
 
 				save.Governments.Add(g);
 			}

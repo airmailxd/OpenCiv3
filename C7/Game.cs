@@ -1612,6 +1612,8 @@ public partial class Game : Node {
 	private readonly Dictionary<ID, LinkedList<MsgCityProductionCompleted>> pendingProductionPopups = new();
 	private CityProductionPopup shownProductionPopup = null;
 	private MsgCityProductionCompleted shownProductionMessage = null;
+	// The wonder splash shown before the production popup, if any.
+	private Popup shownWonderSplash = null;
 
 	// Whether the player is choosing what a city builds next: its production
 	// popup is up, another is waiting its turn, or the city screen is open.
@@ -1665,6 +1667,15 @@ public partial class Game : Node {
 				continue;
 			}
 			mapView?.centerCameraOnTile(city.location);
+			// A wonder is first celebrated with Civ3's splash; the city asks
+			// what to build next once it's gone.
+			Building wonder = EngineStorage.gameData.Buildings.Find(b => b.name == msg.completed);
+			shownWonderSplash = WonderSplashScreen.For(wonder, city, controller, LanSession.IsActive);
+			if (shownWonderSplash != null) {
+				// The splash plays its own sound.
+				popupOverlay.ShowPopup(shownWonderSplash,
+					shownWonderSplash is WonderSplashScreen ? null : PopupOverlay.PopupCategory.Advisor);
+			}
 			CityProductionPopup popup = new(city, msg.completed,
 				// The next popup waits for the city screen to close.
 				onZoom: () => ShowCityScreenForCity(EngineStorage.gameData, city),
@@ -1701,6 +1712,11 @@ public partial class Game : Node {
 		if (IsInstanceValid(popup)) {
 			popupOverlay.Dismiss(popup);
 		}
+		// The splash comes back with the news.
+		if (shownWonderSplash != null && IsInstanceValid(shownWonderSplash)) {
+			popupOverlay.Dismiss(shownWonderSplash);
+		}
+		shownWonderSplash = null;
 	}
 
 	private void InterestingEvent() {
