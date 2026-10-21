@@ -1030,6 +1030,11 @@ namespace C7GameData {
 				Pacts.SignMilitaryAlliance(gameData, this, other, gameData.GetPlayer(enemy));
 			}
 
+			// Workers go to the receiver's capital as slave workers (see
+			// TradeOffer.workers).
+			TradeWorkers(gameData, this, other, ourOffer);
+			TradeWorkers(gameData, other, this, theirOffer);
+
 			// Cities change hands last, once the gold and techs have.
 			foreach (City city in ourOffer.cities.ToList()) {
 				CityInteractions.TransferCity(city, other, viaDeal: true);
@@ -1038,6 +1043,15 @@ namespace C7GameData {
 				CityInteractions.TransferCity(city, this, viaDeal: true);
 			}
 			return true;
+		}
+
+		private static void TradeWorkers(GameData gameData, Player giver, Player receiver, TradeOffer offer) {
+			Tile capital = receiver.cities.Find(c => c.IsCapital())?.location;
+			foreach (MapUnit worker in offer.workers ?? new()) {
+				if (worker.owner == giver) {
+					gameData.TradeWorker(worker, receiver, capital);
+				}
+			}
 		}
 
 		private static void GiveMapsAndContacts(Player giver, Player receiver, TradeOffer offer) {

@@ -62,7 +62,7 @@ namespace C7Engine.AI {
 			if (!PricesAtBuyerCost(us, them) || ourOffer.techs.Count == 0 || theirGoldValue >= ourGoldValue) {
 				return false;
 			}
-			bool plain = ourOffer.cities.Count == 0 && !ourOffer.GivesOverTime() && !ourOffer.worldMap && !ourOffer.territoryMap
+			bool plain = ourOffer.cities.Count == 0 && (ourOffer.workers?.Count ?? 0) == 0 && !ourOffer.GivesOverTime() && !ourOffer.worldMap && !ourOffer.territoryMap
 				&& (ourOffer.contacts?.Count ?? 0) == 0 && !TradeOffer.IncludesAllianceOrPact(theirOffer, ourOffer)
 				&& TradeOffer.EmbargoTarget(theirOffer, ourOffer) == null && !TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)
 				&& !theirOffer.partOfPeaceTreaty && !ourOffer.partOfPeaceTreaty;

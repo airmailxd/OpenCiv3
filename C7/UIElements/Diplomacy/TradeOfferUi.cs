@@ -22,6 +22,8 @@ public partial class TradeOfferUi : Tree {
 	Dictionary<TreeItem, Tech> techs = new();
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cities = new();
+	// The worker each worker item stands for.
+	Dictionary<TreeItem, MapUnit> workers = new();
 	TreeItem worldMap;
 	TreeItem territoryMap;
 	// The civ each communications item introduces.
@@ -33,7 +35,8 @@ public partial class TradeOfferUi : Tree {
 	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, List<City> tradeableCities, int playerGold,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						HorizontalAlignment alignment, List<Resource> tradeableResources = null,
-						TradingTree.PactChoices pacts = null, TradingTree.MapChoices maps = null) {
+						TradingTree.PactChoices pacts = null, TradingTree.MapChoices maps = null,
+						List<MapUnit> tradeableWorkers = null) {
 		this.currentOffer = currentOffer;
 		this.tradeableTechs = tradeableTechs;
 		this.playerGold = playerGold;
@@ -103,6 +106,13 @@ public partial class TradeOfferUi : Tree {
 			cities[child] = city;
 		}
 
+		foreach (MapUnit worker in tradeableWorkers ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, TradeOffer.WorkerLabel(worker));
+			workers[child] = worker;
+		}
+
 		// Always there, hidden unless offered: an AI may offer one.
 		worldMap = this.CreateItem(root);
 		worldMap.SetTextAlignment(0, alignment);
@@ -140,6 +150,9 @@ public partial class TradeOfferUi : Tree {
 			}
 			if (cities.TryGetValue(ti, out City itemCity)) {
 				currentOffer.cities.Remove(itemCity);
+			}
+			if (workers.TryGetValue(ti, out MapUnit itemWorker)) {
+				currentOffer.workers.Remove(itemWorker);
 			}
 			if (resources.TryGetValue(ti, out string resourceKey)) {
 				currentOffer.resources.Remove(resourceKey);
@@ -245,6 +258,9 @@ public partial class TradeOfferUi : Tree {
 		}
 		foreach (var (ti, city) in cities) {
 			ti.Visible = currentOffer.cities.Contains(city);
+		}
+		foreach (var (ti, worker) in workers) {
+			ti.Visible = currentOffer.workers.Contains(worker);
 		}
 		worldMap.Visible = currentOffer.worldMap;
 		territoryMap.Visible = currentOffer.territoryMap;

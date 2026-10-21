@@ -35,6 +35,9 @@ public partial class TradingTree : Tree {
 	TreeItem cityHeader;
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cityItems = new();
+	TreeItem workerHeader;
+	// The worker each worker item stands for.
+	Dictionary<TreeItem, MapUnit> workerItems = new();
 	TreeItem mapHeader;
 	TreeItem worldMap;
 	TreeItem territoryMap;
@@ -66,7 +69,7 @@ public partial class TradingTree : Tree {
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						bool canSignRightOfPassage = false,
 						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null, PactChoices pacts = null,
-						MapChoices maps = null, bool resourcesConnected = true) {
+						MapChoices maps = null, bool resourcesConnected = true, List<MapUnit> tradeableWorkers = null) {
 		this.resourcesConnected = resourcesConnected;
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
@@ -213,6 +216,20 @@ public partial class TradingTree : Tree {
 			}
 		}
 
+		// The workers in the capital (see TradeOffer.workers), named by
+		// the nationality they keep.
+		if ((tradeableWorkers?.Count ?? 0) > 0) {
+			workerHeader = this.CreateItem(root);
+			workerHeader.SetText(0, "Workers");
+			workerHeader.Collapsed = true;
+
+			foreach (MapUnit worker in tradeableWorkers) {
+				TreeItem child = this.CreateItem(workerHeader);
+				child.SetText(0, TradeOffer.WorkerLabel(worker));
+				workerItems[child] = worker;
+			}
+		}
+
 		RefreshUiForOffer();
 	}
 
@@ -242,6 +259,9 @@ public partial class TradingTree : Tree {
 			}
 			if (ti == cityHeader && other.cityHeader != null) {
 				other.cityHeader.Collapsed = cityHeader.Collapsed;
+			}
+			if (ti == workerHeader && other.workerHeader != null) {
+				other.workerHeader.Collapsed = workerHeader.Collapsed;
 			}
 			if (ti == luxuryHeader && other.luxuryHeader != null) {
 				other.luxuryHeader.Collapsed = luxuryHeader.Collapsed;
@@ -276,6 +296,9 @@ public partial class TradingTree : Tree {
 
 			if (cityItems.TryGetValue(ti, out City itemCity) && !currentOffer.cities.Contains(itemCity)) {
 				currentOffer.cities.Add(itemCity);
+			}
+			if (workerItems.TryGetValue(ti, out MapUnit itemWorker) && !currentOffer.workers.Contains(itemWorker)) {
+				currentOffer.workers.Add(itemWorker);
 			}
 
 			// Handle techs being clicked on.
@@ -383,6 +406,9 @@ public partial class TradingTree : Tree {
 			if (cityHeader != null) {
 				cityHeader.Visible = false;
 			}
+			if (workerHeader != null) {
+				workerHeader.Visible = false;
+			}
 		} else {
 			if (worldMap != null) {
 				worldMap.Visible = !currentOffer.worldMap;
@@ -414,6 +440,12 @@ public partial class TradingTree : Tree {
 			}
 			foreach (var (ti, city) in cityItems) {
 				ti.Visible = !currentOffer.cities.Contains(city);
+			}
+			if (workerHeader != null) {
+				workerHeader.Visible = true;
+			}
+			foreach (var (ti, worker) in workerItems) {
+				ti.Visible = !currentOffer.workers.Contains(worker);
 			}
 
 			if (peaceTreaty != null) {

@@ -790,6 +790,32 @@ namespace C7GameData {
 				}
 			}
 
+			HandOver(unit, captor);
+		}
+
+		/// <summary>
+		/// Hands a worker traded in a deal (see TradeOffer.workers) to the
+		/// receiver, in the receiver's capital. Like a captured worker it
+		/// keeps its nationality, so it becomes a slave worker: "A traded
+		/// Worker retains its nationality, just like a captured one" (Civ3
+		/// manual, p.~165).
+		/// </summary>
+		public void TradeWorker(MapUnit unit, Player receiver, Tile destination) {
+			Player giver = unit.owner;
+			log.Information("Player {Giver} traded worker {Unit} to {Receiver}", giver, unit, receiver);
+			unit.nationality ??= giver.civilization;
+			if (destination != null && destination != unit.location) {
+				unit.location.unitsOnTile.Remove(unit);
+				TileChangeJournal.Record(unit.location);
+				destination.unitsOnTile.Add(unit);
+				unit.location = destination;
+			}
+			HandOver(unit, receiver);
+		}
+
+		// Gives the unit to its new owner.
+		private void HandOver(MapUnit unit, Player captor) {
+			Player previousOwner = unit.owner;
 			if (unit.currentAI != null) {
 				unit.currentAI.UpdateOnDeath();
 				unit.currentAI = null;

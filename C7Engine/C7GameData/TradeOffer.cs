@@ -66,6 +66,16 @@ namespace C7GameData {
 		// CityInteractions.TransferCity with viaDeal).
 		public List<City> cities = new();
 
+		// Civ3's "Workers" deal item: "Any Worker currently in your capital
+		// city can be offered for trade. The same goes for workers in your
+		// rival's capital. A traded Worker retains its nationality, just
+		// like a captured one." (Civ3 manual, p.~165; compendium 06.4). Per
+		// the owner's decision, 2026-10-21, only workers in the giver's
+		// capital (TradableWorkers), and they go to the receiver's capital
+		// as slave workers: keeping their old nationality, they work at the
+		// captured workers' rate (see GameData.TradeWorker).
+		public List<MapUnit> workers = new();
+
 		// Civ3's "Maps" (World Map, Territory Map) and "Communications"
 		// ("with the ...") deal items (the deal screen's headings in
 		// Conquests' Text/diplomacy.txt). The world map is every tile the
@@ -82,7 +92,8 @@ namespace C7GameData {
 		public bool IsEmpty() {
 			return !partOfPeaceTreaty && !rightOfPassage && !mutualProtectionPact && militaryAllianceAgainst == null
 				&& tradeEmbargoAgainst == null && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0
-				&& !GivesOverTime() && !worldMap && !territoryMap && (contacts?.Count ?? 0) == 0;
+				&& !GivesOverTime() && !worldMap && !territoryMap && (contacts?.Count ?? 0) == 0
+				&& (workers?.Count ?? 0) == 0;
 		}
 
 		// The cities a player may give away in a deal: any but its capital,
@@ -92,6 +103,34 @@ namespace C7GameData {
 				return new List<City>();
 			}
 			return player.cities.Where(c => !c.IsCapital()).ToList();
+		}
+
+		// The workers a player may give away in a deal: its own workers in
+		// its capital (see workers). UNVERIFIED: that every unit that does a
+		// worker's jobs counts, Engineers too, and that one in an army or
+		// aboard a ship doesn't.
+		public static List<MapUnit> TradableWorkers(Player player) {
+			City capital = player?.cities.Find(c => c.IsCapital());
+			if (capital == null) {
+				return new List<MapUnit>();
+			}
+			return capital.location.unitsOnTile
+				.Where(u => u.owner == player && u.unitType.isWorker && u.hitPointsRemaining > 0 && !u.IsInArmy() && !u.IsLoaded())
+				.ToList();
+		}
+
+		// HEURISTIC (no Civ3 source gives the AI's price for a worker): a
+		// worker is worth WorkerGoldPerShield gold for each shield of its
+		// cost, half that while it works at the slave rate for its holder
+		// (MapUnit's SlaveWorkerFactor), as one received in a deal does
+		// unless it goes back to its own people.
+		public const int WorkerGoldPerShield = 2;
+
+		public static int WorkerWorth(MapUnit worker, Player holder) {
+			int worth = Math.Max(0, worker.unitType.shieldCost) * WorkerGoldPerShield;
+			Civilization nationality = worker.nationality ?? worker.owner?.civilization;
+			bool slave = nationality != null && !ReferenceEquals(nationality, holder.civilization);
+			return slave ? worth / 2 : worth;
 		}
 
 		// Calculate how much this trade offer is worth for a given player. This
@@ -150,6 +189,13 @@ namespace C7GameData {
 				}
 			}
 			result += (contacts?.Count ?? 0) * (given ? ContactGivenGold : ContactGold);
+			// A worker is worth what it is to the side holding it: to p if p
+			// gives it, or to p once received (see WorkerWorth).
+			foreach (MapUnit worker in workers ?? new()) {
+				if (worker != null) {
+					result += WorkerWorth(worker, p);
+				}
+			}
 
 			return result;
 		}
@@ -349,6 +395,9 @@ namespace C7GameData {
 		//   capitals are connected: "Grayed-out resources indicate missing
 		//   trade connections or routes" (same page; see
 		//   TradeNetwork.CapitalsConnected). Not with a peace treaty (above).
+		// - Workers: only the giver's own, in its capital: "Any Worker
+		//   currently in your capital city can be offered for trade" (Civ3
+		//   manual, p.~165; see workers).
 		public static string ProblemWithDeal(GameData gameData, Player proposer, Player opponent,
 			TradeOffer proposerGives, TradeOffer proposerWants) {
 			if (proposer == null || opponent == null || proposerGives == null || proposerWants == null) {
@@ -457,8 +506,8 @@ namespace C7GameData {
 			if (gold.HasValue && gold.Value > giver.gold) {
 				return $"{giver} doesn't have {gold.Value} gold";
 			}
-			if (techs == null || cities == null || resources == null || contacts == null) {
-				return "the techs, cities, resources or contacts are missing";
+			if (techs == null || cities == null || resources == null || contacts == null || workers == null) {
+				return "the techs, cities, resources, contacts or workers are missing";
 			}
 			// UNVERIFIED (no Civ3 source found): that maps and contacts
 			// can't come with a peace treaty, which is known to take gold
@@ -525,6 +574,25 @@ namespace C7GameData {
 					return $"{giver} can't give away their last city";
 				}
 			}
+			// Only workers in the giver's capital (see workers), and only to
+			// a civ with a capital to receive them. UNVERIFIED (no Civ3
+			// source found): that they may come with a peace treaty, as
+			// cities may (above).
+			if (workers.Count > 0) {
+				List<MapUnit> tradable = TradableWorkers(giver);
+				HashSet<MapUnit> given = new();
+				foreach (MapUnit worker in workers) {
+					if (worker == null || !given.Add(worker)) {
+						return "a worker is missing or offered twice";
+					}
+					if (!tradable.Contains(worker)) {
+						return $"{giver} has no such worker in their capital";
+					}
+				}
+				if (!receiver.cities.Exists(c => c.IsCapital())) {
+					return $"{receiver} has no capital to receive workers";
+				}
+			}
 			if (techs.Count > 0) {
 				HashSet<ID> tradable = giver.GetTechsTradableTo(receiver, gameData.techs).Select(t => t.id).ToHashSet();
 				HashSet<ID> offered = new();
@@ -548,6 +616,7 @@ namespace C7GameData {
 			gold = null;
 			techs.Clear();
 			cities.Clear();
+			workers.Clear();
 			goldPerTurn = 0;
 			resources.Clear();
 			mutualProtectionPact = false;
@@ -556,6 +625,16 @@ namespace C7GameData {
 			worldMap = false;
 			territoryMap = false;
 			contacts.Clear();
+		}
+
+		// How the deal screen names a worker: its nationality, which it
+		// keeps, and its type, as "Babylonian Worker".
+		public static string WorkerLabel(MapUnit worker) {
+			if (worker == null) {
+				return "worker";
+			}
+			string adjective = (worker.nationality ?? worker.owner?.civilization)?.adjective;
+			return string.IsNullOrEmpty(adjective) ? worker.unitType.name : $"{adjective} {worker.unitType.name}";
 		}
 
 		private static string Noun(ID id) {
@@ -594,6 +673,9 @@ namespace C7GameData {
 			}
 			foreach (City c in cities) {
 				pieces.Add(c.name);
+			}
+			foreach (MapUnit w in workers ?? new()) {
+				pieces.Add(WorkerLabel(w));
 			}
 			if (worldMap) {
 				pieces.Add("world map");

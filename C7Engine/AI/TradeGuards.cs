@@ -16,7 +16,8 @@ namespace C7Engine.AI {
 		// - a strategic resource to a civ that could use it against us: one
 		//   on our landmass that's stronger than we are.
 		public static bool Refuses(GameData gameData, Player us, Player them, TradeOffer ourOffer) {
-			bool givesSomething = ourOffer.techs.Count > 0 || (ourOffer.resources?.Count ?? 0) > 0 || ourOffer.goldPerTurn > 0;
+			bool givesSomething = ourOffer.techs.Count > 0 || (ourOffer.resources?.Count ?? 0) > 0 || ourOffer.goldPerTurn > 0
+				|| (ourOffer.workers?.Count ?? 0) > 0;
 			if (givesSomething && WarCampaign.IsPlannedTarget(us, them)) {
 				return true;
 			}

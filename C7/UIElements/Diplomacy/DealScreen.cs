@@ -3,6 +3,7 @@ using C7GameData;
 using Godot;
 using Resource = C7GameData.Resource;
 using System.Collections.Generic;
+using System.Linq;
 using static C7GameData.PlayerRelationship;
 
 // At a high level the deal screen has 4 parts; 2 "TradingTree"s per player, and
@@ -91,6 +92,12 @@ public partial class DealScreen : TextureRect {
 			List<Tech> techsHumanCanTrade = humanPlayer.GetTechsTradableTo(opponentPlayer, gD.techs);
 			List<City> citiesOpponentCanTrade = TradeOffer.TradableCities(opponentPlayer);
 			List<City> citiesHumanCanTrade = TradeOffer.TradableCities(humanPlayer);
+			// The workers in each capital (see TradeOffer.workers), and any
+			// already on the table.
+			List<MapUnit> workersOpponentCanTrade = TradeOffer.TradableWorkers(opponentPlayer)
+				.Union(opponentOffer.workers).ToList();
+			List<MapUnit> workersHumanCanTrade = TradeOffer.TradableWorkers(humanPlayer)
+				.Union(humanOffer.workers).ToList();
 			List<Resource> resourcesOpponentCanTrade = TradeOffer.TradableResources(gD, opponentPlayer, humanPlayer);
 			List<Resource> resourcesHumanCanTrade = TradeOffer.TradableResources(gD, humanPlayer, opponentPlayer);
 			// Resources go only between civs whose capitals are connected
@@ -131,7 +138,8 @@ public partial class DealScreen : TextureRect {
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
 				opponentOffer, playersAtWar, canSignRightOfPassage,
-				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts, opponentMaps, capitalsConnected);
+				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts, opponentMaps, capitalsConnected,
+				workersOpponentCanTrade);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -142,13 +150,14 @@ public partial class DealScreen : TextureRect {
 			AddChild(weWant);
 
 			opponentOfferUi = new(fontTheme, techsOpponentCanTrade, citiesOpponentCanTrade, opponentPlayer.gold, opponentOffer, playersAtWar,
-				HorizontalAlignment.Left, resourcesOpponentCanTrade, pacts, opponentMaps);
+				HorizontalAlignment.Left, resourcesOpponentCanTrade, pacts, opponentMaps, workersOpponentCanTrade);
 			AddChild(opponentOfferUi);
 			opponentOfferUi.Position = new Vector2(314, 453);
 
 			// Right hand side UI components.
 			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar,
-				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts, humanMaps, capitalsConnected);
+				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts, humanMaps, capitalsConnected,
+				workersHumanCanTrade);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
@@ -159,7 +168,7 @@ public partial class DealScreen : TextureRect {
 			AddChild(weOffer);
 
 			humanOfferUi = new(fontTheme, techsHumanCanTrade, citiesHumanCanTrade, humanPlayer.gold, humanOffer, playersAtWar,
-				HorizontalAlignment.Right, resourcesHumanCanTrade, pacts, humanMaps);
+				HorizontalAlignment.Right, resourcesHumanCanTrade, pacts, humanMaps, workersHumanCanTrade);
 			AddChild(humanOfferUi);
 			humanOfferUi.Position = new Vector2(527, 453);
 
