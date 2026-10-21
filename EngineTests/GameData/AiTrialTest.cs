@@ -37,6 +37,11 @@ namespace EngineTests.GameData;
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
 //   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
+//   C7_TRIAL_WARS         1 to list every war between civs: who declared it
+//                         on whom and when, whether the target was overseas
+//                         (no city on a landmass where the aggressor had
+//                         one), the engine class that declared it, the attacks and city captures between the
+//                         two while it lasted, and when it ended
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
 //                         then no half to compare with, so the summary's two
 //                         columns are the same average over all civs, to
@@ -50,6 +55,42 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private readonly ITestOutputHelper output;
 	// With C7_TRIAL_FLIPS, the culture flips of the game being played.
 	private readonly List<string> flipLines = new();
+	// With C7_TRIAL_WARS, the wars declared in the game being played.
+	private readonly List<string> warLines = new();
+
+	// A war declared during a game, for C7_TRIAL_WARS.
+	private sealed class WarRecord {
+		public Player aggressor, defender;
+		public int start, end = -1;
+		// Whether the defender had no city on a landmass where the
+		// aggressor had one when war was declared.
+		public bool overseas;
+		public int attacks, captures;
+		// Whether it ended in a peace that the two broke again at once.
+		public bool renewed;
+		// The engine class whose code declared it.
+		public string via;
+
+		public bool Between(Player a, Player b) {
+			return (a == aggressor && b == defender) || (a == defender && b == aggressor);
+		}
+	}
+
+	// The engine class that is declaring war, from the call stack: the
+	// first frame outside Player and the test.
+	private static string DeclaredBy() {
+		foreach (StackFrame frame in new StackTrace().GetFrames()) {
+			Type type = frame.GetMethod()?.DeclaringType;
+			while (type?.DeclaringType != null) {
+				type = type.DeclaringType;
+			}
+			if (type == null || type == typeof(Player) || type == typeof(AiTrialTest) || type.Namespace?.StartsWith("C7") != true) {
+				continue;
+			}
+			return type.Name;
+		}
+		return "?";
+	}
 
 	public AiTrialTest(SaveGameFixture fixture, ITestOutputHelper output) {
 		this.fixture = fixture;
@@ -269,6 +310,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 			lines.AddRange(flipLines);
 			flipLines.Clear();
+			lines.AddRange(warLines);
+			warLines.Clear();
 			differences.Add(difference);
 			allTechs[game] = averageTechs;
 			string line = $"game {game} seed {seed}: " + string.Join(" ", Measures.Names.Select((n, m) => $"{n}={difference[m]:+0.0;-0.0}"));
@@ -363,7 +406,28 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				++counts[p];
 			}
 		}
-		AiExperiments.onWarDeclared = (aggressor, _) => Add(wars, aggressor);
+		bool listWars = Setting("C7_TRIAL_WARS", 0) != 0;
+		List<WarRecord> warRecords = new();
+		WarRecord OpenWar(Player a, Player b) => warRecords.LastOrDefault(w => w.end < 0 && w.Between(a, b));
+		static bool AtWarWith(Player a, Player b) => a.playerRelationships.TryGetValue(b.id, out PlayerRelationship r) && r.AtWar();
+		AiExperiments.onWarDeclared = (aggressor, defender) => {
+			Add(wars, aggressor);
+			if (listWars && civs.Contains(aggressor) && civs.Contains(defender)) {
+				// Peace made and war declared again within one round of
+				// turns, before the check at the end of the round saw the
+				// peace.
+				if (OpenWar(aggressor, defender) is WarRecord old) {
+					old.end = gameData.turn;
+					old.renewed = true;
+				}
+				HashSet<int> land = aggressor.cities.Select(c => c.location.continent).ToHashSet();
+				warRecords.Add(new WarRecord {
+					aggressor = aggressor, defender = defender, start = gameData.turn,
+					overseas = !defender.cities.Any(c => land.Contains(c.location.continent)),
+					via = DeclaredBy(),
+				});
+			}
+		};
 		Dictionary<Player, int> rushes = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> rushGold = civs.ToDictionary(p => p, _ => 0);
 		AiExperiments.onHurry = (city, gold) => {
@@ -379,6 +443,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
+			if (OpenWar(attacker.owner, defender.owner) is WarRecord war) {
+				++war.attacks;
+			}
 			if (result == CombatResult.DefenderKilled || result == CombatResult.DefenderRetreated) {
 				Add(attackWins, attacker.owner);
 			}
@@ -422,6 +489,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 			foreach (City city in gameData.cities) {
 				if (cityOwners.TryGetValue(city.id, out Player before) && before != city.owner) {
+					if (OpenWar(before, city.owner) is WarRecord war) {
+						++war.captures;
+					}
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
 						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
@@ -464,6 +534,16 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 						++warTurns[p];
 					}
 				}
+				foreach (WarRecord w in warRecords) {
+					if (w.end < 0 && (w.aggressor.defeated || w.defender.defeated || !AtWarWith(w.aggressor, w.defender))) {
+						w.end = gameData.turn;
+					}
+				}
+			}
+			foreach (WarRecord w in warRecords) {
+				warLines.Add($"war turn {w.start}: {w.aggressor.civilization.name} -> {w.defender.civilization.name}"
+					+ $"{(w.overseas ? " overseas" : "")} via={w.via} attacks={w.attacks} captures={w.captures} "
+					+ (w.end < 0 ? "ongoing" : $"ended turn {w.end}{(w.renewed ? " (peace, then war again within the round)" : w.defender.defeated ? " (defender destroyed)" : w.aggressor.defeated ? " (aggressor destroyed)" : "")}"));
 			}
 		} finally {
 			gameData.observerMode = false;
