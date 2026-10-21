@@ -63,7 +63,9 @@ public sealed class LandmarkHeuristicTest : IClassFixture<SaveGameFixture>, IDis
 			if (plain.PathLength() > 0) {
 				double a = PathCost(start, plain, unit);
 				double b = PathCost(start, withLandmarks, unit);
-				Assert.True(Math.Abs(a - b) <= 1e-9, $"{unit.unitType.name} from {start} to {goal}: {a} without landmarks, {b} with");
+				// Step costs are floats (a road step is 1/3), so two routes of
+				// equal cost can sum a few billionths apart.
+				Assert.True(Math.Abs(a - b) <= 1e-6, $"{unit.unitType.name} from {start} to {goal}: {a} without landmarks, {b} with");
 				if (!plain.path.SequenceEqual(withLandmarks.path)) {
 					++differentPaths;
 				}

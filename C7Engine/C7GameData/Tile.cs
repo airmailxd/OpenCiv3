@@ -298,19 +298,88 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Whether a step in the direction crosses a river. Rivers run along
+		// tile edges, so a step across an edge (northeast, southeast,
+		// southwest, northwest) crosses one if that edge has a river. A step
+		// north, east, south or west passes through a corner instead: it
+		// crosses a river that runs through the corner between the two
+		// tiles, i.e. one touching the corner on both sides of the step, next
+		// to each of the two tiles beside it. A river that only bends around
+		// one of those tiles leaves the way past its other side open. The
+		// project owner ruled that roads don't carry units over rivers before
+		// Engineering, even into a city ("{New Ability} Roads now bridge
+		// rivers", Civilopedia TECH_Engineering; owner's decision,
+		// 2026-10-21). UNVERIFIED: the corner rule is the geometry of the
+		// map, not taken from Civ3's code.
 		public bool HasRiverCrossing(TileDirection dir) {
 			switch (dir) {
-				case TileDirection.NORTH: return riverNorth;
-				case TileDirection.NORTHEAST: return riverNortheast;
-				case TileDirection.EAST: return riverEast;
-				case TileDirection.SOUTHEAST: return riverSoutheast;
-				case TileDirection.SOUTH: return riverSouth;
-				case TileDirection.SOUTHWEST: return riverSouthwest;
-				case TileDirection.WEST: return riverWest;
-				case TileDirection.NORTHWEST: return riverNorthwest;
+				case TileDirection.NORTHEAST: return EdgeRiver(dir);
+				case TileDirection.SOUTHEAST: return EdgeRiver(dir);
+				case TileDirection.SOUTHWEST: return EdgeRiver(dir);
+				case TileDirection.NORTHWEST: return EdgeRiver(dir);
+				case TileDirection.NORTH: return riverNorth || CornerCrossing(TileDirection.NORTHWEST, TileDirection.NORTHEAST, dir);
+				case TileDirection.EAST: return riverEast || CornerCrossing(TileDirection.NORTHEAST, TileDirection.SOUTHEAST, dir);
+				case TileDirection.SOUTH: return riverSouth || CornerCrossing(TileDirection.SOUTHEAST, TileDirection.SOUTHWEST, dir);
+				case TileDirection.WEST: return riverWest || CornerCrossing(TileDirection.SOUTHWEST, TileDirection.NORTHWEST, dir);
 				default: return false;
 			}
 		}
+
+		// The river flag on an edge, read from this tile or the neighbour
+		// across it, in case only one side records it.
+		private bool EdgeRiver(TileDirection edge) {
+			if (RiverFlag(edge)) {
+				return true;
+			}
+			Tile other = neighbors.TryGetValue(edge, out Tile t) ? t : null;
+			return other != null && other != NONE && other.RiverFlag(Opposite(edge));
+		}
+
+		// For a step through the corner between the edges toward left and
+		// right: the river must touch the corner beside the left tile (on our
+		// edge to it, or the far tile's) and beside the right one.
+		private bool CornerCrossing(TileDirection left, TileDirection right, TileDirection step) {
+			Tile far = neighbors.TryGetValue(step, out Tile t) ? t : null;
+			if (far == null || far == NONE) {
+				return false;
+			}
+			// The far tile's edges to the same two side tiles: the left tile
+			// lies across its edge opposite our right one, and so on.
+			TileDirection farToLeft = Opposite(right);
+			TileDirection farToRight = Opposite(left);
+			bool besideLeft = EdgeRiver(left) || far.EdgeRiver(farToLeft);
+			bool besideRight = EdgeRiver(right) || far.EdgeRiver(farToRight);
+			return besideLeft && besideRight;
+		}
+
+		private bool RiverFlag(TileDirection dir) {
+			return dir switch {
+				TileDirection.NORTH => riverNorth,
+				TileDirection.NORTHEAST => riverNortheast,
+				TileDirection.EAST => riverEast,
+				TileDirection.SOUTHEAST => riverSoutheast,
+				TileDirection.SOUTH => riverSouth,
+				TileDirection.SOUTHWEST => riverSouthwest,
+				TileDirection.WEST => riverWest,
+				TileDirection.NORTHWEST => riverNorthwest,
+				_ => false,
+			};
+		}
+
+		private static TileDirection Opposite(TileDirection dir) {
+			return dir switch {
+				TileDirection.NORTH => TileDirection.SOUTH,
+				TileDirection.NORTHEAST => TileDirection.SOUTHWEST,
+				TileDirection.EAST => TileDirection.WEST,
+				TileDirection.SOUTHEAST => TileDirection.NORTHWEST,
+				TileDirection.SOUTH => TileDirection.NORTH,
+				TileDirection.SOUTHWEST => TileDirection.NORTHEAST,
+				TileDirection.WEST => TileDirection.EAST,
+				TileDirection.NORTHWEST => TileDirection.SOUTHEAST,
+				_ => dir,
+			};
+		}
+
 
 		public bool IsLand() {
 			return !baseTerrainType.IsWater;
