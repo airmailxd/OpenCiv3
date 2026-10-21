@@ -569,12 +569,15 @@ namespace C7GameData {
 
 			// If the mutual relationship is not established it means that the 2 civs
 			// were not aware of each other (aka they just met), and therefore cannot be at war.
-			// Initialize the relationship and establish peace automatically between them.
+			// Initialize the relationship and establish peace automatically between them,
+			// unless the rules keep every civ at war (Rules.PermanentWar).
 			if (!this.playerRelationships.ContainsKey(other.id) || !other.playerRelationships.ContainsKey(this.id)) {
 				int turn = EngineStorage.gameData?.turn ?? -1;
 				this.playerRelationships.TryAdd(other.id, new PlayerRelationship() { firstContactTurn = turn });
 				other.playerRelationships.TryAdd(this.id, new PlayerRelationship() { firstContactTurn = turn });
-				RegisterMultiTurnDeal(this, other, DEFAULT_PEACE);
+				if (EngineStorage.gameData?.rules?.PermanentWar != true) {
+					RegisterMultiTurnDeal(this, other, DEFAULT_PEACE);
+				}
 
 				log.Information("Established first contact and relationship between players {Player} and {Other}", this, other);
 			}

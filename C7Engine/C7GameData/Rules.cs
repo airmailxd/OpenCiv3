@@ -56,6 +56,18 @@ namespace C7GameData {
 		public const float MaxCorruptionRate = 1.5f;
 		public float CorruptionRate = DefaultCorruptionRate;
 
+		// Scenario rules, not Civ3, set by the Eternal War scenario (see
+		// Scenarios). Their defaults leave the game as Civ3 plays it.
+		//
+		// No city has corruption or waste.
+		public bool NoCorruption = false;
+		// Every civ is at war with every other from the first turn, and none
+		// may make peace or even talk (see GameData.AreInLockedWar).
+		public bool PermanentWar = false;
+		// The percentage of the citizens past those born content who are born
+		// unhappy; the rest are born content too, rounded in their favor.
+		public int BornUnhappyPercent = 100;
+
 		// HOUSE RULES, not Civ3: bonuses for AI players only, to make the AI
 		// a stronger opponent beyond what Civ3's difficulty levels give it
 		// (see Difficulty). Human players are never affected. Each default

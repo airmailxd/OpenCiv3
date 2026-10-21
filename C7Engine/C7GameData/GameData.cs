@@ -329,7 +329,11 @@ namespace C7GameData {
 					((kvp.Key.name == one.name && kvp.Value.name == other.name)
 					|| (kvp.Key.name == other.name && kvp.Value.name == one.name)));
 		}
+		// Under Rules.PermanentWar every pair of civs is.
 		public bool AreInLockedWar(Player one, Player other) {
+			if (rules?.PermanentWar == true && one != other && !one.isBarbarians && !other.isBarbarians) {
+				return true;
+			}
 			return AreAlliancesInLockedWar(one.alliance, other.alliance) && one != other;
 		}
 

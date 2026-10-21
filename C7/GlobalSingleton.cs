@@ -35,6 +35,9 @@ public partial class GlobalSingleton : Node {
 	// screen to remember with its own once the game starts.
 	public NewGameChoices NewGameChoices;
 
+	// The scenario the new game being set up is, chosen on the main menu.
+	public GameScenario Scenario = GameScenario.None;
+
 	// Whether the game about to start is one the user only watches, with the
 	// AI playing every civilization from the first turn.
 	public bool WatchNextGame;

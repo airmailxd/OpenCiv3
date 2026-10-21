@@ -22,7 +22,7 @@ public struct HotseatPlayer {
 	public string name;
 }
 
-public class GameSetup {
+public partial class GameSetup {
 	private static ILogger log = Log.ForContext<GameSetup>();
 
 	public Civilization playerCivilization { get; init; }
@@ -52,6 +52,12 @@ public class GameSetup {
 	// Where to save each generated map that can't be played, with why, so
 	// it can be looked at; null not to save them.
 	public string invalidMapsDirectory { get; init; } = null;
+	// The scenario to set the game up as, which overrides some of the
+	// choices above (see GameSetup.EternalWar.cs).
+	public GameScenario scenario { get; init; } = GameScenario.None;
+	// The cities each civ starts with in Eternal War; null for the default
+	// for the world size (see DefaultEternalWarCitiesPerCiv).
+	public int? eternalWarCitiesPerCiv { get; init; } = null;
 
 	ID.Factory ids;
 
@@ -73,6 +79,11 @@ public class GameSetup {
 		}
 		if (corruptionRate.HasValue) {
 			save.Rules.CorruptionRate = Math.Clamp(corruptionRate.Value, Rules.MinCorruptionRate, Rules.MaxCorruptionRate);
+		}
+
+		if (scenario == GameScenario.EternalWar) {
+			SetUpEternalWarWorld(save, worldCharacteristics);
+			SetUpEternalWarRules(save);
 		}
 
 		if (save.Map.tiles.Count == 0) {
@@ -291,6 +302,16 @@ public class GameSetup {
 		if (save.Map.startingLocations.Count < planned.Count) {
 			throw new InvalidOperationException($"The map has {save.Map.startingLocations.Count} starting locations, too few for {planned.Count} civilizations");
 		}
+		if (scenario == GameScenario.EternalWar) {
+			List<List<SaveTile>> sites = DealEternalWarSites(save, planned);
+			for (int i = 0; i < planned.Count; ++i) {
+				SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, sites[i][0]);
+				SetUpEternalWarPlayer(save, player, planned[i].civ, sites[i]);
+			}
+			StartEternalWar(save);
+			return;
+		}
+
 		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
 		for (int i = 0; i < planned.Count; ++i) {
 			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
@@ -435,8 +456,12 @@ public class GameSetup {
 		}
 		TileLocation startingLocation = new TileLocation(startingTile.X, startingTile.Y);
 
-		AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);
-		AddUnit(save, player, save.Rules.StartUnitType2, startingLocation);
+		// An Eternal War civ starts with its cities' units instead (see
+		// SetUpEternalWarPlayer).
+		if (scenario != GameScenario.EternalWar) {
+			AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);
+			AddUnit(save, player, save.Rules.StartUnitType2, startingLocation);
+		}
 		if (civ.traits.Contains(Civilization.Trait.Expansionist)) {
 			AddUnit(save, player, save.Rules.ScoutUnitType, startingLocation);
 		}

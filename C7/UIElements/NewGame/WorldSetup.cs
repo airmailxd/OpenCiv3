@@ -281,6 +281,18 @@ public partial class WorldSetup : Control {
 			_ => billion4,
 		});
 
+		// The Eternal War scenario is always played on a pangaea; only how
+		// much water is left to choose.
+		if (GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton")?.Scenario == GameScenario.EternalWar) {
+			if (landform != WorldCharacteristics.Landform.Pangaea) {
+				Choose(LandformButton(WorldCharacteristics.Landform.Pangaea, ocean));
+			}
+			foreach (TextureButton button in new[] { continents60, continents70, continents80, archipelago60, archipelago70, archipelago80 }) {
+				button.Disabled = true;
+				button.TooltipText = "The Eternal War scenario is played on a pangaea.";
+			}
+		}
+
 		var game = GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode);
 		_saveGame = game.GetSave();
 

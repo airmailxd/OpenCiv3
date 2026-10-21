@@ -52,6 +52,14 @@ namespace C7Engine {
 		// seafaring civ picked for the game (see GameSetup), which must start
 		// on the coast. Other civs may start anywhere.
 		public int coastalStartsNeeded;
+		// Whether every landmass but the largest is sunk, leaving one
+		// landmass and no islands. Lakes and peninsulas are kept.
+		public bool singleLandmass;
+		public bool goodyHuts = true;
+		// The cities each civ starts with. With more than one, the map gets
+		// that many city sites per civ scattered over the land at random
+		// in place of its starting locations (see DetermineScatteredCitySites).
+		public int citiesPerCiv = 1;
 		public List<TerrainType> terrainTypes;
 		public List<Resource> resources = new();
 		public Government defaultGovernment = new();
@@ -142,12 +150,22 @@ namespace C7Engine {
 			// Step 10: Place player starting locations
 			// Placing this before barb camps so barbs don't spawn <5 tiles away from players
 			// Tried placing barbs then players, but caused all players to spawn together
-			DetermineStartingLocations(wc, gameMap);
 			problem = null;
-			if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
-				problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit at least {wc.worldSize.distanceBetweenCivs} apart in map coordinates";
-			} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
-				problem = $"Fewer than {wc.coastalStartsNeeded} coastal starting locations for the seafaring civs";
+			if (wc.citiesPerCiv > 1) {
+				DetermineScatteredCitySites(wc, gameMap);
+				int sites = wc.worldSize.numberOfCivs * wc.citiesPerCiv;
+				if (gameMap.startingLocations.Count < sites) {
+					problem = $"Only {gameMap.startingLocations.Count} of {sites} city sites fit on the land";
+				} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
+					problem = $"Fewer than {wc.coastalStartsNeeded} coastal city sites for the seafaring civs' capitals";
+				}
+			} else {
+				DetermineStartingLocations(wc, gameMap);
+				if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
+					problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit at least {wc.worldSize.distanceBetweenCivs} apart in map coordinates";
+				} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
+					problem = $"Fewer than {wc.coastalStartsNeeded} coastal starting locations for the seafaring civs";
+				}
 			}
 
 			// Step 11: Add barb camps. We do this towards the end to make sure
@@ -157,7 +175,9 @@ namespace C7Engine {
 
 			// Step 12: Add goody huts, away from the players and the barb
 			// camps.
-			AddGoodyHuts(wc, gameMap);
+			if (wc.goodyHuts) {
+				AddGoodyHuts(wc, gameMap);
+			}
 
 			// Last step: Assign the terrain file and image ids to each tile so
 			// we know which texture to use when displaying them.
@@ -224,7 +244,26 @@ namespace C7Engine {
 			if (wc.landform == WorldCharacteristics.Landform.Archipelago) {
 				hm.RaiseDomes(ArchipelagoIslands(wc, new Random(seed + 0x15a7d)), ARCHIPELAGO_DOME_WEIGHT, ARCHIPELAGO_CHANNEL);
 			}
-			return ToLandAndWaterGameMap(wc, hm, wc.oceanCoverage);
+			GameMap m = ToLandAndWaterGameMap(wc, hm, wc.oceanCoverage);
+			if (wc.singleLandmass) {
+				SinkAllButLargestLandmass(wc, m);
+			}
+			return m;
+		}
+
+		// Turns every landmass but the largest into sea, which
+		// FixContinentalShelf later rings with coast where it meets land.
+		private static void SinkAllButLargestLandmass(WorldCharacteristics wc, GameMap m) {
+			TerrainType sea = wc.terrainTypes.Find(x => x.Key == "sea");
+			List<HashSet<Tile>> islands = m.continents.Where(x => x.First().IsLand()).Skip(1).ToList();
+			if (islands.Count == 0) {
+				return;
+			}
+			foreach (Tile t in islands.SelectMany(x => x)) {
+				t.baseTerrainType = sea;
+				t.overlayTerrainType = sea;
+			}
+			m.recomputeContinents();
 		}
 
 		// The share of an archipelago's land that lies on its planned
@@ -2270,6 +2309,41 @@ namespace C7Engine {
 			}
 
 			return true;
+		}
+
+		// The fewest moves between two scattered city sites, however
+		// crowded the land.
+		private const int MIN_SCATTERED_CITY_SPACING = 4;
+
+		// Scatters numberOfCivs * citiesPerCiv city sites over the land at
+		// random, as the map's starting locations, for GameSetup to deal out
+		// to the civs. Any tile a capital could start on (see
+		// ScorePossibleCityLocation) may be picked. The sites are kept as far
+		// apart as there's room for, about the side of a square of land per
+		// site, and closer only when that many don't fit.
+		private static void DetermineScatteredCitySites(WorldCharacteristics wc, GameMap m) {
+			Random rand = new(wc.mapSeed + 0x5ca7);
+			int count = wc.worldSize.numberOfCivs * wc.citiesPerCiv;
+			Player scoringPlayer = new() { government = wc.defaultGovernment };
+			List<Tile> candidates = m.tiles.Where(t => ScorePossibleCityLocation(wc, t, scoringPlayer) > 0).ToList();
+			int land = m.tiles.Count(t => t.IsLand());
+			int spacing = Math.Max(MIN_SCATTERED_CITY_SPACING, (int)Math.Sqrt(land / (double)Math.Max(1, count)));
+
+			List<Tile> sites = [];
+			for (; spacing >= MIN_SCATTERED_CITY_SPACING && sites.Count < count; --spacing) {
+				rand.Shuffle(CollectionsMarshal.AsSpan(candidates));
+				sites = [];
+				foreach (Tile t in candidates) {
+					if (sites.Count == count) {
+						break;
+					}
+					if (sites.All(site => site.DistanceTo(t) >= spacing)) {
+						sites.Add(t);
+					}
+				}
+			}
+			log.Information($"Scattered {sites.Count} of {count} city sites at least {spacing + 1} moves apart");
+			m.startingLocations = sites;
 		}
 
 		private static void DetermineStartingLocations(WorldCharacteristics wc, GameMap m) {

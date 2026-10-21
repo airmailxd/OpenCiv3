@@ -488,8 +488,9 @@ public class BarbarianInteractions {
 	// the RULE's basic and advanced barbarian and barbarian sea unit
 	// (https://forums.civfanatics.com/threads/barbarians-best-way-to-upgrade.47200/).
 	public static UnitPrototype SelectBarbarianUnitType(BarbarianInfo barbInfo, Tile tile, bool advancedAllowed = true) {
-		// Coastal camps have a 20% chance of spawning a sea unit
-		if (tile.NeighborsWater() && GameData.rng.Next(100) < 20) {
+		// Coastal camps have a 20% chance of spawning a sea unit, if the
+		// rules give barbarians one
+		if (barbInfo.barbarianSeaUnitProto != null && tile.NeighborsWater() && GameData.rng.Next(100) < 20) {
 			return barbInfo.barbarianSeaUnitProto;
 		}
 		return advancedAllowed && barbInfo.advancedBarbarian != null ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;

@@ -54,6 +54,8 @@ public partial class PlayerSetup : Control {
 	CheckBox acceleratedProduction;
 	CheckBox turnLimit;
 	Civ3HSlider corruptionRate;
+	// The cities each civ starts with, in the Eternal War scenario only.
+	Civ3HSlider eternalWarCities;
 	// A checkbox for each victory condition the game may allow.
 	CheckBox conquestVictory;
 	CheckBox dominationVictory;
@@ -288,6 +290,47 @@ public partial class PlayerSetup : Control {
 		rulesContainer.AddChild(scientificLeaders);
 
 		AddCorruptionRate(corruptionBox);
+
+		// Eternal War has no corruption, so its own setting takes the
+		// corruption box.
+		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
+		if (global.Scenario == GameScenario.EternalWar) {
+			corruptionHeader.Text = "ETERNAL WAR";
+			foreach (Node child in corruptionBox.GetChildren()) {
+				if (child is Control control) {
+					control.Visible = false;
+				}
+			}
+			AddEternalWarCities(corruptionBox, global.WorldCharacteristics.worldSize);
+		}
+	}
+
+	// A slider for the cities each civ starts with in Eternal War, starting
+	// at the default for the world size.
+	private void AddEternalWarCities(Container box, WorldSize worldSize) {
+		const string tooltip = "The cities each civilization starts with, scattered at random among its enemies'. "
+			+ "The default grows with the world: 2 on a tiny world up to 10 on a huge one.";
+		VBoxContainer row = new() { TooltipText = tooltip };
+		row.AddThemeConstantOverride("separation", 2);
+		Label label = new() { TooltipText = tooltip, MouseFilter = MouseFilterEnum.Pass };
+		label.AddThemeFontSizeOverride("font_size", 13);
+		eternalWarCities = new Civ3HSlider {
+			MinValue = GameSetup.MinEternalWarCitiesPerCiv,
+			MaxValue = GameSetup.MaxEternalWarCitiesPerCiv,
+			Step = 1,
+			Value = GameSetup.DefaultEternalWarCitiesPerCiv(save.WorldSizes, worldSize),
+			CustomMinimumSize = new Vector2(140, 20),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			TooltipText = tooltip,
+		};
+		void ShowCities(double cities) {
+			label.Text = $"Cities per civ: {(int)cities}";
+		}
+		ShowCities(eternalWarCities.Value);
+		eternalWarCities.ValueChanged += ShowCities;
+		row.AddChild(label);
+		row.AddChild(eternalWarCities);
+		box.AddChild(row);
 	}
 
 	private CheckBox AddVictoryCheckbox(string text, bool allowed, string tooltip) {
@@ -640,6 +683,8 @@ public partial class PlayerSetup : Control {
 				scientificLeaders = scientificLeaders.ButtonPressed,
 				corruptionRate = (float)corruptionRate.Value,
 				invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
+				scenario = global.Scenario,
+				eternalWarCitiesPerCiv = eternalWarCities == null ? null : (int)eternalWarCities.Value,
 			};
 			PersistGameSettings(lanSetup);
 			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
@@ -664,6 +709,8 @@ public partial class PlayerSetup : Control {
 			scientificLeaders = scientificLeaders.ButtonPressed,
 			corruptionRate = (float)corruptionRate.Value,
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
+			scenario = global.Scenario,
+			eternalWarCitiesPerCiv = eternalWarCities == null ? null : (int)eternalWarCities.Value,
 		};
 
 		PersistGameSettings(gameSetup);

@@ -90,6 +90,7 @@ public partial class MainMenu : Node {
 		LanSession.PendingGame = null;
 		LanSession.ResumeGame = null;
 		Global.WatchNextGame = false;
+		Global.Scenario = GameScenario.None;
 
 		LoadDialog.SetDirectoryForLoadingSaves();
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
@@ -111,6 +112,11 @@ public partial class MainMenu : Node {
 			GoToWorldSetup();
 		};
 		ButtonContainer.QuickStart.Pressed += QuickStartGame;
+		ButtonContainer.EternalWar.Pressed += () => {
+			LanSession.HostNextGame = false;
+			Global.Scenario = GameScenario.EternalWar;
+			GoToWorldSetup();
+		};
 		ButtonContainer.WatchAi.Pressed += WatchAiGame;
 		ButtonContainer.Tutorial.Pressed += QuickStartGame;
 		ButtonContainer.Tutorial.Visible = false;

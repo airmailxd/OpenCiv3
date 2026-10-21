@@ -2486,7 +2486,7 @@ namespace C7GameData {
 			// The capital is rank 0, so the next CitiesFreeOfCorruption
 			// cities nearest it are ranks 1 to CitiesFreeOfCorruption.
 			Rules rules = gameData.rules;
-			if (rules != null && rules.CoreCitiesFreeOfCorruption && rankIndex <= rules.CitiesFreeOfCorruption) {
+			if (rules != null && (rules.NoCorruption || rules.CoreCitiesFreeOfCorruption && rankIndex <= rules.CitiesFreeOfCorruption)) {
 				corruption = 0;
 				celebrationWaste = 0;
 			}
@@ -2516,7 +2516,9 @@ namespace C7GameData {
 		// "Resistors, content people, and Specialists are ignored in the
 		// calculation" of disorder (Civ3 manual); resisters are left
 		// unhappy.
-		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty) {
+		// A scenario may have fewer of the rest born unhappy (see
+		// Rules.BornUnhappyPercent).
+		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty, Rules rules) {
 			foreach (CityResident r in residents.Skip(residents.Count - ResistersInCity())) {
 				r.mood = CityResident.Mood.Unhappy;
 			}
@@ -2524,6 +2526,8 @@ namespace C7GameData {
 			// A house rule may make more of the AI's citizens content (see
 			// AiHouseRules).
 			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent + AiHouseRules.ExtraContentCitizens(owner), laborers.Count);
+			int unhappyPercent = Math.Clamp(rules?.BornUnhappyPercent ?? 100, 0, 100);
+			content = laborers.Count - (laborers.Count - content) * unhappyPercent / 100;
 
 			foreach (CityResident r in laborers) {
 				if (content > 0) {
@@ -2705,7 +2709,7 @@ namespace C7GameData {
 		public Mood RecalculateCitizenMoods(GameData gameData) {
 			CityResident.Mood content = CityResident.Mood.Content;
 			CityResident.Mood unhappy = CityResident.Mood.Unhappy;
-			InitializeMoodsForDifficulty(owner.isHuman ? gameData.gameDifficulty : gameData.AiRulesDifficulty());
+			InitializeMoodsForDifficulty(owner.isHuman ? gameData.gameDifficulty : gameData.AiRulesDifficulty(), gameData.rules);
 
 			// The faces are applied in turn, as in justanick's worked example
 			// of a Republic at war
