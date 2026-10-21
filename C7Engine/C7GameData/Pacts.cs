@@ -231,7 +231,8 @@ namespace C7GameData {
 			foreach (Player partner in partners) {
 				log.Information("{Partner} declares war on {Aggressor} under its mutual protection pact with {Defender}",
 					partner, aggressor, defender);
-				PlayerRelationship.DeclareWar(partner, aggressor, false, refuseContactUntilTurn, turn, honourPacts: false);
+				PlayerRelationship.DeclareWar(partner, aggressor, false, refuseContactUntilTurn, turn, honourPacts: false,
+					keepingPact: true);
 				if (EngineStorage.gameData == gameData) {
 					MsgWarDeclaration.Announce(partner, aggressor);
 				}

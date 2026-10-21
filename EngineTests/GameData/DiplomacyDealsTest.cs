@@ -230,14 +230,39 @@ public class DiplomacyDealsTest : IDisposable {
 		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, victim, us, new TradeOffer { goldPerTurn = 5 }, new TradeOffer()));
 	}
 
+	// Breaking a peace treaty by declaring war ruins our trading
+	// reputation even when we pay nothing over time (owner's decision,
+	// 2026-10-21; see PlayerRelationship.BreaksPeaceTreaty), with the
+	// victim and the civs that hear of it.
 	[Fact]
-	public void WarWithoutAPerTurnDealDoesNotRuinOurReputation() {
-		// The other civ paying us isn't our deal to keep.
+	public void BreakingThePeaceRuinsOurReputationWithoutAPerTurnDeal() {
+		// The other civ paying us isn't our deal to keep, but the peace is.
 		PayEachTurn(victim, us, 5);
+		Assert.True(BreaksPeaceTreaty(us.playerRelationships[victim.id]));
+		Assert.True(AcceptsGoldPerTurnFromUs(third));
 
 		DeclareWar(us, victim, false, gameData.turn + 10);
 
-		Assert.False(TradingReputationBroken(third, us, gameData.players));
+		Assert.True(victim.playerRelationships[us.id].brokeTradeDeal);
+		Assert.True(TradingReputationBroken(third, us, gameData.players));
+		Assert.False(AcceptsGoldPerTurnFromUs(third));
+		// The victim did nothing wrong.
+		Assert.False(us.playerRelationships[victim.id].brokeTradeDeal);
+	}
+
+	// A mutual protection partner that joins the war keeps its word, so
+	// its reputation stays intact.
+	[Fact]
+	public void HonouringAPactDoesNotRuinThePartnersReputation() {
+		GiveEmbassies();
+		Assert.True(third.ExecuteDeal(gameData, victim, Pact(), Pact()));
+
+		us.DeclareWarOn(victim, gameData.turn);
+
+		Assert.True(AtWar(third, us));
+		Assert.True(victim.playerRelationships[us.id].brokeTradeDeal);
+		Assert.False(us.playerRelationships[third.id].brokeTradeDeal);
+		Assert.False(TradingReputationBroken(victim, third, gameData.players));
 	}
 }
 

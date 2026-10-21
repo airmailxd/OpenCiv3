@@ -226,9 +226,10 @@ public class PlayerRelationship {
 	// refuseContactUntilTurn is the (absolute) turn until which the defender
 	// refuses to talk; currentTurn defaults to the game's. Unless
 	// honourPacts is false, the defender's mutual protection partners join
-	// the war (see Pacts.HonourPacts).
+	// the war (see Pacts.HonourPacts). keepingPact is true for a partner
+	// joining that way, which keeps its word rather than breaking it.
 	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn, int? currentTurn = null,
-			bool honourPacts = true) {
+			bool honourPacts = true, bool keepingPact = false) {
 		var defenderRelationshipToAggressor = defender.playerRelationships[aggressor.id];
 		var aggressorRelationshipToDefender = aggressor.playerRelationships[defender.id];
 		// increment the times the aggressor has declared war on the defender
@@ -258,7 +259,11 @@ public class PlayerRelationship {
 
 		// Breaking a deal the aggressor keeps paying for, or a pact, ruins
 		// its trading reputation with the defender (see BreaksReputation).
-		if (aggressorRelationshipToDefender.multiTurnDeals.Any(BreaksReputation)) {
+		// So does breaking the peace treaty itself (BreaksPeaceTreaty).
+		// Either way it is the one mark (brokeTradeDeal), so a war that
+		// breaks both counts once.
+		if (aggressorRelationshipToDefender.multiTurnDeals.Any(BreaksReputation)
+			|| (!keepingPact && BreaksPeaceTreaty(aggressorRelationshipToDefender))) {
 			defenderRelationshipToAggressor.brokeTradeDeal = true;
 		}
 
@@ -377,6 +382,31 @@ public class PlayerRelationship {
 			DealSubType.MutualProtectionPact or DealSubType.MilitaryAlliance => true,
 			_ => false,
 		};
+	}
+
+	// Whether declaring war breaks a peace treaty, ruining the aggressor's
+	// trading reputation with the defender, and so with the civs that hear
+	// of it (TradingReputationBroken) (owner's decision, 2026-10-21).
+	// Every pair at peace has a treaty, from first contact: "Unless we
+	// declare war against the Germans, we'll come out of this encounter
+	// with an automatic peace treaty with them" (Civ3 manual, p.~51-52).
+	// Whether Civ3 counts this against reputation, or only attitude, is
+	// disputed (compendium 06, Disputed, "Does breaking a peace treaty hurt
+	// reputation?"): microbe says "there is no such a thing" as
+	// peace-treaty reputation, while Smart says "You cant breake peace
+	// treaty without a rep hit", and nullspace's C3C 1.22 test found a war
+	// that "breaks a 20-turn peace treaty, and breaks no other deals" still
+	// ruined the aggressor's reputation
+	// (https://forums.civfanatics.com/threads/trading-reputation.113376/page-2);
+	// "The rep hit goes to whoever actually does the declaration of war"
+	// (Bamspeedy,
+	// https://forums.civfanatics.com/threads/how-does-the-ai-calculate-reputation.26122).
+	// The treaty's age doesn't matter: unlike Taé Shala's "if you break the
+	// treaty within the remaining turns" (compendium 06.5), no term is kept
+	// after which breaking it is safe. The attitude penalty for breaking a
+	// peace treaty is the separate warDeclarationCount (see Attitudes).
+	public static bool BreaksPeaceTreaty(PlayerRelationship aggressorRelationshipToDefender) {
+		return aggressorRelationshipToDefender.multiTurnDeals.Any(d => d.dealSubType == DealSubType.Peace);
 	}
 
 	// Whether judge holds a broken deal against other (see BreaksReputation).

@@ -179,7 +179,10 @@ public class DealProposalAITest : System.IDisposable {
 		// Not at war, no alliance.
 		Assert.Null(Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them)));
 
-		us.DeclareWarOn(third, gameData.turn);
+		// Third starts the war: had we, breaking the peace would cost us
+		// our trading reputation with them, who know third (see
+		// PlayerRelationship.BreaksPeaceTreaty), and so the alliance.
+		third.DeclareWarOn(us, gameData.turn);
 		(TradeOffer weGive, TradeOffer weWant)? deal = Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them));
 		Assert.NotNull(deal);
 		Assert.Equal(third.id, TradeOffer.AllianceTarget(deal.Value.weGive, deal.Value.weWant));
