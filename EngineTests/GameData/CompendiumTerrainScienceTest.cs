@@ -166,11 +166,70 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.Contains(gameData.map.tileAt(30, 18), searched);
 		Assert.Contains(gameData.map.tileAt(36, 24), searched);
 		Assert.Contains(gameData.map.tileAt(24, 36), searched);
-		// Seven steps isn't, nor the far NW/SE diagonal of the stock bug.
+		// Seven steps isn't, nor the far NW/SE diagonal of the stock bug,
+		// which is searched separately (BarbarianDiagonalTiles).
 		Assert.DoesNotContain(gameData.map.tileAt(44, 30), searched);
 		Assert.DoesNotContain(gameData.map.tileAt(37, 37), searched);
 		Assert.DoesNotContain(gameData.map.tileAt(42, 42), searched);
 		Assert.DoesNotContain(gameData.map.tileAt(18, 18), searched);
+	}
+
+	// Barbarians also keep the stock game's reach along the NW/SE diagonal,
+	// 12 steps each way, and a target there comes before any other (owner's
+	// decision, 2026-10-21).
+	[Fact]
+	public void BarbariansAlsoSearchTheirNwSeDiagonalAndPreferIt() {
+		Tile here = gameData.map.tileAt(30, 30);
+		System.Collections.Generic.List<Tile> diagonal = C7Engine.AI.UnitAI.CombatAI.BarbarianDiagonalTiles(here).ToList();
+		Assert.Equal(24, diagonal.Count);
+		Assert.Equal(gameData.map.tileAt(31, 31), diagonal[0]);
+		Assert.Equal(gameData.map.tileAt(29, 29), diagonal[1]);
+		Assert.Contains(gameData.map.tileAt(42, 42), diagonal);
+		Assert.Contains(gameData.map.tileAt(18, 18), diagonal);
+		Assert.DoesNotContain(gameData.map.tileAt(43, 43), diagonal);
+
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+		static bool Open(Tile t) => t != Tile.NONE && IsEmptyLand(t) && t.OwningPlayer() == null
+			&& (t.overlayTerrainType.Key == "grassland" || t.overlayTerrainType.Key == "plains")
+			&& t.GetTilesWithinTileSquare(1).All(n => n != Tile.NONE && n.IsLand() && !n.IsImpassable() && !n.HasCity());
+		Tile start = gameData.map.tiles.FirstOrDefault(t => Open(t)
+			&& Open(gameData.map.tileAt(t.XCoordinate + 6, t.YCoordinate))
+			&& Open(gameData.map.tileAt(t.XCoordinate + 4, t.YCoordinate + 4))
+			&& Open(gameData.map.tileAt(t.XCoordinate + 9, t.YCoordinate + 9))
+			&& Open(gameData.map.tileAt(t.XCoordinate + 5, t.YCoordinate + 5)));
+		Assert.NotNull(start);
+		Tile east = gameData.map.tileAt(start.XCoordinate + 6, start.YCoordinate);
+		Tile nearDiagonal = gameData.map.tileAt(start.XCoordinate + 4, start.YCoordinate + 4);
+		Tile farDiagonal = gameData.map.tileAt(start.XCoordinate + 9, start.YCoordinate + 9);
+		foreach (Tile t in gameData.map.tiles) {
+			barbarians.tileKnowledge.knownTiles.Add(t);
+		}
+
+		bool fog = EngineStorage.aiFogOfWar;
+		EngineStorage.aiFogOfWar = false;
+		try {
+			MapUnit horse = gameData.SpawnUnit(barbarians, Prototype("Horseman"), start);
+			// Nine steps out on the diagonal, beyond the 6 all round, is
+			// still a target.
+			gameData.SpawnUnit(us, Prototype("Warrior"), farDiagonal);
+			Assert.Equal(farDiagonal, C7Engine.AI.UnitAI.CombatAI.MakeAiData(horse, barbarians)?.destination);
+
+			// A unit three steps east scores better (it's nearer) than one
+			// four steps down the diagonal, yet the diagonal comes first.
+			gameData.SpawnUnit(us, Prototype("Warrior"), east);
+			gameData.SpawnUnit(us, Prototype("Warrior"), nearDiagonal);
+			Assert.Equal(nearDiagonal, C7Engine.AI.UnitAI.CombatAI.MakeAiData(horse, barbarians)?.destination);
+
+			// With the diagonal empty, the all-round search finds the east one.
+			foreach (Tile t in new[] { nearDiagonal, farDiagonal }) {
+				foreach (MapUnit u in t.unitsOnTile.ToList()) {
+					gameData.RemoveUnit(u);
+				}
+			}
+			Assert.Equal(east, C7Engine.AI.UnitAI.CombatAI.MakeAiData(horse, barbarians)?.destination);
+		} finally {
+			EngineStorage.aiFogOfWar = fog;
+		}
 	}
 
 	// ---- Research ----
