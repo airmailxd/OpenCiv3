@@ -67,6 +67,9 @@ namespace C7GameData {
 		// The percentage of the citizens past those born content who are born
 		// unhappy; the rest are born content too, rounded in their favor.
 		public int BornUnhappyPercent = 100;
+		// The buildings a captured city always keeps, which would otherwise
+		// be lost like any other (see CityInteractions.CaptureCity).
+		public List<string> BuildingsKeptOnCapture = [];
 
 		// HOUSE RULES, not Civ3: bonuses for AI players only, to make the AI
 		// a stronger opponent beyond what Civ3's difficulty levels give it

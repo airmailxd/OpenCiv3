@@ -293,8 +293,13 @@ namespace C7Engine {
 			// The palace, small wonders and buildings with culture don't
 			// survive a change of owner, great wonders always do, and other
 			// buildings may be destroyed (see BuildingLossChanceOnCapture).
+			// A scenario may have some always kept
+			// (Rules.BuildingsKeptOnCapture).
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
 				Building b = cb.building;
+				if (gameData.rules?.BuildingsKeptOnCapture?.Contains(b.name) == true) {
+					continue;
+				}
 				bool lost = b.isCenterOfEmpire || b.isSmallWonder
 					|| (!b.IsGreatWonder() && (b.culturePerTurn > 0 || GameData.rng.NextDouble() < BuildingLossChanceOnCapture));
 				if (lost) {

@@ -281,23 +281,80 @@ public partial class WorldSetup : Control {
 			_ => billion4,
 		});
 
-		// The Eternal War scenario is always played on a pangaea; only how
-		// much water is left to choose.
-		if (GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton")?.Scenario == GameScenario.EternalWar) {
-			if (landform != WorldCharacteristics.Landform.Pangaea) {
-				Choose(LandformButton(WorldCharacteristics.Landform.Pangaea, ocean));
-			}
-			foreach (TextureButton button in new[] { continents60, continents70, continents80, archipelago60, archipelago70, archipelago80 }) {
-				button.Disabled = true;
-				button.TooltipText = "The Eternal War scenario is played on a pangaea.";
-			}
-		}
+		AddGameTypeSelector();
 
 		var game = GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode);
 		_saveGame = game.GetSave();
 
 		InitBarbarianActivityOptions();
 		InitMapSizes();
+	}
+
+	// The game types a new game may be, in the order they're listed.
+	private static readonly (GameScenario scenario, string name, string description)[] GameTypes = [
+		(GameScenario.None, "Normal Game", "A standard game of Civilization III."),
+		(GameScenario.EternalWar, "Eternal War",
+			"A scenario: every civilization starts in the Middle Ages with cities scattered among its enemies', "
+			+ "at war with all the others for good. No one can build Settlers, so cities change hands only by conquest. "
+			+ "Played on a pangaea."),
+	];
+
+	// The first choice for a new game: a normal game, or a scenario, which
+	// may limit the choices below. A normal game unless one was picked
+	// before coming back to this screen.
+	private void AddGameTypeSelector() {
+		GlobalSingleton global = GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton");
+		OptionButton selector = new() {
+			Position = new Vector2(432, 17),
+			CustomMinimumSize = new Vector2(160, 32),
+			TooltipText = "The kind of game to play.",
+		};
+		selector.AddThemeFontSizeOverride("font_size", 15);
+		foreach (string color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color" }) {
+			selector.AddThemeColorOverride(color, Colors.Black);
+		}
+		StyleBoxFlat style = new() {
+			BorderColor = Color.Color8(120, 120, 120, 230),
+			BgColor = Color.Color8(255, 255, 255, 140),
+			BorderWidthBottom = 2,
+			BorderWidthLeft = 2,
+			BorderWidthRight = 2,
+			BorderWidthTop = 2,
+			ContentMarginLeft = 4,
+			ContentMarginRight = 4,
+			ContentMarginTop = 2,
+			ContentMarginBottom = 2,
+		};
+		selector.AddThemeStyleboxOverride("normal", style);
+		selector.AddThemeStyleboxOverride("hover", style);
+		selector.AddThemeStyleboxOverride("pressed", style);
+		selector.GetPopup().SetTransparentBackground(false);
+		for (int i = 0; i < GameTypes.Length; ++i) {
+			selector.AddItem(GameTypes[i].name, i);
+			selector.SetItemTooltip(i, GameTypes[i].description);
+		}
+		int chosen = Math.Max(0, Array.FindIndex(GameTypes, g => g.scenario == (global?.Scenario ?? GameScenario.None)));
+		selector.Select(chosen);
+		selector.ItemSelected += index => ChooseGameType(global, GameTypes[index].scenario);
+		background.AddChild(selector);
+		ChooseGameType(global, GameTypes[chosen].scenario);
+	}
+
+	private void ChooseGameType(GlobalSingleton global, GameScenario scenario) {
+		if (global != null) {
+			global.Scenario = scenario;
+		}
+		// Eternal War is always played on a pangaea; only how much water is
+		// left to choose.
+		bool pangaeaOnly = scenario == GameScenario.EternalWar;
+		if (pangaeaOnly && landform != WorldCharacteristics.Landform.Pangaea) {
+			Choose(LandformButton(WorldCharacteristics.Landform.Pangaea, ocean));
+		}
+		foreach (TextureButton button in new[] { continents60, continents70, continents80, archipelago60, archipelago70, archipelago80 }) {
+			button.Disabled = pangaeaOnly;
+			button.Modulate = pangaeaOnly ? new Color(1, 1, 1, 0.35f) : Colors.White;
+			button.TooltipText = pangaeaOnly ? "Eternal War is played on a pangaea." : "";
+		}
 	}
 
 	// Presses one of the toggle buttons, as if the player had clicked it.

@@ -5,7 +5,6 @@ using System;
 public partial class MenuButtonContainer : VBoxContainer {
 	public Civ3MenuButton NewGame { get; private set; }
 	public Civ3MenuButton QuickStart { get; private set; }
-	public Civ3MenuButton EternalWar { get; private set; }
 	public Civ3MenuButton WatchAi { get; private set; }
 	public Civ3MenuButton Tutorial { get; private set; }
 	public Civ3MenuButton LoadGame { get; private set; }
@@ -28,7 +27,6 @@ public partial class MenuButtonContainer : VBoxContainer {
 
 		NewGame = null;
 		QuickStart = null;
-		EternalWar = null;
 		WatchAi = null;
 		Tutorial = null;
 		LoadGame = null;
@@ -48,9 +46,6 @@ public partial class MenuButtonContainer : VBoxContainer {
 
 		QuickStart = new Civ3MenuButton() { Text = "Quick Start" };
 		AddChild(QuickStart);
-
-		EternalWar = new Civ3MenuButton() { Text = "Eternal War Scenario" };
-		AddChild(EternalWar);
 
 		WatchAi = new Civ3MenuButton() { Text = "Watch AI Game" };
 		AddChild(WatchAi);

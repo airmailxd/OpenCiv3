@@ -20,8 +20,12 @@ public enum GameScenario {
 // is at war with every other for good, and none may talk to another.
 // No one can build settlers, so cities change hands only by conquest. There
 // are no goody huts, and barbarians come only as knights. Cities have no
-// corruption and a library each, and a quarter fewer citizens are born
-// unhappy.
+// corruption and a library each, which costs nothing to keep up and is never
+// lost when the city is taken, and a quarter fewer citizens are born
+// unhappy. The first capital also has a granary and an aqueduct. Workers
+// defend (2) but can't attack, and every government supports three times
+// the units for free.
+// (Owner's additions, 2026-10-21.)
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -33,6 +37,9 @@ public partial class GameSetup {
 	private const string EternalWarBarbarian = "Knight";
 	private const string EternalWarBuilding = "Library";
 	private const string EternalWarGovernment = "Monarchy";
+	private static readonly string[] EternalWarCapitalBuildings = ["Granary", "Aqueduct"];
+	private const int EternalWarWorkerDefense = 2;
+	private const int EternalWarUnitSupportFactor = 3;
 
 	// The cities each civ starts with by default on each world size (owner's
 	// choice, 2026-10-21).
@@ -71,8 +78,13 @@ public partial class GameSetup {
 	// sites on the coast, or if it has none, a coastal site traded for with
 	// another civ, which may be the capital of a civ that isn't seafaring.
 	private List<List<SaveTile>> DealEternalWarSites(SaveGame save, List<PlannedPlayer> planned) {
-		int perCiv = worldCharacteristics.citiesPerCiv;
 		List<SaveTile> all = save.Map.startingLocations;
+		// When the map has too few sites for the cities chosen, every civ
+		// gets the same smaller number that fits.
+		int perCiv = Math.Min(worldCharacteristics.citiesPerCiv, all.Count / planned.Count);
+		if (perCiv < worldCharacteristics.citiesPerCiv) {
+			log.Warning($"Only {all.Count} city sites fit on the map, so each civ starts with {perCiv} cities rather than {worldCharacteristics.citiesPerCiv}");
+		}
 		List<List<SaveTile>> sites = Enumerable.Range(0, planned.Count)
 			.Select(i => all.Where((_, n) => n % planned.Count == i).Take(perCiv).ToList()).ToList();
 		bool Coastal(SaveTile t) => IsNextToSea(save.Map, t);
@@ -106,6 +118,11 @@ public partial class GameSetup {
 
 	// The rules, which are saved with the game.
 	private static void SetUpEternalWarRules(SaveGame save) {
+		// Once only, as unit support is multiplied, should setting up the
+		// game be tried again on the same rules.
+		if (save.Rules.PermanentWar) {
+			return;
+		}
 		save.Rules.NoCorruption = true;
 		save.Rules.PermanentWar = true;
 		save.Rules.BornUnhappyPercent = EternalWarBornUnhappyPercent;
@@ -113,6 +130,22 @@ public partial class GameSetup {
 		foreach (SaveUnitPrototype settler in save.UnitPrototypes.Where(p => p.actions.Contains(UnitAction.BuildCity))) {
 			settler.unproducible = true;
 		}
+
+		foreach (SaveUnitPrototype worker in save.UnitPrototypes.Where(p => p.name == EternalWarWorker || p.name == save.Rules.SlaveUnitType)) {
+			worker.attack = 0;
+			worker.defense = EternalWarWorkerDefense;
+		}
+
+		foreach (Government government in save.Governments) {
+			government.freeUnitsPerTown *= EternalWarUnitSupportFactor;
+			government.freeUnitsPerCity *= EternalWarUnitSupportFactor;
+			government.freeUnitsPerMetropolis *= EternalWarUnitSupportFactor;
+		}
+
+		SaveBuilding library = save.Buildings.Find(b => b.name == EternalWarBuilding)
+			?? throw new InvalidOperationException($"The Eternal War scenario needs a {EternalWarBuilding}, which these rules don't have");
+		library.maintenanceCost = 0;
+		save.Rules.BuildingsKeptOnCapture = [library.name];
 
 		RequireUnit(save, EternalWarBarbarian);
 		save.BarbarianInfo.basicBarbarianUnit = EternalWarBarbarian;
@@ -143,6 +176,10 @@ public partial class GameSetup {
 		SaveBuilding library = save.Buildings.Find(b => b.name == EternalWarBuilding)
 			?? throw new InvalidOperationException($"The Eternal War scenario needs a {EternalWarBuilding}, which these rules don't have");
 		SaveBuilding palace = save.Buildings.Find(b => b.flags.Contains(SaveBuilding.Flag.IsCenterOfEmpire));
+		// Only the first capital has these; a palace moved later doesn't
+		// bring them.
+		List<SaveBuilding> capitalBuildings = EternalWarCapitalBuildings.Select(name => save.Buildings.Find(b => b.name == name)
+			?? throw new InvalidOperationException($"The Eternal War scenario needs a {name}, which these rules don't have")).ToList();
 
 		for (int i = 0; i < sites.Count; ++i) {
 			bool capital = i == 0;
@@ -159,8 +196,10 @@ public partial class GameSetup {
 			};
 			city.perPlayerCulture.Add(player.id.ToString(), 0);
 			city.buildings.Add(new SaveCityBuilding { building = library.name, builtByPlayer = player.id });
-			if (capital && palace != null) {
-				city.buildings.Add(new SaveCityBuilding { building = palace.name, builtByPlayer = player.id });
+			if (capital) {
+				foreach (SaveBuilding building in capitalBuildings.Prepend(palace).Where(b => b != null)) {
+					city.buildings.Add(new SaveCityBuilding { building = building.name, builtByPlayer = player.id });
+				}
 			}
 			save.Cities.Add(city);
 

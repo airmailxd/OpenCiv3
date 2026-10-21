@@ -152,10 +152,11 @@ namespace C7Engine {
 			// Tried placing barbs then players, but caused all players to spawn together
 			problem = null;
 			if (wc.citiesPerCiv > 1) {
+				// Too few sites for every civ's cities is no problem: GameSetup
+				// gives each civ fewer.
 				DetermineScatteredCitySites(wc, gameMap);
-				int sites = wc.worldSize.numberOfCivs * wc.citiesPerCiv;
-				if (gameMap.startingLocations.Count < sites) {
-					problem = $"Only {gameMap.startingLocations.Count} of {sites} city sites fit on the land";
+				if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
+					problem = $"Only {gameMap.startingLocations.Count} city sites fit on the land for {wc.worldSize.numberOfCivs} civs";
 				} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
 					problem = $"Fewer than {wc.coastalStartsNeeded} coastal city sites for the seafaring civs' capitals";
 				}
@@ -2312,38 +2313,103 @@ namespace C7Engine {
 		}
 
 		// The fewest moves between two scattered city sites, however
-		// crowded the land.
+		// crowded the land; closer still for the sites whose radii may be
+		// shared.
 		private const int MIN_SCATTERED_CITY_SPACING = 4;
+		private const int MIN_CROWDED_CITY_SPACING = 3;
 
 		// Scatters numberOfCivs * citiesPerCiv city sites over the land at
 		// random, as the map's starting locations, for GameSetup to deal out
 		// to the civs. Any tile a capital could start on (see
 		// ScorePossibleCityLocation) may be picked. The sites are kept as far
 		// apart as there's room for, about the side of a square of land per
-		// site, and closer only when that many don't fit.
+		// site, and closer only when that many don't fit. No two sites' city
+		// radii (their big fat crosses) share a tile: on a 60% water map
+		// never, packing the sites tighter if they don't fit at random; with
+		// more water, as many as fit, the rest anywhere a city may stand,
+		// the least crowded spacing apart (owner's decision, 2026-10-21).
+		// There may still be too few, and GameSetup then gives each civ
+		// fewer cities.
 		private static void DetermineScatteredCitySites(WorldCharacteristics wc, GameMap m) {
 			Random rand = new(wc.mapSeed + 0x5ca7);
 			int count = wc.worldSize.numberOfCivs * wc.citiesPerCiv;
 			Player scoringPlayer = new() { government = wc.defaultGovernment };
 			List<Tile> candidates = m.tiles.Where(t => ScorePossibleCityLocation(wc, t, scoringPlayer) > 0).ToList();
+			Dictionary<Tile, List<Tile>> radii = candidates.ToDictionary(t => t, t => t.GetTilesWithinRankDistance(wc.maxRankOfWorkableTiles));
 			int land = m.tiles.Count(t => t.IsLand());
 			int spacing = Math.Max(MIN_SCATTERED_CITY_SPACING, (int)Math.Sqrt(land / (double)Math.Max(1, count)));
 
-			List<Tile> sites = [];
-			for (; spacing >= MIN_SCATTERED_CITY_SPACING && sites.Count < count; --spacing) {
+			List<Tile> sites = ScatterSites(candidates, radii, count, spacing, MIN_SCATTERED_CITY_SPACING, rand, [], separateRadii: true);
+			if (sites.Count < count && wc.oceanCoverage == WorldCharacteristics.OceanCoverage.Percent_60) {
+				List<Tile> packed = PackSites(candidates, radii, count, rand);
+				if (packed.Count > sites.Count) {
+					sites = packed;
+				}
+			} else if (sites.Count < count) {
+				List<Tile> anywhere = m.tiles.Where(t => t.IsLand() && t.IsAllowCities()).ToList();
+				foreach (Tile t in anywhere.Where(t => !radii.ContainsKey(t))) {
+					radii[t] = t.GetTilesWithinRankDistance(wc.maxRankOfWorkableTiles);
+				}
+				sites = ScatterSites(anywhere, radii, count, spacing, MIN_CROWDED_CITY_SPACING, rand, sites, separateRadii: false);
+			}
+			log.Information($"Scattered {sites.Count} of {count} city sites");
+			rand.Shuffle(CollectionsMarshal.AsSpan(sites));
+			m.startingLocations = sites;
+		}
+
+		// Adds sites to those kept, taking the candidates in a random order,
+		// each the spacing from every other site and, with separateRadii,
+		// sharing no tile of its radius with theirs. Tries again closer
+		// together, down to the least spacing, until there are count sites.
+		private static List<Tile> ScatterSites(List<Tile> candidates, Dictionary<Tile, List<Tile>> radii, int count, int spacing, int leastSpacing,
+				Random rand, List<Tile> kept, bool separateRadii) {
+			List<Tile> sites = new(kept);
+			for (; spacing >= leastSpacing && sites.Count < count; --spacing) {
 				rand.Shuffle(CollectionsMarshal.AsSpan(candidates));
-				sites = [];
+				sites = new(kept);
+				HashSet<Tile> claimed = kept.SelectMany(t => radii[t]).ToHashSet();
 				foreach (Tile t in candidates) {
 					if (sites.Count == count) {
 						break;
 					}
-					if (sites.All(site => site.DistanceTo(t) >= spacing)) {
+					if (sites.All(site => site.DistanceTo(t) >= spacing) && !(separateRadii && radii[t].Any(claimed.Contains))) {
 						sites.Add(t);
+						claimed.UnionWith(radii[t]);
 					}
 				}
 			}
-			log.Information($"Scattered {sites.Count} of {count} city sites at least {spacing + 1} moves apart");
-			m.startingLocations = sites;
+			return sites;
+		}
+
+		// Packs sites whose radii share no tile as tightly as they go, for
+		// when scattering them at random leaves too little room: from a
+		// random first site, each next one is the candidate nearest the
+		// sites so far, so they fill the land from there like cells.
+		private static List<Tile> PackSites(List<Tile> candidates, Dictionary<Tile, List<Tile>> radii, int count, Random rand) {
+			List<Tile> sites = [];
+			HashSet<Tile> claimed = [];
+			Dictionary<Tile, int> nearest = candidates.ToDictionary(t => t, _ => int.MaxValue);
+			Tile next = candidates.Count > 0 ? candidates[rand.Next(candidates.Count)] : null;
+			while (next != null && sites.Count < count) {
+				sites.Add(next);
+				claimed.UnionWith(radii[next]);
+				nearest.Remove(next);
+				next = null;
+				int best = int.MaxValue;
+				foreach (Tile t in nearest.Keys.ToList()) {
+					if (radii[t].Any(claimed.Contains)) {
+						nearest.Remove(t);
+						continue;
+					}
+					int d = Math.Min(nearest[t], t.DistanceTo(sites[^1]));
+					nearest[t] = d;
+					if (d < best) {
+						best = d;
+						next = t;
+					}
+				}
+			}
+			return sites;
 		}
 
 		private static void DetermineStartingLocations(WorldCharacteristics wc, GameMap m) {

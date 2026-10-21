@@ -10,11 +10,12 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class EternalWarScenarioTest {
-	private static (SaveGame, C7GameData.GameData) NewGame(int seed, int? citiesPerCiv = 4, List<string> civNames = null) {
+	private static (SaveGame, C7GameData.GameData) NewGame(int seed, int? citiesPerCiv = 4, List<string> civNames = null,
+			WorldCharacteristics.OceanCoverage ocean = WorldCharacteristics.OceanCoverage.Percent_60) {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = WorldCharacteristics.Landform.Continents,
-			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			oceanCoverage = ocean,
 			age = WorldCharacteristics.Age.Billion_4,
 			climate = WorldCharacteristics.Climate.Normal,
 			temperature = WorldCharacteristics.Temperature.Temperate,
@@ -80,10 +81,34 @@ public class EternalWarScenarioTest {
 			}
 		}
 
-		// The cities are spread out.
+		// The cities are spread out, and on a 60% water map no two share a
+		// tile of their city radius.
 		List<Tile> cityTiles = gameData.cities.Select(c => c.location).ToList();
 		foreach (Tile t in cityTiles) {
 			Assert.All(cityTiles.Where(o => o != t), o => Assert.True(t.DistanceTo(o) >= 4));
+		}
+		int rank = gameData.rules.MaxRankOfWorkableTiles;
+		List<Tile> radii = cityTiles.SelectMany(t => t.GetTilesWithinRankDistance(rank)).ToList();
+		Assert.Equal(radii.Count, radii.Distinct().Count());
+
+		// Only the first capital has a granary and an aqueduct.
+		foreach (City city in gameData.cities) {
+			bool has = city.GetBuildings().Any(b => b.building.name == "Granary") && city.GetBuildings().Any(b => b.building.name == "Aqueduct");
+			Assert.Equal(city.IsCapital(), has);
+		}
+
+		// Workers defend but can't attack; libraries cost nothing to keep;
+		// governments support three times the units.
+		UnitPrototype worker = gameData.unitPrototypes.First(p => p.name == "Worker");
+		Assert.Equal(0, worker.attack);
+		Assert.Equal(2, worker.defense);
+		Assert.Equal(0, gameData.Buildings.Find(b => b.name == "Library").maintenanceCost);
+		SaveGame rules = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		foreach (Government government in gameData.governments) {
+			Government original = rules.Governments.Find(g => g.name == government.name);
+			Assert.Equal(3 * original.freeUnitsPerTown, government.freeUnitsPerTown);
+			Assert.Equal(3 * original.freeUnitsPerCity, government.freeUnitsPerCity);
+			Assert.Equal(3 * original.freeUnitsPerMetropolis, government.freeUnitsPerMetropolis);
 		}
 
 		Assert.Equal("Knight", gameData.barbarianInfo.basicBarbarian.name);
@@ -156,5 +181,29 @@ public class EternalWarScenarioTest {
 			City capital = p.cities.Single(c => c.IsCapital());
 			Assert.True(capital.location.NeighborsOcean(), $"seed {seed}: seafaring {p.civilization.name}'s capital is inland");
 		}
+	}
+
+	// A captured city keeps its library, though it has culture.
+	[Fact]
+	public void CapturedCitiesKeepTheirLibrary() {
+		(_, C7GameData.GameData gameData) = NewGame(6);
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		for (int i = 0; i < 2; ++i) {
+			City city = civs[0].cities.First(c => !c.IsCapital());
+			CityInteractions.CaptureCity(city, civs[1]);
+			Assert.Equal(civs[1], city.owner);
+			Assert.Contains(city.GetBuildings(), b => b.building.name == "Library");
+			CityInteractions.CaptureCity(city, civs[0]);
+		}
+	}
+
+	// When the cities chosen don't all fit, every civ gets the same smaller
+	// number.
+	[Fact]
+	public void CivsGetFewerCitiesWhenTheyDontFit() {
+		(_, C7GameData.GameData gameData) = NewGame(7, citiesPerCiv: GameSetup.MaxEternalWarCitiesPerCiv);
+		List<int> counts = gameData.players.Where(p => !p.isBarbarians).Select(p => p.cities.Count).Distinct().ToList();
+		Assert.Single(counts);
+		Assert.InRange(counts[0], 1, GameSetup.MaxEternalWarCitiesPerCiv - 1);
 	}
 }
