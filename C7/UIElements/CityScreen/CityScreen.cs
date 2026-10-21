@@ -427,6 +427,9 @@ public partial class CityScreen : Control {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			OnShowCityScreenLocked(gameData, city);
 		});
+		// The tutorial's tour of the city screen, the first time it opens on
+		// one of the player's cities, if Tutorial Mode is on.
+		TutorialGuide.OnCityScreenOpened(Overlay, city.Value);
 	}
 
 	// Shows another civ's city without letting the player manage it, until

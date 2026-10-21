@@ -149,6 +149,10 @@ namespace C7GameData {
 		// world pollution (see GlobalWarming).
 		public int nuclearEvents;
 
+		// Whether Civ3's tutorial is on, and the tips it has shown (see
+		// Tutorial).
+		public TutorialState tutorial = new();
+
 		public BarbarianInfo barbarianInfo = new BarbarianInfo();
 
 		public StrengthBonus fortificationBonus;

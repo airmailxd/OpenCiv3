@@ -37,7 +37,7 @@ public partial class PreferencesPopup : Popup {
 		AddOption(game, "Always Wait at End of Turn", Preferences.Option.AlwaysWaitAtEndOfTurn,
 			"Off, your turn ends by itself once none of your units needs orders and nothing is waiting for an answer.");
 		AddUnavailable(game, "Show Civilopedia Book Cursor");
-		AddUnavailable(game, "Tutorial Mode");
+		AddTutorialMode(game);
 		AddUnavailable(game, "Show Wonder Initiation Pop-Up");
 		AddUnavailable(game, "Show Civil Disorder Pop-Up");
 		AddUnavailable(game, "Show Food and Shields on Map");
@@ -119,6 +119,23 @@ public partial class PreferencesPopup : Popup {
 	private void AddOption(VBoxContainer column, string text, Preferences.Option option, string tooltip) {
 		Civ3Checkbox checkbox = MakeCheckbox(text, Preferences.Get(option), tooltip);
 		checkbox.Toggled += (bool on) => Preferences.Set(option, on);
+		column.AddChild(checkbox);
+	}
+
+	// Tutorial Mode belongs to the game being played rather than to this
+	// machine: Civ3 saves it with the game and turns it off on going back to
+	// the main menu (see C7GameData.TutorialState), and greys it out in a
+	// multiplayer game (FUN_00595aa0).
+	private static void AddTutorialMode(VBoxContainer column) {
+		C7GameData.GameData gameData = C7Engine.EngineStorage.gameData;
+		string unavailable = TutorialGuide.Unavailable(gameData);
+		if (unavailable != null) {
+			AddUnavailable(column, "Tutorial Mode", unavailable);
+			return;
+		}
+		Civ3Checkbox checkbox = MakeCheckbox("Tutorial Mode", gameData.tutorial.enabled,
+			"The domestic advisor explains the game as things first happen in it. Each tip is given once a game.");
+		checkbox.Toggled += (bool on) => C7Engine.EngineStorage.ReadGameData(data => data.tutorial.enabled = on);
 		column.AddChild(checkbox);
 	}
 

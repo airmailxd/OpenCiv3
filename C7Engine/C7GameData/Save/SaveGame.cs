@@ -106,6 +106,8 @@ namespace C7GameData.Save {
 				SimultaneousTurns = data.simultaneousTurns,
 				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
+				// Left out of games that never had the tutorial on.
+				Tutorial = data.tutorial.enabled || data.tutorial.shown.Count > 0 ? data.tutorial : null,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				VictoryBonus = data.victoryBonus,
 				NuclearEvents = data.nuclearEvents,
@@ -337,6 +339,7 @@ namespace C7GameData.Save {
 				history = History,
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
+				tutorial = Tutorial ?? new TutorialState(),
 			};
 			// A save without a seed has been given a random one.
 			data.random = CreateRandom(data.seed);
@@ -695,6 +698,9 @@ namespace C7GameData.Save {
 		// mode.
 		public bool DebugMode { get; set; }
 		public UnitedNationsState UnitedNations = new();
+		// Civ3's tutorial (see Tutorial); null in games that never had it on,
+		// and in saves made before it was saved.
+		public TutorialState Tutorial;
 		// What a LAN host worked out for a guest that isn't sent all of the
 		// game; null otherwise.
 		public HostFacts HostFacts;

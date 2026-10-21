@@ -144,6 +144,7 @@ public partial class UnitSelector : Node {
 			ParameterWrapper<MapUnit> wrappedUnit = new(CurrentlySelectedUnit);
 			PreLoadUnitAnimationThumbnail(wrappedUnit.Value);
 			EmitSignal(SignalName.NewAutoselectedUnit, wrappedUnit);
+			game.ShowTutorialForSelectedUnit();
 			return true;
 		}
 

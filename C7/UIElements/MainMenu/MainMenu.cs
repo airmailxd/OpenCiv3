@@ -114,6 +114,11 @@ public partial class MainMenu : Node {
 		ButtonContainer.QuickStart.Pressed += QuickStartGame;
 		ButtonContainer.WatchAi.Pressed += WatchAiGame;
 		ButtonContainer.Tutorial.Pressed += QuickStartGame;
+		// Civ3's original main menu had a Tutorial (Text\labels.txt,
+		// #TOP_MENU), but Conquests' has none (Conquests\Text\labels.txt) and
+		// its executable has no tutorial game setup, so how that game was set
+		// up can't be matched. The tutorial is turned on in a game instead,
+		// with Tutorial Mode in the Preferences (see TutorialGuide).
 		ButtonContainer.Tutorial.Visible = false;
 		ButtonContainer.LoadGame.Pressed += LoadGame;
 		ButtonContainer.LoadScenario.Pressed += LoadScenario;

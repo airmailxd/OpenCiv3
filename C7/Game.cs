@@ -1462,6 +1462,9 @@ public partial class Game : Node {
 				break;
 			case MsgUnitMoved mUUAAB:
 				EmitSignal(SignalName.UnitMoved, new ParameterWrapper<MapUnit>(mUUAAB.Unit));
+				if (mUUAAB.Unit == unitSelector.CurrentlySelectedUnit) {
+					ShowTutorialForSelectedUnit();
+				}
 				break;
 			case MsgTransportUnloaded mTU:
 				// UnitMoved is enough to refresh UI
@@ -2017,7 +2020,18 @@ public partial class Game : Node {
 		// Cities that finished building something at the end of the round
 		// can tell the player now.
 		ShowNextProductionPopup();
+		TutorialGuide.OnTurnStart(popupOverlay, controller);
 		EmitSignal(SignalName.PlayerTurnStart);
+	}
+
+	// Civ3's tutorial tip for the unit the player is to move, if Tutorial
+	// Mode is on (see TutorialGuide). Civ3 looks for one each time its turn
+	// loop has the unit for the player to move (FUN_004e8540), so this is
+	// asked as a unit is selected and as the selected unit moves.
+	public void ShowTutorialForSelectedUnit() {
+		if (CurrentState == GameState.PlayerTurn) {
+			TutorialGuide.OnUnitActive(popupOverlay, unitSelector.CurrentlySelectedUnit);
+		}
 	}
 
 	// The autosaves kept, the latest first; older ones are deleted.
