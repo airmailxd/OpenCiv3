@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using C7Engine.AI;
 using C7GameData;
 using Serilog;
 
@@ -306,7 +307,7 @@ public static class GoodyHuts {
 		string tribe = BarbarianInteractions.TribeName(gameData, tile);
 		switch (outcome) {
 			case Outcome.Tech: {
-					Tech tech = PickTech(TechsToLearn(gameData, player));
+					Tech tech = PickTech(gameData, player, TechsToLearn(gameData, player));
 					player.AcquireTech(gameData, tech);
 					return $"The {tribe} tribe has taught us {tech.Name}.";
 				}
@@ -388,14 +389,24 @@ public static class GoodyHuts {
 		return techs;
 	}
 
-	// Picks the tech a hut teaches: cheaper techs are likelier, "wobei
-	// billigere Technologien eine höhere Fundwahrscheinlichkeit besitzen als
-	// teurere" ("cheaper techs are likelier than dearer ones"; CivWiki,
-	// Bonushütte (Civ3)). UNVERIFIED: by how much; here in inverse
-	// proportion to the tech's cost.
-	internal static Tech PickTech(List<Tech> techs) {
-		double[] weights = techs.Select(t => 1.0 / Math.Max(1, t.Cost)).ToArray();
-		double roll = GameData.rng.NextDouble() * weights.Sum();
+	// Picks the tech a hut teaches by the values Civ3's AI puts on techs
+	// when choosing research (DevelopmentAI.TechValue), in a roll weighted
+	// as research is: a tech's chance is in proportion to its value. Owner's
+	// decision, 2026-10-21: hut techs follow the order the AI weights techs,
+	// in place of the earlier inverse-cost weighting, which came from
+	// CivWiki's "billigere Technologien eine höhere Fundwahrscheinlichkeit
+	// besitzen als teurere" ("cheaper techs are likelier than dearer ones";
+	// Bonushütte (Civ3)). TechValue divides most of a tech's worth by the
+	// turns it would take to research, so cheaper techs still tend to come
+	// up more often.
+	internal static Tech PickTech(GameData gameData, Player player, List<Tech> techs) {
+		int beakers = player.BeakersPerTurn();
+		double[] weights = techs.Select(t => Math.Max(0, DevelopmentAI.TechValue(gameData, player, t, beakers))).ToArray();
+		double total = weights.Sum();
+		if (total <= 0) {
+			return techs[GameData.rng.Next(techs.Count)];
+		}
+		double roll = GameData.rng.NextDouble() * total;
 		for (int i = 0; i < techs.Count; ++i) {
 			if (roll < weights[i]) {
 				return techs[i];
