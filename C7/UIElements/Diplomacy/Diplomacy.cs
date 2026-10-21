@@ -25,7 +25,27 @@ public partial class Diplomacy : CenterContainer {
 
 	public override void _Ready() {
 		this.Hide();
-		Hidden += () => { new MsgDiplomacyCompleted().send(); };
+		Hidden += () => {
+			GetNodeOrNull<AudioManager>("/root/GlobalAudioManager")?.InGameMusic.StopDiplomacyMusic();
+			new MsgDiplomacyCompleted().send();
+		};
+	}
+
+	// Civ3 plays the other civ's theme while its diplomacy screen is up, by
+	// the human player's era and whether the two are at war (FUN_0050f970).
+	private void PlayMusic(ID humanPlayer, ID opponentPlayer) {
+		AudioManager audio = GetNodeOrNull<AudioManager>("/root/GlobalAudioManager");
+		if (audio == null) {
+			return;
+		}
+		GameData gd = EngineStorage.gameData;
+		Player human = gd.players.Find(x => x.id == humanPlayer);
+		Player opponent = gd.players.Find(x => x.id == opponentPlayer);
+		if (human == null || opponent == null) {
+			return;
+		}
+		bool atWar = human.playerRelationships.TryGetValue(opponent.id, out PlayerRelationship relationship) && relationship.AtWar();
+		audio.InGameMusic.PlayDiplomacyMusic(Math.Max(human.EraIndex(), 0), opponent.civilization?.cultureGroup?.index ?? 0, atWar);
 	}
 
 	/// <summary>
@@ -80,6 +100,7 @@ public partial class Diplomacy : CenterContainer {
 
 		dealScreen = new DealScreen(humanPlayer, opponentPlayer, humanGives, humanWants, greeting);
 		AddChild(dealScreen);
+		PlayMusic(humanPlayer, opponentPlayer);
 		this.Show();
 	}
 
@@ -96,6 +117,7 @@ public partial class Diplomacy : CenterContainer {
 
 		territoryDemandScreen = new TerritoryDemandScreen(humanPlayer, opponentPlayer, unitCount, repeatOffense);
 		AddChild(territoryDemandScreen);
+		PlayMusic(humanPlayer, opponentPlayer);
 		this.Show();
 	}
 
@@ -104,6 +126,7 @@ public partial class Diplomacy : CenterContainer {
 
 		tributeDemandScreen = new TributeDemandScreen(humanPlayer, opponentPlayer, gold, techName);
 		AddChild(tributeDemandScreen);
+		PlayMusic(humanPlayer, opponentPlayer);
 		this.Show();
 	}
 
@@ -126,6 +149,7 @@ public partial class Diplomacy : CenterContainer {
 
 		talkScreen = new TalkScreen(humanPlayer, opponentPlayer);
 		AddChild(talkScreen);
+		PlayMusic(humanPlayer, opponentPlayer);
 		this.Show();
 	}
 

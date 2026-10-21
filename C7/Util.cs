@@ -146,6 +146,9 @@ public partial class Util {
 		ClearMediaPathCache();
 	}
 
+	// Whether a scenario's mod path is set.
+	public static bool HasModPath => !string.IsNullOrEmpty(modPath);
+
 	// Civ3MediaPath results by media path. A null value means the media
 	// couldn't be found. The results are only valid for the current roots,
 	// mod path and standalone setting, so they're forgotten when any of those

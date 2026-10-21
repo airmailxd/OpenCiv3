@@ -305,9 +305,41 @@ public partial class Game : Node {
 	}
 
 	private void InitializeAudio() {
-		AudioManager audio = GetNode<AudioManager>("/root/GlobalAudioManager");
-		audio.StopMusic();
-		// TODO: switch to in-game playlist / music logic
+		audioManager = GetNodeOrNull<AudioManager>("/root/GlobalAudioManager");
+		if (audioManager == null) {
+			return;
+		}
+		audioManager.StopMusic();
+		// Civ3 starts a new game's music with the Ancient pieces, and a loaded
+		// game's without them (FUN_00540670's last argument from the new game
+		// and load game code).
+		musicWithPieces = TurnHandling.GetTurnNumber() == 0;
+		UpdateMusic();
+	}
+
+	private AudioManager audioManager;
+	private ID musicPlayerId;
+	private int musicEra = -1;
+	private bool musicWithPieces;
+
+	// Plays the in-game music for the UI controller's era and culture group,
+	// changing it when they enter a new era (Civ3 FUN_0056a220) or, in a
+	// hotseat game, when the next player's era or culture group differs.
+	private void UpdateMusic() {
+		if (audioManager == null || controller == null) {
+			return;
+		}
+		int era = Math.Max(controller.EraIndex(), 0);
+		if (musicPlayerId == controller.id && era == musicEra) {
+			return;
+		}
+		// Entering a new era asks for the pieces as a new game does.
+		bool withPieces = musicWithPieces || (musicPlayerId == controller.id && era > musicEra);
+		musicWithPieces = false;
+		musicPlayerId = controller.id;
+		musicEra = era;
+		int cultureGroup = controller.civilization?.cultureGroup?.index ?? 0;
+		audioManager.InGameMusic.PlayFor(era, cultureGroup, withPieces);
 	}
 
 	private async Task StartGame() {
@@ -995,6 +1027,7 @@ public partial class Game : Node {
 	}
 
 	public override void _ExitTree() {
+		audioManager?.InGameMusic.Stop();
 		// Leaving the game leaves the LAN game, too.
 		LanSession.End();
 		// A save still being written is finished before quitting.
@@ -1800,6 +1833,7 @@ public partial class Game : Node {
 			ReplayHeldMessage();
 
 		EndTurnIfNothingToDo(delta);
+		UpdateMusic();
 	}
 
 	// Set once no unit needs orders this turn, until one does again.

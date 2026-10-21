@@ -47,7 +47,14 @@ public partial class AudioManager : Node {
 
 		ApplySoundPreferences();
 		Preferences.Changed += OnPreferenceChanged;
+
+		InGameMusic = new InGameMusic { Name = "InGameMusic" };
+		AddChild(InGameMusic);
 	}
+
+	// Civ3's in-game music: the era and culture playlist and the diplomacy
+	// screen's music.
+	public InGameMusic InGameMusic { get; private set; }
 
 	public override void _ExitTree() {
 		Preferences.Changed -= OnPreferenceChanged;
@@ -160,6 +167,7 @@ public partial class AudioManager : Node {
 	public void PlayMusic(string configKey) {
 		AudioStream stream = AudioLoader.Load(configKey);
 
+		InGameMusic.Stop();
 		if (stream == null)
 			return;
 
