@@ -36,6 +36,8 @@ namespace EngineTests.GameData;
 // And again when the islands came as big ones for two or three civs,
 // home islands, and empty ones to settle, and other starts on an
 // archipelago got an even chance of the coast.
+// And again when the poles came to be sunk to deep water, so no land
+// runs along the map's top or bottom edge.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -98,9 +100,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "B2B656D1D8F7032667757FB7CAABA7A2B797EF233A359B18C2FF0AB4481DB5BF")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "CB09E66C312CCD8B7FAD5EF15021E75E152B15C650DBCACBECA82B3451302205")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "249F87472AF142DAF60BAA3543B4F5BA2893C55EC0103EFB24D5858E0F57576E")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "398DCF97ADBA2DFBD9A4C6B25172373B79B20D33C3EAF4547F5BF3F314D7137A")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "3D49E5084723F871C3B6B5A03C1662BB38E0298F5FD767F974F7DF7D20F9A7C1")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "123616CA4F12148A45D79470CBAE50893C10C9BC9BE770C46B5DA36A4046211F")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

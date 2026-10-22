@@ -22,6 +22,13 @@ namespace C7GameData {
 		public const int NOISE_WIDTH = 128;
 		public const int NOISE_HEIGHT = 64;
 
+		// How far from the equator, as a share of the way to a pole, the
+		// noise starts being sunk toward POLAR_SINK_HEIGHT, all the way at
+		// the pole: the outer tenth of the map's height at each end.
+		private const double POLAR_SINK_START = .8;
+		// The bottom of the noise's range.
+		private const double POLAR_SINK_HEIGHT = -1;
+
 		public HeightMap(
 			int seed,
 			int width,
@@ -254,11 +261,18 @@ namespace C7GameData {
 					// If we're forcing low points at the poles, figure out
 					// the distance from the equator, and multiple our noise
 					// by 1-(dist^2) to force the values at the poles down.
+					// That only flattens the noise toward 0, the middle of its
+					// range, so near the edges also blend it down to the
+					// bottom of the range: else the edge rows are a flat
+					// band of middling height, which on a map with little
+					// water is land running along the map's edge.
 					if (!wrapY && forceLowPointsAtPoles) {
 						double normalizedY = (double)y / (height - 1);
 						double distanceFromEquator = Math.Abs(normalizedY - 0.5) * 2.0;
 						double polarFactor = 1.0 - Math.Pow(distanceFromEquator, 2.0);
 						noiseField[x, y] *= polarFactor;
+						double sink = Math.Pow(Math.Clamp((distanceFromEquator - POLAR_SINK_START) / (1 - POLAR_SINK_START), 0, 1), 2);
+						noiseField[x, y] = (1 - sink) * noiseField[x, y] + sink * POLAR_SINK_HEIGHT;
 					}
 				}
 			}
