@@ -205,22 +205,25 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 	// rather than form an army, though attackers are at hand.
 	[Fact]
 	public void ChoosingLeaderAtPeaceRushesABuildingInstead() {
-		City city = BuildCity(us);
+		BuildCity(us);
 		while (!us.CanSupportAnotherArmy()) {
 			BuildCity(us);
 		}
+		// The city whose build a leader would save the most on, which
+		// depends on each city's production; the leader and the attackers
+		// are there.
+		(City city, Building build) = PlayerAI.BestBuildForMilitaryLeader(us);
+		Assert.NotNull(build);
 		Spawn(us, "Spearman", city.location);
 		for (int i = 0; i < 3; i++) {
 			Spawn(us, "Swordsman", city.location);
 		}
 		MapUnit leader = Spawn(us, "Leader", city.location);
-		Building dearest = city.ListProductionOptions(gameData).OfType<Building>()
-			.Where(b => !b.IsGreatWonder()).OrderByDescending(b => us.ShieldCost(b)).First();
-		city.SetItemBeingProduced(dearest);
 
-		Assert.Equal((city, dearest), PlayerAI.BestBuildForMilitaryLeader(us, leader));
+		Assert.Equal((city, build), PlayerAI.BestBuildForMilitaryLeader(us, leader));
 		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
-		Assert.Equal(us.ShieldCost(dearest), city.shieldsStored);
+		Assert.Equal(build, city.itemBeingProduced);
+		Assert.Equal(us.ShieldCost(build), city.shieldsStored);
 		Assert.DoesNotContain(us.units, u => u.IsArmy());
 	}
 

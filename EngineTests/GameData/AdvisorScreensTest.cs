@@ -19,6 +19,8 @@ public class AdvisorScreensTest {
 	public void TheMenuListsEveryAdvisorAndReportScreenOnce() {
 		string[] actions = typeof(C7Action).GetFields()
 			.Where(f => f.IsLiteral && f.Name.StartsWith("Show") && (f.Name.EndsWith("Advisor") || f.Name.EndsWith("View")))
+			// Civ3's hidden advisor has no place in the menu.
+			.Where(f => f.Name != nameof(C7Action.ShowSorenAdvisor))
 			.Select(f => (string)f.GetRawConstantValue())
 			.ToArray();
 		Assert.Equal(11, actions.Length);

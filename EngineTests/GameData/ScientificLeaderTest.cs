@@ -28,6 +28,8 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		us = civs[0];
 		them = civs[1];
 		us.civilization.traits.Remove(Civilization.Trait.Scientific);
+		// So there is a wonder to build: the Pyramids, which need no coast.
+		us.knownTechs.Add(BuildingNamed("The Pyramids").requiredTech.id);
 		capital = us.cities.FirstOrDefault(c => c.capital) ?? us.cities.FirstOrDefault() ?? BuildCity(us);
 	}
 
@@ -49,9 +51,13 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		return t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity() && !t.hasBarbarianCamp && !t.IsImpassable();
 	}
 
+	// Away from everyone else's units and cities, so it isn't threatened
+	// (see WonderPlanner.IsThreatened).
 	private City BuildCity(Player owner) {
 		Tile tile = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.OwningPlayer() == null
-			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity()));
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity())
+			&& !gameData.players.Where(p => p != owner).Any(p => p.units.Any(u => u.location.DistanceTo(t) <= 8)
+				|| p.cities.Any(c => c.location.DistanceTo(t) <= 8)));
 		return CityInteractions.BuildCity(tile, owner, $"City {owner.cities.Count}");
 	}
 

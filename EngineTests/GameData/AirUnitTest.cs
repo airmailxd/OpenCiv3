@@ -113,7 +113,9 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 
 	[Fact]
 	public void AircraftRebaseOntoCarriersWithRoomAndFlyFromThem() {
-		City home = FoundCity(us);
+		City home = FoundCity(us, gameData.map.tiles.First(t => t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& t.IsAllowCities() && t.OwningPlayer() == null
+			&& gameData.map.tiles.Any(w => w.IsWater() && t.DistanceTo(w) is >= 2 and <= 6)));
 		Tile sea = gameData.map.tiles.First(t => t.IsWater() && home.location.DistanceTo(t) is >= 2 and <= 6);
 		MapUnit carrier = Spawn(us, "Carrier", sea);
 		MapUnit fighter = Spawn(us, "Fighter", home.location);

@@ -24,10 +24,16 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 	}
 
 	// Finds two neighboring empty land tiles, outside anyone's borders.
+	// Flat land: no hills or mountains, which defend better and cost more
+	// moves to enter.
+	private static bool IsFlat(Tile t) {
+		return t.overlayTerrainType.defenseBonus.amount < 0.5 && t.overlayTerrainType.movementCost <= 1;
+	}
+
 	private (Tile from, TileDirection dir, Tile to) FindAdjacentLand() {
-		foreach (Tile from in gameData.map.tiles.Where(t => IsEmptyLand(t) && t.OwningPlayer() == null)) {
+		foreach (Tile from in gameData.map.tiles.Where(t => IsEmptyLand(t) && IsFlat(t) && t.OwningPlayer() == null)) {
 			foreach ((TileDirection dir, Tile to) in from.neighbors) {
-				if (to != Tile.NONE && IsEmptyLand(to) && to.OwningPlayer() == null) {
+				if (to != Tile.NONE && IsEmptyLand(to) && IsFlat(to) && to.OwningPlayer() == null) {
 					return (from, dir, to);
 				}
 			}

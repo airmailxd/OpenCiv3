@@ -763,9 +763,11 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 	public void HumansGetTheDifficultyBonusAgainstBarbarians() {
 		Player human = gameData.players.First(p => p.isHuman);
 		Player barbarians = gameData.players.First(p => p.isBarbarians);
-		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		// On flat land: not hills or mountains, which defend better.
+		bool flat(Tile t) => IsEmptyLand(t) && t.overlayTerrainType.defenseBonus.amount < 0.5;
+		Tile tile = gameData.map.tiles.First(flat);
 		MapUnit ours = gameData.SpawnUnit(human, Prototype("Warrior"), tile);
-		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), gameData.map.tiles.Where(IsEmptyLand).Skip(1).First());
+		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), gameData.map.tiles.Where(flat).Skip(1).First());
 		MapUnit aiUnit = gameData.SpawnUnit(us, Prototype("Warrior"), tile);
 
 		gameData.gameDifficulty.AttackBonusAgainstBarbarians = 100;

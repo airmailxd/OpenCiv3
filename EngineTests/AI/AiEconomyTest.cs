@@ -179,13 +179,18 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 	// The owner's choice: the AI never builds Explorers, even knowing how.
 	[Fact]
 	public void AiNeverBuildsExplorers() {
-		foreach (Tech tech in gameData.techs) {
-			player.knownTechs.Add(tech.id);
-		}
+		// A civ whose unique unit doesn't replace the Explorer.
 		UnitPrototype explorer = gameData.unitPrototypes.First(p => p.name == "Explorer");
-		Assert.Contains(explorer, city.ListProductionOptions(gameData));
+		Player ai = gameData.players.First(p => !p.isBarbarians && !p.isHuman && explorer.IsProducibleBy(p.civilization)
+			&& p.units.Any(u => u.unitType.isSettler));
+		City home = ai == player ? city
+			: CityInteractions.BuildCity(ai.units.First(u => u.unitType.isSettler).location, ai, ai.GetNextCityName());
+		foreach (Tech tech in gameData.techs) {
+			ai.knownTechs.Add(tech.id);
+		}
+		Assert.Contains(explorer, home.ListProductionOptions(gameData));
 		for (int i = 0; i < 20; ++i) {
-			Assert.NotEqual<IProducible>(explorer, ChooseProducible.Choose(city, player));
+			Assert.NotEqual<IProducible>(explorer, ChooseProducible.Choose(home, ai));
 		}
 	}
 }
