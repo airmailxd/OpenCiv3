@@ -45,10 +45,13 @@ public static class EndOfGame {
 			if (player == null) {
 				return;
 			}
+			// A team wins together (see GameSetup.Teams.cs), so a
+			// teammate's victory is shown as the player's own.
+			Player shownWinner = gameData.AreTeammates(player, winner) ? player : winner;
 			// UNVERIFIED: that Civ3 shows its defeat screen when every human
 			// player has been destroyed.
-			screen = VictoryScreen.TryCreate(gameData, player, winner, reason ?? GameEndReason.Conquest, text);
-			announcement = Announcement(text, reason, player, winner);
+			screen = VictoryScreen.TryCreate(gameData, player, shownWinner, reason ?? GameEndReason.Conquest, text);
+			announcement = Announcement(text, reason, player, shownWinner);
 		});
 		if (screen == null || announcement.message == null) {
 			screen?.Free();

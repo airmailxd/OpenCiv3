@@ -193,7 +193,8 @@ public partial class LanLobby : Control {
 				save = pending.save;
 				Global.SaveGame = save;
 				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, pending.setup.playerCivilization.name,
-					pending.guestSeats, save.Civilizations));
+					pending.guestSeats, save.Civilizations, teamCount: pending.teamCount, hostTeam: pending.setup.playerTeam,
+					guestTeams: pending.guestTeams));
 				// The map isn't made yet, but its size is known.
 				if (pending.setup.worldCharacteristics?.worldSize is WorldSize size && size.width > 0) {
 					LanSession.Host.MapSize = $"{size.width}x{size.height}";
@@ -657,7 +658,9 @@ public partial class LanLobby : Control {
 		}
 		LanHost host = LanSession.Host;
 
-		AddSeatRow(seatList, $"{host.HostName} (you, hosting), {host.HostCivilization}");
+		// In a new game with teams, the host picks their own team here.
+		AddSeatRow(seatList, $"{host.HostName} (you, hosting), {host.HostCivilization}{TeamText(host.HostTeam)}",
+			host.TeamCount > 0 && !creatingGame ? MakeTeamPicker(host.TeamCount, host.HostTeam, team => host.HostTeam = team) : null);
 		foreach (SeatInfo seat in host.Seats) {
 			// A seat held for a guest who hasn't come back can be given to
 			// anyone.
@@ -700,7 +703,8 @@ public partial class LanLobby : Control {
 			startButton.Disabled = false;
 		} else {
 			status.Text = host.GuestsChooseCivilizations
-				? "Everyone is here. Players can change their civilization until you start; anyone who hasn't chosen gets a random one."
+				? "Everyone is here. Players can change their civilization" + (host.TeamCount > 0 ? " and team" : "")
+					+ " until you start; anyone who hasn't chosen a civilization gets a random one."
 				: "Everyone is here.";
 			startButton.Disabled = false;
 			if (LanSession.DevHostSave != null) {
@@ -725,7 +729,22 @@ public partial class LanLobby : Control {
 		}
 		string name = seat.playerName == null ? "" : $"{seat.playerName}, ";
 		string civilization = seat.civilization ?? "civilization not chosen (random)";
-		return $"{name}{civilization}: {who}";
+		return $"{name}{civilization}{TeamText(seat.team)}: {who}";
+	}
+
+	// ", Team 2" for a player on a team (see GameSetup.Teams.cs), or "".
+	private static string TeamText(int team) => team > 0 ? $", {GameSetup.TeamName(team)}" : "";
+
+	// A picker for one of the teams numbered 1 to teams, on team at first.
+	private static OptionButton MakeTeamPicker(int teams, int team, Action<int> chosen) {
+		OptionButton picker = new() { TooltipText = "Teammates are allies for good, and win together." };
+		picker.AddThemeFontSizeOverride("font_size", 18);
+		for (int t = 1; t <= teams; ++t) {
+			picker.AddItem(GameSetup.TeamName(t), t);
+		}
+		picker.Select(Math.Clamp(team, 1, teams) - 1);
+		picker.ItemSelected += index => chosen(picker.GetItemId((int)index));
+		return picker;
 	}
 
 	private static void AddSeatRow(VBoxContainer list, string text, params Control[] buttons) {
@@ -762,6 +781,7 @@ public partial class LanLobby : Control {
 	private void CreatePendingGame() {
 		PendingLanGame pending = LanSession.PendingGame;
 		creatingGame = true;
+		pending.setup.playerTeam = LanSession.Host.HostTeam;
 		pending.setup.hotseatPlayers = LanSession.Host.BeginCreatingGame();
 		Thread thread = new(() => {
 			string failure = "";
@@ -1140,7 +1160,7 @@ public partial class LanLobby : Control {
 
 		foreach (SeatInfo seat in lobby.seats) {
 			if (seat.isHost) {
-				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}");
+				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}{TeamText(seat.team)}");
 				continue;
 			}
 			List<Control> buttons = [];
@@ -1177,7 +1197,10 @@ public partial class LanLobby : Control {
 				// Each player at this computer has their own name.
 				string place = seat.playerName == null ? "" : $"{seat.playerName}, ";
 				string civilization = seat.civilization ?? "civilization not chosen (random)";
-				AddSeatRow(seatList, $"{place}{civilization} (you):", [MakeSeatNameEdit(client, seat), .. buttons]);
+				OptionButton team = lobby.teams > 0
+					? MakeTeamPicker(lobby.teams, seat.team, t => client.ChooseTeam(t, seat.playerID)) : null;
+				AddSeatRow(seatList, $"{place}{civilization}{(team == null ? TeamText(seat.team) : "")} (you):",
+					[MakeSeatNameEdit(client, seat), team, .. buttons]);
 				continue;
 			}
 			string you = mine.Contains(seat.playerID) ? " (you)" : "";
@@ -1211,7 +1234,8 @@ public partial class LanLobby : Control {
 			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
 			: lobby.started && mine.Count == 0 ? "This game is in progress. Tick the seats to play, then join it." + hotseatTip
 			: mine.Count == 0 ? "Take an open seat to play." + hotseatTip
-			: canChoose ? "Choose your civilization, then wait for the host to start the game. If you don't choose, you get a random one."
+			: canChoose ? $"Choose your civilization{(lobby.teams > 0 ? " and team" : "")}, then wait for the host to start the game. "
+				+ "If you don't choose a civilization, you get a random one."
 			: "Waiting for the host to start the game...";
 
 		SeatInfo firstOpen = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);

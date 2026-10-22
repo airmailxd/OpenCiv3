@@ -4,7 +4,7 @@ using C7GameData;
 
 namespace C7Engine;
 
-// Won by being the last civilization standing.
+// Won by being the last civilization standing, or the last team.
 public class ConquestVictory : IVictory {
 	public string Header() => "Conquest";
 
@@ -12,7 +12,7 @@ public class ConquestVictory : IVictory {
 		return new VictoryStatus {
 			Player = player,
 			RivalsRemaining = gameData.players.Count(p =>
-				p != player && !p.isBarbarians && !p.defeated && p.isIncludedInGame),
+				p != player && !p.isBarbarians && !p.defeated && p.isIncludedInGame && !gameData.AreTeammates(player, p)),
 		};
 	}
 

@@ -71,6 +71,11 @@ namespace C7GameData {
 		// be lost like any other (see CityInteractions.CaptureCity).
 		public List<string> BuildingsKeptOnCapture = [];
 
+		// Not Civ3: the game was set up with teams, each a locked alliance,
+		// and a team wins together (see GameSetup.Teams.cs and
+		// GameData.AreTeammates).
+		public bool TeamVictory = false;
+
 		// HOUSE RULES, not Civ3: bonuses for AI players only, to make the AI
 		// a stronger opponent beyond what Civ3's difficulty levels give it
 		// (see Difficulty). Human players are never affected. Each default

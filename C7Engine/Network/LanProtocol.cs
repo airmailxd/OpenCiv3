@@ -49,11 +49,15 @@ public enum FrameKind : byte {
 	// Client to host: how a spectator wants to see the game, from what the
 	// host allows (see SpectatorViewInfo).
 	ChooseSpectatorView = 18,
+
+	// Client to host: the team for one of a seated guest's players in a game
+	// not created yet (see ChooseTeamInfo).
+	ChooseTeam = 19,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 14;
+	public const int Version = 15;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -250,9 +254,10 @@ public record ClaimSeatInfo(ID playerID, string playerName = null);
 // until they choose one, which means a random one. A disconnected seat is
 // held for the guest who lost their connection to it, and nobody else can
 // take it; an away seat's turns end by themselves, since the host chose to
-// go on without its player until they are back.
+// go on without its player until they are back. team is the player's team,
+// or 0 for none (see GameSetup.Teams.cs).
 public record SeatInfo(ID playerID, string civilization, string playerName, bool isHost, string takenBy,
-	bool disconnected = false, bool away = false);
+	bool disconnected = false, bool away = false, int team = 0);
 
 // A civilization a guest can choose, with what the lobby shows about it.
 public record CivilizationChoice(string name, string leader, string noun, string leaderArtFile, List<string> traits);
@@ -266,11 +271,13 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // if the connection is lost. hideUnseen is whether each guest is sent only
 // what its players may know of the game. spectatorViews are the ways the
 // host lets spectators see the game, and yourSpectatorView, for a spectator,
-// the way it's sent the game now.
+// the way it's sent the game now. teams is how many teams players can
+// choose among (numbered from 1), or 0 when they can't choose one: a
+// free-for-all, or a game already created, whose seats show the teams it has.
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
 	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
 	bool simultaneousTurns = false, string reconnectToken = null, bool hideUnseen = false,
-	SpectatorViews spectatorViews = SpectatorViews.None, SpectatorViewInfo yourSpectatorView = null);
+	SpectatorViews spectatorViews = SpectatorViews.None, SpectatorViewInfo yourSpectatorView = null, int teams = 0);
 
 // How a spectator sees the game: as all the civilizations at once, which is
 // everything any of them knows, so what none of them has seen stays hidden;
@@ -308,6 +315,10 @@ public record SpectatorViewInfo(SpectatorViewMode mode, ID playerID = null) {
 // The civilization's name, or null for a random one, for one of the guest's
 // seats; null for their first.
 public record ChooseCivilizationInfo(string civilization, ID playerID = null);
+
+// The team, from 1 to LobbyInfo.teams, for one of the guest's seats; null
+// for their first.
+public record ChooseTeamInfo(int team, ID playerID = null);
 
 // The players this guest plays, in turn order; empty for a spectator. The
 // token is as in LobbyInfo.

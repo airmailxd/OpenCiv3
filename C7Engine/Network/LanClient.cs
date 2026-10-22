@@ -261,6 +261,12 @@ public class LanClient : IDisposable {
 		connection.Send(FrameKind.ChooseCivilization, new ChooseCivilizationInfo(civilization, playerID));
 	}
 
+	// Chooses the team for one of our seats (null for the first) in a game
+	// not created yet.
+	public void ChooseTeam(int team, ID playerID = null) {
+		connection.Send(FrameKind.ChooseTeam, new ChooseTeamInfo(team, playerID));
+	}
+
 	// Watches the game instead of taking a seat.
 	public void Watch() {
 		IsSpectator = true;

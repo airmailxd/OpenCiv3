@@ -43,6 +43,17 @@ public partial class PlayerSetup : Control {
 	LineEdit playerNameEdit;
 	const int MaxPlayerNameLength = 24;
 
+	// Teams (see GameSetup.Teams.cs): the player's, and parallel to
+	// opponentSelectors, each slot's, numbered from 1 up to the number of
+	// civs; unless the game is a free-for-all. Each starts on its default
+	// team, until a team is picked by hand.
+	OptionButton playerTeam;
+	List<OptionButton> teamPickers = new();
+	CheckBox freeForAll;
+	int teamCount;
+	int defaultTeamCount;
+	bool teamsPicked = false;
+
 	[Export] GridContainer rulesContainer;
 
 	[Export] GridContainer difficultyContainer;
@@ -133,8 +144,12 @@ public partial class PlayerSetup : Control {
 		background.AddChild(playerNameEdit);
 
 		// Set up the options for opponents.
+		teamCount = global.WorldCharacteristics.worldSize.numberOfCivs;
+		defaultTeamCount = GameSetup.DefaultTeamCount(global.WorldCharacteristics.worldSize);
+		AddTeamChoices();
 		AddOpponentSelectors(global.WorldCharacteristics.worldSize.numberOfCivs);
 		ChooseOpponentsAsLastTime();
+		ApplyDefaultTeams();
 
 		// Set up game rules
 		AddRules();
@@ -374,6 +389,63 @@ public partial class PlayerSetup : Control {
 		box.AddChild(row);
 	}
 
+	// The player's team, in the lower box under the leader's name, and the
+	// free-for-all box at the end of the rivals' heading.
+	private void AddTeamChoices() {
+		playerTeam = MakeTeamPicker("Your team. Teammates are allies for good, and win together.");
+		playerTeam.Position = new Vector2(461, 421);
+		playerTeam.CustomMinimumSize = new Vector2(107, 24);
+		playerTeam.AddThemeFontSizeOverride("font_size", 13);
+		background.AddChild(playerTeam);
+		freeForAll = new Civ3Checkbox {
+			Text = "Free-for-all",
+			FontSize = 13,
+			ButtonPressed = false,
+			Position = new Vector2(845, 76),
+			TooltipText = "No teams: every civilization plays for itself.",
+		};
+		freeForAll.Toggled += _ => ShowTeams();
+		background.AddChild(freeForAll);
+	}
+
+	private OptionButton MakeTeamPicker(string tooltip) {
+		OptionButton picker = new() { TooltipText = tooltip, FitToLongestItem = true };
+		for (int team = 1; team <= teamCount; ++team) {
+			picker.AddItem(GameSetup.TeamName(team), team);
+		}
+		picker.ItemSelected += _ => teamsPicked = true;
+		return picker;
+	}
+
+	private void ShowTeams() {
+		bool teams = !freeForAll.ButtonPressed;
+		playerTeam.Visible = teams;
+		foreach (OptionButton picker in teamPickers) {
+			picker.Visible = teams;
+		}
+	}
+
+	// Puts every slot on its default team, unless a team has been picked by
+	// hand: the humans dealt out first, in turn order, then the computer
+	// players (see GameSetup.DefaultTeam).
+	private void ApplyDefaultTeams() {
+		if (teamsPicked) {
+			return;
+		}
+		List<int> humans = Enumerable.Range(0, humanToggles.Count).Where(i => humanToggles[i].ButtonPressed).ToList();
+		List<int> computers = Enumerable.Range(0, humanToggles.Count).Where(i => !humanToggles[i].ButtonPressed).ToList();
+		playerTeam.Select(GameSetup.DefaultTeam(0, defaultTeamCount) - 1);
+		int place = 1;
+		foreach (int slot in humans.Concat(computers)) {
+			teamPickers[slot].Select(GameSetup.DefaultTeam(place++, defaultTeamCount) - 1);
+		}
+	}
+
+	// The team picked on the picker, or 0 in a free-for-all.
+	private int TeamOn(OptionButton picker) {
+		return freeForAll.ButtonPressed ? 0 : picker.GetSelectedId();
+	}
+
 	private void BackToMainMenu() {
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}
@@ -438,6 +510,9 @@ public partial class PlayerSetup : Control {
 			};
 			humanNames.Add(humanName);
 			humanToggle.Toggled += (bool _) => UpdateHumanNameFields();
+			humanToggle.Toggled += (bool _) => ApplyDefaultTeams();
+			OptionButton teamPicker = MakeTeamPicker("This civilization's team. Teammates are allies for good, and win together.");
+			teamPickers.Add(teamPicker);
 
 			CenterContainer container = new();
 			opponentListContainer.AddChild(container);
@@ -447,12 +522,14 @@ public partial class PlayerSetup : Control {
 			slot.AddChild(row);
 			row.AddChild(optionButton);
 			row.AddChild(playersChoice);
+			row.AddChild(teamPicker);
 			row.AddChild(humanToggle);
 			slot.AddChild(humanName);
 
 			const float humanToggleWidth = 80.0f;
+			const float teamPickerWidth = 80.0f;
 			container.CustomMinimumSize = new Vector2(312.0f / opponentListContainer.Columns, 315.0f / numOpponents);
-			optionButton.CustomMinimumSize = new Vector2(290.0f / opponentListContainer.Columns - humanToggleWidth, optionButton.CustomMinimumSize.Y);
+			optionButton.CustomMinimumSize = new Vector2(290.0f / opponentListContainer.Columns - humanToggleWidth - teamPickerWidth, optionButton.CustomMinimumSize.Y);
 			playersChoice.CustomMinimumSize = optionButton.CustomMinimumSize;
 
 			foreach (Civilization civ in save.Civilizations) {
@@ -579,10 +656,11 @@ public partial class PlayerSetup : Control {
 			OptionButton ob = opponentSelectors[i];
 			string selectedName = ob.GetItemText(ob.Selected);
 
+			int team = TeamOn(teamPickers[i]);
 			if (selectedName == "Random") {
-				opponents.Add(new SelectedOpponent { isRandom = true });
+				opponents.Add(new SelectedOpponent { isRandom = true, team = team });
 			} else {
-				opponents.Add(new SelectedOpponent { isRandom = false, Name = selectedName });
+				opponents.Add(new SelectedOpponent { isRandom = false, Name = selectedName, team = team });
 			}
 		}
 
@@ -612,7 +690,7 @@ public partial class PlayerSetup : Control {
 				civ = available[rand.Next(available.Count)];
 				taken.Add(civ.name);
 			}
-			players.Add(new HotseatPlayer { civilization = civ, name = PlayerName(humanNames[i]) });
+			players.Add(new HotseatPlayer { civilization = civ, name = PlayerName(humanNames[i]), team = TeamOn(teamPickers[i]) });
 		}
 		return players;
 	}
@@ -672,6 +750,7 @@ public partial class PlayerSetup : Control {
 			GameSetup lanSetup = new() {
 				playerCivilization = selectedCivilization,
 				playerName = LanSession.PlayerName,
+				playerTeam = TeamOn(playerTeam),
 				difficulty = selectedDifficulty,
 				worldCharacteristics = global.WorldCharacteristics,
 				opponents = CollectSelectedOpponents(),
@@ -687,7 +766,11 @@ public partial class PlayerSetup : Control {
 				eternalWarCitiesPerCiv = eternalWarCities == null ? null : (int)eternalWarCities.Value,
 			};
 			PersistGameSettings(lanSetup);
-			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
+			// The guests start on the teams of their slots, and may change
+			// them in the lobby.
+			List<int> guestTeams = Enumerable.Range(0, humanToggles.Count).Where(i => humanToggles[i].ButtonPressed)
+				.Select(i => TeamOn(teamPickers[i])).ToList();
+			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats, freeForAll.ButtonPressed ? 0 : teamCount, guestTeams);
 			StartGame();
 			return;
 		}
@@ -697,6 +780,7 @@ public partial class PlayerSetup : Control {
 			playerCivilization = selectedCivilization,
 			// Names only matter when the screen is handed between players.
 			playerName = hotseatPlayers.Count > 0 ? PlayerName(playerNameEdit) : null,
+			playerTeam = TeamOn(playerTeam),
 			hotseatPlayers = hotseatPlayers,
 			difficulty = selectedDifficulty,
 			worldCharacteristics = global.WorldCharacteristics,

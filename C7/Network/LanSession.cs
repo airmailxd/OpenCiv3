@@ -247,4 +247,7 @@ public static class LanSession {
 	}
 }
 
-public record PendingLanGame(GameSetup setup, C7GameData.Save.SaveGame save, int guestSeats);
+// teamCount is how many teams players choose among, or 0 for a
+// free-for-all, and guestTeams the team each guest seat starts on.
+public record PendingLanGame(GameSetup setup, C7GameData.Save.SaveGame save, int guestSeats, int teamCount = 0,
+	System.Collections.Generic.List<int> guestTeams = null);

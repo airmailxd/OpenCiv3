@@ -73,7 +73,8 @@ namespace C7GameData {
 				string gameDate, DateTime now) =>
 			NewEntry(gameData, player, gameDate, now) with {
 				VictoryType = VictoryTypeName(victory),
-				Won = winner == player,
+				// A team wins together (see GameSetup.Teams.cs).
+				Won = winner == player || (winner != null && gameData.AreTeammates(player, winner)),
 				Winner = winner?.civilization?.noun ?? "",
 			};
 

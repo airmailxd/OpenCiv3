@@ -563,6 +563,63 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public void GuestsChooseTheirTeamsBeforeTheGameIsCreated() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
+
+		// Six civs, so six teams to choose from; the guests start on the two
+		// teams by default, after the host's.
+		using LanHost host = new("Host", playable[0].name, guestSeats: 2, save.Civilizations, port: 0, answerDiscovery: false,
+			teamCount: 6, hostTeam: 1);
+		Assert.Equal([2, 1], host.Seats.Select(s => s.team));
+
+		using LanClient ann = LanClient.Connect("127.0.0.1", host.Port, "Ann");
+		PumpUntil(host, ann, () => ann.Lobby != null);
+		Assert.Equal(6, ann.Lobby.teams);
+		Assert.Equal(1, ann.Lobby.seats.Single(s => s.isHost).team);
+		ann.ClaimSeat(host.Seats[0].playerID);
+		PumpUntil(host, ann, () => ann.YourSeats.Count > 0);
+
+		// Teams outside 1 to 6 are refused; the last choice, allowed, is
+		// taken once those before it are.
+		ann.ChooseTeam(0);
+		ann.ChooseTeam(7);
+		ann.ChooseTeam(3);
+		PumpUntil(host, ann, () => ann.Lobby.seats.Any(s => s.playerID == host.Seats[0].playerID && s.team == 3));
+
+		host.HostTeam = 3;
+		PumpUntil(host, ann, () => ann.Lobby.seats.Single(s => s.isHost).team == 3);
+
+		List<HotseatPlayer> guests = host.BeginCreatingGame();
+		Assert.Equal([3, 1], guests.Select(g => g.team));
+		ann.ChooseTeam(5);
+		PumpUntil(host, ann, () => ann.Lobby.creatingGame);
+		Assert.Equal(3, host.Seats[0].team);
+	}
+
+	[Fact]
+	public void AFreeForAllHasNoTeamsToChoose() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save.Civilizations.First(c => !c.isBarbarian).name, guestSeats: 1, save.Civilizations,
+			port: 0, answerDiscovery: false, teamCount: 0, hostTeam: 1);
+		Assert.Equal(0, host.HostTeam);
+		Assert.Equal(0, host.Seats[0].team);
+
+		using LanClient ann = LanClient.Connect("127.0.0.1", host.Port, "Ann");
+		PumpUntil(host, ann, () => ann.Lobby != null);
+		Assert.Equal(0, ann.Lobby.teams);
+		ann.ClaimSeat(host.Seats[0].playerID);
+		PumpUntil(host, ann, () => ann.YourSeats.Count > 0);
+		// The team is ignored; the civilization after it shows it was seen.
+		string civ = save.Civilizations.Where(c => !c.isBarbarian).ElementAt(3).name;
+		ann.ChooseTeam(2);
+		ann.ChooseCivilization(civ);
+		PumpUntil(host, ann, () => host.Seats[0].civilization == civ);
+		Assert.Equal(0, host.Seats[0].team);
+		Assert.Equal([0], host.BeginCreatingGame().Select(g => g.team));
+	}
+
+	[Fact]
 	public void HostsTurnAwayOtherVersions() {
 		using LanHost host = new("Host", SaveGameFixture.TwoHumanSave(), port: 0, answerDiscovery: false);
 		using System.Net.Sockets.TcpClient tcp = new("127.0.0.1", host.Port);

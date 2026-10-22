@@ -238,6 +238,12 @@ public class LanHost : IDisposable {
 	// from; null once the game exists.
 	private List<Civilization> choosable;
 	private bool creatingGame;
+
+	// How many teams players choose among in a new game not created yet, or
+	// 0 when they don't (a free-for-all, or a game that exists), and the
+	// host's team (0 for none).
+	private int teamCount;
+	private int hostTeam;
 	private readonly TcpListener listener;
 	private readonly UdpClient discovery;
 	private readonly ConcurrentQueue<LanTransport> accepted = new();
@@ -444,6 +450,7 @@ public class LanHost : IDisposable {
 	public LanHost(string hostName, SaveGame save, int port = LanProtocol.DefaultPort, bool answerDiscovery = true)
 		: this(hostName, RequireHostPlayer(save).id, RequireHostPlayer(save).civilization, SeatsFor(save), null, port, answerDiscovery,
 			save.TurnNumber) {
+		hostTeam = TeamOf(save, RequireHostPlayer(save));
 		if (save.Map?.tilesWide > 0) {
 			MapSize = $"{save.Map.tilesWide}x{save.Map.tilesTall}";
 		}
@@ -488,13 +495,29 @@ public class LanHost : IDisposable {
 	// Hosts a new game whose guests choose their civilizations: one seat for
 	// each guest, with the IDs GameSetup will give them, and the host playing
 	// hostCivilization. Call BeginCreatingGame and GameCreated to create it.
+	// With teams, players choose among teamCount teams, starting on the ones
+	// given: the host's, and each guest seat's in turn (see
+	// GameSetup.Teams.cs).
 	public LanHost(string hostName, string hostCivilization, int guestSeats, IEnumerable<Civilization> playable,
-		int port = LanProtocol.DefaultPort, bool answerDiscovery = true)
+		int port = LanProtocol.DefaultPort, bool answerDiscovery = true, int teamCount = 0, int hostTeam = 0,
+		IReadOnlyList<int> guestTeams = null)
 		: this(hostName, GameSetup.HumanPlayerIDs(guestSeats + 1)[0], hostCivilization,
 			GameSetup.HumanPlayerIDs(guestSeats + 1).Skip(1)
-				.Select(id => new Seat { info = new SeatInfo(id, null, null, false, null) })
+				.Select((id, i) => new Seat { info = new SeatInfo(id, null, null, false, null, team: GuestTeam(i, teamCount, guestTeams)) })
 				.ToList(),
 			playable.Where(c => !c.isBarbarian).ToList(), port, answerDiscovery, 0) {
+		this.teamCount = Math.Max(0, teamCount);
+		this.hostTeam = this.teamCount > 0 ? Math.Clamp(hostTeam, 1, this.teamCount) : 0;
+	}
+
+	// The team the guest seat at the index starts on: the one given, or by
+	// default the next of two after the host's.
+	private static int GuestTeam(int seat, int teamCount, IReadOnlyList<int> guestTeams) {
+		if (teamCount <= 0) {
+			return 0;
+		}
+		int team = guestTeams?.ElementAtOrDefault(seat) ?? 0;
+		return team >= 1 && team <= teamCount ? team : GameSetup.DefaultTeam(seat + 1, Math.Min(2, teamCount));
 	}
 
 	private static SavePlayer RequireHostPlayer(SaveGame save) {
@@ -505,8 +528,14 @@ public class LanHost : IDisposable {
 		ID hostPlayerID = RequireHostPlayer(save).id;
 		return save.Players
 			.Where(p => p.human && !p.defeated && p.id != hostPlayerID)
-			.Select(p => new Seat { info = new SeatInfo(p.id, p.civilization, p.name, false, null) })
+			.Select(p => new Seat { info = new SeatInfo(p.id, p.civilization, p.name, false, null, team: TeamOf(save, p)) })
 			.ToList();
+	}
+
+	// The player's team in a game that exists: its locked alliance's number,
+	// or 0 for none.
+	private static int TeamOf(SaveGame save, SavePlayer player) {
+		return player.alliance == null ? 0 : save.Alliances.FirstOrDefault(a => a.name == player.alliance)?.index ?? 0;
 	}
 
 	private LanHost(string hostName, ID hostPlayerID, string hostCivilization, List<Seat> seats,
@@ -1276,6 +1305,9 @@ public class LanHost : IDisposable {
 			case FrameKind.ChooseCivilization:
 				ChooseCivilization(guest, frame);
 				return true;
+			case FrameKind.ChooseTeam:
+				ChooseTeam(guest, frame);
+				return true;
 			case FrameKind.ChooseSpectatorView:
 				guest.spectatorView = NetSerialization.DeserializeRequired<SpectatorViewInfo>(frame.payload);
 				return true;
@@ -1654,9 +1686,45 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// The team players choose among in a new game not created yet, or 0 when
+	// they don't choose one.
+	public int TeamCount => GuestsChooseCivilizations ? teamCount : 0;
+
+	// The host's team; in a new game not created yet, the host may change
+	// it, to one of TeamCount.
+	public int HostTeam {
+		get => hostTeam;
+		set {
+			if (TeamCount == 0 || creatingGame || value < 1 || value > TeamCount || value == hostTeam) {
+				return;
+			}
+			hostTeam = value;
+			BroadcastLobby();
+		}
+	}
+
+	// A guest's choice of team for one of their seats, from 1 to TeamCount.
+	// Anything else leaves their seat as it was.
+	private void ChooseTeam(Guest guest, Frame frame) {
+		if (TeamCount == 0 || creatingGame) {
+			return;
+		}
+		ChooseTeamInfo choice = NetSerialization.DeserializeRequired<ChooseTeamInfo>(frame.payload);
+		Seat seat = choice.playerID == null
+			? SeatsOf(guest).FirstOrDefault()
+			: SeatsOf(guest).FirstOrDefault(s => s.info.playerID == choice.playerID);
+		if (seat != null && choice.team >= 1 && choice.team <= TeamCount && seat.info.team != choice.team) {
+			seat.info = seat.info with { team = choice.team };
+			log.Information("{Name} chose team {Team}", seat.takenBy, choice.team);
+			BroadcastLobby();
+		} else {
+			SendLobby(guest);
+		}
+	}
+
 	// Closes the guests' choices, and returns the guests as GameSetup's
 	// hotseatPlayers: each with the civilization they chose (null for a
-	// random one) and their name.
+	// random one), their name and their team. The host's team is HostTeam.
 	public List<HotseatPlayer> BeginCreatingGame() {
 		if (!GuestsChooseCivilizations) {
 			throw new InvalidOperationException("The game already exists");
@@ -1666,6 +1734,7 @@ public class LanHost : IDisposable {
 		return seats.Select(s => new HotseatPlayer {
 			civilization = choosable.Find(c => c.name == s.info.civilization),
 			name = s.takenBy,
+			team = s.info.team,
 		}).ToList();
 	}
 
@@ -1978,13 +2047,13 @@ public class LanHost : IDisposable {
 
 	private void SendLobby(LanConnection connection, List<ID> yourSeats, string reconnectToken = null, SpectatorViewInfo spectatorView = null) {
 		List<SeatInfo> seatInfos = [
-			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
+			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName, team: hostTeam),
 			.. Seats,
 		];
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
-			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView));
+			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView, TeamCount));
 	}
 
 	// While Poll handles what guests send, the lobby is sent once at the

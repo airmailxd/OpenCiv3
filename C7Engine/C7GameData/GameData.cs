@@ -348,9 +348,10 @@ namespace C7GameData {
 					((kvp.Key.name == one.name && kvp.Value.name == other.name)
 					|| (kvp.Key.name == other.name && kvp.Value.name == one.name)));
 		}
-		// Under Rules.PermanentWar every pair of civs is.
+		// Under Rules.PermanentWar every pair of civs is, but for teammates.
 		public bool AreInLockedWar(Player one, Player other) {
-			if (rules?.PermanentWar == true && one != other && !one.isBarbarians && !other.isBarbarians) {
+			if (rules?.PermanentWar == true && one != other && !one.isBarbarians && !other.isBarbarians
+					&& !AreInLockedPeace(one, other)) {
 				return true;
 			}
 			return AreAlliancesInLockedWar(one.alliance, other.alliance) && one != other;
@@ -363,6 +364,11 @@ namespace C7GameData {
 		}
 		public bool AreInLockedPeace(Player one, Player other) {
 			return AreInSameAlliance(one.alliance, other.alliance) && one != other;
+		}
+
+		// Both players are on a team that wins together (Rules.TeamVictory).
+		public bool AreTeammates(Player one, Player other) {
+			return rules?.TeamVictory == true && AreInLockedPeace(one, other);
 		}
 
 		public void UpdateTileOwners() {

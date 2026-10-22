@@ -11,6 +11,8 @@ namespace C7Engine;
 public struct SelectedOpponent {
 	public bool isRandom;
 	public string Name;
+	// The team the civ plays on, or 0 for none (see GameSetup.Teams.cs).
+	public int team;
 }
 
 // An additional human player: sharing the computer in a hotseat game, or
@@ -20,6 +22,8 @@ public struct HotseatPlayer {
 	public Civilization civilization;
 	// The person's name, or null if none was given.
 	public string name;
+	// The team the person plays on, or 0 for none (see GameSetup.Teams.cs).
+	public int team;
 }
 
 public partial class GameSetup {
@@ -28,6 +32,10 @@ public partial class GameSetup {
 	public Civilization playerCivilization { get; init; }
 	// The first human player's name, or null if none was given.
 	public string playerName { get; init; }
+	// The first human player's team, or 0 for none (see GameSetup.Teams.cs).
+	// A LAN host sets it once the lobby closes, as the host may change it
+	// there.
+	public int playerTeam { get; set; }
 	// Additional human players, sharing this computer in a hotseat game or
 	// joining over the LAN. They take their turns after the player above, in
 	// list order. A LAN host fills these in once the guests have chosen.
@@ -279,7 +287,7 @@ public partial class GameSetup {
 				taken.Add(name);
 				civ = save.Civilizations.Find(c => c.name == name);
 			}
-			planned.Add(new PlannedPlayer { civ = civ, isHuman = true, name = human.name, isRandom = human.civilization == null });
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = true, name = human.name, isRandom = human.civilization == null, team = human.team });
 		}
 
 		foreach (SelectedOpponent opponent in opponents) {
@@ -296,26 +304,31 @@ public partial class GameSetup {
 			taken.Add(selectedName);
 
 			Civilization civ = save.Civilizations.Find(x => x.name == selectedName);
-			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom });
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom, team = opponent.team });
 		}
 
 		if (save.Map.startingLocations.Count < planned.Count) {
 			throw new InvalidOperationException($"The map has {save.Map.startingLocations.Count} starting locations, too few for {planned.Count} civilizations");
 		}
+		List<(SavePlayer, int)> teams = [];
 		if (scenario == GameScenario.EternalWar) {
 			List<List<SaveTile>> sites = DealEternalWarSites(save, planned);
 			for (int i = 0; i < planned.Count; ++i) {
 				SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, sites[i][0]);
 				SetUpEternalWarPlayer(save, player, planned[i].civ, sites[i]);
+				teams.Add((player, planned[i].team));
 			}
 			StartEternalWar(save);
+			SetUpTeams(save, teams);
 			return;
 		}
 
 		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
 		for (int i = 0; i < planned.Count; ++i) {
-			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
+			SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
+			teams.Add((player, planned[i].team));
 		}
+		SetUpTeams(save, teams);
 	}
 
 	private class PlannedPlayer {
@@ -325,6 +338,7 @@ public partial class GameSetup {
 		// Whether the civilization was picked at random, so it may be
 		// swapped for another.
 		public bool isRandom;
+		public int team;
 	}
 
 	private static bool IsSeafaring(Civilization civ) {
@@ -414,7 +428,7 @@ public partial class GameSetup {
 	}
 
 	private IEnumerable<HotseatPlayer> HumanPlayers() {
-		return hotseatPlayers.Prepend(new HotseatPlayer { civilization = playerCivilization, name = playerName });
+		return hotseatPlayers.Prepend(new HotseatPlayer { civilization = playerCivilization, name = playerName, team = playerTeam });
 	}
 
 	// Every barbarian camp starts the game guarded by a basic barbarian unit
