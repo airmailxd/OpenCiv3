@@ -110,6 +110,11 @@ public partial class Tile {
 			yield += 1;
 		}
 
+		// A scenario's extra food from forest on tundra (Rules.TundraForestFoodBonus).
+		if (overlayTerrainType.IsForest && baseTerrainType.IsTundra) {
+			yield += EngineStorage.gameData?.rules?.TundraForestFoodBonus ?? 0;
+		}
+
 		if (this.HasCity()) {
 			// All city centers have a food yield of 2, regardless of bonus
 			// food. See https://wiki.civforum.de/wiki/Stadtfeldertrag_(Civ3).
@@ -284,7 +289,7 @@ public partial class Tile {
 			if (cityAtTile.owner.civilization?.traits.Contains(Civilization.Trait.Seafaring) == true && NeighborsOcean()) {
 				centerYield += 1;
 			}
-			return centerYield;
+			return centerYield + ScenarioCommerceBonus();
 		}
 
 		yield += BaseYieldBonus(YieldType.Commerce);
@@ -292,8 +297,11 @@ public partial class Tile {
 		if (this.HasCraters())
 			yield = Math.Max(0, yield - 1);
 
-		return yield;
+		return yield + ScenarioCommerceBonus();
 	}
+
+	// A scenario's extra commerce on every tile (Rules.TileCommerceBonus).
+	private static int ScenarioCommerceBonus() => EngineStorage.gameData?.rules?.TileCommerceBonus ?? 0;
 	public Yield CommerceYield(Player player) {
 		int yield = BaseCommerceYield(player);
 		return Yield.CalculateForPlayer(this, yield, YieldType.Commerce, player);

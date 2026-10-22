@@ -79,7 +79,7 @@ namespace C7GameData {
 				// past it.
 				GrowthBlocker blocker = GrowthBlocker.None;
 				if (!city.CanGrowPopulationByOne(gameData)) {
-					blocker = city.residents.Count >= gameData.rules.MaximumLevel2CitySize ? GrowthBlocker.Hospital : GrowthBlocker.Aqueduct;
+					blocker = city.residents.Count >= gameData.rules.GrowthLimitWithoutHospital ? GrowthBlocker.Hospital : GrowthBlocker.Aqueduct;
 				}
 				facts.Cities.Add(new CityAdviceFacts(city.name, city.FoodGrowthPerTurn(),
 					city.foodStored >= city.FoodNeededToGrow(), blocker,

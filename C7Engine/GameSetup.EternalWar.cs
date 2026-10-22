@@ -26,6 +26,11 @@ public enum GameScenario {
 // defend (2) but can't attack, and every government supports three times
 // the units for free.
 // (Owner's additions, 2026-10-21.)
+// Citizens work tiles as far as the borders' second expansion (radius 3).
+// Cities grow to 12 without fresh water or an aqueduct, and need a hospital
+// only past 24. Every tile makes a commerce more, and forest on tundra a
+// food more. A worker beaten in battle becomes a slave worker in the
+// winner's nearest city. (Owner's additions, 2026-10-21.)
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -40,6 +45,9 @@ public partial class GameSetup {
 	private static readonly string[] EternalWarCapitalBuildings = ["Granary", "Aqueduct"];
 	private const int EternalWarWorkerDefense = 2;
 	private const int EternalWarUnitSupportFactor = 3;
+	// Citizens work as far as a city's borders reach after their second
+	// expansion, rather than their first.
+	public const int EternalWarWorkRadius = 3;
 
 	// The cities each civ starts with by default on each world size (owner's
 	// choice, 2026-10-21).
@@ -126,6 +134,12 @@ public partial class GameSetup {
 		save.Rules.NoCorruption = true;
 		save.Rules.PermanentWar = true;
 		save.Rules.BornUnhappyPercent = EternalWarBornUnhappyPercent;
+		save.Rules.MaxRankOfWorkableTiles = EternalWarWorkRadius;
+		save.Rules.SizeWithoutAqueduct = save.Rules.MaximumLevel2CitySize;
+		save.Rules.SizeWithoutHospital = 2 * save.Rules.MaximumLevel2CitySize;
+		save.Rules.TileCommerceBonus = 1;
+		save.Rules.TundraForestFoodBonus = 1;
+		save.Rules.DefeatedWorkersBecomeSlaves = true;
 
 		foreach (SaveUnitPrototype settler in save.UnitPrototypes.Where(p => p.actions.Contains(UnitAction.BuildCity))) {
 			settler.unproducible = true;

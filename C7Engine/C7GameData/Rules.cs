@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace C7GameData {
 	public class Rules {
@@ -70,6 +71,21 @@ namespace C7GameData {
 		// The buildings a captured city always keeps, which would otherwise
 		// be lost like any other (see CityInteractions.CaptureCity).
 		public List<string> BuildingsKeptOnCapture = [];
+		// The sizes a city grows to without fresh water or an aqueduct, and
+		// without a hospital; 0 for the town and city size limits
+		// (MaximumLevel1CitySize and MaximumLevel2CitySize), as in Civ3. They
+		// move only the growth limits, not what counts as a town or a city.
+		public int SizeWithoutAqueduct = 0;
+		public int SizeWithoutHospital = 0;
+		[JsonIgnore] public int GrowthLimitWithoutAqueduct => SizeWithoutAqueduct > 0 ? SizeWithoutAqueduct : MaximumLevel1CitySize;
+		[JsonIgnore] public int GrowthLimitWithoutHospital => SizeWithoutHospital > 0 ? SizeWithoutHospital : MaximumLevel2CitySize;
+		// Added to every tile's commerce, city centers included.
+		public int TileCommerceBonus = 0;
+		// Added to the food of forest on tundra.
+		public int TundraForestFoodBonus = 0;
+		// A worker beaten in battle is taken as a slave worker to the
+		// winner's nearest city.
+		public bool DefeatedWorkersBecomeSlaves = false;
 
 		// Not Civ3: the game was set up with teams, each a locked alliance,
 		// and a team wins together (see GameSetup.Teams.cs and

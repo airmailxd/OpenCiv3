@@ -525,7 +525,7 @@ namespace C7Engine {
 
 		// The unit a slave becomes: the rules' slave unit (the BIQ's
 		// "Slave" unit, the Worker in the stock rules), or else a Worker.
-		private static UnitPrototype SlaveWorkerType(GameData gameData) {
+		internal static UnitPrototype SlaveWorkerType(GameData gameData) {
 			string name = gameData.rules?.SlaveUnitType;
 			return gameData.unitPrototypes.FirstOrDefault(p => name != null && p.name == name)
 				?? gameData.unitPrototypes.FirstOrDefault(p => p.name == "Worker")

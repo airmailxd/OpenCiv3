@@ -405,12 +405,12 @@ namespace C7Engine {
 			// growing. A capped city's citizens work for shields and trade,
 			// not the food it can't use (see CityTileAssignmentAI), so its
 			// surplus is about zero and can't be what tells it apart.
-			if (building.allowsCitySize2 && NeedsRoomToGrow(city, player.rules.MaximumLevel1CitySize, stats)) {
+			if (building.allowsCitySize2 && NeedsRoomToGrow(city, player.rules.GrowthLimitWithoutAqueduct, stats)) {
 				score += 50;
 			}
 
 			// Ditto with hospitals.
-			if (building.allowsCitySize3 && NeedsRoomToGrow(city, player.rules.MaximumLevel2CitySize, stats)) {
+			if (building.allowsCitySize3 && NeedsRoomToGrow(city, player.rules.GrowthLimitWithoutHospital, stats)) {
 				score += 70;
 			}
 

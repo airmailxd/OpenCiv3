@@ -451,7 +451,7 @@ namespace C7Engine {
 		// those caps even where a city could grow further, to keep this
 		// simple; that never joins a city Civ3 would refuse.
 		public static bool HasRoomToJoin(City city, int population, Player player) {
-			return city.residents.Count + population <= player.rules.MaximumLevel1CitySize
+			return city.residents.Count + population <= player.rules.GrowthLimitWithoutAqueduct
 				&& city.FoodGrowthPerTurn() >= 0;
 		}
 

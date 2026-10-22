@@ -1129,8 +1129,8 @@ namespace C7GameData {
 		}
 
 		internal bool CanGrowPopulationByOne(GameData gD) {
-			// We can always grow up to size 6.
-			if (residents.Count + 1 <= gD.rules.MaximumLevel1CitySize) {
+			// We can always grow up to size 6 (see Rules.SizeWithoutAqueduct).
+			if (residents.Count + 1 <= gD.rules.GrowthLimitWithoutAqueduct) {
 				return true;
 			}
 
@@ -1161,8 +1161,8 @@ namespace C7GameData {
 				return false;
 			}
 
-			// With fresh water or an aqueduct we can grow to size 2.
-			if (residents.Count + 1 <= gD.rules.MaximumLevel2CitySize) {
+			// With fresh water or an aqueduct we can grow to size 12.
+			if (residents.Count + 1 <= gD.rules.GrowthLimitWithoutHospital) {
 				return true;
 			}
 

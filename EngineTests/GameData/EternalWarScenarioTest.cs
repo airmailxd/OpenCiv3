@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.Lua;
 using C7GameData;
@@ -82,13 +83,13 @@ public class EternalWarScenarioTest {
 		}
 
 		// The cities are spread out, and on a 60% water map no two share a
-		// tile of their city radius.
+		// tile of Civ3's city radius (2; citizens here work further, see
+		// CitizensWorkAsFarAsTheSecondBorderExpansion).
 		List<Tile> cityTiles = gameData.cities.Select(c => c.location).ToList();
 		foreach (Tile t in cityTiles) {
 			Assert.All(cityTiles.Where(o => o != t), o => Assert.True(t.DistanceTo(o) >= 4));
 		}
-		int rank = gameData.rules.MaxRankOfWorkableTiles;
-		List<Tile> radii = cityTiles.SelectMany(t => t.GetTilesWithinRankDistance(rank)).ToList();
+		List<Tile> radii = cityTiles.SelectMany(t => t.GetTilesWithinRankDistance(2)).ToList();
 		Assert.Equal(radii.Count, radii.Distinct().Count());
 
 		// Only the first capital has a granary and an aqueduct.
@@ -205,5 +206,107 @@ public class EternalWarScenarioTest {
 		List<int> counts = gameData.players.Where(p => !p.isBarbarians).Select(p => p.cities.Count).Distinct().ToList();
 		Assert.Single(counts);
 		Assert.InRange(counts[0], 1, GameSetup.MaxEternalWarCitiesPerCiv - 1);
+	}
+
+	// Citizens work tiles as far as a city's borders reach after their
+	// second expansion: radius 3, where they're the civ's.
+	[Fact]
+	public void CitizensWorkAsFarAsTheSecondBorderExpansion() {
+		(_, C7GameData.GameData gameData) = NewGame(8);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Assert.Equal(GameSetup.EternalWarWorkRadius, gameData.rules.MaxRankOfWorkableTiles);
+		City city = gameData.cities.First();
+		Tile far = city.location.GetTilesWithinRankDistance(3)
+			.First(t => t != Tile.NONE && t.RankDistanceTo(city.location) == 3 && t.IsLand() && !t.HasCity());
+		far.owningCity = city;
+		Assert.Contains(far, city.GetWorkableTiles());
+	}
+
+	// Cities grow to 12 without fresh water or an aqueduct, to 24 with one,
+	// and past that with a hospital.
+	[Fact]
+	public void CitiesGrowToTwelveWithoutAnAqueduct() {
+		(_, C7GameData.GameData gameData) = NewGame(9);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		City city = gameData.cities.First(c => !c.IsCapital() && !c.location.BordersRiver() && !c.location.NeighborsFreshWater());
+		CitizenType citizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
+		void GrowTo(int size) {
+			while (city.residents.Count < size) {
+				city.AddCitizen(new CityResident { city = city, nationality = city.owner.civilization, citizenType = citizen });
+			}
+		}
+
+		GrowTo(11);
+		Assert.True(city.CanGrowPopulationByOne(gameData));
+		GrowTo(12);
+		Assert.False(city.CanGrowPopulationByOne(gameData));
+
+		city.AddBuilding(gameData.Buildings.Find(b => b.name == "Aqueduct"));
+		Assert.True(city.CanGrowPopulationByOne(gameData));
+		GrowTo(24);
+		Assert.False(city.CanGrowPopulationByOne(gameData));
+
+		city.AddBuilding(gameData.Buildings.Find(b => b.name == "Hospital"));
+		Assert.True(city.CanGrowPopulationByOne(gameData));
+	}
+
+	// Every tile makes a commerce more, city centers too, and forest on
+	// tundra a food more.
+	[Fact]
+	public void TilesMakeMoreCommerceAndTundraForestMoreFood() {
+		(_, C7GameData.GameData gameData) = NewGame(10);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		City city = gameData.cities.First();
+		Player owner = city.owner;
+		Tile land = city.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity());
+
+		int Commerce(Tile t) => t.CommerceYield(owner).yield;
+		int withBonus = Commerce(land), centerWithBonus = Commerce(city.location);
+		gameData.rules.TileCommerceBonus = 0;
+		Assert.Equal(Commerce(land) + 1, withBonus);
+		Assert.Equal(Commerce(city.location) + 1, centerWithBonus);
+
+		land.baseTerrainType = gameData.terrainTypes.Find(t => t.IsTundra);
+		land.overlayTerrainType = gameData.terrainTypes.Find(t => t.IsForest);
+		int food = land.FoodYield(owner).yield;
+		gameData.rules.TundraForestFoodBonus = 0;
+		Assert.Equal(land.FoodYield(owner).yield + 1, food);
+	}
+
+	// A worker beaten in battle becomes a slave worker in the winner's
+	// nearest city.
+	[Fact]
+	public async Task ABeatenWorkerBecomesASlaveInTheWinnersNearestCity() {
+		(_, C7GameData.GameData gameData) = NewGame(11);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		(Player winner, Player loser) = (civs[0], civs[1]);
+
+		bool Empty(Tile t) => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0 && !t.IsImpassable();
+		Tile to = gameData.map.tiles.First(t => Empty(t) && t.neighbors.Values.Any(Empty));
+		(TileDirection dir, Tile from) = to.neighbors.First(n => Empty(n.Value));
+		MapUnit knight = gameData.SpawnUnit(winner, gameData.unitPrototypes.First(p => p.name == "Knight"), from);
+		MapUnit worker = gameData.SpawnUnit(loser, gameData.unitPrototypes.First(p => p.name == "Worker"), to);
+		worker.hitPointsRemaining = 1;
+		City nearest = winner.cities.OrderBy(c => c.location.DistanceTo(to)).First();
+		int slavesBefore = nearest.location.unitsOnTile.Count(u => u.owner == winner && u.unitType.isWorker);
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ZeroRandom();
+		try {
+			Assert.True(await knight.Move(dir.Reversed()));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.DoesNotContain(worker, gameData.mapUnits);
+		List<MapUnit> slaves = nearest.location.unitsOnTile.Where(u => u.owner == winner && u.unitType.isWorker).ToList();
+		Assert.Equal(slavesBefore + 1, slaves.Count);
+		Assert.Contains(slaves, s => s.nationality == loser.civilization);
+	}
+
+	private class ZeroRandom : System.Random {
+		protected override double Sample() => 0;
 	}
 }

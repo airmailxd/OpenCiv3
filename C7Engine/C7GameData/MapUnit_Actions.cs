@@ -232,6 +232,24 @@ public partial class MapUnit {
 		}
 	}
 
+	// Takes a worker beaten in battle as a slave worker of the winner's, in
+	// the winner's city nearest the battle, keeping its nationality
+	// (Rules.DefeatedWorkersBecomeSlaves). Nothing for a winner without
+	// cities, such as the barbarians.
+	private static void EnslaveInNearestCity(MapUnit worker, Player winner) {
+		GameData gameData = EngineStorage.gameData;
+		Tile battle = worker.location;
+		City city = winner.cities.OrderBy(c => c.location.DistanceTo(battle)).FirstOrDefault();
+		UnitPrototype slaveType = CityInteractions.SlaveWorkerType(gameData);
+		if (city == null || slaveType == null || winner.isBarbarians) {
+			return;
+		}
+		MapUnit slave = gameData.SpawnUnit(winner, slaveType, city.location);
+		slave.nationality = worker.nationality ?? worker.owner.civilization;
+		winner.tileKnowledge.RecomputeActiveTiles();
+		log.Information("{Winner} takes a beaten {Worker} as a slave worker to {City}", winner, worker, city);
+	}
+
 	// The nearest of the owner's cities, other than `except`, that the unit
 	// could be in (a ship only in a city by the water): the one it could
 	// get to in the fewest turns, then steps, along a path over its own
@@ -1017,6 +1035,9 @@ public partial class MapUnit {
 			survivingMember.RollForLeader(dead, wasElite, defending: alive == defender);
 			if (alive == attacker) {
 				survivingMember.RollToEnslave(defendingMember);
+			}
+			if (dead.unitType.isWorker && EngineStorage.gameData.rules.DefeatedWorkersBecomeSlaves) {
+				EnslaveInNearestCity(dead, alive.owner);
 			}
 
 			// Winning a battle with an army is what lets a civ build the
