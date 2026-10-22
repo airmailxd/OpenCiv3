@@ -763,15 +763,12 @@ namespace C7Engine {
 		public GreatBooks.Title title;
 		public List<Player> ranking;
 
-		public MsgGreatHistoryBook(Player recipient, GreatBooks.Book book) {
+		public MsgGreatHistoryBook(Player recipient, int historian, GreatBooks.Title title, List<Player> ranking) {
 			this.recipient = recipient;
-			historian = book.historian;
-			title = book.title;
-			ranking = book.ranking;
+			this.historian = historian;
+			this.title = title;
+			this.ranking = ranking;
 		}
-
-		[JsonConstructor]
-		public MsgGreatHistoryBook() { }
 	}
 
 	public class MsgVictory : MessageToUI {

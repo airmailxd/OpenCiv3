@@ -125,7 +125,7 @@ namespace C7Engine {
 				// Civ3 does before the turn advances (see GreatBooks).
 				if (GreatBooks.MaybeWrite(gameData, GameData.rng) is GreatBooks.Book book) {
 					foreach (Player reader in gameData.players.Where(p => p.isHuman && !p.defeated)) {
-						new MsgGreatHistoryBook(reader, book).send();
+						new MsgGreatHistoryBook(reader, book.historian, book.title, book.ranking).send();
 					}
 				}
 
