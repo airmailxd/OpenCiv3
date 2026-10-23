@@ -17,8 +17,15 @@ namespace C7Engine;
 // continents or a pangaea, each civ on a landmass with city-states of its
 // own, the bigger landmasses taking more civs.
 public partial class GameSetup {
-	// How many independent city-states the map has for each civ.
-	public const int CityStatesPerCiv = 3;
+	// How many independent city-states the map has for each civ (owner's
+	// change, 2026-10-23, from 3).
+	public const int CityStatesPerCiv = 4;
+
+	// The civs a game has: about a quarter fewer than the world size's
+	// usual number, so the Kings have room (owner's ruling, 2026-10-23).
+	public static int KingsAndNomadsCivs(int numberOfCivs) {
+		return Math.Max(2, (int)Math.Round(numberOfCivs * 0.75));
+	}
 	public const int CityStateSize = 3;
 	// The closest a city-state may be to a civ's start.
 	private const int CityStateDistanceFromStart = 5;

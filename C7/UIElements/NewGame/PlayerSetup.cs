@@ -144,10 +144,15 @@ public partial class PlayerSetup : Control {
 		background.AddChild(playerNameEdit);
 
 		// Set up the options for opponents.
-		teamCount = global.WorldCharacteristics.worldSize.numberOfCivs;
+		// Kings & Nomads has about a quarter fewer civs than usual (see
+		// GameSetup.KingsAndNomadsCivs).
+		int numberOfCivs = global.Scenario == GameScenario.KingsAndNomads
+			? GameSetup.KingsAndNomadsCivs(global.WorldCharacteristics.worldSize.numberOfCivs)
+			: global.WorldCharacteristics.worldSize.numberOfCivs;
+		teamCount = numberOfCivs;
 		defaultTeamCount = GameSetup.DefaultTeamCount(global.WorldCharacteristics.worldSize);
 		AddTeamChoices();
-		AddOpponentSelectors(global.WorldCharacteristics.worldSize.numberOfCivs);
+		AddOpponentSelectors(numberOfCivs);
 		ChooseOpponentsAsLastTime();
 		ApplyDefaultTeams();
 
