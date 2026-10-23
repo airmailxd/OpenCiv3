@@ -12,6 +12,15 @@ namespace C7GameData.AIData {
 		// The unit this plan was made for.
 		public MapUnit worker;
 
+		// Kings & Nomads: whether the plan takes the worker outside our
+		// land, so that it goes with an escort, and the escort (see
+		// CityStateRoadAI).
+		public bool needsEscort;
+		public MapUnit escort;
+
+		// Kings & Nomads: whether the job is a road towards a city-state.
+		public bool cityStateRoad;
+
 		public override string ToString() {
 			return (buildColony ? "colony" : workerMove.UIAction) + " at " + destination;
 		}

@@ -43,6 +43,8 @@ namespace C7Engine {
 			private readonly Dictionary<(Tile, UnitPrototype), Terraform> bestTerraforms = new();
 			private List<Tile> connectionRoads;
 			private HashSet<Tile> connectionRoadSet;
+			private List<Tile> cityStateRoads;
+			private HashSet<Tile> cityStateRoadSet;
 
 			public PlanningCache(Player player) {
 				this.player = player;
@@ -61,6 +63,17 @@ namespace C7Engine {
 				return (connectionRoads, connectionRoadSet);
 			}
 
+			// Kings & Nomads: the road-less tiles on the roads that would
+			// join city-states to our cities (see CityStateRoadAI), likewise.
+			public (List<Tile> tiles, HashSet<Tile> set) CityStateRoads(MapUnit unit) {
+				Validate();
+				if (cityStateRoads == null) {
+					cityStateRoads = CityStateRoadAI.ComputeRoadTiles(player, unit);
+					cityStateRoadSet = new HashSet<Tile>(cityStateRoads);
+				}
+				return (cityStateRoads, cityStateRoadSet);
+			}
+
 			// Throws away everything if the player gained or lost a city, a
 			// tech, or changed government since it was computed.
 			private void Validate() {
@@ -72,6 +85,8 @@ namespace C7Engine {
 					lowPriorityTiles = null;
 					connectionRoads = null;
 					connectionRoadSet = null;
+					cityStateRoads = null;
+					cityStateRoadSet = null;
 					bestTerraforms.Clear();
 				}
 			}
@@ -119,7 +134,46 @@ namespace C7Engine {
 			}
 		}
 
+		// HEURISTIC: in Kings & Nomads, how many jobs a worker considers
+		// before it gives up for the turn, when the way to them leaves our
+		// land.
+		private const int MaxJobsLeavingOurLand = 3;
+
 		public static WorkerAIData MakeAiData(MapUnit unit, Player player) {
+			if (!CityStateRoadAI.IsOn(player)) {
+				return MakeAiData(unit, player, null, null, false);
+			}
+			// Kings & Nomads: a worker's jobs are on the land of ours it can
+			// reach without leaving it, but for the roads to city-states, for
+			// which it goes out with an escort (see CityStateRoadAI). In AI
+			// trials (30 games, half the civs each), escorting workers to
+			// colonies and outposts too, and to our other cities across
+			// unclaimed land, took three escorts for each city-state road
+			// job, soldiers that would have joined the hordes, and civs that
+			// did had 1.6 fewer cities after 120 turns on Pangaeas (+- 1.2).
+			bool escort = CityStateRoadAI.EscortAvailable(unit, player);
+			HashSet<Tile> within = CityStateRoadAI.OurLandAround(unit, player);
+			HashSet<Tile> refused = new();
+			for (int i = 0; i < MaxJobsLeavingOurLand; ++i) {
+				WorkerAIData plan = MakeAiData(unit, player, refused, within, escort);
+				if (plan == null || !CityStateRoadAI.LeavesOurLand(player, plan) || CityStateRoadAI.KeepWithinOurLand(unit, player, plan)
+						|| (plan.cityStateRoad && CityStateRoadAI.TakeEscort(unit, player, plan))) {
+					if (plan == null || !plan.needsEscort) {
+						CityStateRoadAI.ReleaseEscort(unit, player);
+					}
+					return plan;
+				}
+				log.Debug("{Unit} has no escort to go to {Tile}", unit, plan.destination);
+				refused.Add(plan.destination);
+			}
+			CityStateRoadAI.ReleaseEscort(unit, player);
+			return null;
+		}
+
+		// Plans the worker's next job, other than at the tiles refused, and
+		// only at the tiles within (if these are given), but for roads to
+		// city-states outside our land if an escort is available.
+		private static WorkerAIData MakeAiData(MapUnit unit, Player player, HashSet<Tile> refused, HashSet<Tile> within, bool escortAvailable) {
 			List<Tile> highPriorityTiles;
 			List<Tile> lowPriorityTiles;
 			if (planningCaches.TryGetValue(player, out PlanningCache cache)) {
@@ -140,6 +194,20 @@ namespace C7Engine {
 					outpostTrip |= otherWorker.data.workerMove?.Improvement?.key == Tile.TileOverlays.OUTPOST;
 				}
 			});
+
+			if (refused != null) {
+				reservedTiles.UnionWith(refused);
+			}
+			if (within != null) {
+				foreach (Tile t in highPriorityTiles.Concat(lowPriorityTiles)) {
+					if (!within.Contains(t)) {
+						reservedTiles.Add(t);
+					}
+				}
+			}
+			// The tiles other workers have claimed, before those enemies
+			// could reach are added.
+			HashSet<Tile> claimedTiles = CityStateRoadAI.IsOn(player) ? new(reservedTiles) : null;
 
 			// Tiles where enemies could catch the worker are skipped, as are
 			// those in the land of civs we're at war with (see AIThreat).
@@ -179,6 +247,9 @@ namespace C7Engine {
 			List<Tile> colonySites = WorkerHoldingsAI.ColonySites(unit, player, colonyTrip);
 			colonySites.RemoveAll(threat.IsUnsafeForCivilian);
 			colonySites.RemoveAll(t => TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns));
+			if (within != null) {
+				colonySites.RemoveAll(t => !within.Contains(t) || refused.Contains(t));
+			}
 			if (colonySites.Count > 0) {
 				algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, colonySites, unit, reachable, out TilePath path);
@@ -191,6 +262,9 @@ namespace C7Engine {
 			List<Tile> outpostSites = WorkerHoldingsAI.OutpostSites(unit, player, outpostTrip);
 			outpostSites.RemoveAll(threat.IsUnsafeForCivilian);
 			outpostSites.RemoveAll(t => TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns));
+			if (within != null) {
+				outpostSites.RemoveAll(t => !within.Contains(t) || refused.Contains(t));
+			}
 			if (outpostSites.Count > 0) {
 				algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, outpostSites, unit, reachable, out TilePath path);
@@ -224,7 +298,7 @@ namespace C7Engine {
 				int share = (workers + 1) / 4;
 				if (roadWorkers < share) {
 					List<Tile> open = connectionTiles.Where(t => !reservedTiles.Contains(t) && RoadTerraform(unit, t) != null
-							&& t.OwningPlayer() == player)
+							&& t.OwningPlayer() == player && (within == null || within.Contains(t)))
 						.OrderBy(t => t.DistanceTo(unit.location)).ToList();
 					if (open.Count > 0) {
 						algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
@@ -237,6 +311,13 @@ namespace C7Engine {
 				}
 			}
 
+			// Kings & Nomads: then roads to the city-states (see
+			// CityStateRoadAI), for a third of our workers, at least one.
+			if (claimedTiles != null && CityStateRoadPlan(unit, player, cache, claimedTiles, threat, within, escortAvailable, reachable, ref algorithm)
+					is WorkerAIData cityStateRoad) {
+				return cityStateRoad;
+			}
+
 			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles, reachable);
 			if (result != null) {
 				return result;
@@ -245,6 +326,56 @@ namespace C7Engine {
 			// If all our high priority tiles are improved, improve the lower
 			// priority tiles.
 			return GetPlanToImproveNearestUnimproved(unit, player, lowPriorityTiles, reservedTiles, reachable);
+		}
+
+		// Kings & Nomads: a plan to road one of the tiles that would join a
+		// city-state to our cities (see CityStateRoadAI), or null.
+		private static WorkerAIData CityStateRoadPlan(MapUnit unit, Player player, PlanningCache cache, HashSet<Tile> claimedTiles, AIThreat threat,
+				HashSet<Tile> within, bool escortAvailable, ReachableTiles reachable, ref PathingAlgorithm algorithm) {
+			(List<Tile> tiles, HashSet<Tile> set) = cache != null ? cache.CityStateRoads(unit) : (CityStateRoadAI.ComputeRoadTiles(player, unit), null);
+			if (tiles.Count == 0) {
+				return null;
+			}
+			set ??= new HashSet<Tile>(tiles);
+			int roadWorkers = 0;
+			int workers = 0;
+			registry.ForEachActive(player, other => {
+				if (other.data.worker == unit) {
+					return;
+				}
+				++workers;
+				if (other.data.destination != null && set.Contains(other.data.destination)) {
+					++roadWorkers;
+				}
+			});
+			// HEURISTIC: a third of our workers, at least one, and only for
+			// tiles within CityStateRoadAI.MaxDistance of the worker. Our
+			// workers are few in this scenario (one or two a civ by turn 30
+			// in AI trials), and the city-states don't last: the hordes take
+			// most of them by halfway through.
+			int share = Math.Max(1, (workers + 1) / 3);
+			if (roadWorkers >= share) {
+				return null;
+			}
+			// Outside our land the worker has an escort, which a city-state's
+			// garrison doesn't attack; within it, it goes alone, and keeps
+			// away from every enemy.
+			List<Tile> open = tiles.Where(t => !claimedTiles.Contains(t) && RoadTerraform(unit, t) != null
+					&& (CityStateRoadAI.IsOutside(player, t) ? escortAvailable && CityStateRoadAI.SafeWithEscort(threat, player, t)
+						: within.Contains(t) && !threat.IsUnsafeForCivilian(t)))
+				.Where(t => t.DistanceTo(unit.location) <= CityStateRoadAI.MaxDistance).OrderBy(t => t.DistanceTo(unit.location)).ToList();
+			if (open.Count == 0) {
+				return null;
+			}
+			algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
+			int index = algorithm.FindFirstReachable(unit.location, open, unit, reachable, out TilePath path);
+			if (index < 0) {
+				return null;
+			}
+			log.Debug("{Unit} builds a road at {Tile} towards a city-state", unit, open[index]);
+			WorkerAIData plan = MakePlan(unit, open[index], RoadTerraform(unit, open[index]), path);
+			plan.cityStateRoad = true;
+			return plan;
 		}
 
 		// The tiles our workers might improve. First, the tiles our civ works
@@ -292,7 +423,77 @@ namespace C7Engine {
 			return "WorkerAI: " + data.ToString();
 		}
 
-		public void UpdateOnDeath() { }
+		// Whether the unit escorts this worker (Kings & Nomads, see
+		// CityStateRoadAI).
+		internal bool IsEscortedBy(MapUnit escort) {
+			return data != null && data.needsEscort && data.escort == escort;
+		}
+
+		// When its escort is lost.
+		internal void LoseEscort(MapUnit escort) {
+			if (data != null && data.escort == escort) {
+				data.escort = null;
+			}
+		}
+
+		// A worker lost or captured lets its escort go.
+		public void UpdateOnDeath() {
+			if (data?.escort?.currentAI is EscortAI escortAi && escortAi.data.unitToEscort == data.worker) {
+				escortAi.data.unitToEscort = null;
+			}
+			if (data != null) {
+				data.escort = null;
+			}
+		}
+
+		// HEURISTIC: how many turns a worker waits for its escort before it
+		// gives up the job, beyond one a tile the escort had to come.
+		private const int MaxTurnsWaitingForEscort = 2;
+
+		// The turn the worker started waiting for its escort, or -1, and how
+		// far away the escort was then.
+		private int escortWaitSinceTurn = -1;
+		private int escortWaitDistance;
+
+		// Kings & Nomads: a worker whose job takes it outside our land keeps
+		// its escort with it there (see CityStateRoadAI). It takes another if
+		// it has lost it, or goes home if there is none; it waits for one
+		// that has fallen behind before stepping out of our land, and
+		// outside it. Returns null if it may go on.
+		private UnitAI.MoveResult? KeepWithEscort(Player player, MapUnit unit) {
+			MapUnit escort = data.escort;
+			if (escort == null || !PlayerAI.IsStillOurs(escort, player) || escort.currentAI is not EscortAI e || e.data?.unitToEscort != unit) {
+				data.escort = null;
+				if (!CityStateRoadAI.TakeEscort(unit, player, data)) {
+					if (CityStateRoadAI.IsOutside(player, unit.location) && MakeForCity(player, unit, "has lost its escort, so goes back to") is UnitAI.MoveResult back) {
+						return back;
+					}
+					log.Debug("{Unit} has lost its escort and gives up its job at {Destination}", unit, data.destination);
+					return UnitAI.Result.Error;
+				}
+				escort = data.escort;
+			}
+			if (escort.location == unit.location) {
+				escortWaitSinceTurn = -1;
+				return null;
+			}
+			Tile next = unit.location == data.destination ? unit.location : data.pathToDestination?.PeekNext() ?? Tile.NONE;
+			if (!CityStateRoadAI.IsOutside(player, unit.location) && next != Tile.NONE && !CityStateRoadAI.IsOutside(player, next)) {
+				return null;
+			}
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (escortWaitSinceTurn < 0) {
+				escortWaitSinceTurn = turn;
+				escortWaitDistance = escort.location.DistanceTo(unit.location);
+			} else if (turn - escortWaitSinceTurn >= MaxTurnsWaitingForEscort + escortWaitDistance) {
+				log.Debug("{Unit} waited too long for its escort {Escort}", unit, escort);
+				CityStateRoadAI.ReleaseEscort(unit, player);
+				data.escort = null;
+				return UnitAI.Result.Error;
+			}
+			unit.movementPoints.onConsumeAll();
+			return UnitAI.Result.InProgress;
+		}
 
 		UnitAI.MoveResult UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
 			// A worker enemies could catch stops work and makes for one of
@@ -305,7 +506,14 @@ namespace C7Engine {
 			if (data == null) {
 				return Idle(player, unit);
 			}
-			if (unit.location != data.destination && threat.IsUnsafeForCivilian(data.destination)) {
+			if (data.needsEscort && KeepWithEscort(player, unit) is UnitAI.MoveResult guarded) {
+				return guarded;
+			}
+			// An escorted worker needn't keep away from a city-state's
+			// garrison (see CityStateRoadAI).
+			bool escorted = data.needsEscort && data.escort != null;
+			if (unit.location != data.destination
+					&& (escorted ? !CityStateRoadAI.SafeWithEscort(threat, player, data.destination) : threat.IsUnsafeForCivilian(data.destination))) {
 				log.Debug("{Unit} gives up its job at {Destination}, where enemies could catch it", unit, data.destination);
 				return UnitAI.Result.Error;
 			}
@@ -336,6 +544,19 @@ namespace C7Engine {
 			// will eventually road between all worked tiles of all cities.
 			// (Stopping only for roads on the connecting roads and for tiles
 			// cities work did no better in AI trials.)
+			//
+			// In Kings & Nomads, a worker going with an escort, or to road
+			// towards a city-state, stops on the way only for the roads to
+			// the city-states (see CityStateRoadAI): in AI trials, workers
+			// stopping at every tile took twenty turns and more to get there,
+			// with their escorts waiting on them, and the city-state had
+			// mostly fallen to a horde by then.
+			if (data.needsEscort || data.cityStateRoad) {
+				if (CityStateRoadAI.IsWantedRoad(player, unit.location) && RoadTerraform(unit, unit.location) is Terraform road) {
+					return PerformWorkerMove(unit, road);
+				}
+				return this.TryToMoveAlongPath(unit, ref data.pathToDestination);
+			}
 			Terraform? improvement = GetTileImprovement(unit.location, unit);
 			if (improvement != null) {
 				return PerformWorkerMove(unit, improvement);

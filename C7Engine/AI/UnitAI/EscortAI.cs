@@ -17,6 +17,11 @@ namespace C7Engine {
 			data = d;
 		}
 
+		// The unit doing the escorting, once it has played a turn: a
+		// worker's plan names its escort (see CityStateRoadAI), a settler's
+		// is told of its loss without it.
+		private MapUnit escort;
+
 		public void UpdateOnDeath() {
 			if (data.unitToEscort == null) {
 				return;
@@ -26,6 +31,8 @@ namespace C7Engine {
 			// escorting, and clear our their reference to us.
 			if (data.unitToEscort.currentAI is SettlerAI settlerAi) {
 				settlerAi.data.escort = null;
+			} else if (data.unitToEscort.currentAI is WorkerAI workerAi && escort != null) {
+				workerAi.LoseEscort(escort);
 			}
 			data.unitToEscort = null;
 		}
@@ -82,6 +89,13 @@ namespace C7Engine {
 			if (data == null || data.unitToEscort == null || data.unitToEscort.currentAI == null) {
 				return UnitAI.Result.Error;
 			}
+			escort = unit;
+
+			// A worker (Kings & Nomads, see CityStateRoadAI) whose job no
+			// longer takes it out of our land lets us go.
+			if (data.unitToEscort.currentAI is WorkerAI escortedWorker && !escortedWorker.IsEscortedBy(unit)) {
+				return UnitAI.Result.Done;
+			}
 
 			// Aboard a ferry with the unit we escort, which does the moving.
 			if (unit.IsLoaded() && unit.Carrier()?.currentAI is FerryAI) {
@@ -102,16 +116,25 @@ namespace C7Engine {
 				// and with them between plans we'd go off exploring instead.
 				MapUnit escorted = data.unitToEscort;
 				escorted.currentAI = PlayerAI.GetAIForUnit(escorted, player);
-				if (escorted.currentAI is not SettlerAI settlerAi || settlerAi.data.escort != null) {
-					return result;
+				if (escorted.currentAI is WorkerAI worker) {
+					// A worker's new job takes us along if it leaves our land.
+					if (!worker.IsEscortedBy(unit)) {
+						return UnitAI.Result.Done;
+					}
+					escortedUnitResult = UnitAI.Result.InProgress;
+					escorted.movementPoints.onConsumeAll();
+				} else {
+					if (escorted.currentAI is not SettlerAI settlerAi || settlerAi.data.escort != null) {
+						return result;
+					}
+					settlerAi.data.escort = unit;
+					// We're called again after each of our moves this turn; don't
+					// re-plan for them each time.
+					escortedUnitResult = UnitAI.Result.InProgress;
+					// They head off next turn, when we have them move first again.
+					escorted.movementPoints.onConsumeAll();
+					log.Information($"Settler {escorted.id} has a new plan; {unit.id} keeps escorting it");
 				}
-				settlerAi.data.escort = unit;
-				// We're called again after each of our moves this turn; don't
-				// re-plan for them each time.
-				escortedUnitResult = UnitAI.Result.InProgress;
-				// They head off next turn, when we have them move first again.
-				escorted.movementPoints.onConsumeAll();
-				log.Information($"Settler {escorted.id} has a new plan; {unit.id} keeps escorting it");
 			}
 
 			// If we're on the correct location, give up the rest of our MPs.

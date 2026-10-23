@@ -172,11 +172,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// over the game.
 			"csConn", "midCsConn", "csGold",
 			// Workers: those the civ lost (captured or destroyed by an
-			// enemy walking onto them, or killed in battle), the
-			// worker-turns its workers ended outside its borders, those of
-			// them with no defender of ours on the tile, and the attacks
-			// city-state garrisons made on its units.
-			"wkLost", "wkOut", "wkOutAlone", "csAttacks",
+			// enemy walking onto them, or killed in battle), those of them
+			// taken outside its borders, the worker-turns its workers ended
+			// outside its borders, those of them with no defender of ours on
+			// the tile, and the attacks city-state garrisons made on its
+			// units.
+			"wkLost", "wkLostOut", "wkOut", "wkOutAlone", "csAttacks",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -448,6 +449,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> unitsLost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> shipKills = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> workersLost = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> workersLostOutside = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> cityStateAttacks = civs.ToDictionary(p => p, _ => 0);
 		void Add(Dictionary<Player, int> counts, Player p) {
 			if (p != null && counts.ContainsKey(p)) {
@@ -506,6 +508,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		AiExperiments.onUnitTaken = (unit, _) => {
 			if (unit.unitType.isWorker) {
 				Add(workersLost, unit.owner);
+				if (unit.location.OwningPlayer() != unit.owner) {
+					Add(workersLostOutside, unit.owner);
+				}
 			}
 		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
@@ -726,6 +731,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.midCityStates;
 			m.values[i++] = d.cityStateGold;
 			m.values[i++] = workersLost[p];
+			m.values[i++] = workersLostOutside[p];
 			m.values[i++] = d.workerTurnsOut;
 			m.values[i++] = d.workerTurnsOutAlone;
 			m.values[i++] = cityStateAttacks[p];

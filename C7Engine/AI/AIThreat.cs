@@ -80,6 +80,17 @@ namespace C7Engine.AI {
 			return false;
 		}
 
+		// Likewise, leaving out the enemies standing on tiles `ignoreFrom`
+		// accepts.
+		public bool EnemyCanReach(Tile tile, Func<Tile, bool> ignoreFrom) {
+			foreach ((Tile at, int reach) in enemies) {
+				if (at.DistanceTo(tile) <= reach && !ignoreFrom(at)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		// Whether a unit of ours that can't fight is unsafe on the tile: it's
 		// in the land of a civ we're at war with, or an enemy could reach it,
 		// with no defender of ours there.
