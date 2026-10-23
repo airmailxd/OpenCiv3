@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using C7Engine.AI;
 using C7GameData;
 using Serilog;
 
@@ -217,23 +218,14 @@ namespace C7Engine {
 			state.bidding.Remove(player.id.ToString());
 		}
 
-		// HEURISTIC (the market isn't Civ3's, so nothing says how an AI
-		// would bid): an AI spends up to half its treasury, offering for each
-		// unit between half and one and a half times its shield cost, best
-		// value first (attack and defence for the shields), and nothing once
-		// the money it set aside runs out.
+		// The AI's bids, one for each offer (see MarketAI).
 		public static List<int> AiBids(GameData gameData, Player player, List<UnitPrototype> offers) {
-			int budget = player.gold / 2;
-			List<int> bids = offers.Select(_ => 0).ToList();
-			foreach (int i in Enumerable.Range(0, offers.Count)
-					.OrderByDescending(i => (offers[i].attack + offers[i].defense) / (double)System.Math.Max(1, offers[i].shieldCost))) {
-				int cost = System.Math.Max(1, offers[i].shieldCost);
-				int bid = System.Math.Min(budget, cost / 2 + GameData.rng.Next(cost + 1));
-				bids[i] = bid;
-				budget -= bid;
-			}
-			return bids;
+			return MarketAI.Bids(gameData, player, offers);
 		}
+
+		// Lets AiTrialTest count the units each civ buys and the gold it
+		// pays. Null outside a trial.
+		internal static System.Action<Player, UnitPrototype, int> onBuy;
 
 		// Closes the market: each unit goes to its highest bidder, or to each
 		// of those tied for it, who pay their bids. The AIs place theirs at
@@ -259,6 +251,7 @@ namespace C7Engine {
 						}
 						player.gold -= best;
 						result.winners.Add(player);
+						onBuy?.Invoke(player, unit, best);
 						log.Information("{Player} buys a {Unit} for {Gold} gold", player, unit.name, best);
 						if (player.isHuman) {
 							state.toPlace.Add(new StagingWin { player = id, unitType = unit.name });
@@ -269,6 +262,7 @@ namespace C7Engine {
 				}
 				results.Add(result);
 			}
+			MarketAI.Learn(gameData, state, results);
 			return results;
 		}
 
@@ -297,24 +291,10 @@ namespace C7Engine {
 			return city.location.unitsOnTile.Where(u => u.owner == city.owner && u.unitType.defense > 0 && !u.unitType.isWorker).ToList();
 		}
 
-		// HEURISTIC (Staging isn't Civ3's, so nothing says how an AI would
-		// choose): a defender (no stronger in attack than defence) goes to
-		// the city with the fewest defenders, and anything else to the city
-		// nearest an enemy city, to strike from; each breaks ties by the
-		// other. A ship goes to a coastal city if there is one.
+		// The city an AI puts a unit it won in, or a human's that is chosen
+		// for them (see MarketAI).
 		public static City AiChoice(GameData gameData, Player player, UnitPrototype unit) {
-			List<City> choices = Choices(player, unit);
-			if (unit.IsSeaUnit() && choices.Any(c => c.location.NeighborsOcean())) {
-				choices = choices.Where(c => c.location.NeighborsOcean()).ToList();
-			}
-			List<Tile> enemyCities = gameData.cities
-				.Where(c => c.owner != player && PlayerRelationship.AtWar(player, c.owner))
-				.Select(c => c.location).ToList();
-			int ToEnemy(City city) => enemyCities.Count == 0 ? 0 : enemyCities.Min(t => city.location.DistanceTo(t));
-			if (unit.defense >= unit.attack && !unit.IsSeaUnit()) {
-				return choices.OrderBy(c => Garrison(c).Count).ThenBy(ToEnemy).First();
-			}
-			return choices.OrderBy(ToEnemy).ThenBy(c => Garrison(c).Count).First();
+			return MarketAI.Choice(gameData, player, unit, Choices(player, unit));
 		}
 
 		// Puts the player's unit in the city, or a ship the city can't hold

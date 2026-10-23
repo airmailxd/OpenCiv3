@@ -11,7 +11,7 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class EternalWarScenarioTest {
-	private static (SaveGame, C7GameData.GameData) NewGame(int seed, int? citiesPerCiv = 4, List<string> civNames = null,
+	internal static (SaveGame, C7GameData.GameData) NewGame(int seed, int? citiesPerCiv = 4, List<string> civNames = null,
 			WorldCharacteristics.OceanCoverage ocean = WorldCharacteristics.OceanCoverage.Percent_60) {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {

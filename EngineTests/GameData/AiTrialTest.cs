@@ -152,6 +152,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"flipsIn", "flipsOut", "closeCities",
 			// Turns the civ spent mobilized for war (see Mobilization).
 			"mobilized",
+			// The Mercenary Market (Eternal War): units the civ bought, and
+			// the gold it paid for them.
+			"mktBought", "mktGold",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -447,6 +450,14 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				rushGold[city.owner] += gold;
 			}
 		};
+		Dictionary<Player, int> marketBought = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> marketGold = civs.ToDictionary(p => p, _ => 0);
+		Staging.onBuy = (buyer, _, gold) => {
+			if (marketBought.ContainsKey(buyer)) {
+				++marketBought[buyer];
+				marketGold[buyer] += gold;
+			}
+		};
 		Dictionary<Player, int> rops = civs.ToDictionary(p => p, _ => 0);
 		RightOfPassageAI.onSigned = (asker, partner) => {
 			Add(rops, asker);
@@ -563,6 +574,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onHurry = null;
 			AiExperiments.onCultureFlip = null;
 			RightOfPassageAI.onSigned = null;
+			Staging.onBuy = null;
 		}
 
 		Dictionary<Player, int> land = civs.ToDictionary(p => p, _ => 0);
@@ -638,6 +650,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = flipsOut[p];
 			m.values[i++] = p.cities.Count(c => gameData.cities.Any(o => o != c && o.location.DistanceTo(c.location) <= 2));
 			m.values[i++] = d.mobilized;
+			m.values[i++] = marketBought[p];
+			m.values[i++] = marketGold[p];
 			return m;
 		}
 
