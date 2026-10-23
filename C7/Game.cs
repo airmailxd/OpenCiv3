@@ -2777,7 +2777,9 @@ public partial class Game : Node {
 			return;
 		}
 
-		if (eventKeyDown.Keycode == Godot.Key.C && HasCurrentlySelectedUnit()) {
+		// Plain C only: Shift-C clears forest, wetlands or damage.
+		if (eventKeyDown.Keycode == Godot.Key.C && !eventKeyDown.ShiftPressed && !eventKeyDown.IsCommandOrControlPressed()
+			&& HasCurrentlySelectedUnit()) {
 			mapView.centerCameraOnTile(CurrentlySelectedUnit.location);
 		}
 		if (eventKeyDown.Keycode == Godot.Key.H) {
@@ -3387,6 +3389,16 @@ public partial class Game : Node {
 		}
 
 		Terraform terraform = C7Action.ToTerraform(currentAction);
+
+		// Shift-C is Civ3's key for all three clearing jobs (labels.txt,
+		// #UNIT_ACTIONS), and does whichever the tile needs, damage first, as
+		// the Civilopedia's "Clear Pollution/Forest/Jungle/Marsh  Shift-C"
+		// lists it.
+		if (currentAction == C7Action.UnitClearForest) {
+			terraform = new[] { C7Action.UnitClearDamage, C7Action.UnitClearForest, C7Action.UnitClearWetlands }
+				.Select(C7Action.ToTerraform)
+				.FirstOrDefault(tf => tf != null && CurrentlySelectedUnit.CanPerformTerraformAction(tf));
+		}
 
 		// the `r` key is mapped to the 'Build Road' action
 		// if there is a road we want to map this to 'Build Railroad' action
