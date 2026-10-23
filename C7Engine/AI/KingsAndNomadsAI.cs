@@ -34,9 +34,11 @@ namespace C7Engine.AI {
 	//
 	// The King travels with the horde until the civ has a city, guarded by
 	// a unit that doesn't attack while the King shares its tile, and never
-	// attacks itself. From then on it retires to the safest of our cities
-	// and stays there fortified with a guard the rest of the AI leaves
-	// alone (see MakeKingAI and GuardsTheKing). Captured cities build
+	// attacks itself. From then on it waits in the safest of our cities,
+	// fortified with a guard the rest of the AI leaves alone (see
+	// MakeKingAI and GuardsTheKing), for the strongest horde to come and
+	// take it along to lead the attack, and back again when it's in
+	// danger (see MarchForTheKing). Captured cities build
 	// defenders, then settlers, which only they can build (see UnitBonus).
 	//
 	// In the same trials with this, civs had on average 7.8 cities after
@@ -86,6 +88,18 @@ namespace C7Engine.AI {
 			// it leaves each alone.
 			public readonly Dictionary<City, int> avoid = new();
 			public readonly List<MapUnit> units = new();
+			// Once we have a city, the King's city the horde is going to
+			// pick him up from, and the city it's taking him back to (see
+			// MarchForTheKing).
+			public Tile rendezvous;
+			public City retreatTo;
+			// Turns in a row the horde with the King stopped short of a tile
+			// too dangerous for him.
+			public int kingHeld;
+			// Turns the horde has waited in the King's city for his guard.
+			public int kingWaited;
+
+			public MapUnit King => units.FirstOrDefault(u => u.unitType.isKing);
 
 			public Tile TargetTile => targetCity?.location ?? targetKing?.location;
 		}
@@ -186,10 +200,11 @@ namespace C7Engine.AI {
 			bool homeless = player.cities.Count == 0;
 			foreach (Horde horde in list) {
 				horde.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player) || !IsMember(u));
-				// With a city, the King retires (see MakeKingAI), workers go
-				// to work, and the badly hurt go back to heal (see RestAI).
+				// With a city, workers go to work, and the badly hurt go back
+				// to heal (see RestAI); the King goes home only when the
+				// horde takes him (see MarchForTheKing).
 				if (!homeless) {
-					foreach (MapUnit u in horde.units.Where(u => u.unitType.isKing || u.unitType.isWorker
+					foreach (MapUnit u in horde.units.Where(u => u.unitType.isWorker
 							|| (IsFighter(u) && !u.IsArmy() && Health(u) < HurtHealth)).ToList()) {
 						Release(horde, u);
 					}
@@ -200,6 +215,9 @@ namespace C7Engine.AI {
 				GuardKing(player, horde);
 			}
 			Recruit(player, list, homeless);
+			if (!homeless) {
+				PlanKingsMarch(player, list);
+			}
 			foreach (Horde horde in list.ToList()) {
 				if (!horde.units.Any(IsFighter)) {
 					foreach (MapUnit u in horde.units.ToList()) {
@@ -214,7 +232,22 @@ namespace C7Engine.AI {
 
 		private static async Task PlayHorde(Player player, GameData gameData, List<Horde> list, Horde horde, bool homeless) {
 			PickStackTile(player, horde);
+			if (!homeless) {
+				if (await MarchForTheKing(player, horde)) {
+					FortifyStack(player, horde);
+					return;
+				}
+			}
 			ChooseTarget(player, gameData, list, horde, homeless);
+			if (!homeless && horde.King != null && horde.TargetTile == null) {
+				// With nothing to attack, the King goes home.
+				StartRetreat(player, horde, "has nothing to attack");
+				if (horde.retreatTo != null) {
+					await MarchForTheKing(player, horde);
+					FortifyStack(player, horde);
+					return;
+				}
+			}
 			if (horde.TargetTile == null) {
 				if (!await Explore(player, horde) && !homeless) {
 					// Nothing to take and nowhere to look: the fighters go back
@@ -256,7 +289,7 @@ namespace C7Engine.AI {
 			if (threat.EnemyCanReach(city.location)) {
 				++want;
 			}
-			if (city.location.unitsOnTile.Any(u => u.owner == player && u.unitType.isKing)) {
+			if (city.location.unitsOnTile.Any(u => u.owner == player && IsResidentKing(u))) {
 				want += 2 + Math.Min(3, player.cities.Count / 5);
 			}
 			return want;
@@ -279,7 +312,7 @@ namespace C7Engine.AI {
 				return false;
 			}
 			City city = unit.location.cityAtTile;
-			if (city == null || city.owner != player || !city.location.unitsOnTile.Any(u => u.owner == player && u.unitType.isKing)) {
+			if (city == null || city.owner != player || !city.location.unitsOnTile.Any(u => u.owner == player && IsResidentKing(u))) {
 				return false;
 			}
 			int rank = KingsGuards(player, city.location).IndexOf(unit);
@@ -290,7 +323,7 @@ namespace C7Engine.AI {
 		// units in it.
 		private static void GuardKing(Player player, Horde horde) {
 			City city = KingsCity(player);
-			if (city == null) {
+			if (city == null || IsMember(KingOf(player))) {
 				return;
 			}
 			int want = GarrisonWanted(player, city, AIThreat.Assess(player));
@@ -334,7 +367,8 @@ namespace C7Engine.AI {
 					}
 				}
 			}
-			return fighters < MaxHordeFighters && (!IsDefensive(u) || guards < MaxHordeGuards);
+			int maxGuards = horde.King != null ? MaxHordeGuards + KingsHordeGuards : MaxHordeGuards;
+			return fighters < MaxHordeFighters && (!IsDefensive(u) || guards < maxGuards);
 		}
 
 		// Takes into the hordes the fighters our cities can spare and those in
@@ -794,13 +828,26 @@ namespace C7Engine.AI {
 			if (city.owner == player) {
 				log.Information("{Player}'s horde took {City}", player, city.name);
 				// The King and the rest come in, and the city keeps a
-				// garrison.
+				// garrison. The King stays out, and keeps the rest with him,
+				// if he has no moves left, or more of his defenders would
+				// be left outside (those that have used their moves) than
+				// would come in.
+				MapUnit king = horde.King;
+				bool kingStays = false;
+				if (king != null && king.location == horde.stackTile) {
+					bool Defends(MapUnit u) => u != king && u.owner == player && u.CanDefendOnLand() && !u.unitType.isWorker && !u.unitType.isSettler;
+					int comeIn = horde.stackTile.unitsOnTile.Count(u => Defends(u) && u.movementPoints.canMove) + tile.unitsOnTile.Count(Defends);
+					int left = horde.stackTile.unitsOnTile.Count(u => Defends(u) && !u.movementPoints.canMove);
+					kingStays = !king.movementPoints.canMove || comeIn < left || comeIn < KingSafeDefenders;
+				}
 				foreach (MapUnit u in horde.units.ToList()) {
-					if (PlayerAI.IsStillOurs(u, player) && u.location == horde.stackTile && u.movementPoints.canMove) {
+					if (!kingStays && PlayerAI.IsStillOurs(u, player) && u.location == horde.stackTile && u.movementPoints.canMove) {
 						await u.Move(u.location.DirectionTo(tile));
 					}
 				}
-				horde.stackTile = tile;
+				if (!kingStays) {
+					horde.stackTile = tile;
+				}
 				Garrison(player, horde, city);
 				horde.targetCity = null;
 				horde.waited = 0;
@@ -863,6 +910,19 @@ namespace C7Engine.AI {
 				if (next == stopNextTo) {
 					break;
 				}
+				MapUnit king = stack.FirstOrDefault(u => u.unitType.isKing && u.location == horde.stackTile);
+				if (king != null) {
+					// The stack doesn't go on without the King, nor, once we
+					// have a city to take him back to, to where he'd be in
+					// danger.
+					if (!king.movementPoints.canMove) {
+						break;
+					}
+					if (player.cities.Count > 0 && !HasHostileUnits(player, next) && !KingSafeOn(player, next, stack)) {
+						++horde.kingHeld;
+						break;
+					}
+				}
 				if (HasHostileUnits(player, next)) {
 					double enough = ForceAgainst(player, stack, next, ableNow: true) >= AssaultMargin * WarCampaign.DefenderHitPoints(player, next) ? 0.3 : SureOdds;
 					if (!await AttackIfGoodOdds(player, stack, next, enough) || HasHostileUnits(player, next)) {
@@ -892,6 +952,9 @@ namespace C7Engine.AI {
 					break;
 				}
 				horde.stackTile = next;
+				if (king != null) {
+					horde.kingHeld = 0;
+				}
 				stack = stack.Where(u => PlayerAI.IsStillOurs(u, player) && u.location == next).ToList();
 				if (stack.Count == 0 || stack[0] != lead) {
 					break;
@@ -936,6 +999,340 @@ namespace C7Engine.AI {
 					u.Fortify();
 				}
 			}
+		}
+
+		// Kings & Nomads: the King leads the attack (owner's request,
+		// 2026-10-23). His civ's units on his tile or next to it fight at
+		// +100% (see MapUnit.KingsPresenceBonus), so once we have a city he
+		// marches with the strongest horde, on its tile, which is where its
+		// attacks are made from, guarded and never attacking; the defenders
+		// he stands with get the bonus too. He goes back to a safe city when
+		// enemies near enough to strike could wear his stack down, or the
+		// horde is weakened or has nothing to attack.
+		//
+		// In AI trials (AiTrialTest, 20 games of 6 civs and 120 turns on a
+		// 70x70 map, half the civs playing this way against the same civs
+		// without it), civs had 2.4 more cities at the end on Pangaea and
+		// 1.6 more on Continents, and lost no more Kings; on 30 more games
+		// on Pangaea, 3.2 more cities. With every civ playing this way, and
+		// so every King in danger from King-led hordes, about 90% of the
+		// Kings were still alive after 120 turns, against nearly all
+		// without.
+
+		// The King, unless he's marching with a horde: he isn't the city's
+		// to guard then.
+		private static bool IsResidentKing(MapUnit u) {
+			return u.unitType.isKing && !IsMember(u);
+		}
+
+		// HEURISTIC: the horde the King joins needs at least this many
+		// fighters, and he leaves one with fewer than KingLeaveFighters. A
+		// horde goes up to KingRendezvousRange tiles out of its way to pick
+		// him up from his city, and takes up to KingsHordeGuards more
+		// defensive units than other hordes, for him. After going home he
+		// stays at least KingRestTurns.
+		private const int MinKingHordeFighters = 6;
+		private const int KingLeaveFighters = 5;
+		private const int KingRendezvousRange = 12;
+		private const int KingsHordeGuards = 2;
+		private const int KingRestTurns = 2;
+		private const int MinKingsGuards = 2;
+		// HEURISTIC: how many turns in a row the horde may stop short of
+		// danger to the King before he goes home.
+		private const int MaxKingHeld = 2;
+
+		private static readonly ConditionalWeakTable<Player, StrongBox<int>> kingRestsUntil = new();
+
+		// Picks the horde that comes for the King: the strongest within
+		// reach of his city, with fighters enough, while he's at home and
+		// rested.
+		private static void PlanKingsMarch(Player player, List<Horde> list) {
+			MapUnit king = KingOf(player);
+			City home = KingsCity(player);
+			if (king == null || home == null || IsMember(king) || list.Any(h => h.rendezvous != null || h.King != null)
+					|| (kingRestsUntil.TryGetValue(player, out StrongBox<int> until) && Turn < until.Value)) {
+				return;
+			}
+			AIThreat threat = AIThreat.Assess(player);
+			if (threat.EnemyCanReach(home.location)) {
+				return;
+			}
+			int spareGuards = KingsGuards(player, home.location).Count(IsDefensive) - 1;
+			Horde best = null;
+			double bestStrength = 0;
+			foreach (Horde h in list) {
+				List<MapUnit> fighters = h.units.Where(u => IsFighter(u) && PlayerAI.IsStillOurs(u, player)).ToList();
+				if (fighters.Count > 0) {
+					PickStackTile(player, h);
+				}
+				if (h.stackTile == null || h.retreatTo != null || fighters.Count < MinKingHordeFighters
+						|| h.stackTile.continent != home.location.continent || h.stackTile.DistanceTo(home.location) > KingRendezvousRange) {
+					continue;
+				}
+				// He needs guards that defend better than they attack: the
+				// horde's, or those his city can spare once he's gone.
+				if (fighters.Count(IsDefensive) + spareGuards < MinKingsGuards) {
+					continue;
+				}
+				double strength = fighters.Sum(u => Math.Max(1, u.unitType.attack) * Health(u));
+				if (strength > bestStrength) {
+					MapUnit lead = fighters.OrderBy(u => u.MaxMovementPoints()).First();
+					TilePath path = h.stackTile == home.location ? null : PathingAlgorithmChooser.GetAlgorithm(lead).PathFrom(h.stackTile, home.location, lead);
+					if (h.stackTile != home.location && (path == null || path.PathLength() <= 0 || path.PathLength() > KingRendezvousRange)) {
+						continue;
+					}
+					best = h;
+					bestStrength = strength;
+				}
+			}
+			if (best != null) {
+				log.Information("{Player}'s horde of {Count} goes to {City} for the King", player, best.units.Count, home.name);
+				best.rendezvous = home.location;
+			}
+		}
+
+		// The horde's moves for the King: going to pick him up, taking him
+		// home, or checking that he's safe where he is. Returns whether that
+		// was the horde's turn.
+		private static async Task<bool> MarchForTheKing(Player player, Horde horde) {
+			MapUnit king = horde.King;
+			if (king != null && horde.retreatTo == null) {
+				int fighters = horde.units.Count(u => IsFighter(u) && PlayerAI.IsStillOurs(u, player));
+				List<MapUnit> withHim = king.location.unitsOnTile.Where(u => u.owner == player && IsMember(u)).ToList();
+				if (fighters < KingLeaveFighters) {
+					StartRetreat(player, horde, "has too few fighters left");
+				} else if (!KingSafeOn(player, king.location, withHim)) {
+					StartRetreat(player, horde, "is in danger", inDanger: true);
+				} else if (horde.kingHeld >= MaxKingHeld) {
+					StartRetreat(player, horde, "can't get near the enemy safely");
+				}
+			}
+			if (horde.retreatTo != null) {
+				if (king == null || !player.cities.Contains(horde.retreatTo)) {
+					horde.retreatTo = null;
+					return false;
+				}
+				if (king.location != horde.retreatTo.location) {
+					await GatherStragglers(player, horde);
+					List<MapUnit> stack = StackUnits(player, horde);
+					if (stack.Count > 0 && horde.stackTile != horde.retreatTo.location) {
+						TilePath path = PathingAlgorithmChooser.GetAlgorithm(stack[0]).PathFrom(horde.stackTile, horde.retreatTo.location, stack[0]);
+						if (path == null || path.PathLength() <= 0) {
+							horde.retreatTo = null;
+							return false;
+						}
+						await MoveStackHome(player, horde, stack, path);
+					}
+				}
+				if (king.location == horde.retreatTo.location && !WaitForKingsGuard(player, horde, king)) {
+					// Home: he stays, guarded (see GuardKing), and the horde
+					// goes on without him.
+					log.Information("{Player}'s King is back in {City}", player, horde.retreatTo.name);
+					Release(horde, king);
+					king.currentAI = new KingAI { destination = king.location };
+					king.Fortify();
+					kingRestsUntil.AddOrUpdate(player, new StrongBox<int>(Turn + KingRestTurns));
+					horde.retreatTo = null;
+					horde.kingHeld = 0;
+					GuardKing(player, horde);
+				}
+				return true;
+			}
+			if (horde.rendezvous != null) {
+				MapUnit ours = KingOf(player);
+				if (ours == null || ours.location != horde.rendezvous || horde.rendezvous.cityAtTile?.owner != player || IsMember(ours)) {
+					horde.rendezvous = null;
+					return false;
+				}
+				await GatherStragglers(player, horde);
+				List<MapUnit> stack = StackUnits(player, horde);
+				if (stack.Count > 0 && horde.stackTile != horde.rendezvous) {
+					TilePath path = PathingAlgorithmChooser.GetAlgorithm(stack[0]).PathFrom(horde.stackTile, horde.rendezvous, stack[0]);
+					if (path == null || path.PathLength() <= 0) {
+						horde.rendezvous = null;
+						return false;
+					}
+					await MoveStack(player, horde, stack, path, stopNextTo: null);
+				}
+				if (horde.stackTile == horde.rendezvous) {
+					JoinKing(player, horde, ours);
+				}
+				return true;
+			}
+			return false;
+		}
+
+		// HEURISTIC: home, the horde stays with the King until the city has
+		// the guard it wants for him (see GarrisonWanted), for up to
+		// MaxWaitTurns: the horde's units that had no moves left come on
+		// next turn. Returns whether it waits.
+		private static bool WaitForKingsGuard(Player player, Horde horde, MapUnit king) {
+			Tile tile = king.location;
+			int have = tile.unitsOnTile.Count(u => u.owner == player && u != king && u.CanDefendOnLand() && !u.unitType.isWorker
+				&& !u.unitType.isSettler && !u.IsArmy());
+			int want = 3 + Math.Min(3, player.cities.Count / 5) + (AIThreat.Assess(player).EnemyCanReach(tile) ? 1 : 0);
+			bool coming = horde.units.Any(u => PlayerAI.IsStillOurs(u, player) && u.location != tile && u.CanDefendOnLand() && !u.unitType.isWorker);
+			if (have >= want || !coming || horde.kingWaited >= MaxWaitTurns) {
+				horde.kingWaited = 0;
+				return false;
+			}
+			++horde.kingWaited;
+			horde.stackTile = tile;
+			return true;
+		}
+
+		// The King joins the horde in his city, with defenders the city can
+		// spare once he's gone.
+		private static void JoinKing(Player player, Horde horde, MapUnit king) {
+			Join(horde, king);
+			horde.rendezvous = null;
+			horde.kingHeld = 0;
+			City city = king.location.cityAtTile;
+			int guards = horde.units.Count(u => IsFighter(u) && IsDefensive(u));
+			int keep = GarrisonWanted(player, city, AIThreat.Assess(player));
+			List<MapUnit> garrison = KingsGuards(player, city.location);
+			foreach (MapUnit u in garrison.Skip(keep).Where(u => IsFighter(u) && IsDefensive(u) && !u.IsArmy()).ToList()) {
+				if (guards >= MaxHordeGuards + KingsHordeGuards) {
+					break;
+				}
+				Join(horde, u);
+				++guards;
+			}
+			log.Information("{Player}'s King marches with the horde of {Count} from {City}", player, horde.units.Count, city.name);
+		}
+
+		// The horde makes for the safest of our cities it can reach (see
+		// SafetyScore), less a point for each tile of the way, to take the
+		// King home; in danger in one of our cities, he stays there.
+		private static void StartRetreat(Player player, Horde horde, string why, bool inDanger = false) {
+			MapUnit king = horde.King;
+			if (king == null) {
+				return;
+			}
+			horde.targetCity = null;
+			horde.targetKing = null;
+			horde.waited = 0;
+			City here = king.location.cityAtTile?.owner == player ? king.location.cityAtTile : null;
+			if (here != null && inDanger) {
+				horde.retreatTo = here;
+				return;
+			}
+			City best = here;
+			AIThreat threat = AIThreat.Assess(player);
+			double bestScore = here != null ? SafetyScore(player, here, threat) : double.MinValue;
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(king);
+			foreach (City city in player.cities.Where(c => c != here && c.location.continent == king.location.continent)
+					.OrderBy(c => c.location.DistanceTo(king.location)).Take(10)) {
+				TilePath path = algorithm.PathFrom(king.location, city.location, king);
+				if (path == null || path.PathLength() <= 0) {
+					continue;
+				}
+				double score = SafetyScore(player, city, threat) - path.PathLength();
+				if (score > bestScore) {
+					bestScore = score;
+					best = city;
+				}
+			}
+			if (best != null) {
+				log.Information("{Player}'s horde {Why}, and takes the King back to {City}", player, why, best.name);
+			}
+			horde.retreatTo = best;
+			horde.targetCity = null;
+			horde.targetKing = null;
+			horde.waited = 0;
+		}
+
+		// Moves the horde's stack, King and all, along the path home. It
+		// attacks only what's in the way at very good odds.
+		private static async Task MoveStackHome(Player player, Horde horde, List<MapUnit> stack, TilePath path) {
+			MapUnit lead = stack[0];
+			MapUnit king = horde.King;
+			while (path.PathLength() > 0 && PlayerAI.IsStillOurs(lead, player) && lead.movementPoints.canMove
+					&& king != null && king.location == horde.stackTile && king.movementPoints.canMove) {
+				Tile next = path.PeekNext();
+				if (HasHostileUnits(player, next)) {
+					if (!await AttackIfGoodOdds(player, stack, next, SureOdds) || HasHostileUnits(player, next)) {
+						break;
+					}
+					continue;
+				}
+				path.Next();
+				bool leadArrived = false;
+				foreach (MapUnit u in stack.OrderBy(u => u.unitType.isKing ? 1 : 0)) {
+					if (!PlayerAI.IsStillOurs(u, player) || u.location != horde.stackTile || !u.movementPoints.canMove) {
+						continue;
+					}
+					if (u.unitType.isKing && !next.unitsOnTile.Any(x => x.owner == player && x.CanDefendOnLand() && !x.unitType.isKing)) {
+						continue;
+					}
+					await u.Move(u.location.DirectionTo(next));
+					if (u == lead && u.location == next) {
+						leadArrived = true;
+					}
+				}
+				if (!leadArrived) {
+					break;
+				}
+				horde.stackTile = next;
+				stack = stack.Where(u => PlayerAI.IsStillOurs(u, player) && u.location == next).ToList();
+				if (stack.Count == 0 || stack[0] != lead) {
+					break;
+				}
+			}
+		}
+
+		// The enemy land units we can see that could attack the tile next
+		// turn (city-states' garrisons never come out, see HoldsCityState).
+		private static List<MapUnit> EnemiesInReach(Player player, Tile tile) {
+			List<MapUnit> result = new();
+			foreach (Player other in EngineStorage.gameData.players) {
+				if (!AIThreat.IsHostile(player, other)) {
+					continue;
+				}
+				foreach (MapUnit u in other.units) {
+					Tile t = u.location;
+					if (t == null || t == Tile.NONE || !u.IsLandUnit() || !u.CanAttack() || u.unitType.attack <= 0 || u.IsLoaded()
+							|| t.DistanceTo(tile) > Math.Max(1, u.MaxMovementPoints()) + KingWarningTiles || HoldsCityState(other, u)
+							|| !AIFogOfWar.SeesUnitsOn(player, t) || !u.IsSeenBy(player)) {
+						continue;
+					}
+					result.Add(u);
+				}
+			}
+			return result;
+		}
+
+		// HEURISTIC: the King is safe on a tile if, of the defenders he'd
+		// have there, he can expect at least KingSafeDefenders to be left
+		// after every enemy we can see that could reach it next turn
+		// attacked once, and they'd lose no more than half. The odds are
+		// each attacker's against the best of them as they stand now (with
+		// the King's bonus, see MapUnit.KingsPresenceBonus); a win kills one.
+		private const int KingSafeDefenders = 3;
+		private const double KingMaxLossShare = 3;
+		// HEURISTIC: how much further than an enemy could reach in a turn
+		// it counts as a danger to the King: roads carry it further, and a
+		// slow King can't outrun one that comes nearer.
+		private const int KingWarningTiles = 1;
+
+		private static bool KingSafeOn(Player player, Tile tile, List<MapUnit> with) {
+			List<MapUnit> defenders = with.Where(u => PlayerAI.IsStillOurs(u, player) && u.CanDefendOnLand() && !u.unitType.isKing
+				&& !u.unitType.isWorker && !u.unitType.isSettler).ToList();
+			if (tile.cityAtTile?.owner == player) {
+				defenders.AddRange(tile.unitsOnTile.Where(u => u.owner == player && !defenders.Contains(u) && u.CanDefendOnLand()
+					&& !u.unitType.isKing && !u.unitType.isWorker && !u.unitType.isSettler));
+			}
+			if (defenders.Count < KingSafeDefenders) {
+				return false;
+			}
+			double losses = 0;
+			foreach (MapUnit enemy in EnemiesInReach(player, tile)) {
+				MapUnit defender = tile.FindTopDefender(enemy, defenders);
+				if (MapUnit.IsMapUnitValid(defender)) {
+					losses += CombatAI.EstimateChanceToWin(enemy, defender);
+				}
+			}
+			return defenders.Count - losses >= KingSafeDefenders && losses <= defenders.Count / KingMaxLossShare;
 		}
 
 		// The King, once we have a city: in one of our cities it stays there
@@ -1011,7 +1408,7 @@ namespace C7Engine.AI {
 		private static void MaybeMoveKing(Player player) {
 			MapUnit king = KingOf(player);
 			City here = KingsCity(player);
-			if (king == null || here == null || player.cities.Count < 2 || Turn % KingRethinkTurns != 0) {
+			if (king == null || here == null || player.cities.Count < 2 || Turn % KingRethinkTurns != 0 || IsMember(king)) {
 				return;
 			}
 			AIThreat threat = AIThreat.Assess(player);
@@ -1129,7 +1526,7 @@ namespace C7Engine.AI {
 			if (!PlaysFor(player) || !building.providesWalls) {
 				return 0;
 			}
-			return city.location.unitsOnTile.Any(u => u.owner == player && u.unitType.isKing) ? 40 : 0;
+			return city.location.unitsOnTile.Any(u => u.owner == player && IsResidentKing(u)) ? 40 : 0;
 		}
 	}
 }

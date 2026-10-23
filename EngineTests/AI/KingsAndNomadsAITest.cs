@@ -207,6 +207,126 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.True(KingsAndNomadsAI.UnitBonus(w.cityState, w.civ, settler) > 0);
 	}
 
+	// The civ holds the city-state, and its King and a horde of eight
+	// fighters and three spearmen are there.
+	private static void KingAtHomeWithAHorde(World w) {
+		CityInteractions.CaptureCity(w.cityState, w.civ);
+		foreach (MapUnit u in w.cityState.location.unitsOnTile.Where(u => u.owner != w.civ).ToList()) {
+			w.gameData.RemoveUnit(u);
+		}
+		foreach (MapUnit u in w.civ.units.Where(u => u.IsLandUnit() && !u.unitType.isWorker).ToList()) {
+			Teleport(u, w.cityState.location);
+		}
+		foreach (string name in new[] { "Archer", "Archer", "Spearman", "Spearman", "Spearman" }) {
+			w.gameData.SpawnUnit(w.civ, Prototype(w.gameData, name), w.cityState.location);
+		}
+	}
+
+	private static void NewTurn(World w) {
+		foreach (MapUnit u in w.civ.units) {
+			u.movementPoints.reset(u.MaxMovementPoints());
+		}
+	}
+
+	// Our units that could defend the King's tile.
+	private static int DefendersWithTheKing(World w) {
+		return w.king.location.unitsOnTile.Count(u => u.owner == w.civ && u != w.king && u.CanDefendOnLand() && !u.unitType.isWorker);
+	}
+
+	// Once the civ has a city, the strongest horde picks the King up and
+	// he marches with it, never alone.
+	[Fact]
+	public async Task TheKingMarchesWithTheAttackingHorde() {
+		World w = NewWorld(8);
+		KingAtHomeWithAHorde(w);
+		await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+		Assert.IsType<WarCampaign.MemberAI>(w.king.currentAI);
+		// The city keeps a defender.
+		Assert.Contains(w.cityState.location.unitsOnTile, u => u.owner == w.civ && u.CanDefendOnLand() && u.currentAI is not WarCampaign.MemberAI
+			&& !u.unitType.isKing);
+
+		NewTurn(w);
+		await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+		Assert.NotEqual(w.cityState.location, w.king.location);
+		Assert.IsType<WarCampaign.MemberAI>(w.king.currentAI);
+		Assert.True(DefendersWithTheKing(w) >= 2);
+		Assert.Contains(w.king.location.unitsOnTile, u => u.owner == w.civ && KingsAndNomadsAI.IsFighter(u));
+	}
+
+	// The horde with the King attacks from his tile, so with his bonus; he
+	// never attacks.
+	[Fact]
+	public async Task TheHordeAttacksFromBesideTheKing() {
+		World w = NewWorld(9);
+		City target = w.independents.cities.Where(c => c != w.cityState && c.location.continent == w.cityState.location.continent)
+			.OrderBy(c => c.location.DistanceTo(w.cityState.location)).First();
+		KingAtHomeWithAHorde(w);
+		await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+		Assert.IsType<WarCampaign.MemberAI>(w.king.currentAI);
+
+		Tile rally = NextTo(target);
+		foreach (MapUnit u in w.civ.units.Where(u => u.currentAI is WarCampaign.MemberAI).ToList()) {
+			Teleport(u, rally);
+		}
+		foreach (MapUnit u in target.location.unitsOnTile.Where(u => u.owner == w.independents)) {
+			u.hitPointsRemaining = 1;
+		}
+		NewTurn(w);
+		List<(MapUnit attacker, int fromKing)> attacks = new();
+		AiExperiments.onCombat = (attacker, _, _) => {
+			if (attacker.owner == w.civ) {
+				attacks.Add((attacker, attacker.location.DistanceTo(w.king.location)));
+			}
+		};
+		try {
+			await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+		} finally {
+			AiExperiments.onCombat = null;
+		}
+
+		Assert.NotEmpty(attacks);
+		Assert.All(attacks, a => Assert.True(a.fromKing <= 1));
+		Assert.DoesNotContain(attacks, a => a.attacker == w.king);
+		Assert.Equal(w.civ, target.owner);
+		Assert.Contains(w.king, w.civ.units);
+	}
+
+	// Faced with more enemies than his stack could hold off, the King is
+	// taken back to our city, and stays.
+	[Fact]
+	public async Task TheKingRetreatsWhenThreatened() {
+		World w = NewWorld(10);
+		KingAtHomeWithAHorde(w);
+		await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+		Assert.IsType<WarCampaign.MemberAI>(w.king.currentAI);
+
+		// The horde three tiles out, and a rival's knights next to it,
+		// further out.
+		Tile home = w.cityState.location;
+		bool Open(Tile t) => t != Tile.NONE && t.IsLand() && !t.HasCity() && !t.IsImpassable() && t.continent == home.continent
+			&& t.unitsOnTile.Count == 0;
+		(Tile field, Tile enemyAt) = w.gameData.map.tiles.Where(t => Open(t) && t.DistanceTo(home) == 3)
+			.SelectMany(t => t.neighbors.Values.Where(n => Open(n) && n.DistanceTo(home) == 4).Select(n => (t, n))).First();
+		foreach (MapUnit u in w.civ.units.Where(u => u.currentAI is WarCampaign.MemberAI).ToList()) {
+			Teleport(u, field);
+		}
+		Player rival = w.gameData.players.First(p => p != w.civ && !p.isBarbarians);
+		w.civ.DeclareWarOn(rival, w.gameData.turn);
+		for (int i = 0; i < 20; ++i) {
+			w.gameData.SpawnUnit(rival, Prototype(w.gameData, "Knight"), enemyAt);
+		}
+
+		for (int turn = 0; turn < 6 && w.king.location != home; ++turn) {
+			NewTurn(w);
+			int before = w.king.location.DistanceTo(home);
+			await KingsAndNomadsAI.PlayTurn(w.civ, w.gameData);
+			Assert.True(w.king.location.DistanceTo(home) < before);
+			Assert.True(DefendersWithTheKing(w) >= 1);
+		}
+		Assert.Equal(home, w.king.location);
+		Assert.IsType<KingsAndNomadsAI.KingAI>(w.king.currentAI);
+	}
+
 	// A civ with no city, no capital and no settler plays its turn through
 	// the whole AI without trouble.
 	[Fact]
