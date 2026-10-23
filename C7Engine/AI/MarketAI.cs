@@ -16,8 +16,8 @@ namespace C7Engine.AI {
 	// threat, attackers for a civ already safe at home, ships hardly at all
 	// on Eternal War's one landmass), less the upkeep the unit would cost.
 	// It bids a little above what it reckons a rival would pay, never more
-	// than the unit is worth to it nor more than the richest rival could
-	// bid, and keeps a reserve. It learns the going price from its own wins
+	// than the unit is worth to it nor more than it reckons the richest
+	// rival could bid, and keeps a reserve. It learns the going price from its own wins
 	// and losses, since the market tells no one the bids.
 	public static class MarketAI {
 		// What the AI remembers of the market: the gold per shield it
@@ -255,12 +255,13 @@ namespace C7Engine.AI {
 			}
 			Position p = Assess(gameData, player);
 			Memory memory = MemoryOf(player);
-			// No rival can bid more than it has, so a bid one above the
-			// richest rival's gold can't lose. (The AI plans with the
-			// treasuries in view, as it plans with the map.)
+			// No rival can bid more than it has, so there's no use bidding
+			// far above what the richest rival could. The AI can't see the
+			// rivals' treasuries (owner's ruling, 2026-10-23), so it guesses
+			// from what it can see, their cities.
 			int richestRival = gameData.players
 				.Where(o => o != player && !o.isBarbarians && !o.defeated && o.cities.Count > 0)
-				.Select(o => o.gold).DefaultIfEmpty(0).Max();
+				.Select(o => EstimatedGold(player, o)).DefaultIfEmpty(0).Max();
 
 			int spent = 0, addedUpkeep = 0;
 			HashSet<int> planned = new();
@@ -329,6 +330,13 @@ namespace C7Engine.AI {
 		// a unit worth much more than that, now and then well above it (see
 		// ContestWorth); never above the unit's worth, nor more than one over
 		// the richest rival's treasury, which can't be outbid.
+		// HEURISTIC: a rival's treasury, guessed as the AI's own gold per
+		// city times the rival's cities, and half again for safety.
+		public static int EstimatedGold(Player player, Player rival) {
+			double perCity = player.gold / (double)Math.Max(1, player.cities.Count);
+			return (int)Math.Ceiling(perCity * rival.cities.Count * 1.5);
+		}
+
 		private static int BidFor(Memory memory, UnitPrototype unit, int worth, int richestRival) {
 			int cost = Math.Max(1, unit.shieldCost);
 			double going = memory.pricePerShield * cost;

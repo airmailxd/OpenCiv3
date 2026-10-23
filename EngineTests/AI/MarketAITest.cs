@@ -45,18 +45,28 @@ public class MarketAITest {
 		Assert.All(MarketAI.Bids(gameData, ai, offers), b => Assert.Equal(0, b));
 	}
 
-	// No rival can bid more than its gold, so the AI never bids more than
-	// one above the richest rival's treasury.
+	// The AI can't see its rivals' gold: what it bids doesn't depend on
+	// their treasuries, only on what it guesses from their cities.
 	[Fact]
-	public void NeverBidsMoreThanTheRichestRivalCouldPay() {
+	public void DoesNotPeekAtRivalsGold() {
 		(C7GameData.GameData gameData, Player ai) = NewGame(22);
-		foreach (Player p in Rivals(gameData, ai)) {
-			p.gold = 3;
-		}
 		ai.gold = 1000;
-		List<int> bids = MarketAI.Bids(gameData, ai, [Unit(gameData, "Knight"), Unit(gameData, "Pikeman"), Unit(gameData, "Musketman")]);
-		Assert.Contains(bids, b => b > 0);
-		Assert.All(bids, b => Assert.InRange(b, 0, 4));
+		List<UnitPrototype> offers = [Unit(gameData, "Knight"), Unit(gameData, "Pikeman"), Unit(gameData, "Musketman")];
+		List<int> Bid(int rivalGold) {
+			foreach (Player p in Rivals(gameData, ai)) {
+				p.gold = rivalGold;
+			}
+			System.Random original = C7GameData.GameData.rng;
+			C7GameData.GameData.rng = new System.Random(5);
+			try {
+				return MarketAI.Bids(gameData, ai, offers);
+			} finally {
+				C7GameData.GameData.rng = original;
+			}
+		}
+		Assert.Equal(Bid(3), Bid(5000));
+		Player rival = Rivals(gameData, ai).First();
+		Assert.Equal((int)System.Math.Ceiling(1000.0 / ai.cities.Count * rival.cities.Count * 1.5), MarketAI.EstimatedGold(ai, rival));
 	}
 
 	// A defender is worth more to a civ whose cities are bare than to one
