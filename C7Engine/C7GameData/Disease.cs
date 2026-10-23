@@ -36,12 +36,16 @@ namespace C7Engine {
 	//   "just the presence of disease causing terrain within the city radius
 	//   will put that city/town at risk" (HellboundHeathcliff,
 	//   https://forums.civfanatics.com/threads/cause-of-plague.120157).
-	// - A strike costs two citizens over two turns: a city with at least two
-	//   citizens "tötet diese stets zwei Bevölkerungspunkte, soweit möglich"
-	//   ("always loses two population points, if possible"), one in each of
-	//   two consecutive turns (CivWiki, Krankheit (Civ3),
-	//   https://www.civ-wiki.de/), and "you always get exactly two turns of
-	//   disease in your city, losing 2 citizens" (morchuflex, above).
+	// - NOT CIV3 (owner's ruling, 2026-10-23, as disease struck far too
+	//   often): a strike costs one citizen, and half the time
+	//   (SecondStrikePercent) a second the next turn; the city is then
+	//   spared for ImmuneTurns turns. In Civ3 a strike costs two citizens over two
+	//   turns: a city with at least two citizens "tötet diese stets zwei
+	//   Bevölkerungspunkte, soweit möglich" ("always loses two population
+	//   points, if possible"), one in each of two consecutive turns (CivWiki,
+	//   Krankheit (Civ3), https://www.civ-wiki.de/), and "you always get
+	//   exactly two turns of disease in your city, losing 2 citizens"
+	//   (morchuflex, above).
 	// - Only fortified units die of it: 50 warriors fortified in jungle lost
 	//   20 over 510 turns, and "I also ran the test with unfortified (but not
 	//   moving) units and none of the 50 warriors had died after 200 turns."
@@ -57,8 +61,9 @@ namespace C7Engine {
 	//
 	// UNVERIFIED (the formulas aren't known):
 	// - The city's chance: the strongest disease strength in its radius
-	//   (50 for every terrain in conquests.biq) in five-thousandths a turn,
-	//   so 1% a turn, CivWiki's estimate ("auf ca. 1% geschätzt").
+	//   (50 for every terrain in conquests.biq) in ten-thousandths a turn,
+	//   so 0.5% a turn, half CivWiki's estimate ("auf ca. 1% geschätzt"),
+	//   by the owner's ruling above.
 	// - A unit's chance: the strength in fifty-thousandths a turn, 1 in 1000
 	//   at strength 50, which is Brain's rate (20 deaths in roughly 20,000
 	//   unit-turns).
@@ -73,7 +78,14 @@ namespace C7Engine {
 
 		// A city's chance a turn is the disease strength divided by this, in
 		// thousandths.
-		private const int CityStrengthDivisor = 5;
+		private const int CityStrengthDivisor = 10;
+
+		// How many turns after a strike the city is spared.
+		public const int ImmuneTurns = 20;
+
+		// The chance, in percent, that a strike takes a second citizen the
+		// next turn.
+		public const int SecondStrikePercent = 50;
 
 		// A fortified unit's chance a turn is the disease strength in this
 		// many.
@@ -114,18 +126,20 @@ namespace C7Engine {
 		}
 
 		// Called once a turn for each city: disease may strike it, costing
-		// it a citizen this turn and another the next. Returns whether it
+		// it a citizen, and perhaps another the next turn. Returns whether it
 		// cost a citizen this turn.
-		public static bool MaybeStrike(City city) {
+		public static bool MaybeStrike(City city, int turn) {
 			if (city.diseaseStrikesNextTurn) {
 				city.diseaseStrikesNextTurn = false;
 				if (city.residents.Count <= 1) {
 					return false;
 				}
 				Strike(city);
+				city.lastDiseaseTurn = turn;
 				return true;
 			}
-			if (city.residents.Count <= 1) {
+			if (city.residents.Count <= 1
+				|| (city.lastDiseaseTurn >= 0 && turn - city.lastDiseaseTurn <= ImmuneTurns)) {
 				return false;
 			}
 			int chance = Chance(city);
@@ -135,7 +149,8 @@ namespace C7Engine {
 				return false;
 			}
 			Strike(city);
-			city.diseaseStrikesNextTurn = true;
+			city.lastDiseaseTurn = turn;
+			city.diseaseStrikesNextTurn = GameData.rng.Next(100) < SecondStrikePercent;
 			return true;
 		}
 

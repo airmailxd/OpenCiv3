@@ -104,17 +104,17 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(70, reloaded.diseaseStrength);
 	}
 
-	// One percent a turn (strength 50 / 5, in thousandths) for any
+	// Half a percent a turn (strength 50 / 10, in thousandths) for any
 	// unhealthy terrain in the radius, the strongest counting.
 	[Fact]
 	public void UnhealthyTerrainInTheRadiusGivesTheCityAChance() {
 		GrowTo(3);
 		Assert.Equal(0, Disease.Chance(city));
 		city.location.overlayTerrainType = floodPlain;
-		Assert.Equal(10, Disease.Chance(city));
+		Assert.Equal(5, Disease.Chance(city));
 		// More unhealthy tiles don't add up.
 		Working().tileWorked.overlayTerrainType = jungle;
-		Assert.Equal(10, Disease.Chance(city));
+		Assert.Equal(5, Disease.Chance(city));
 	}
 
 	// Sanitation's flag cures flood plains, as intended, not tech number 8
@@ -129,7 +129,7 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal("Writing", writing.Name);
 		player.knownTechs.Add(writing.id);
 		Assert.True(Disease.IsUnhealthy(floodPlain, player));
-		Assert.Equal(10, Disease.Chance(city));
+		Assert.Equal(5, Disease.Chance(city));
 		player.knownTechs.Add(cure.id);
 		Assert.False(Disease.IsUnhealthy(floodPlain, player));
 		Assert.Equal(0, Disease.Chance(city));
@@ -142,7 +142,7 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		GrowTo(2);
 		Tile unworked = city.location.neighbors.Values.First(t => t != Tile.NONE && !t.IsWater() && t.personWorkingTile == null);
 		unworked.overlayTerrainType = jungle;
-		Assert.Equal(10, Disease.Chance(city));
+		Assert.Equal(5, Disease.Chance(city));
 	}
 
 	[Fact]
@@ -160,23 +160,33 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Contains(EngineStorage.messagesToUI.OfType<MsgShowDomesticAdvisorPopup>(), m => m.message == $"Disease strikes {city.name}.");
 	}
 
-	// A strike takes a citizen this turn and another the next.
+	// A strike takes one citizen, half the time another the next turn
+	// whatever the roll, and the city is then spared for a while (owner's
+	// ruling, 2026-10-23).
 	[Fact]
-	public void AStrikeCostsTwoCitizensOverTwoTurns() {
-		GrowTo(5);
+	public void AStrikeCostsOneOrTwoCitizensAndSparesTheCityAWhile() {
+		GrowTo(6);
 		city.location.overlayTerrainType = floodPlain;
+		// A roll of 0 strikes, and takes the second citizen too.
 		C7GameData.GameData.rng = new FixedRandom(0);
-		Assert.True(Disease.MaybeStrike(city));
-		Assert.Equal(4, city.residents.Count);
+		Assert.True(Disease.MaybeStrike(city, 10));
+		Assert.Equal(5, city.residents.Count);
 		Assert.True(city.diseaseStrikesNextTurn);
-
-		// The second strike comes whatever the roll.
 		C7GameData.GameData.rng = new FixedRandom(999);
-		Assert.True(Disease.MaybeStrike(city));
+		Assert.True(Disease.MaybeStrike(city, 11));
+		Assert.Equal(4, city.residents.Count);
+		Assert.False(city.diseaseStrikesNextTurn);
+
+		C7GameData.GameData.rng = new FixedRandom(0);
+		Assert.False(Disease.MaybeStrike(city, 12));
+		Assert.False(Disease.MaybeStrike(city, 11 + Disease.ImmuneTurns));
+		Assert.Equal(4, city.residents.Count);
+
+		// Without the second citizen.
+		C7GameData.GameData.rng = new SequenceRandom(0, 99);
+		Assert.True(Disease.MaybeStrike(city, 12 + Disease.ImmuneTurns));
 		Assert.Equal(3, city.residents.Count);
 		Assert.False(city.diseaseStrikesNextTurn);
-		Assert.False(Disease.MaybeStrike(city));
-		Assert.Equal(3, city.residents.Count);
 	}
 
 	[Fact]
@@ -188,12 +198,20 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public void TheLastStrikeSurvivesASave() {
+		city.lastDiseaseTurn = 42;
+		SaveGame save = SaveGame.FromGameData(gameData);
+		SaveGame loaded = SaveGame.FromJSON(save.ToCompactJSON());
+		Assert.Equal(42, loaded.Cities.Single(c => c.name == city.name).lastDiseaseTurn);
+	}
+
+	[Fact]
 	public void ASizeOneCityIsNeverStruck() {
 		Assert.Single(city.residents);
 		city.location.overlayTerrainType = floodPlain;
 		C7GameData.GameData.rng = new Random(7);
 		int expected = new Random(7).Next();
-		Assert.False(Disease.MaybeStrike(city));
+		Assert.False(Disease.MaybeStrike(city, 1));
 		Assert.Single(city.residents);
 		Assert.Equal(expected, C7GameData.GameData.rng.Next());
 	}
@@ -203,28 +221,32 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		GrowTo(3);
 		C7GameData.GameData.rng = new Random(7);
 		int expected = new Random(7).Next();
-		Assert.False(Disease.MaybeStrike(city));
+		Assert.False(Disease.MaybeStrike(city, 1));
 		Assert.Equal(3, city.residents.Count);
 		Assert.Equal(expected, C7GameData.GameData.rng.Next());
 	}
 
 	[Fact]
-	public void DiseaseStrikesAboutOnePercentOfTurns() {
+	public void DiseaseStrikesAboutHalfAPercentOfItsTurns() {
 		GrowTo(3);
 		city.location.overlayTerrainType = floodPlain;
 		C7GameData.GameData.rng = new GameRandom(1234);
 		int outbreaks = 0;
-		for (int turn = 0; turn < 10000; ++turn) {
+		int exposed = 0;
+		for (int turn = 0; turn < 40000; ++turn) {
+			if (city.lastDiseaseTurn < 0 || turn - city.lastDiseaseTurn > Disease.ImmuneTurns) {
+				++exposed;
+			}
 			bool second = city.diseaseStrikesNextTurn;
-			if (Disease.MaybeStrike(city)) {
+			if (Disease.MaybeStrike(city, turn)) {
 				if (!second) {
 					++outbreaks;
 				}
 				GrowTo(3);
 			}
 		}
-		// 1% of 10000 turns is 100.
-		Assert.InRange(outbreaks, 60, 140);
+		// 0.5% of the turns it wasn't spared.
+		Assert.InRange(outbreaks, exposed * 0.005 * 0.7, exposed * 0.005 * 1.3);
 	}
 
 	private Tile JungleNextToTheCity() {
@@ -268,6 +290,13 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	// Rolls the given number for every Next(max).
+	// Rolls the given numbers for Next(max) in turn, the last one after.
+	private class SequenceRandom(params int[] rolls) : Random {
+		private int next;
+		public override int Next(int maxValue) => Math.Min(rolls[Math.Min(next++, rolls.Length - 1)], maxValue - 1);
+		protected override double Sample() => 0.0;
+	}
+
 	private class FixedRandom(int roll) : Random {
 		public override int Next(int maxValue) => Math.Min(roll, maxValue - 1);
 		protected override double Sample() => 0.0;

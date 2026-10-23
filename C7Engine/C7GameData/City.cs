@@ -171,8 +171,11 @@ namespace C7GameData {
 		// (see Tile.MaybeAwardForestClearingShields).
 		public bool receivedForestShields = false;
 
-		// Disease struck the city this turn and takes its second citizen
-		// next turn (see Disease).
+		// The turn disease last struck the city, or -1 (see Disease).
+		public int lastDiseaseTurn = -1;
+
+		// Disease struck the city this turn and takes a second citizen next
+		// turn (see Disease).
 		public bool diseaseStrikesNextTurn = false;
 
 		// Whether the city is celebrating "We Love the King Day".

@@ -1698,7 +1698,7 @@ namespace C7GameData {
 					// Civ3's Script.txt, POLLUTION.
 					new MsgShowDomesticAdvisorPopup(this, $"Pollution strikes {c.name}.").send();
 				}
-				Disease.MaybeStrike(c);
+				Disease.MaybeStrike(c, gameData.turn);
 			}
 			Disease.StrikeFortifiedUnits(this);
 		}
