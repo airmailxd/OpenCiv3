@@ -128,6 +128,22 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Contains(city.constructed_buildings, b => b.building.name == "Walls");
 	}
 
+	// The AIs get none of the difficulty's extra starting units, not even
+	// once they take their first city.
+	[Theory]
+	[InlineData("Regent")]
+	[InlineData("Deity")]
+	public void TheAIsGetNoExtraStartingUnits(string difficulty) {
+		(_, C7GameData.GameData gameData) = NewGame(10);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		gameData.gameDifficulty = gameData.difficulties.First(d => d.Name == difficulty);
+		Player ai = gameData.players.First(p => !p.isHuman && !p.isBarbarians);
+		CityInteractions.CaptureCity(gameData.players.Single(p => p.isBarbarians).cities[0], ai);
+		int before = ai.units.Count;
+		ai.MaybeSpawnBonusUnits(gameData);
+		Assert.Equal(before, ai.units.Count);
+	}
+
 	// Settlers are built only in a city taken from someone else.
 	[Fact]
 	public void SettlersOnlyInConqueredCities() {

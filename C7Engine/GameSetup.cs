@@ -341,6 +341,12 @@ public partial class GameSetup {
 		};
 		for (int i = 0; i < planned.Count; ++i) {
 			SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
+			// A Kings & Nomads AI gets none of the difficulty's extra
+			// starting units, which would otherwise appear in the first
+			// city-state it took (owner's ruling, 2026-10-23).
+			if (scenario == GameScenario.KingsAndNomads) {
+				player.receivedStartUnits = true;
+			}
 			teams.Add((player, planned[i].team));
 		}
 		SetUpTeams(save, teams);
