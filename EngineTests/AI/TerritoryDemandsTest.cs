@@ -102,11 +102,11 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task AnAiTrespasserWithdrawsToTheNearestFreeTile() {
+	public void AnAiTrespasserWithdrawsToTheNearestFreeTile() {
 		MapUnit intruder = MakeUnit(them, row[1]);
 		MakeUnit(them, row[2]);
 
-		await TerritoryDemands.MakeDemands(us, gameData);
+		TerritoryDemands.MakeDemands(us, gameData);
 
 		Assert.Same(row[3], intruder.location);
 		Assert.Contains(intruder, row[3].unitsOnTile);
@@ -114,39 +114,29 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		Assert.True(AtPeace(us, them));
 	}
 
+	// Not Civ3: an AI never tells a human to leave its territory, nor goes
+	// to war over their units there (owner's decision, 2026-10-22).
 	[Fact]
-	public async Task AHumanWhoKeepsComingBackAfterPromisingToLeaveIsAttacked() {
-		for (int i = 0; i < TerritoryDemands.WITHDRAWALS_BEFORE_WAR; ++i) {
-			MapUnit intruder = MakeUnit(them, row[1]);
-			MakeUnit(them, row[2]);
-			await DemandFromHuman(new MsgRespondToTerritoryDemand(true), new MsgDiplomacyCompleted());
-			Assert.Same(row[3], intruder.location);
-			Assert.True(AtPeace(us, them));
+	public void AHumanIsNeverToldToLeave() {
+		them.isHuman = true;
+		MapUnit intruder = MakeUnit(them, row[1]);
+		MakeUnit(them, row[2]);
+		for (int i = 0; i < 2 * TerritoryDemands.MEMORY_TURNS; ++i) {
+			TerritoryDemands.MakeDemands(us, gameData);
 			gameData.turn++;
 		}
 
-		MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-		// Only a war we'd win (see PeaceAI.WouldWinWarWith).
-		for (int i = 0; i < 20; ++i) {
-			MakeUnit(us, row[0]);
-		}
-		await TerritoryDemands.MakeDemands(us, gameData);
-
-		Assert.True(AtWar(us, them));
-		// We threw them out, so we started it.
-		Assert.True(them.playerRelationships[us.id].otherStartedCurrentWar);
-		// They never refused, so the war isn't the direct result of a
-		// refusal: their people rally as usual (project owner).
-		Assert.Equal(Player.WarWearinessWhenWarIsDeclaredOnUs, them.WarWearinessPointsAgainst(us));
+		Assert.DoesNotContain(EngineStorage.messagesToUI, msg => msg is MsgShowTerritoryDemand);
+		Assert.Same(row[1], intruder.location);
+		Assert.True(AtPeace(us, them));
 	}
 
 	[Fact]
-	public async Task AnAiThatKeepsComingBackIsOnlyEverWarned() {
-		for (int i = 0; i < TerritoryDemands.WITHDRAWALS_BEFORE_WAR * 2; ++i) {
+	public void AnAiThatKeepsComingBackIsOnlyEverWarned() {
+		for (int i = 0; i < 3 * 2; ++i) {
 			MapUnit intruder = MakeUnit(them, row[1]);
 			MakeUnit(them, row[2]);
-			await TerritoryDemands.MakeDemands(us, gameData);
+			TerritoryDemands.MakeDemands(us, gameData);
 			Assert.Same(row[3], intruder.location);
 			gameData.turn++;
 		}
@@ -155,23 +145,7 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task OldPromisesAreForgotten() {
-		for (int i = 0; i < TerritoryDemands.WITHDRAWALS_BEFORE_WAR; ++i) {
-			MakeUnit(them, row[1]);
-			MakeUnit(them, row[2]);
-			await DemandFromHuman(new MsgRespondToTerritoryDemand(true), new MsgDiplomacyCompleted());
-			gameData.turn += TerritoryDemands.MEMORY_TURNS + 1;
-		}
-
-		MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-		await DemandFromHuman(new MsgRespondToTerritoryDemand(true), new MsgDiplomacyCompleted());
-
-		Assert.True(AtPeace(us, them));
-	}
-
-	[Fact]
-	public async Task UnitsWithNowhereToGoAreNotToldToLeave() {
+	public void UnitsWithNowhereToGoAreNotToldToLeave() {
 		City capital = row[0].owningCity;
 		foreach (Tile tile in row) {
 			tile.owningCity = capital;
@@ -179,57 +153,14 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		them.isHuman = true;
 		MapUnit stuck = MakeUnit(them, row[1]);
 
-		for (int i = 0; i < TerritoryDemands.WITHDRAWALS_BEFORE_WAR + 1; ++i) {
-			await TerritoryDemands.MakeDemands(us, gameData);
+		for (int i = 0; i < 3 + 1; ++i) {
+			TerritoryDemands.MakeDemands(us, gameData);
 			gameData.turn++;
 		}
 
 		Assert.False(EngineStorage.TryDequeueNextMessageToUI(out _));
 		Assert.Same(row[1], stuck.location);
 		Assert.Equal(0, us.playerRelationships[them.id].recentWithdrawals);
-		Assert.True(AtPeace(us, them));
-	}
-
-	[Fact]
-	public async Task AHumanWhoCantBeReachedIsTakenToAgree() {
-		MapUnit intruder = MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-		them.isHuman = true;
-		// As for a LAN guest whose seat is empty.
-		EngineStorage.playerReachable = player => player != them.id;
-
-		await TerritoryDemands.MakeDemands(us, gameData);
-
-		Assert.DoesNotContain(EngineStorage.messagesToUI, msg => msg is MsgShowTerritoryDemand);
-		Assert.Same(row[3], intruder.location);
-		Assert.True(AtPeace(us, them));
-	}
-
-	[Fact]
-	public async Task OnlyTheHumanAskedCanAnswer() {
-		Player bystander = MakeCiv("player-3");
-		bystander.isHuman = true;
-		gameData.players.Add(bystander);
-		// The last human to play is still the active player during AI turns.
-		EngineStorage.activePlayerID = bystander.id;
-		MapUnit intruder = MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-		them.isHuman = true;
-
-		Task demands = TerritoryDemands.MakeDemands(us, gameData);
-		EngineStorage.messagesToUI.Clear();
-		new MsgRespondToTerritoryDemand(false) { playerID = bystander.id }.send();
-		new MsgDiplomacyCompleted { playerID = bystander.id }.send();
-		EngineStorage.ProcessNextMessageToEngine();
-		EngineStorage.ProcessNextMessageToEngine();
-		await Task.Delay(50);
-		Assert.False(demands.IsCompleted);
-
-		new MsgDiplomacyCompleted { playerID = them.id }.send();
-		EngineStorage.ProcessNextMessageToEngine();
-		await demands;
-
-		Assert.Same(row[3], intruder.location);
 		Assert.True(AtPeace(us, them));
 	}
 
@@ -272,64 +203,6 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 	private static void MakeWater(Tile tile) {
 		tile.baseTerrainType = new() { Key = "coast" };
 		tile.overlayTerrainType = new() { Key = "coast", movementCost = 1 };
-	}
-	// Puts the demand to a human, who answers with the given messages, and
-	// returns the demand they were shown.
-	private async Task<MsgShowTerritoryDemand> DemandFromHuman(params MessageToEngine[] answers) {
-		them.isHuman = true;
-		Task demands = TerritoryDemands.MakeDemands(us, gameData);
-
-		MsgShowTerritoryDemand shown = null;
-		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
-			shown ??= msg as MsgShowTerritoryDemand;
-		}
-		Assert.NotNull(shown);
-		foreach (MessageToEngine answer in answers) {
-			answer.playerID = them.id;
-			answer.send();
-			EngineStorage.ProcessNextMessageToEngine();
-		}
-		await demands;
-		return shown;
-	}
-
-	[Fact]
-	public async Task AHumanWhoRefusesToLeaveIsAttacked() {
-		MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-
-		MsgShowTerritoryDemand shown = await DemandFromHuman(
-			new MsgRespondToTerritoryDemand(false), new MsgDiplomacyCompleted());
-
-		Assert.Same(us, shown.aiPlayer);
-		Assert.Same(them, shown.humanPlayer);
-		Assert.Equal(2, shown.unitCount);
-		Assert.True(AtWar(us, them));
-		// Refusing our demand directly provoked the war, so the human gets no
-		// war happiness against us (project owner).
-		Assert.Equal(0, them.WarWearinessPointsAgainst(us));
-	}
-
-	[Fact]
-	public async Task AHumanWhoAgreesToLeaveIsMovedOut() {
-		MapUnit intruder = MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-
-		await DemandFromHuman(new MsgRespondToTerritoryDemand(true), new MsgDiplomacyCompleted());
-
-		Assert.Same(row[3], intruder.location);
-		Assert.True(AtPeace(us, them));
-	}
-
-	[Fact]
-	public async Task ClosingTheDemandWithoutAnsweringIsAgreeing() {
-		MapUnit intruder = MakeUnit(them, row[1]);
-		MakeUnit(them, row[2]);
-
-		await DemandFromHuman(new MsgDiplomacyCompleted());
-
-		Assert.Same(row[3], intruder.location);
-		Assert.True(AtPeace(us, them));
 	}
 
 	// The human, us, tells the AI, them, to leave our territory.
@@ -447,23 +320,23 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task ALoneUnitThatLeavesStartsTheCountOver() {
+	public void ALoneUnitThatLeavesStartsTheCountOver() {
 		MapUnit intruder = MakeUnit(them, row[1]);
-		await TerritoryDemands.MakeDemands(us, gameData);
+		TerritoryDemands.MakeDemands(us, gameData);
 		Assert.Same(row[1], intruder.location);
 		gameData.turn++;
 
 		// It steps out for a turn, so a fresh count starts when it returns.
 		Move(intruder, row[4]);
-		await TerritoryDemands.MakeDemands(us, gameData);
+		TerritoryDemands.MakeDemands(us, gameData);
 		gameData.turn++;
 		Move(intruder, row[1]);
-		await TerritoryDemands.MakeDemands(us, gameData);
+		TerritoryDemands.MakeDemands(us, gameData);
 		Assert.Same(row[1], intruder.location);
 
 		for (int i = 0; i < TerritoryDemands.MAX_LONE_TRESPASSER_TURNS; ++i) {
 			gameData.turn++;
-			await TerritoryDemands.MakeDemands(us, gameData);
+			TerritoryDemands.MakeDemands(us, gameData);
 		}
 		Assert.Same(row[3], intruder.location);
 		Assert.True(AtPeace(us, them));

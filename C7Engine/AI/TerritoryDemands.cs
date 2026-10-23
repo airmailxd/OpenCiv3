@@ -1,28 +1,22 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using C7GameData;
 using Serilog;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine.AI {
 	// As in Civ3, a civ doesn't put up with another civ's units in its
-	// territory. Each turn it tells every civ it is at peace with, and that
-	// has no right of passage, to take its units out of its borders, if
-	// they are enough of a threat (see IsThreatening). The
-	// other civ either withdraws them, and they are moved out at once, or
-	// refuses, and we declare war on it. Military allies are welcome.
+	// territory. Each turn it tells every AI civ it is at peace with, and
+	// that has no right of passage, to take its units out of its borders, if
+	// they are enough of a threat (see IsThreatening). Unlike Civ3, humans
+	// are never told (see MakeDemands). The other civ withdraws them, and
+	// they are moved out at once. Military allies are welcome.
 	public static class TerritoryDemands {
 		private static ILogger log = Log.ForContext(typeof(TerritoryDemands));
 
-		// A human civ that agrees to leave and comes back this many times,
-		// each within MEMORY_TURNS of the last demand, gets war instead of
-		// another warning. AIs are only ever warned: their units cross
-		// borders in the ordinary course of things, and an AI that wants a
-		// war plans one.
-		public const int WITHDRAWALS_BEFORE_WAR = 3;
+		// How long a civ's promises to keep out are remembered.
 		public const int MEMORY_TURNS = 20;
 
-		public static async Task MakeDemands(Player us, GameData gameData) {
+		public static void MakeDemands(Player us, GameData gameData) {
 			Dictionary<Player, List<MapUnit>> trespassers = FindTrespassers(us, gameData);
 			// With the AI fog of war, only the trespassers we can see.
 			if (AIFogOfWar.Enabled && !us.isHuman) {
@@ -44,6 +38,12 @@ namespace C7Engine.AI {
 
 			foreach (KeyValuePair<Player, List<MapUnit>> trespass in trespassers) {
 				Player them = trespass.Key;
+				// Not Civ3: an AI never tells a human to leave, nor goes to
+				// war over their units in its territory (owner's decision,
+				// 2026-10-22). AIs still warn each other.
+				if (them.isHuman) {
+					continue;
+				}
 				// Units with nowhere to go can't be told to leave, so they
 				// neither count against their civ nor give us a reason for war.
 				List<MapUnit> units = trespass.Value.FindAll(u => u.CanWithdraw());
@@ -57,29 +57,15 @@ namespace C7Engine.AI {
 					|| gameData.turn - ourView.lastWithdrawalDemandTurn > MEMORY_TURNS) {
 					ourView.recentWithdrawals = 0;
 				}
-				bool repeatOffense = ourView.recentWithdrawals > 0;
 				ourView.lastWithdrawalDemandTurn = gameData.turn;
 
-				if (them.isHuman && ourView.recentWithdrawals >= WITHDRAWALS_BEFORE_WAR && PeaceAI.WouldWinWarWith(gameData, us, them)) {
-					log.Information("{Us} has had enough of {Them} trespassing and declares war", us, them);
-					// They kept their word each time, so this war isn't the
-					// direct result of a refusal: their people rally as usual.
-					DeclareWar(us, them, provoked: false);
-					continue;
+				// AIs back down rather than start a war over it. A civ
+				// planning a war will declare it when it's ready.
+				int withdrawn = Withdraw(units);
+				if (withdrawn > 0) {
+					++ourView.recentWithdrawals;
 				}
-
-				bool withdraw = await AskToWithdraw(us, them, units.Count, repeatOffense);
-				if (withdraw) {
-					int withdrawn = Withdraw(units);
-					if (withdrawn > 0) {
-						++ourView.recentWithdrawals;
-					}
-					log.Information("{Them} withdrew {Count} units from {Us}'s territory", them, withdrawn, us);
-				} else {
-					// Then we'll throw them out by force.
-					log.Information("{Them} refused to leave {Us}'s territory", them, us);
-					DeclareWar(us, them, provoked: true);
-				}
+				log.Information("{Them} withdrew {Count} units from {Us}'s territory", them, withdrawn, us);
 			}
 		}
 
@@ -192,39 +178,6 @@ namespace C7Engine.AI {
 			return relationship.multiTurnDeals.Exists(d => d.dealSubType == DealSubType.MilitaryAlliance);
 		}
 
-		private static async Task<bool> AskToWithdraw(Player us, Player them, int unitCount, bool repeatOffense) {
-			// AIs back down rather than start a war over it. A civ planning a
-			// war will declare it when it's ready.
-			if (!them.isHuman) {
-				return true;
-			}
-			// A LAN guest who has left can't answer, and is taken to agree.
-			if (!EngineStorage.IsPlayerReachable(them.id)) {
-				return true;
-			}
-
-			// The human answering takes the UI. In a hotseat game they may
-			// not be the player at the screen.
-			if (EngineStorage.uiFollowsActivePlayer) {
-				EngineStorage.uiControllerID = them.id;
-			}
-			EngineStorage.diplomacyPlayerID = them.id;
-			EngineStorage.diplomacyAIPlayerID = us.id;
-			EngineStorage.territoryDemandAnswer = null;
-			new MsgShowTerritoryDemand(us, them, unitCount, repeatOffense).send();
-			// A LAN host closes the screen for a guest who leaves or rejoins
-			// while it is up, so this always ends.
-			await EngineStorage.WaitForDiplomacyCompleted(them.id);
-			EngineStorage.diplomacyPlayerID = null;
-			EngineStorage.diplomacyAIPlayerID = null;
-
-			// Closing the screen without answering is taken as agreeing, so a
-			// stray key press can't start a war.
-			bool withdraw = EngineStorage.territoryDemandAnswer ?? true;
-			EngineStorage.territoryDemandAnswer = null;
-			return withdraw;
-		}
-
 		// Returns how many of the units moved out.
 		private static int Withdraw(List<MapUnit> units) {
 			int withdrawn = 0;
@@ -234,16 +187,6 @@ namespace C7Engine.AI {
 				}
 			}
 			return withdrawn;
-		}
-
-		// War on a civ that wouldn't take its units out of our territory, or
-		// kept bringing them back. Per the project owner, only a war that is
-		// the direct result of refusing to leave is provoked, so the refuser's
-		// people don't rally against us (no war happiness); a civ that kept
-		// coming back after promising to leave gets war happiness as normal.
-		private static void DeclareWar(Player aggressor, Player defender, bool provoked) {
-			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn, provoked: provoked);
-			MsgWarDeclaration.Announce(aggressor, defender);
 		}
 	}
 }
