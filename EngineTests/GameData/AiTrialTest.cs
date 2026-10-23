@@ -178,6 +178,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// the tile, and the attacks city-state garrisons made on its
 			// units.
 			"wkLost", "wkLostOut", "wkOut", "wkOutAlone", "csAttacks",
+			// Kings & Nomads: the attacks the civ made with its King on or
+			// next to the attacker's tile (so at +100%, see
+			// MapUnit.KingsPresenceBonus).
+			"kingAtk",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -451,6 +455,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> workersLost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> workersLostOutside = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> cityStateAttacks = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> kingAttacks = civs.ToDictionary(p => p, _ => 0);
 		void Add(Dictionary<Player, int> counts, Player p) {
 			if (p != null && counts.ContainsKey(p)) {
 				++counts[p];
@@ -515,6 +520,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
+			if (Tile.IsTileValid(attacker.location) && attacker.owner.units.Any(u => u.unitType.isKing && Tile.IsTileValid(u.location)
+					&& u.location.DistanceTo(attacker.location) <= 1)) {
+				Add(kingAttacks, attacker.owner);
+			}
 			if (attacker.owner.isBarbarians && attacker.location.cityAtTile != null) {
 				Add(cityStateAttacks, defender.owner);
 			}
@@ -735,6 +744,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.workerTurnsOut;
 			m.values[i++] = d.workerTurnsOutAlone;
 			m.values[i++] = cityStateAttacks[p];
+			m.values[i++] = kingAttacks[p];
 			return m;
 		}
 
