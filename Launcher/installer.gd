@@ -24,7 +24,7 @@ const FRAME_BUDGET_MSEC := 30
 ## The intro movie isn't part of the releases: it's fetched on its own, from
 ## the owner's Google Drive, into the game folder's Intro folder, which no
 ## package owns, so updates leave it be. The game plays it from there.
-const INTRO_URL := "https://drive.usercontent.google.com/download?id=1EEkIFJyyAH7lP9keB-W2lSRe5hohDQs8&export=download&confirm=t"
+const INTRO_URL := "https://drive.usercontent.google.com/download?id=1cqQ1iOvQRF18r5BBcwl_JWe81R42JCV-&export=download&confirm=t"
 const INTRO_PATH := "Intro/OpenCiv3_Intro.ogv"
 
 ## Where to ask for the latest release; a test can point it elsewhere.
