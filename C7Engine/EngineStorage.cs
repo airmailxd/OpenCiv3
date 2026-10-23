@@ -83,6 +83,12 @@ namespace C7Engine {
 
 		internal static bool animationsEnabled = false;
 
+		// How long, in milliseconds, a fight the UI's player can see holds
+		// on its result before the loser is removed when animations are off
+		// (see MapUnit.Fight). Set by the UI; 0, as in tests and headless
+		// games, doesn't wait.
+		public static int combatResultPauseMs = 0;
+
 		// Whether this machine's UI would show a unit's animation, or an
 		// effect on a tile (its player's preferences, such as whose moves to
 		// show). Asked before an animation is sent, so the engine doesn't

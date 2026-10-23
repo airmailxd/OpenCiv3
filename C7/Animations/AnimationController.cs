@@ -39,6 +39,10 @@ public partial class AnimationController : Node {
 	// unit; by animating it where it is; or both.
 	private enum Showing { Nothing, Follow, Animate, AnimateAndFollow }
 
+	// With animations off, how long a fight the player can see stays on
+	// screen once it's decided (see EngineStorage.combatResultPauseMs).
+	private const int CombatResultPauseMs = 500;
+
 	public override void _Ready() {
 		var animSoundPlayer = new AudioStreamPlayer { Bus = AudioManager.SfxAudioBus };
 		AddChild(animSoundPlayer);
@@ -47,6 +51,7 @@ public partial class AnimationController : Node {
 
 		EngineStorage.uiShowsUnitAnimation = (unit, action) => ShowingFor(unit, action) != Showing.Nothing;
 		EngineStorage.uiShowsEffectAnimation = _ => ShowsEffects();
+		EngineStorage.combatResultPauseMs = CombatResultPauseMs;
 		Preferences.Changed += OnPreferenceChanged;
 	}
 
@@ -54,6 +59,7 @@ public partial class AnimationController : Node {
 		Preferences.Changed -= OnPreferenceChanged;
 		EngineStorage.uiShowsUnitAnimation = null;
 		EngineStorage.uiShowsEffectAnimation = null;
+		EngineStorage.combatResultPauseMs = 0;
 		base._ExitTree();
 	}
 

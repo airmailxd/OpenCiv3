@@ -1050,6 +1050,7 @@ public partial class MapUnit {
 			if (survivingMember.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
 				alive.owner.StartGoldenAge(EngineStorage.gameData, $"Our {survivingMember.unitType.name} has won a great victory.");
 			}
+			await PauseOnCombatResult(dead, alive);
 			// Pause on the last frame, so the dead unit doesn't stand up again
 			// before it's removed.
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH, AnimationEnding.Pause);
@@ -1067,6 +1068,22 @@ public partial class MapUnit {
 		C7Engine.AI.AiExperiments.onCombat?.Invoke(attacker, defender, result);
 
 		return result;
+	}
+
+	// With animations off, a fight the UI's player can see holds a moment
+	// once it's decided, both units still on the map with what hit points
+	// they have left, before the loser is removed, so the player can see
+	// who won (owner's request, 2026-10-23). With animations on, the death
+	// animation shows it.
+	private static async Task PauseOnCombatResult(MapUnit dead, MapUnit alive) {
+		int pause = EngineStorage.combatResultPauseMs;
+		bool animating = EngineStorage.animationsEnabled && !EngineStorage.gameData.observerMode;
+		if (pause <= 0 || animating || !(dead.IsAnimationVisibleToUIPlayer() || alive.IsAnimationVisibleToUIPlayer())) {
+			return;
+		}
+		new MsgUnitMoved(dead).send();
+		new MsgUnitMoved(alive).send();
+		await Task.Delay(pause);
 	}
 
 	public async Task<City?> BuildCity(string cityName) {
