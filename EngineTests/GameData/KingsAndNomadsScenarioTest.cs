@@ -58,6 +58,22 @@ public class KingsAndNomadsScenarioTest {
 		}
 	}
 
+	// Every civ starts on a landmass with city-states of its own to take.
+	[Theory]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	public void EveryCivHasCityStatesOnItsLandmass(int seed) {
+		(_, C7GameData.GameData gameData) = NewGame(seed);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		gameData.map.recomputeContinents();
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		foreach (Player civ in gameData.players.Where(p => !p.isBarbarians)) {
+			int home = civ.units[0].location.continent;
+			Assert.True(independents.cities.Count(c => c.location.continent == home) >= 2, $"{civ} has too few city-states at home");
+		}
+	}
+
 	// Settlers are built only in a city taken from someone else.
 	[Fact]
 	public void SettlersOnlyInConqueredCities() {

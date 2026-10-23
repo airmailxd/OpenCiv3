@@ -304,7 +304,8 @@ public partial class WorldSetup : Control {
 		(GameScenario.KingsAndNomads, "Kings & Nomads",
 			"A scenario: no one starts with a city, only a King and a wandering horde. Walled independent city-states "
 			+ "dot the map, and Settlers can only be built in conquered cities. Lose your King and your empire falls, "
-			+ "its cities free again. The last King standing wins, or whoever holds half the world's cities. Any map."),
+			+ "its cities free again. The last King standing wins, or whoever holds half the world's cities. "
+			+ "Played on continents or a pangaea."),
 	];
 
 	// The first choice for a new game: a normal game, or a scenario, which
@@ -352,16 +353,26 @@ public partial class WorldSetup : Control {
 		if (global != null) {
 			global.Scenario = scenario;
 		}
-		// Eternal War and Rising Tide are always played on a pangaea; only how much water is
+		// Eternal War and Rising Tide are always played on a pangaea, and
+		// Kings & Nomads on continents or a pangaea; only how much water is
 		// left to choose.
 		bool pangaeaOnly = scenario is GameScenario.EternalWar or GameScenario.RisingTide;
+		bool noArchipelago = pangaeaOnly || scenario == GameScenario.KingsAndNomads;
 		if (pangaeaOnly && landform != WorldCharacteristics.Landform.Pangaea) {
 			Choose(LandformButton(WorldCharacteristics.Landform.Pangaea, ocean));
+		} else if (noArchipelago && landform == WorldCharacteristics.Landform.Archipelago) {
+			Choose(LandformButton(WorldCharacteristics.Landform.Continents, ocean));
 		}
-		foreach (TextureButton button in new[] { continents60, continents70, continents80, archipelago60, archipelago70, archipelago80 }) {
+		foreach (TextureButton button in new[] { continents60, continents70, continents80 }) {
 			button.Disabled = pangaeaOnly;
 			button.Modulate = pangaeaOnly ? new Color(1, 1, 1, 0.35f) : Colors.White;
 			button.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea." : "";
+		}
+		foreach (TextureButton button in new[] { archipelago60, archipelago70, archipelago80 }) {
+			button.Disabled = noArchipelago;
+			button.Modulate = noArchipelago ? new Color(1, 1, 1, 0.35f) : Colors.White;
+			button.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea."
+				: noArchipelago ? "This scenario is played on continents or a pangaea." : "";
 		}
 	}
 
