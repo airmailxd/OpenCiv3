@@ -1,9 +1,11 @@
 using C7Engine;
 using Godot;
 
-// The advisors button in the upper left. As in Civ3 it opens the advisors
-// menu, which reaches every advisor and the other report screens by mouse
-// too (on a Mac the function keys are taken by the system unless Fn is held).
+// The advisors button in the upper left. A left click opens the Domestic
+// Advisor; a right click opens the advisors menu, which reaches every
+// advisor and the other report screens by mouse too (on a Mac the function
+// keys are taken by the system unless Fn is held). (Owner's design,
+// 2026-10-23.)
 [Tool]
 public partial class AdvisorButton : Civ3TextureButton {
 	// Called when the node enters the scene tree for the first time.
@@ -17,8 +19,15 @@ public partial class AdvisorButton : Civ3TextureButton {
 		ReleaseFocus();
 
 		// The button belongs to the game scene, whose root is the game.
-		// (A click outside the open menu, on this button too, closes it.)
 		if (Owner is Game game) {
+			game.EmitSignal(Game.SignalName.ShowSpecificAdvisor, C7Action.ShowDomesticAdvisor);
+		}
+	}
+
+	public override void _GuiInput(InputEvent @event) {
+		// (A click outside the open menu, on this button too, closes it.)
+		if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } && Owner is Game game) {
+			AcceptEvent();
 			new AdvisorMenu(game).Open(GetGlobalRect().Position + new Vector2(0, Size.Y));
 		}
 	}
