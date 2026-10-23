@@ -302,8 +302,8 @@ public partial class WorldSetup : Control {
 			+ "until no land is left. Every civilization starts near the edge; settlers found cities of size 5. "
 			+ "The last civilization standing wins."),
 		(GameScenario.KingsAndNomads, "Kings & Nomads",
-			"A scenario: no one starts with a city, only a King and a wandering horde. Walled independent city-states "
-			+ "dot the map, and Settlers can only be built in conquered cities. Lose your King and your empire falls, "
+			"A scenario: no one starts with a city, only a King and a wandering horde. Independent city-states, "
+			+ "whose garrisons grow and who raise walls on turn 40, dot the map, and Settlers can only be built in conquered cities. Lose your King and your empire falls, "
 			+ "its cities free again. The last King standing wins, or whoever holds half the world's cities. "
 			+ "Played on continents or a pangaea."),
 	];

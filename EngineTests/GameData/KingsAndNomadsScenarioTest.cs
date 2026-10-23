@@ -46,7 +46,7 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Equal(civs.Count * GameSetup.CityStatesPerCiv, independents.cities.Count);
 		Assert.All(independents.cities, c => {
 			Assert.Equal(GameSetup.CityStateSize, c.residents.Count);
-			Assert.Contains(c.constructed_buildings, b => b.building.name == "Walls");
+			Assert.DoesNotContain(c.constructed_buildings, b => b.building.name == "Walls");
 			Assert.Equal(3, c.location.unitsOnTile.Count(u => u.owner == independents));
 		});
 		foreach (Player civ in civs) {
@@ -104,6 +104,28 @@ public class KingsAndNomadsScenarioTest {
 		if (civ.KnowsAboutResource(luxury)) {
 			Assert.Contains(luxury, gameData.GetTradeNetwork().GetResourcesAvailableToCity(civ, city).Keys);
 		}
+	}
+
+	// The city-states' garrisons grow every 10 turns, up to 6, and they
+	// gain walls on turn 40.
+	[Fact]
+	public void CityStatesGrowStronger() {
+		(_, C7GameData.GameData gameData) = NewGame(9);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		City city = gameData.players.Single(p => p.isBarbarians).cities[0];
+		int start = CityStates.Garrison(city);
+		gameData.turn = CityStates.GarrisonGrowthTurns;
+		CityStates.BeginTurn(gameData);
+		Assert.Equal(start + 1, CityStates.Garrison(city));
+		gameData.turn = CityStates.GarrisonGrowthTurns + 1;
+		CityStates.BeginTurn(gameData);
+		Assert.Equal(start + 1, CityStates.Garrison(city));
+		for (int turn = 2 * CityStates.GarrisonGrowthTurns; turn <= 100; turn += CityStates.GarrisonGrowthTurns) {
+			gameData.turn = turn;
+			CityStates.BeginTurn(gameData);
+		}
+		Assert.Equal(CityStates.MaxGarrison, CityStates.Garrison(city));
+		Assert.Contains(city.constructed_buildings, b => b.building.name == "Walls");
 	}
 
 	// Settlers are built only in a city taken from someone else.

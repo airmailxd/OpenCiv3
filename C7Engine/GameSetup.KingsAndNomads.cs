@@ -8,14 +8,15 @@ namespace C7Engine;
 
 // Kings & Nomads, a custom scenario (owner's design, 2026-10-23): no civ
 // starts with a city. Each is a King and a wandering horde: two archers, two
-// horsemen, a warrior and a worker. Independent city-states, walled and
+// horsemen, a warrior and a worker. Independent city-states,
 // garrisoned, are scattered over the map, held by the barbarians. Settlers
 // can only be built in a city taken from someone else, so an empire is
 // built by conquest. When a civ's King dies, the civ falls (Regicide), and
 // its cities go back to being independent. The last King standing wins,
 // as does a civ holding half of all the cities in the world. Played on
 // continents or a pangaea, each civ on a landmass with city-states of its
-// own, the bigger landmasses taking more civs.
+// own, the bigger landmasses taking more civs. The city-states' garrisons
+// grow, and they gain walls on turn 40 (see CityStates).
 public partial class GameSetup {
 	// How many independent city-states the map has for each civ (owner's
 	// change, 2026-10-23, from 3).
@@ -32,7 +33,6 @@ public partial class GameSetup {
 	// The fewest city-states a civ's landmass should have for it.
 	private const int MinCityStatesPerStart = 2;
 
-	private const string CityStateWalls = "Walls";
 	private static readonly string[] CityStateGarrison = ["Spearman", "Spearman", "Archer"];
 	private static readonly string[] KingsHorde = ["Archer", "Archer", "Horseman", "Horseman", "Warrior", "Worker"];
 
@@ -131,7 +131,6 @@ public partial class GameSetup {
 			.Where(c => !c.isBarbarian && !taken.Contains(c.name) && c.cityNames.Count > 0)
 			.OrderBy(_ => rand.Next())
 			.Select(c => c.cityNames[0]));
-		SaveBuilding walls = save.Buildings.Find(b => b.name == CityStateWalls);
 		for (int i = 0; i < cityStates.Count && independents != null; i++) {
 			TileLocation location = new(cityStates[i].X, cityStates[i].Y);
 			SaveCity city = new() {
@@ -144,9 +143,6 @@ public partial class GameSetup {
 				producibleType = ProducibleType.UNIT,
 			};
 			city.perPlayerCulture.Add(independents.id.ToString(), 0);
-			if (walls != null) {
-				city.buildings.Add(new SaveCityBuilding { building = walls.name, builtByPlayer = independents.id });
-			}
 			save.Cities.Add(city);
 			foreach (string unit in CityStateGarrison) {
 				AddUnit(save, independents, unit, location);

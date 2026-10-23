@@ -206,6 +206,7 @@ namespace C7Engine {
 					player.hasPlayedThisTurn = false;
 				}
 				RisingTide.BeginTurn(gameData);
+				CityStates.BeginTurn(gameData);
 				Staging.BeginTurn(gameData);
 			}
 		}
