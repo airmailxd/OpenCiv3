@@ -372,6 +372,10 @@ public partial class Game : Node {
 		if (EngineStorage.gameData?.rules?.RisingTide == true) {
 			ShowTidePanel();
 		}
+		// A custom scenario is introduced as its first turn starts.
+		if (EngineStorage.gameData?.turn == 0 && ScenarioIntroPopup.For(EngineStorage.gameData) is ScenarioIntroPopup intro) {
+			popupOverlay.ShowPopup(intro, PopupOverlay.PopupCategory.Advisor);
+		}
 
 		if (LanSession.IsSpectator) {
 			// Spectators never play; see _UnhandledInput for what they can do.
