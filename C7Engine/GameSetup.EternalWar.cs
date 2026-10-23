@@ -31,6 +31,10 @@ public enum GameScenario {
 // only past 24. Every tile makes a commerce more, and forest on tundra a
 // food more. A worker beaten in battle becomes a slave worker in the
 // winner's nearest city. (Owner's additions, 2026-10-21.)
+// Every turn after the first starts with Staging, which gives every civ a
+// unit of the leading age for the city of its choice (see Staging). Coastal
+// buildings, such as harbors and the Colossus, may be built within 3 tiles
+// of the coast. (Owner's additions, 2026-10-22.)
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -48,6 +52,9 @@ public partial class GameSetup {
 	// Citizens work as far as a city's borders reach after their second
 	// expansion, rather than their first.
 	public const int EternalWarWorkRadius = 3;
+	// Coastal buildings, such as harbors and the Colossus, may be built
+	// within this many tiles of the coast (owner's addition, 2026-10-22).
+	public const int EternalWarCoastalBuildingRange = 3;
 
 	// The cities each civ starts with by default on each world size (owner's
 	// choice, 2026-10-21).
@@ -140,6 +147,8 @@ public partial class GameSetup {
 		save.Rules.TileCommerceBonus = 1;
 		save.Rules.TundraForestFoodBonus = 1;
 		save.Rules.DefeatedWorkersBecomeSlaves = true;
+		save.Rules.CoastalBuildingRange = EternalWarCoastalBuildingRange;
+		save.Rules.StagingUnits = true;
 
 		foreach (SaveUnitPrototype settler in save.UnitPrototypes.Where(p => p.actions.Contains(UnitAction.BuildCity))) {
 			settler.unproducible = true;

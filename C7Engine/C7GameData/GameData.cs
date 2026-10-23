@@ -147,6 +147,9 @@ namespace C7GameData {
 		// The United Nations elections (see C7Engine.UnitedNations).
 		public UnitedNationsState unitedNations = new();
 
+		// The turn's Staging, in a scenario that has it (see C7Engine.Staging).
+		public StagingState staging = new();
+
 		// The nuclear explosions and meltdowns so far this game, which add to
 		// world pollution (see GlobalWarming).
 		public int nuclearEvents;

@@ -205,6 +205,16 @@ namespace C7GameData {
 			return false;
 		}
 
+		// Whether there's ocean (salt water) within the given rank of the
+		// tile's radius; within rank 1 is next to it (NeighborsOcean).
+		[LuaMethod]
+		public bool OceanWithin(int rank) {
+			if (rank <= 1) {
+				return NeighborsOcean();
+			}
+			return GetTilesWithinRankDistance(rank).Exists(t => t.baseTerrainType.IsWater && !t.isFreshWater);
+		}
+
 		public bool NeighborsOcean() {
 			foreach (Tile neighbor in neighbors.Values) {
 				if (neighbor.baseTerrainType.IsWater && !neighbor.isFreshWater) {

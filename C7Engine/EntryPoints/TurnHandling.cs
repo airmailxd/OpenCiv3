@@ -105,6 +105,15 @@ namespace C7Engine {
 
 				bool firstTurn = GetTurnNumber() == 0;
 
+				// Staging comes before anyone moves, and waits for every
+				// human to choose where their unit goes (see Staging).
+				if (Staging.InProgress(gameData)) {
+					Staging.AskHumans(gameData);
+					if (Staging.InProgress(gameData)) {
+						return;
+					}
+				}
+
 				// Movement phase
 				if (await PlayPlayerTurns(gameData, firstTurn)) {
 					stopwatch.Stop();
@@ -196,6 +205,7 @@ namespace C7Engine {
 				foreach (Player player in gameData.players) {
 					player.hasPlayedThisTurn = false;
 				}
+				Staging.BeginTurn(gameData);
 			}
 		}
 
@@ -318,6 +328,10 @@ namespace C7Engine {
 		// player while the AIs play, but may no longer act.
 		public static bool IsPlayersTurn(GameData gameData, ID playerID) {
 			if (playerID == null) {
+				return false;
+			}
+			// No one moves during Staging.
+			if (Staging.InProgress(gameData)) {
 				return false;
 			}
 			if (!gameData.simultaneousTurns) {

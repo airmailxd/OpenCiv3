@@ -7,8 +7,10 @@ end
 local buildings = {}
 
 buildings.production_rules = {
+  -- Next to the ocean, as in Civ3, unless the rules let a city further
+  -- inland build them (Eternal War: within 3 tiles).
   must_be_coastal = function(city)
-    return city.location:NeighborsOcean()
+    return city.location:OceanWithin(rules().CoastalBuildingRange)
   end,
 
   -- "To build the Hoover Dam a city must have a river within its radius";

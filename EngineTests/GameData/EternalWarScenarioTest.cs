@@ -306,6 +306,154 @@ public class EternalWarScenarioTest {
 		Assert.Contains(slaves, s => s.nationality == loser.civilization);
 	}
 
+	// Staging gives units of the leading civ's age that every civ could
+	// build, so never a unique unit.
+	[Fact]
+	public void StagingGivesUnitsOfTheLeadingAgeButNoUniqueUnits() {
+		(_, C7GameData.GameData gameData) = NewGame(12);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+
+		List<UnitPrototype> pool = Staging.Pool(gameData);
+		Assert.NotEmpty(pool);
+		Assert.All(pool, u => Assert.Equal(1, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
+		Assert.All(pool, u => Assert.All(civs, c => Assert.True(u.IsProducibleBy(c.civilization))));
+		Assert.Contains(pool, u => u.name == "Knight");
+		Assert.DoesNotContain(pool, u => u.isSettler || u.isWorker || u.isLeader);
+		// A unique unit of the age, such as Japan's Samurai, isn't given.
+		Assert.Contains(gameData.unitPrototypes, u => u.requiredTech != null
+			&& EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName) == 1 && !civs.All(c => u.IsProducibleBy(c.civilization)));
+
+		civs[2].eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
+		Assert.All(Staging.Pool(gameData), u => Assert.Equal(2, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
+	}
+
+	// The AIs' units are placed at once; the humans choose a city, and no
+	// one moves until they have.
+	[Fact]
+	public void StagingWaitsForTheHumansToChooseACity() {
+		(_, C7GameData.GameData gameData) = NewGame(13);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player human = gameData.players.First(p => p.isHuman);
+		EngineStorage.activePlayerID = human.id;
+		List<Player> ais = gameData.players.Where(p => !p.isHuman && !p.isBarbarians).ToList();
+		Dictionary<Player, int> unitsBefore = gameData.players.ToDictionary(p => p, p => p.units.Count);
+		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
+
+		Staging.BeginTurn(gameData);
+		UnitPrototype unit = Staging.UnitType(gameData);
+		Assert.NotNull(unit);
+		Assert.All(ais, ai => {
+			Assert.Equal(unitsBefore[ai] + 1, ai.units.Count);
+			Assert.Equal(unit, ai.units.Last().unitType);
+		});
+		Assert.True(Staging.InProgress(gameData));
+		Assert.Equal(unitsBefore[human], human.units.Count);
+		Assert.False(TurnHandling.IsPlayersTurn(gameData, human.id));
+
+		// Only one of their own cities.
+		City theirs = ais[0].cities.First();
+		Assert.False(Staging.Answer(gameData, human, theirs));
+		City city = Staging.Choices(human, unit).Last();
+		Assert.True(Staging.Answer(gameData, human, city));
+		Assert.False(Staging.InProgress(gameData));
+		Assert.Contains(human.units, u => u.unitType == unit && (u.location == city.location || !unit.IsLandUnit()));
+		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
+		Assert.False(Staging.Answer(gameData, human, city));
+	}
+
+	// Through the turn loop: once everyone has played a turn, the human is
+	// asked where their unit goes before the next turn starts, and the next
+	// starts once they've chosen. The question and answer cross a LAN too.
+	[Fact]
+	public async Task StagingComesBetweenTurnsInTheTurnLoop() {
+		(_, C7GameData.GameData gameData) = NewGame(17);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		new MsgSetAnimationsEnabled(false).send();
+		EngineStorage.ProcessNextMessageToEngine();
+		Player human = gameData.players.First(p => p.isHuman);
+		EngineStorage.activePlayerID = human.id;
+		EngineStorage.uiControllerID = human.id;
+
+		TurnHandling.OnBeginTurn();
+		TurnHandling.InitTurnData();
+		Task firstTurn = TurnHandling.AdvanceTurn();
+		EngineWaits.WaitForStartTurnMessage(_ => { });
+		await firstTurn;
+
+		new MsgEndTurn { turn = gameData.turn }.send();
+		MsgShowStaging ask = EngineWaits.WaitForMessageToUI<MsgShowStaging>(m => Assert.IsNotType<MsgStartTurn>(m));
+		Assert.Equal(human, ask.recipient);
+		Assert.Equal(Staging.UnitType(gameData).name, ask.unitType);
+		Assert.False(TurnHandling.IsPlayersTurn(gameData, human.id));
+		MsgShowStaging sent = (MsgShowStaging)C7Engine.Network.NetSerialization.DeserializeMessageToUI(C7Engine.Network.NetSerialization.Serialize(ask));
+		Assert.Equal(ask.cities.Count, sent.cities.Count);
+
+		int unitsBefore = human.units.Count;
+		MessageToEngine answer = C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
+			C7Engine.Network.NetSerialization.Serialize(new MsgChooseStagingCity(ask.cities[0]) { playerID = human.id }));
+		EngineStorage.SendToEngine(answer);
+		EngineWaits.WaitForStartTurnMessage(_ => { });
+		Assert.Equal(unitsBefore + 1, human.units.Count);
+		Assert.Equal(ask.unitType, human.units.Last().unitType.name);
+		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
+	}
+
+	// Rules without Staging have none.
+	[Fact]
+	public void StagingIsOnlyInTheScenario() {
+		(_, C7GameData.GameData gameData) = NewGame(14);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		gameData.rules.StagingUnits = false;
+		Staging.BeginTurn(gameData);
+		Assert.False(Staging.InProgress(gameData));
+		Assert.Null(Staging.UnitType(gameData));
+	}
+
+	// A ship for a civ with no city on the coast puts to sea nearest the
+	// city chosen.
+	[Fact]
+	public void AStagedShipWithoutACoastalCityGoesToTheNearestSea() {
+		(_, C7GameData.GameData gameData) = NewGame(15);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		City inland = gameData.cities.First(c => !c.location.NeighborsOcean());
+		Player owner = inland.owner;
+		UnitPrototype ship = gameData.unitPrototypes.First(p => p.IsSeaUnit() && !p.sinksInSea && !p.sinksInOcean && p.attack > 0);
+
+		MapUnit placed = Staging.Place(gameData, owner, ship, inland);
+		Assert.NotNull(placed);
+		Assert.True(placed.location.baseTerrainType.IsWater);
+		Assert.False(placed.location.isFreshWater);
+		int distance = inland.location.DistanceTo(placed.location);
+		Assert.DoesNotContain(gameData.map.tiles, t => t.baseTerrainType.IsWater && !t.isFreshWater
+			&& inland.location.DistanceTo(t) < distance && t.unitsOnTile.All(u => u.owner == owner));
+	}
+
+	// Coastal buildings, like the harbor and the Colossus, can be built
+	// within 3 tiles of the coast, not just next to it.
+	[Fact]
+	public void CoastalBuildingsCanBeBuiltWithinThreeTilesOfTheCoast() {
+		(_, C7GameData.GameData gameData) = NewGame(16);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Assert.Equal(GameSetup.EternalWarCoastalBuildingRange, gameData.rules.CoastalBuildingRange);
+		City city = gameData.cities.First(c => !c.location.NeighborsOcean());
+		// Some ocean two tiles away, where the city has none nearer.
+		TerrainType coast = gameData.terrainTypes.First(t => t.IsWater && !t.IsSea && !t.IsOcean);
+		Tile near = city.location.GetTilesWithinRankDistance(2)
+			.First(t => t != Tile.NONE && t.RankDistanceTo(city.location) == 2 && !t.HasCity() && t.unitsOnTile.Count == 0);
+		near.baseTerrainType = coast;
+		near.overlayTerrainType = coast;
+		near.isFreshWater = false;
+
+		bool CanBuild(string name) => city.ListProductionOptions(gameData).Any(p => p is Building b && b.name == name);
+		Assert.True(CanBuild("Harbor"));
+		Assert.True(CanBuild("The Colossus"));
+
+		gameData.rules.CoastalBuildingRange = 1;
+		Assert.False(CanBuild("Harbor"));
+		Assert.False(CanBuild("The Colossus"));
+	}
+
 	private class ZeroRandom : System.Random {
 		protected override double Sample() => 0;
 	}

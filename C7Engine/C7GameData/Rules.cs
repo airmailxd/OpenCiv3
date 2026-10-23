@@ -86,6 +86,13 @@ namespace C7GameData {
 		// A worker beaten in battle is taken as a slave worker to the
 		// winner's nearest city.
 		public bool DefeatedWorkersBecomeSlaves = false;
+		// How near the ocean a city must be to build a coastal building
+		// (one that must be coastal, such as a harbor or the Colossus): 1
+		// for next to it, as in Civ3, or the farthest rank of its radius.
+		public int CoastalBuildingRange = 1;
+		// Every turn starts with Staging, which gives every civ a unit for
+		// the city of its choice (see C7Engine.Staging).
+		public bool StagingUnits = false;
 
 		// Not Civ3: the game was set up with teams, each a locked alliance,
 		// and a team wins together (see GameSetup.Teams.cs and

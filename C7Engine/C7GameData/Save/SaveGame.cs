@@ -107,6 +107,8 @@ namespace C7GameData.Save {
 				SimultaneousTurns = data.simultaneousTurns,
 				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
+				// Left out of games without Staging.
+				Staging = data.rules.StagingUnits ? data.staging : null,
 				// Left out of games that never had the tutorial on.
 				Tutorial = data.tutorial.enabled || data.tutorial.shown.Count > 0 ? data.tutorial : null,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
@@ -344,6 +346,7 @@ namespace C7GameData.Save {
 				gameHistory = new GameHistory { Events = Replay ?? new() },
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
+				staging = Staging ?? new StagingState(),
 				tutorial = Tutorial ?? new TutorialState(),
 			};
 			// A save without a seed has been given a random one.
@@ -703,6 +706,8 @@ namespace C7GameData.Save {
 		// mode.
 		public bool DebugMode { get; set; }
 		public UnitedNationsState UnitedNations = new();
+		// The turn's Staging (see C7Engine.Staging); null in games without it.
+		public StagingState Staging;
 		// Civ3's tutorial (see Tutorial); null in games that never had it on,
 		// and in saves made before it was saved.
 		public TutorialState Tutorial;

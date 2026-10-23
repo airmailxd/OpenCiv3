@@ -1177,10 +1177,11 @@ public partial class Game : Node {
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
 		// On a LAN that is only one of this machine's players. A deal another
-		// human proposes can't wait, as they are waiting on it.
+		// human proposes can't wait, as they are waiting on it, and neither
+		// can Staging, which every human answers before anyone moves.
 		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id
 			&& (!LanSession.IsActive || LanSession.IsLocalPlayer(msg.recipient))
-			&& msg is not MsgShowDealProposal) {
+			&& msg is not MsgShowDealProposal && msg is not MsgShowStaging) {
 			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
 				held = new();
 				heldMessages[msg.recipient.id] = held;
@@ -1625,6 +1626,17 @@ public partial class Game : Node {
 						new ChoicePopup(upgrade.Caption ?? "", string.Join("\n", upgrade.Lines),
 							[new ChoicePopup.Choice("OK", () => EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView))],
 							cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
+				}
+			case MsgShowStaging mSS: {
+					// Answered for the player it's for, who in a hotseat game
+					// may not be the one at the screen.
+					Player player = mSS.recipient ?? controller;
+					popupOverlay.ShowPopup(
+						new StagingPopup(player, mSS.unitType, mSS.cities,
+							city => new MsgChooseStagingCity(city) { playerID = player.id }.send()),
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
 					break;

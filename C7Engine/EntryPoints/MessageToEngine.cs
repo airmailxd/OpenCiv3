@@ -1329,6 +1329,31 @@ namespace C7Engine {
 		}
 	}
 
+	// A human chooses the city for the turn's Staging unit (MsgShowStaging).
+	// The last to choose ends Staging, and the turn goes on.
+	public class MsgChooseStagingCity : MessageToEngine {
+		public City city;
+
+		public MsgChooseStagingCity(City city) {
+			this.city = city;
+		}
+
+		// Only a human Staging waits for, while it does.
+		protected override bool IsAllowed() {
+			return Sender != null && Staging.IsWaitingFor(EngineStorage.gameData, Sender) && !TurnHandling.TurnInProgress;
+		}
+
+		protected override async Task ProcessAllowedAsync() {
+			GameData gameData = EngineStorage.gameData;
+			if (!Staging.Answer(gameData, Sender, city) || Staging.InProgress(gameData)) {
+				return;
+			}
+			// What happens next isn't a reply to this player.
+			EngineStorage.processingSenderID = null;
+			await TurnHandling.AdvanceTurn();
+		}
+	}
+
 	// The sender spends a palace upgrade on building a piece of their palace
 	// in one of the palace cultures (see PalaceUpgrades.Build).
 	public class MsgBuildPalacePiece : MessageToEngine {

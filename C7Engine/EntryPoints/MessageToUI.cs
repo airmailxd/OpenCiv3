@@ -667,6 +667,19 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks a human which of the cities to put the turn's Staging unit in
+	// (see Staging); they answer with MsgChooseStagingCity.
+	public class MsgShowStaging : MessageToUI {
+		public string unitType;
+		public List<City> cities;
+
+		public MsgShowStaging(Player recipient, string unitType, List<City> cities) {
+			this.recipient = recipient;
+			this.unitType = unitType;
+			this.cities = cities ?? new();
+		}
+	}
+
 	// Asks a human whether to take a city whose people have risen up and
 	// pledged allegiance to them (CultureFlip.Defect), naming the great
 	// wonders in it; they answer with MsgAnswerCultureFlip.

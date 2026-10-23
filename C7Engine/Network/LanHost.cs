@@ -396,6 +396,8 @@ public class LanHost : IDisposable {
 
 	// The turn each away player's turn was last ended for them.
 	private readonly Dictionary<ID, int> awayTurnsEnded = new();
+	// The turn each away player's Staging city was last chosen for them.
+	private readonly Dictionary<ID, int> awayStaged = new();
 
 	// A game resumed from an autosave holds its guests' seats for them from
 	// the lobby on, not just once it has started.
@@ -806,13 +808,17 @@ public class LanHost : IDisposable {
 		SendSnapshot(guest.connection, EncodeSnapshot(round, ViewPlayers(guest)), guest.pendingUiMessages);
 	}
 
-	// The engine asks a player some things only as their turn starts, and
-	// those prompts went with their old connection, so a player rejoining
-	// during their turn is asked again.
+	// The engine asks a player some things only as their turn starts, or
+	// in Staging before it, and those prompts went with their old
+	// connection, so a player rejoining then is asked again.
 	private static void ResendTurnPrompts(Seat seat) {
 		GameData gameData = EngineStorage.gameData;
 		Player player = gameData?.GetPlayer(seat.info.playerID);
-		if (player == null || !TurnHandling.IsPlayersTurn(gameData, player.id)) {
+		if (player == null) {
+			return;
+		}
+		Staging.AskHuman(gameData, player);
+		if (!TurnHandling.IsPlayersTurn(gameData, player.id)) {
 			return;
 		}
 		UnitedNations.AskHumanToVote(gameData, player);
@@ -938,6 +944,7 @@ public class LanHost : IDisposable {
 		}
 
 		EndAwayPlayersTurns(gameData, toMove);
+		StageForAwayPlayers(gameData);
 
 		// A new turn's humans are about to move: save it.
 		if (toMove.Count > 0 && gameData.turn != autosavedTurn && AutosaveDirectory != null) {
@@ -967,6 +974,26 @@ public class LanHost : IDisposable {
 			awayTurnsEnded[id] = gameData.turn;
 			log.Information("{Player} is away, ending their turn", gameData.GetPlayer(id));
 			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = id, turn = gameData.turn });
+		}
+	}
+
+	// Chooses the Staging city of each away player Staging waits for, where
+	// an AI would, once a turn, so the others aren't kept waiting.
+	private void StageForAwayPlayers(GameData gameData) {
+		UnitPrototype unit = Staging.InProgress(gameData) ? Staging.UnitType(gameData) : null;
+		if (unit == null) {
+			return;
+		}
+		foreach (string id in gameData.staging.waiting) {
+			Player player = gameData.players.Find(p => p.id.ToString() == id);
+			Seat seat = player == null ? null : seats.Find(s => s.info.playerID == player.id);
+			if (seat == null || !seat.away || seat.IsTaken || player.cities.Count == 0
+				|| (awayStaged.TryGetValue(player.id, out int staged) && staged == gameData.turn)) {
+				continue;
+			}
+			awayStaged[player.id] = gameData.turn;
+			log.Information("{Player} is away, choosing their Staging city", player);
+			EngineStorage.ReceiveFromRemote(new MsgChooseStagingCity(Staging.AiChoice(gameData, player, unit)) { playerID = player.id });
 		}
 	}
 
