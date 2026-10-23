@@ -17,6 +17,8 @@ var latest := {}
 ## What the game folder needs from it, from Installer.plan().
 var needed := []
 var busy := false
+## Whether the intro movie is being downloaded, which doesn't hold up Play.
+var intro_busy := false
 
 var installed_label: Label
 var latest_label: Label
@@ -37,6 +39,9 @@ func _ready() -> void:
 	var release_url := _argument("--release-url")
 	if release_url != "":
 		installer.release_url = release_url
+	var intro_url := _argument("--intro-url")
+	if intro_url != "":
+		installer.intro_url = intro_url
 	_build()
 	game_dir = _argument("--game-dir")
 	if game_dir == "":
@@ -190,6 +195,7 @@ func _check() -> void:
 		status_label.text = _plan_text()
 	_on_progress("", 0, 0)
 	_set_busy(false)
+	_get_intro()
 
 
 func _show_installed() -> void:
@@ -219,7 +225,7 @@ func _set_busy(value: bool) -> void:
 	busy = value
 	var installed := Installer.game_installed(game_dir)
 	play_button.disabled = busy or not installed
-	folder_button.disabled = busy
+	folder_button.disabled = busy or intro_busy
 	if latest.has("error"):
 		update_button.text = "Check again"
 		update_button.disabled = busy
@@ -228,7 +234,7 @@ func _set_busy(value: bool) -> void:
 		update_button.disabled = true
 	else:
 		update_button.text = "Update" if installed else "Install"
-		update_button.disabled = busy
+		update_button.disabled = busy or intro_busy
 
 
 func _on_update() -> void:
@@ -251,6 +257,25 @@ func _on_update() -> void:
 		needed.erase(local)
 	_show_installed()
 	status_label.text = "Version %s is installed. Have fun!" % latest.version
+	_on_progress("", 0, 0)
+	_set_busy(false)
+	_get_intro()
+
+
+## Fetches the intro movie for an installed game that doesn't have it. Play
+## stays open meanwhile; playing before it's done just starts the game
+## without it, and the next run tries again.
+func _get_intro() -> void:
+	if intro_busy or busy or not Installer.game_installed(game_dir) or not Installer.intro_wanted(game_dir):
+		return
+	intro_busy = true
+	_set_busy(false)
+	var status := status_label.text
+	var error: String = await installer.download_intro(game_dir)
+	intro_busy = false
+	status_label.text = status
+	if error != "":
+		status_label.text += " The intro movie couldn't be downloaded: %s The game plays without it." % error
 	_on_progress("", 0, 0)
 	_set_busy(false)
 

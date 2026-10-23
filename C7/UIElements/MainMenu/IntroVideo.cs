@@ -6,9 +6,10 @@ using Godot;
 // The intro movie, played full screen over the main menu when the game starts.
 //
 // The movie isn't part of the repo or the download: it's played if there's an
-// Ogg Theora file, Intro/OpenCiv3_Intro.ogv, in the folder the settings are
-// saved in or in the per-user OpenCiv3 folder (%AppData%\OpenCiv3 on Windows).
-// Neither is touched by an update. It can be turned off in the settings, and
+// Ogg Theora file, Intro/OpenCiv3_Intro.ogv, in the game's folder (where the
+// launcher fetches it to), the folder the settings are saved in or the
+// per-user OpenCiv3 folder (%AppData%\OpenCiv3 on Windows). None of them is
+// touched by an update. It can be turned off in the settings, and
 // any key or click skips it.
 public partial class IntroVideo : CanvasLayer {
 	public const string SettingsSection = "intro";
@@ -34,6 +35,7 @@ public partial class IntroVideo : CanvasLayer {
 	// The movie's file, or null if there isn't one.
 	public static string FindFile() {
 		string[] folders = {
+			GamePaths.BaseDir,
 			C7Settings.WritableDirectory,
 			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "OpenCiv3"),
 		};

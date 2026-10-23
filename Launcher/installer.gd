@@ -21,9 +21,16 @@ const DOWNLOAD_PREFIX := ".openciv-download-"
 const USER_AGENT := "OpenCiv3-Launcher"
 ## How long to work between screen updates while hashing or unpacking.
 const FRAME_BUDGET_MSEC := 30
+## The intro movie isn't part of the releases: it's fetched on its own, from
+## the owner's Google Drive, into the game folder's Intro folder, which no
+## package owns, so updates leave it be. The game plays it from there.
+const INTRO_URL := "https://drive.usercontent.google.com/download?id=1EEkIFJyyAH7lP9keB-W2lSRe5hohDQs8&export=download&confirm=t"
+const INTRO_PATH := "Intro/OpenCiv3_Intro.ogv"
 
 ## Where to ask for the latest release; a test can point it elsewhere.
 var release_url := RELEASE_URL
+## Where to fetch the intro movie from; a test can point it elsewhere.
+var intro_url := INTRO_URL
 
 
 ## The platform's name as it appears in package names.
@@ -75,6 +82,46 @@ static func save_record(dir: String, record: Dictionary) -> Error:
 		return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(record, "\t") + "\n")
 	return OK
+
+
+## Whether the game folder should have the intro movie fetched: it doesn't
+## have it yet, and it isn't turned off in the game's settings. On Windows,
+## the game also looks in %APPDATA%\OpenCiv3, so a copy there counts.
+static func intro_wanted(dir: String) -> bool:
+	var folders := [dir]
+	if platform() == "windows" and OS.get_environment("APPDATA") != "":
+		folders.append(OS.get_environment("APPDATA").path_join("OpenCiv3"))
+	for folder in folders:
+		if FileAccess.file_exists(folder.path_join(INTRO_PATH)):
+			return false
+		# The game's "Play the intro movie on launch" setting, saved as
+		# playOnLaunch in the [intro] section of C7.ini.
+		var settings := FileAccess.get_file_as_string(folder.path_join("C7.ini"))
+		var turned_off := RegEx.create_from_string("(?m)^\\s*playOnLaunch\\s*=\\s*false\\s*$")
+		if turned_off.search(settings) != null:
+			return false
+	return true
+
+
+## Downloads the intro movie into the game folder. Returns "" or what went
+## wrong.
+func download_intro(dir: String) -> String:
+	var path := dir.path_join(INTRO_PATH)
+	if DirAccess.make_dir_recursive_absolute(path.get_base_dir()) != OK:
+		return "Can't make the folder %s." % path.get_base_dir()
+	var download := path.get_base_dir().path_join(DOWNLOAD_PREFIX + "intro")
+	var error := await _download(intro_url, download, 0, "intro")
+	# Only Ogg Theora movies play in the game.
+	if error == "":
+		var file := FileAccess.open(download, FileAccess.READ)
+		var magic := file.get_buffer(4).get_string_from_ascii() if file != null else ""
+		file = null
+		if magic != "OggS":
+			error = "What arrived isn't a movie the game can play."
+	if error == "" and DirAccess.rename_absolute(download, path) != OK:
+		error = "Couldn't save it in %s." % path.get_base_dir()
+	DirAccess.remove_absolute(download)
+	return error
 
 
 ## Asks GitHub for the latest release and reads its manifest. Returns
@@ -257,9 +304,10 @@ func _download(url: String, path: String, size: int, local: String) -> String:
 	if err != OK:
 		request.queue_free()
 		return "Couldn't start the download (error %d)." % err
-	var label := "Downloading the game..." if local == "game" else "Downloading the art..."
+	var label: String = {"game": "Downloading the game...", "art": "Downloading the art...", "intro": "Downloading the intro movie..."}[local]
 	while not state.done:
-		progress.emit(label, request.get_downloaded_bytes(), size)
+		# Without a size given, the server's, once it's said.
+		progress.emit(label, request.get_downloaded_bytes(), size if size > 0 else request.get_body_size())
 		await get_tree().create_timer(0.1).timeout
 	request.queue_free()
 	if state.result == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN or state.result == HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR:
