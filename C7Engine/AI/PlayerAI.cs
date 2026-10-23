@@ -94,6 +94,9 @@ namespace C7Engine {
 			// defender needed).
 			DevelopmentAI.DefendThreatenedCities(player);
 			DevelopmentAI.HurryProduction(player);
+			// Under Rising Tide, a city about to drown hurries the unit that
+			// would carry its people out (see TideAI).
+			TideAI.HurryEvacuation(player);
 			UpgradeUnits(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
@@ -341,6 +344,13 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Under Rising Tide, a unit the coming wave would drown
+				// makes for higher ground before anything else, fortified or
+				// on campaign or not (see TideAI).
+				if (!unit.IsLockedInArmy() && await TideAI.EvacuateIfNeeded(unit, player)) {
+					continue;
+				}
+
 				// Units on a war campaign move with it (see WarCampaign).
 				if (unit.currentAI is WarCampaign.MemberAI) {
 					continue;
@@ -459,6 +469,11 @@ namespace C7Engine {
 					if (unit.currentAI is ExplorerAI) {
 						explorers.Add(unit);
 					}
+				}
+
+				// Nor does it end its turn where the wave strikes next.
+				if (TideAI.IsOn() && IsStillOurs(unit, player)) {
+					await TideAI.EvacuateAfterMoving(unit, player);
 				}
 
 				// Moving already adds what a unit sees to our knowledge and

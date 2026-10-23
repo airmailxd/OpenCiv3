@@ -15,12 +15,31 @@ namespace C7Engine {
 		public static SettlerAIData MakeAiData(MapUnit unit, Player player) {
 			SettlerAIData settlerAiData = new SettlerAIData();
 			settlerAiData.goal = SettlerAIData.SettlerGoal.BUILD_CITY;
-			//If it's the starting settler, have it settle in place.  Otherwise, use an AI to find a location.
-			if (player.cities.Count == 0 && CanFoundCityHere(unit, player)) {
+			// Under Rising Tide the first city goes a few tiles inland if the
+			// land there lasts longer (see TideAI), but no further: every
+			// turn without a city is lost. A civ whose cities the sea has
+			// all taken looks further, for land that lasts a little less.
+			Tile firstSite = Tile.NONE;
+			if (player.cities.Count == 0 && TideAI.IsOn()) {
+				firstSite = SettlerLocationAI.FindSettlerLocation(unit.location, player, maxDistance: TideAI.FirstCityMaxWalk);
+				if (firstSite == Tile.NONE) {
+					firstSite = SettlerLocationAI.FindSettlerLocation(unit.location, player, tideWaves: TideAI.MinKeptSiteWaves);
+				}
+			}
+			if (firstSite != Tile.NONE && firstSite != unit.location) {
+				settlerAiData.destination = firstSite;
+				ChooseRoute(unit, player, settlerAiData);
+				log.Information($"Set AI for unit {unit.id} of {unit.owner.civilization.name} to found the first city inland at {firstSite}");
+			} else if (player.cities.Count == 0 && CanFoundCityHere(unit, player)) {
+				//If it's the starting settler, have it settle in place.  Otherwise, use an AI to find a location.
 				settlerAiData.destination = unit.location;
 				log.Information("No cities yet!  Set AI for unit to settler AI with destination of " + settlerAiData.destination);
 			} else {
 				settlerAiData.destination = SettlerLocationAI.FindSettlerLocation(unit.location, player);
+				// As in FindNewDestination, under Rising Tide.
+				if (settlerAiData.destination == Tile.NONE && TideAI.IsOn()) {
+					settlerAiData.destination = SettlerLocationAI.FindSettlerLocation(unit.location, player, tideWaves: TideAI.MinKeptSiteWaves);
+				}
 				if (settlerAiData.destination == Tile.NONE) {
 					//This is possible if all tiles within 4 tiles of a city are either not land, or already claimed
 					//by another colonist.  Longer-term, the AI shouldn't be building settlers if that is the case,
@@ -411,7 +430,7 @@ namespace C7Engine {
 		// waits a turn, and looks again for a city site or a city to join.
 		private C7GameData.UnitAI.MoveResult JoinCity(MapUnit unit, Player player) {
 			City here = unit.location.cityAtTile;
-			if (here != null && here.owner == player && HasRoomToJoin(here, PopulationOf(unit), player)) {
+			if (here != null && here.owner == player && HasRoomToJoin(here, PopulationOf(unit), player) && !TideAI.DrownsWithin(here.location, TideAI.DoomedTileTurns)) {
 				AddPopulation(here, unit);
 				return C7GameData.UnitAI.Result.Done;
 			}
@@ -419,8 +438,11 @@ namespace C7Engine {
 			City destination = data.destination?.cityAtTile;
 			if (destination == null || destination.owner != player || !HasRoomToJoin(destination, PopulationOf(unit), player)
 				|| data.pathToDestination == null) {
-				List<Tile> candidates = player.cities.Where(c => HasRoomToJoin(c, PopulationOf(unit), player))
-					.OrderBy(c => c.location.DistanceTo(unit.location)).Select(c => c.location).ToList();
+				// Under Rising Tide, the city that will stand longest, and
+				// none the sea will soon take (see TideAI).
+				List<Tile> candidates = player.cities.Where(c => HasRoomToJoin(c, PopulationOf(unit), player) && !TideAI.DrownsWithin(c.location, TideAI.DoomedTileTurns))
+					.OrderByDescending(c => TideAI.IsOn() ? TideAI.WavesUntilDrowned(c.location) : 0)
+					.ThenBy(c => c.location.DistanceTo(unit.location)).Select(c => c.location).ToList();
 				PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 				TilePath path = null;
 				int index = candidates.Count > 0 ? algorithm.FindFirstReachable(unit.location, candidates, unit, out path) : -1;
@@ -502,6 +524,13 @@ namespace C7Engine {
 			data.ferry = null;
 
 			Tile newDestination = SettlerLocationAI.FindSettlerLocation(unit.location, player, data.unreachableDestinations);
+			// Under Rising Tide, with no site that lasts as long as we'd
+			// like, one that lasts a little less: five citizens for some
+			// turns are better than a settler waiting for the sea (see
+			// TideAI).
+			if (newDestination == Tile.NONE && TideAI.IsOn()) {
+				newDestination = SettlerLocationAI.FindSettlerLocation(unit.location, player, data.unreachableDestinations, tideWaves: TideAI.MinKeptSiteWaves);
+			}
 			if (newDestination == Tile.NONE) {
 				data.goal = SettlerAIData.SettlerGoal.JOIN_CITY;
 				data.port = null;

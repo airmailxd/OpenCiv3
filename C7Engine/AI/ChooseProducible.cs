@@ -337,6 +337,19 @@ namespace C7Engine {
 				if (player.cities.Count > EngineStorage.gameData.map.optimalNumberOfCities) {
 					score *= 2.0f / 3.0f;
 				}
+
+				// Under Rising Tide settlers grow the civ and carry it
+				// inland, the more so from a city the sea will soon take
+				// (see TideAI).
+				if (TideAI.IsOn()) {
+					score += TideAI.CityTurnsLeft(city) <= TideAI.DoomedCityTurns ? TideAI.DoomedSettlerBonus : TideAI.SettlerBonus;
+				}
+			}
+
+			// Under Rising Tide, a unit the city can't finish before the sea
+			// takes it would drown with the city.
+			if (TideAI.TooLateToBuild(city, unit)) {
+				return -1000f;
 			}
 
 			if (isWorker) {
@@ -362,6 +375,12 @@ namespace C7Engine {
 
 		internal static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
 			bool atWar = stats.atWar;
+
+			// Under Rising Tide, nothing the city won't keep long enough to
+			// use (see TideAI).
+			if (TideAI.TooLateToBuild(city, building)) {
+				return -1000f;
+			}
 
 			float score = 0;
 
@@ -737,6 +756,7 @@ namespace C7Engine {
 			// settlers moving towards them.
 			Dictionary<Tile, float> scoredLocations = SettlerLocationAI.GetScoredSettlerCandidates(city.location, city.owner);
 			List<KeyValuePair<Tile, float>> orderedScores = scoredLocations.OrderByDescending(t => t.Value).ToList();
+			bool tide = TideAI.IsOn();
 
 			foreach ((Tile tile, float score) in orderedScores) {
 				if (scoredLocations.ContainsKey(tile)) {
@@ -750,6 +770,11 @@ namespace C7Engine {
 							continue;
 						}
 						scoredLocations.Remove(n);
+						// Under Rising Tide only next to it (see
+						// TideAI.IsNextToCity).
+						if (tide) {
+							continue;
+						}
 						foreach (Tile nn in n.neighbors.Values) {
 							scoredLocations.Remove(nn);
 						}

@@ -158,6 +158,16 @@ namespace C7Engine {
 				}
 			}
 
+			// Under Rising Tide, nor tiles the sea will take before the
+			// work pays off (see TideAI).
+			if (TideAI.IsOn()) {
+				foreach (Tile t in highPriorityTiles.Concat(lowPriorityTiles)) {
+					if (TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns)) {
+						reservedTiles.Add(t);
+					}
+				}
+			}
+
 			// Looking for a tile the worker can reach may take a search over
 			// every tile it can reach, which is kept for the next question
 			// rather than done again for each distance and list.
@@ -168,6 +178,7 @@ namespace C7Engine {
 			PathingAlgorithm algorithm = null;
 			List<Tile> colonySites = WorkerHoldingsAI.ColonySites(unit, player, colonyTrip);
 			colonySites.RemoveAll(threat.IsUnsafeForCivilian);
+			colonySites.RemoveAll(t => TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns));
 			if (colonySites.Count > 0) {
 				algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, colonySites, unit, reachable, out TilePath path);
@@ -179,6 +190,7 @@ namespace C7Engine {
 			}
 			List<Tile> outpostSites = WorkerHoldingsAI.OutpostSites(unit, player, outpostTrip);
 			outpostSites.RemoveAll(threat.IsUnsafeForCivilian);
+			outpostSites.RemoveAll(t => TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns));
 			if (outpostSites.Count > 0) {
 				algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, outpostSites, unit, reachable, out TilePath path);

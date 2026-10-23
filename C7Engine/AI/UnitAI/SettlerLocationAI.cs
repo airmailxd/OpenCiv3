@@ -11,10 +11,25 @@ namespace C7Engine {
 		private static readonly Serilog.ILogger Log = Serilog.Log.ForContext<SettlerLocationAI>();
 
 		//Figures out where to plant Settlers.
-		public static Tile FindSettlerLocation(Tile start, Player player, HashSet<Tile> excludedTiles = null) {
-			Dictionary<Tile, float> scores = GetScoredSettlerCandidates(start, player, excludedTiles);
+		// Sites further than maxDistance from the start aren't considered,
+		// nor under Rising Tide those lasting fewer than tideWaves waves (see
+		// TideAI.LastsLongEnough).
+		public static Tile FindSettlerLocation(Tile start, Player player, HashSet<Tile> excludedTiles = null, int maxDistance = int.MaxValue,
+				int tideWaves = TideAI.MinSiteWaves) {
+			Dictionary<Tile, float> scores = GetScoredSettlerCandidates(start, player, excludedTiles, tideWaves);
+			if (maxDistance != int.MaxValue) {
+				foreach (Tile t in scores.Keys.Where(t => start.DistanceTo(t) > maxDistance).ToList()) {
+					scores.Remove(t);
+				}
+			}
 			if (scores.Count == 0 || scores.Values.Max() <= 0) {
 				return Tile.NONE;   //nowhere to settle
+			}
+
+			// Under Rising Tide the walk also eats into the turns the city
+			// will stand (see TideAI).
+			if (TideAI.IsOn()) {
+				return scores.MaxBy(t => t.Value * TravelFactor(start.DistanceTo(t.Key)) * TideAI.TravelSurvivalFactor(t.Key, start.DistanceTo(t.Key))).Key;
 			}
 
 			// The settler's own walk counts too: a site a little better but
@@ -38,12 +53,17 @@ namespace C7Engine {
 		}
 
 		// Whether a settler may still found its city at the tile, by the
-		// rules sites are chosen by: no city within 2 tiles, not in another
-		// civ's land, and while at war not next to an enemy's land. A
-		// settler checks this each turn, so it learns on the way that a
-		// rival has settled near its site or its borders have grown over it.
+		// rules sites are chosen by: no city within 2 tiles (see
+		// TooCloseToCity), not in another civ's land, while at war not next
+		// to an enemy's land, and under Rising Tide not where the sea will
+		// soon be. A settler checks this each turn, so it learns on the way
+		// that a rival has settled near its site or its borders have grown
+		// over it.
 		public static bool IsStillValidSite(Tile t, Player player) {
-			if (t == null || t == Tile.NONE || IsInvalidCityLocation(t) || !t.IsAllowCities() || IsOwnedByRival(t, player)) {
+			if (t == null || t == Tile.NONE || TooCloseToCity(t, null) || !t.IsAllowCities() || IsOwnedByRival(t, player)) {
+				return false;
+			}
+			if (!TideAI.LastsLongEnough(t, TideAI.MinKeptSiteWaves)) {
 				return false;
 			}
 			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData?.players ?? new());
@@ -61,7 +81,8 @@ namespace C7Engine {
 		// too close to a city (until a city is founded or destroyed) and each
 		// tile's yield score (until something its yields depend on changes).
 		// The results are the same as computing everything from scratch.
-		public static Dictionary<Tile, float> GetScoredSettlerCandidates(Tile start, Player player, HashSet<Tile> excludedTiles = null) {
+		public static Dictionary<Tile, float> GetScoredSettlerCandidates(Tile start, Player player, HashSet<Tile> excludedTiles = null,
+				int tideWaves = TideAI.MinSiteWaves) {
 			List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.isSettler);
 			Dictionary<Tile, bool> invalidLocations = InvalidLocationMemo();
 			HashSet<Tile> tilesNearSettlerDestinations = null;
@@ -71,6 +92,7 @@ namespace C7Engine {
 			HashSet<int> overseas = null;
 			List<Tile> candidates = new();
 			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData?.players ?? new());
+			bool tide = TideAI.IsOn();
 			foreach (Tile t in player.tileKnowledge.knownTiles) {
 				// Cheapest checks first.
 				if (t.continent != start.continent) {
@@ -82,14 +104,14 @@ namespace C7Engine {
 						continue;
 					}
 				}
-				if (IsInvalidCityLocation(t, invalidLocations)) {
+				if (TooCloseToCity(t, invalidLocations)) {
 					continue;
 				}
 
 				// Skip tiles near where our settlers are already heading, and
 				// excludedTiles (the tiles a settler failed to reach, issue
 				// #213).
-				tilesNearSettlerDestinations ??= TilesNearSettlerDestinations(playerSettlers);
+				tilesNearSettlerDestinations ??= TilesNearSettlerDestinations(playerSettlers, tide);
 				if (tilesNearSettlerDestinations.Contains(t) || !t.IsAllowCities() || (excludedTiles != null && excludedTiles.Contains(t))) {
 					continue;
 				}
@@ -103,6 +125,12 @@ namespace C7Engine {
 				// (and the settler on its way) would be easy to take. (An AI
 				// heuristic.)
 				if (atWar && NextToHostileTerritory(t, player)) {
+					continue;
+				}
+
+				// Under Rising Tide, not where the next waves will soon take
+				// the city (see TideAI).
+				if (tide && !TideAI.LastsLongEnough(t, tideWaves)) {
 					continue;
 				}
 				candidates.Add(t);
@@ -151,6 +179,7 @@ namespace C7Engine {
 			}
 
 			cache.UpdateCities(ownCities, rivalCities, adjustments.RivalCityRadius);
+			bool tide = TideAI.IsOn();
 
 			foreach (Tile t in candidates) {
 				float score = cache.TileYieldScore(t);
@@ -200,7 +229,11 @@ namespace C7Engine {
 				//Lower scores if they are far away
 				float preDistanceScore = score;
 				int distanceFromEmpire = ownCities.Count == 0 ? DistanceFromEmpire(t, startTile, ownCities) : cache.DistanceFromCities(t);
-				float distancePenalty = DistancePenalty(distanceFromEmpire, adjustments);
+				// Under Rising Tide the empire moves inland, away from its
+				// cities on the shore, so distance from them is no fault;
+				// the settler's own walk still counts (see
+				// FindSettlerLocation).
+				float distancePenalty = tide ? 0 : DistancePenalty(distanceFromEmpire, adjustments);
 				score += distancePenalty;
 
 				//Distance can never make a site worth something worthless; the AI will always try to settle those worthless tundras.
@@ -225,6 +258,12 @@ namespace C7Engine {
 				// distance, and the nearer and less bad ones come first.
 				if (score <= 0) {
 					score = 1f / ((4f - preDistanceScore) * (1f - distancePenalty));
+				}
+
+				// Under Rising Tide a site is worth more the longer the city
+				// will stand (see TideAI.SiteSurvivalFactor).
+				if (tide) {
+					score *= TideAI.SiteSurvivalFactor(t);
 				}
 				scores[t] = score;
 			}
@@ -619,6 +658,16 @@ namespace C7Engine {
 			}
 		}
 
+		// Whether the AI keeps from founding a city at the tile for a city
+		// too near: within 2 tiles (see IsInvalidCityLocation), or under
+		// Rising Tide only next to it (see TideAI.IsNextToCity).
+		private static bool TooCloseToCity(Tile tile, Dictionary<Tile, bool> memo) {
+			if (TideAI.IsOn()) {
+				return TideAI.IsNextToCity(tile);
+			}
+			return memo == null ? IsInvalidCityLocation(tile) : IsInvalidCityLocation(tile, memo);
+		}
+
 		private static bool IsInvalidCityLocation(Tile tile, Dictionary<Tile, bool> memo) {
 			if (memo == null) {
 				return IsInvalidCityLocation(tile);
@@ -660,7 +709,7 @@ namespace C7Engine {
 		/// Another AI's settlers don't count, as the AI shouldn't know the other AI's plans.
 		/// </summary>
 		/// <param name="playerSettlers">The settlers owned by the AI considering building a city.</param>
-		private static HashSet<Tile> TilesNearSettlerDestinations(List<MapUnit> playerSettlers) {
+		private static HashSet<Tile> TilesNearSettlerDestinations(List<MapUnit> playerSettlers, bool tide) {
 			HashSet<Tile> result = new();
 			foreach (MapUnit otherSettler in playerSettlers) {
 				// A settler joining a city isn't heading for a city site, and
@@ -671,6 +720,11 @@ namespace C7Engine {
 					result.Add(otherDestination);
 					foreach (Tile innerRingTile in otherDestination.GetLandNeighbors()) {
 						result.Add(innerRingTile);
+						// Under Rising Tide cities may stand with only a
+						// tile between them (see TideAI.IsNextToCity).
+						if (tide) {
+							continue;
+						}
 						foreach (Tile outerRingTile in innerRingTile.GetLandNeighbors()) {
 							result.Add(outerRingTile);
 						}

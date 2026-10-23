@@ -77,6 +77,13 @@ namespace C7Engine {
 				return UnitAI.Result.InProgress;
 			}
 
+			// Under Rising Tide, not onto land the coming wave takes before
+			// the unit could leave it again (see TideAI): it waits a turn.
+			if (C7Engine.AI.TideAI.StepWouldDrown(unit, nextTile)) {
+				unit.movementPoints.onConsumeAll();
+				return UnitAI.Result.InProgress;
+			}
+
 			// Moving onto a tile with an enemy on it is an attack. Units that
 			// can't attack at all would never get there, so give up on the
 			// plan. Units without blitz can only attack once per turn, so if we

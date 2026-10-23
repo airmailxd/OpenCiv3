@@ -245,6 +245,12 @@ namespace C7Engine.AI.UnitAI {
 				// the way.
 				score -= 3f * snap.enRoute[i];
 
+				// Under Rising Tide, a city the sea is about to take is no
+				// place to go (see TideAI).
+				if (TideAI.DrownsWithin(snap.cities[i].location, TideAI.DoomedTileTurns)) {
+					score -= 100f;
+				}
+
 				if (score > bestScore) {
 					bestScore = score;
 					bestCity = snap.cities[i];
