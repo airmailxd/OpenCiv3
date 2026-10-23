@@ -31,6 +31,8 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_DIFFICULTY   index into the difficulties (default 3, Monarch)
 //   C7_TRIAL_LANDFORM     Pangaea, Continents or Archipelago (default Continents)
 //   C7_TRIAL_SEED         seed of the first game (default 1000)
+//   C7_TRIAL_SCENARIO     None, EternalWar, RisingTide or KingsAndNomads
+//                         (default None), to play the games as that scenario
 //   C7_TRIAL_PAIRED       1 to also play each game with no switches on and
 //                         take its trial-vs-others difference off: games are
 //                         deterministic, so the halves' unequal starts cancel
@@ -213,6 +215,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
+		GameScenario scenario = Enum.TryParse(Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO"), out GameScenario sc) ? sc : GameScenario.None;
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = landform,
@@ -237,6 +240,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			worldCharacteristics = wc,
 			opponents = Enumerable.Repeat(new SelectedOpponent { isRandom = true }, civs - 1).ToList(),
 			victoryConditions = new VictoryConditions(),
+			scenario = scenario,
 		}.Populate(save);
 		return save;
 	}
@@ -263,7 +267,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			paired = false;
 		}
 
-		List<string> lines = [$"experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}{(all ? " all" : "")}"];
+		List<string> lines = [$"scenario={Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None"} experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}{(all ? " all" : "")}"];
 		// Per game, the average of each measure over the trial civs minus
 		// the average over the others.
 		List<double[]> differences = new();
