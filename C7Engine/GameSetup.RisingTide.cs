@@ -35,6 +35,9 @@ public partial class GameSetup {
 		save.Rules.RisingTide = true;
 		save.Rules.NewCitySize = RisingTideCitySize;
 		save.RisingTide = new RisingTideState { nextWaveTurn = RisingTide.Interval(0) };
+		// The last civ standing wins.
+		save.VictoryConditions ??= new VictoryConditions();
+		save.VictoryConditions.AllowConquestVictory = true;
 	}
 
 	// The starting units of a Rising Tide civ, on its start.

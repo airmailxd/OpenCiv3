@@ -43,6 +43,7 @@ public class RisingTideScenarioTest {
 		Assert.True(gameData.rules.RisingTide);
 		Assert.Equal(GameSetup.RisingTideCitySize, gameData.rules.NewCitySize);
 		Assert.Equal(21, RisingTide.TurnsUntilNextWave(gameData));
+		Assert.Contains(gameData.victories, v => v is ConquestVictory);
 		gameData.map.recomputeContinents();
 		Assert.Single(gameData.map.continents, c => c.First().IsLand());
 
