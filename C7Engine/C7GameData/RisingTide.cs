@@ -30,6 +30,11 @@ namespace C7Engine {
 		// and the next; after the last, a wave every turn.
 		public static readonly int[] Intervals = [21, 13, 8, 5, 5, 3, 3, 2, 2, 1];
 
+		// Lets AiTrialTest count the cities the tide destroys and the units
+		// it drowns. Null outside a trial.
+		internal static System.Action<City> onCityDrowned;
+		internal static System.Action<MapUnit> onUnitDrowned;
+
 		// The turns between the given wave (0 for the first, counted from
 		// the start) and the one before.
 		public static int Interval(int wave) {
@@ -89,9 +94,11 @@ namespace C7Engine {
 					}
 					lost.Add(city.name);
 					log.Information("The tide destroys {City} of {Player}", city.name, owner);
+					onCityDrowned?.Invoke(city);
 					CityInteractions.DestroyCity(city);
 				}
 				foreach (MapUnit unit in tile.unitsOnTile.Where(u => !u.IsWaterUnit() && !u.IsAirUnit()).ToList()) {
+					onUnitDrowned?.Invoke(unit);
 					unit.RemoveFromPlay();
 				}
 				Flood(tile, coast);

@@ -162,6 +162,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The turn the game was on at the end, which is short of the
 			// turns asked for when someone won.
 			"endTurn",
+			// Rising Tide (see RisingTide): the civ's cities the tide
+			// destroyed and its units it drowned, and the turn the civ was
+			// destroyed (the game's length if it never was).
+			"tideCities", "drowned", "deathTurn",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -221,7 +225,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	// Per civ, how its development went over a game (see Measures).
 	private sealed class Development {
-		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized;
+		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
@@ -383,7 +387,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> captured = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
-		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { city5Turn = turns, city10Turn = turns });
+		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { city5Turn = turns, city10Turn = turns, deathTurn = turns });
 		void RecordDevelopment(int turn) {
 			foreach (Player p in civs) {
 				Development d = development[p];
@@ -399,6 +403,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					d.midCitizens = p.cities.Sum(c => c.residents.Count);
 				}
 				if (p.defeated) {
+					d.deathTurn = Math.Min(d.deathTurn, turn);
 					continue;
 				}
 				if (p.government.transitionType) {
@@ -465,6 +470,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				marketGold[buyer] += gold;
 			}
 		};
+		Dictionary<Player, int> tideCities = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> drowned = civs.ToDictionary(p => p, _ => 0);
+		RisingTide.onCityDrowned = city => Add(tideCities, city.owner);
+		RisingTide.onUnitDrowned = unit => Add(drowned, unit.owner);
 		Dictionary<Player, int> rops = civs.ToDictionary(p => p, _ => 0);
 		RightOfPassageAI.onSigned = (asker, partner) => {
 			Add(rops, asker);
@@ -592,6 +601,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onCultureFlip = null;
 			RightOfPassageAI.onSigned = null;
 			Staging.onBuy = null;
+			RisingTide.onCityDrowned = null;
+			RisingTide.onUnitDrowned = null;
 		}
 
 		Dictionary<Player, int> land = civs.ToDictionary(p => p, _ => 0);
@@ -672,6 +683,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = freeCaptures[p];
 			m.values[i++] = p.defeated ? fellTurn[p] : gameData.turn;
 			m.values[i++] = gameData.turn;
+			m.values[i++] = tideCities[p];
+			m.values[i++] = drowned[p];
+			m.values[i++] = d.deathTurn;
 			return m;
 		}
 
