@@ -174,6 +174,24 @@ public partial class SettingsMenu : Control {
 				"in the mode it was saved in, which switches this too."
 			: "No Civilization III install was found, so the game plays with its own art and rules. " +
 				"To play with Civ3's instead, install Civilization III."));
+
+		Civ3Checkbox intro = new() {
+			Text = "Play the intro movie on launch",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = IntroVideo.Enabled,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		intro.Toggled += (bool on) => {
+			PlayClick();
+			IntroVideo.SetEnabled(on);
+			log.Information("Intro movie turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(intro);
+		column.AddChild(MakeNote(IntroVideo.FindFile() != null
+			? "Plays the intro movie when the game starts. Any key or click skips it."
+			: "Plays the intro movie when the game starts, once there is an Intro/" + IntroVideo.FileName + " in your OpenCiv3 " +
+				"folder. Any key or click skips it."));
 	}
 
 	private void AddGraphicsSettings(VBoxContainer column) {

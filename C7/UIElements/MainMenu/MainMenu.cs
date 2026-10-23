@@ -38,15 +38,18 @@ public partial class MainMenu : Node {
 			LoadDialog.Canceled += () => LanSession.HostNextGame = false;
 
 			AudioManager = GetNode<AudioManager>("/root/GlobalAudioManager");
-			PlayMusic();
 
 			if (LanSession.TakeDevStart()) {
+				PlayMusic();
 				CallDeferred(nameof(StartDevLanGame));
 			} else if (!devWatchUsed && Array.IndexOf(OS.GetCmdlineUserArgs(), "--watch-ai") >= 0) {
 				// The --watch-ai developer option goes straight into a game
 				// to watch, the first time the menu shows.
 				devWatchUsed = true;
+				PlayMusic();
 				CallDeferred(nameof(WatchAiQuickStart));
+			} else {
+				PlayIntroThenMusic();
 			}
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the main menu");
@@ -332,6 +335,19 @@ public partial class MainMenu : Node {
 	private void UseStandaloneModePressed() {
 		Global.ActivateGameMode(GamePaths.standalone);
 		DisplayTitleScreen();
+	}
+
+	// The intro movie the first time the menu shows, if there is one and it
+	// isn't turned off, with the menu's music once it's over.
+	private void PlayIntroThenMusic() {
+		IntroVideo intro = IntroVideo.TakeForLaunch();
+		if (intro == null) {
+			PlayMusic();
+			return;
+		}
+		log.Information("Playing the intro movie");
+		intro.Finished += PlayMusic;
+		AddChild(intro);
 	}
 
 	private void PlayMusic() {
