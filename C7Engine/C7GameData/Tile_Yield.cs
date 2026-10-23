@@ -184,6 +184,13 @@ public partial class Tile {
 			yield += this.Resource.ShieldsBonus;
 		}
 
+		// A scenario's extra shields from desert (Rules.DesertShieldBonus).
+		// A flood plain is desert underneath, but has its own overlay, so it
+		// doesn't count.
+		if (overlayTerrainType.IsDesert) {
+			yield += EngineStorage.gameData?.rules?.DesertShieldBonus ?? 0;
+		}
+
 		if (HasCity()) {
 			// City centers add a size bonus to the terrain's shields: towns
 			// only make sure there is at least 1, cities get +1 and

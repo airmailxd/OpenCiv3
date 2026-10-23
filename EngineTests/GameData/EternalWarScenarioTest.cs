@@ -250,8 +250,8 @@ public class EternalWarScenarioTest {
 		Assert.True(city.CanGrowPopulationByOne(gameData));
 	}
 
-	// Every tile makes a commerce more, city centers too, and forest on
-	// tundra a food more.
+	// Every tile makes a commerce more, city centers too, forest on tundra a
+	// food more, and desert, but not flood plains, a shield more.
 	[Fact]
 	public void TilesMakeMoreCommerceAndTundraForestMoreFood() {
 		(_, C7GameData.GameData gameData) = NewGame(10);
@@ -271,6 +271,17 @@ public class EternalWarScenarioTest {
 		int food = land.FoodYield(owner).yield;
 		gameData.rules.TundraForestFoodBonus = 0;
 		Assert.Equal(land.FoodYield(owner).yield + 1, food);
+
+		TerrainType desert = gameData.terrainTypes.Find(t => t.IsDesert);
+		land.baseTerrainType = desert;
+		land.overlayTerrainType = desert;
+		int desertShields = land.ProductionYield(owner).yield;
+		land.overlayTerrainType = gameData.terrainTypes.Find(t => t.IsFloodPlain);
+		int floodPlainShields = land.ProductionYield(owner).yield;
+		gameData.rules.DesertShieldBonus = 0;
+		Assert.Equal(floodPlainShields, land.ProductionYield(owner).yield);
+		land.overlayTerrainType = desert;
+		Assert.Equal(land.ProductionYield(owner).yield + 1, desertShields);
 	}
 
 	// A worker beaten in battle becomes a slave worker in the winner's
@@ -306,8 +317,8 @@ public class EternalWarScenarioTest {
 		Assert.Contains(slaves, s => s.nationality == loser.civilization);
 	}
 
-	// Staging gives units of the leading civ's age that every civ could
-	// build, so never a unique unit.
+	// Staging gives units of the leading civ's age, but never a unique unit,
+	// though it may give a unit some civ's unique unit replaces.
 	[Fact]
 	public void StagingGivesUnitsOfTheLeadingAgeButNoUniqueUnits() {
 		(_, C7GameData.GameData gameData) = NewGame(12);
@@ -317,8 +328,9 @@ public class EternalWarScenarioTest {
 		List<UnitPrototype> pool = Staging.Pool(gameData);
 		Assert.NotEmpty(pool);
 		Assert.All(pool, u => Assert.Equal(1, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
-		Assert.All(pool, u => Assert.All(civs, c => Assert.True(u.IsProducibleBy(c.civilization))));
 		Assert.Contains(pool, u => u.name == "Knight");
+		Assert.Contains(pool, u => u.name == "Musketman");
+		Assert.DoesNotContain(pool, u => u.name == "Musketeer" || u.name == "Man-O-War");
 		Assert.DoesNotContain(pool, u => u.isSettler || u.isWorker || u.isLeader);
 		// A unique unit of the age, such as Japan's Samurai, isn't given.
 		Assert.Contains(gameData.unitPrototypes, u => u.requiredTech != null
@@ -326,6 +338,38 @@ public class EternalWarScenarioTest {
 
 		civs[2].eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
 		Assert.All(Staging.Pool(gameData), u => Assert.Equal(2, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
+	}
+
+	// Land units are given more often than ships.
+	[Fact]
+	public void StagingGivesLandUnitsMoreOftenThanShips() {
+		(_, C7GameData.GameData gameData) = NewGame(12);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		List<UnitPrototype> pool = Staging.Pool(gameData);
+		int land = pool.Count(u => !u.IsSeaUnit()), sea = pool.Count(u => u.IsSeaUnit());
+		Assert.True(land > 0 && sea > 0);
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new System.Random(1);
+		try {
+			int ships = Enumerable.Range(0, 4000).Count(_ => Staging.Pick(pool).IsSeaUnit());
+			double expected = 4000.0 * sea / (sea + Staging.LandUnitWeight * land);
+			Assert.InRange(ships, expected * 0.85, expected * 1.15);
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// A ship may be sent to any city; the AI sends one to the coast.
+	[Fact]
+	public void AStagedShipMayGoToAnyCity() {
+		(_, C7GameData.GameData gameData) = NewGame(15);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player owner = gameData.cities.First(c => !c.location.NeighborsOcean()
+			&& c.owner.cities.Any(o => o.location.NeighborsOcean())).owner;
+		UnitPrototype ship = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.attack > 0);
+		Assert.Equal(owner.cities.Count, Staging.Choices(owner, ship).Count);
+		Assert.True(Staging.AiChoice(gameData, owner, ship).location.NeighborsOcean());
 	}
 
 	// The AIs' units are placed at once; the humans choose a city, and no
@@ -410,8 +454,7 @@ public class EternalWarScenarioTest {
 		Assert.Null(Staging.UnitType(gameData));
 	}
 
-	// A ship for a civ with no city on the coast puts to sea nearest the
-	// city chosen.
+	// A ship sent to an inland city puts to sea at the coast nearest it.
 	[Fact]
 	public void AStagedShipWithoutACoastalCityGoesToTheNearestSea() {
 		(_, C7GameData.GameData gameData) = NewGame(15);
@@ -422,10 +465,10 @@ public class EternalWarScenarioTest {
 
 		MapUnit placed = Staging.Place(gameData, owner, ship, inland);
 		Assert.NotNull(placed);
-		Assert.True(placed.location.baseTerrainType.IsWater);
+		Assert.True(placed.location.baseTerrainType.IsCoast);
 		Assert.False(placed.location.isFreshWater);
 		int distance = inland.location.DistanceTo(placed.location);
-		Assert.DoesNotContain(gameData.map.tiles, t => t.baseTerrainType.IsWater && !t.isFreshWater
+		Assert.DoesNotContain(gameData.map.tiles, t => t.baseTerrainType.IsCoast && !t.isFreshWater
 			&& inland.location.DistanceTo(t) < distance && t.unitsOnTile.All(u => u.owner == owner));
 	}
 

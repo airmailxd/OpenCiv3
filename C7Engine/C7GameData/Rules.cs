@@ -83,6 +83,8 @@ namespace C7GameData {
 		public int TileCommerceBonus = 0;
 		// Added to the food of forest on tundra.
 		public int TundraForestFoodBonus = 0;
+		// Added to the shields of desert, but not of flood plains.
+		public int DesertShieldBonus = 0;
 		// A worker beaten in battle is taken as a slave worker to the
 		// winner's nearest city.
 		public bool DefeatedWorkersBecomeSlaves = false;

@@ -24,11 +24,12 @@ namespace C7Engine {
 	// every turn after the first, before anyone moves, every civ is given a
 	// unit, the same type for all. It's chosen at random from the units of
 	// the age of the most advanced civ, and may be one a civ can't build yet,
-	// but is never a unique unit. Each player chooses which of their cities
-	// it appears in: the AIs at once, the humans from a list of their
-	// cities, and no one moves until every human has chosen. A ship goes to
-	// a coastal city, or for a civ with none, to the sea nearest the city
-	// chosen.
+	// but is never a unique unit. Land units are given more often than
+	// ships (owner's addition, 2026-10-23). Each player chooses which of
+	// their cities it appears in: the AIs at once, the humans from a list of
+	// their cities, and no one moves until every human has chosen. A ship
+	// may be sent to any city; one sent inland puts to sea at the coast
+	// nearest it.
 	public static class Staging {
 		private static readonly ILogger log = Log.ForContext(typeof(Staging));
 
@@ -47,16 +48,20 @@ namespace C7Engine {
 			return name == null ? null : gameData.unitPrototypes.Find(p => p.name == name);
 		}
 
+		// How many times likelier a land unit is to be given than a ship.
+		public const int LandUnitWeight = 3;
+
 		// The unit types Staging may give: the fighting land and sea units
 		// of the most advanced civ's era (by the era of the advance each
-		// needs) that every civ in the game could build, which leaves out
-		// the unique units. If that era has none, the one before.
+		// needs), leaving out the unique units. If that era has none, the
+		// one before.
 		public static List<UnitPrototype> Pool(GameData gameData) {
 			List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+			int civilizations = gameData.civilizations.Count(c => !c.isBarbarian);
 			int era = civs.Count == 0 ? 0 : civs.Max(p => p.EraIndex());
 			for (; era >= 0; --era) {
 				List<UnitPrototype> pool = gameData.unitPrototypes
-					.Where(p => MayBeGiven(p, civs) && EraUtils.GetEraIndex(p.requiredTech.EraCivilopediaName) == era)
+					.Where(p => MayBeGiven(p, civilizations) && EraUtils.GetEraIndex(p.requiredTech.EraCivilopediaName) == era)
 					.ToList();
 				if (pool.Count > 0) {
 					return pool;
@@ -65,13 +70,30 @@ namespace C7Engine {
 			return [];
 		}
 
-		private static bool MayBeGiven(UnitPrototype unit, List<Player> civs) {
+		// A unique unit is one only a few civilizations may build. A unit one
+		// replaces, like the Musketman (France's Musketeer), is still built
+		// by most, so it may be given, even to a civ that can't build it.
+		private static bool MayBeGiven(UnitPrototype unit, int civilizations) {
 			return unit.requiredTech != null && !unit.unproducible
 				&& (unit.IsLandUnit() || unit.IsSeaUnit()) && !unit.IsAirUnit()
 				&& unit.attack + unit.defense > 0
 				&& !unit.isSettler && !unit.isWorker && !unit.isKing && !unit.isLeader && !unit.isArmy
 				&& !unit.isNuclearWeapon && !unit.isTacticalMissile && !unit.isCruiseMissile
-				&& civs.All(c => unit.IsProducibleBy(c.civilization));
+				&& unit.producibleBy.Count(c => !c.isBarbarian) * 2 > civilizations;
+		}
+
+		// A unit type from the pool, a land unit LandUnitWeight times as
+		// likely as a ship.
+		public static UnitPrototype Pick(List<UnitPrototype> pool) {
+			int Weight(UnitPrototype u) => u.IsSeaUnit() ? 1 : LandUnitWeight;
+			int roll = GameData.rng.Next(pool.Sum(Weight));
+			foreach (UnitPrototype unit in pool) {
+				roll -= Weight(unit);
+				if (roll < 0) {
+					return unit;
+				}
+			}
+			return pool[^1];
 		}
 
 		// Starts the turn's Staging as the turn begins: chooses the unit,
@@ -87,7 +109,7 @@ namespace C7Engine {
 				log.Warning("No unit types to give out in Staging on turn {Turn}", gameData.turn);
 				return;
 			}
-			UnitPrototype unit = pool[GameData.rng.Next(pool.Count)];
+			UnitPrototype unit = Pick(pool);
 			state.turn = gameData.turn;
 			state.unitType = unit.name;
 			log.Information("Staging for turn {Turn}: every civ is given a {Unit}", gameData.turn, unit.name);
@@ -101,15 +123,9 @@ namespace C7Engine {
 			}
 		}
 
-		// The cities the player may choose for the unit: for a ship, their
-		// coastal ones, or all of them if none is.
+		// The cities the player may choose for the unit: any of theirs. A
+		// ship sent to an inland city puts to sea nearby (see Place).
 		public static List<City> Choices(Player player, UnitPrototype unit) {
-			if (unit.IsSeaUnit()) {
-				List<City> coastal = player.cities.Where(c => c.location.NeighborsOcean()).ToList();
-				if (coastal.Count > 0) {
-					return coastal;
-				}
-			}
 			return player.cities.ToList();
 		}
 
@@ -122,9 +138,12 @@ namespace C7Engine {
 		// choose): a defender (no stronger in attack than defence) goes to
 		// the city with the fewest defenders, and anything else to the city
 		// nearest an enemy city, to strike from; each breaks ties by the
-		// other.
+		// other. A ship goes to a coastal city if there is one.
 		public static City AiChoice(GameData gameData, Player player, UnitPrototype unit) {
 			List<City> choices = Choices(player, unit);
+			if (unit.IsSeaUnit() && choices.Any(c => c.location.NeighborsOcean())) {
+				choices = choices.Where(c => c.location.NeighborsOcean()).ToList();
+			}
 			List<Tile> enemyCities = gameData.cities
 				.Where(c => c.owner != player && PlayerRelationship.AtWar(player, c.owner))
 				.Select(c => c.location).ToList();
@@ -136,7 +155,7 @@ namespace C7Engine {
 		}
 
 		// Puts the player's unit in the city, or a ship the city can't hold
-		// on the nearest sea it can sail safely. Returns the unit, or null
+		// on the nearest water it can sail safely, coast first. Returns the unit, or null
 		// if there was nowhere for it.
 		public static MapUnit Place(GameData gameData, Player player, UnitPrototype unit, City city) {
 			Tile tile = city.location;
@@ -154,13 +173,15 @@ namespace C7Engine {
 		}
 
 		// The salt water tile nearest the given one that the ship can sail
-		// safely, with no one else's units on it.
+		// safely, with no one else's units on it: the nearest coast, or if
+		// there's none, the nearest sea or ocean.
 		private static Tile NearestSea(GameData gameData, Player player, UnitPrototype unit, Tile from) {
 			bool Safe(Tile t) => !((unit.sinksInOcean && t.baseTerrainType.IsOcean) || (unit.sinksInSea && t.baseTerrainType.IsSea))
 				|| player.CanSailSafelyOn(t.baseTerrainType);
 			return gameData.map.tiles
 				.Where(t => t.baseTerrainType.IsWater && !t.isFreshWater && Safe(t) && t.unitsOnTile.All(u => u.owner == player))
-				.OrderBy(t => from.DistanceTo(t))
+				.OrderBy(t => !t.baseTerrainType.IsCoast)
+				.ThenBy(t => from.DistanceTo(t))
 				.FirstOrDefault();
 		}
 

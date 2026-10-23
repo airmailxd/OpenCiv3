@@ -1534,6 +1534,12 @@ public partial class MapView : Node2D {
 		setCameraLocation(tileCenter - (float)0.5 * getVisibleAreaSize());
 	}
 
+	// Moves the camera so the tile is at the given point on the screen.
+	public void centerCameraOnTileAt(Tile t, Vector2 screenPoint) {
+		var tileCenter = NearestTileCenter(t, CameraCenterInMap()) * cameraZoom;
+		setCameraLocation(tileCenter - screenPoint);
+	}
+
 	public void OnCenterCameraOnUnit() {
 		MapUnit currentlySelectedUnit = game.CurrentlySelectedUnit;
 		if (!MapUnit.IsMapUnitValid(currentlySelectedUnit))

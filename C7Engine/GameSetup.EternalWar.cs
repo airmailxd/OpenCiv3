@@ -35,6 +35,8 @@ public enum GameScenario {
 // unit of the leading age for the city of its choice (see Staging). Coastal
 // buildings, such as harbors and the Colossus, may be built within 3 tiles
 // of the coast. (Owner's additions, 2026-10-22.)
+// Desert makes a shield more, though flood plains don't. (Owner's addition,
+// 2026-10-23.)
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -146,6 +148,7 @@ public partial class GameSetup {
 		save.Rules.SizeWithoutHospital = 2 * save.Rules.MaximumLevel2CitySize;
 		save.Rules.TileCommerceBonus = 1;
 		save.Rules.TundraForestFoodBonus = 1;
+		save.Rules.DesertShieldBonus = 1;
 		save.Rules.DefeatedWorkersBecomeSlaves = true;
 		save.Rules.CoastalBuildingRange = EternalWarCoastalBuildingRange;
 		save.Rules.StagingUnits = true;
