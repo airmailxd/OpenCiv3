@@ -840,6 +840,9 @@ namespace C7GameData {
 				}
 			}
 
+			// Kings & Nomads' trade with the city-states (see CityStateTrade).
+			result.fromOtherCivs += CityStateTrade.Income(EngineStorage.gameData, this);
+
 			result.unitSupport = unitSupport;
 
 			result.interest = TreasuryInterest(interestBuildings);

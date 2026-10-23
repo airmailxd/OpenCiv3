@@ -74,6 +74,38 @@ public class KingsAndNomadsScenarioTest {
 		}
 	}
 
+	// A road from a civ's city to a city-state is a trade route: the
+	// civ gets the resources inside the city-state's borders and gold a
+	// turn (see CityStateTrade).
+	[Fact]
+	public void ARoadToACityStateIsATradeRoute() {
+		(_, C7GameData.GameData gameData) = NewGame(8);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		City cityState = gameData.players.Single(p => p.isBarbarians).cities[0];
+		Tile cs = cityState.location;
+		(Tile site, Tile middle) = cs.GetTilesWithinRankDistance(2)
+			.Where(t => t != Tile.NONE && t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.DistanceTo(cs) == 2)
+			.SelectMany(t => t.neighbors.Values.Where(m => m != Tile.NONE && m.IsLand() && cs.neighbors.ContainsValue(m)).Select(m => (t, m)))
+			.First();
+		City city = CityInteractions.BuildCity(site, civ, "Trader");
+		gameData.UpdateTileOwners();
+		Tile resourceTile = cs.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && t.owningCity == cityState && t != middle);
+		Resource luxury = gameData.Resources.First(r => r.Category == ResourceCategory.LUXURY);
+		resourceTile.Resource = luxury;
+		gameData.InvalidateCachedTradeNetwork();
+		int before = civ.CalculateGoldPerTurn();
+		Assert.Empty(gameData.GetTradeNetwork().ConnectedCityStates(civ));
+
+		middle.overlays.Add(gameData.terrainImprovements.Single(ti => ti.key == C7GameData.Tile.TileOverlays.ROAD));
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.Contains(cityState, gameData.GetTradeNetwork().ConnectedCityStates(civ));
+		Assert.Equal(before + CityStateTrade.IncomePerCityState, civ.CalculateGoldPerTurn());
+		if (civ.KnowsAboutResource(luxury)) {
+			Assert.Contains(luxury, gameData.GetTradeNetwork().GetResourcesAvailableToCity(civ, city).Keys);
+		}
+	}
+
 	// Settlers are built only in a city taken from someone else.
 	[Fact]
 	public void SettlersOnlyInConqueredCities() {

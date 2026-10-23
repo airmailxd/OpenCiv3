@@ -7,6 +7,10 @@ namespace C7Engine.Pathing {
 	public class TradeNetworkSegment {
 		public Dictionary<Resource, int> resourceCounts = new();
 
+		// The independent city-states the segment reaches (Kings & Nomads,
+		// see CityStateTrade).
+		public readonly HashSet<City> cityStates = new();
+
 		// The resources in this segment that the owning player knows about,
 		// cached until the player learns a new tech.
 		internal Dictionary<Resource, int> availableResources;
@@ -17,12 +21,25 @@ namespace C7Engine.Pathing {
 		// civ's borders under the player's colony (see Tile_Holdings).
 		public void AddTile(Tile t, Player p) {
 			if (t.Resource != Resource.NONE && (t.OwningPlayer() == p || (t.holdingOwner == p && t.OwningPlayer() == null && t.HasColony()))) {
-				if (resourceCounts.TryGetValue(t.Resource, out int currentCount)) {
-					resourceCounts[t.Resource] = currentCount + 1;
-				} else {
-					resourceCounts[t.Resource] = 1;
+				Count(t.Resource);
+			}
+		}
+
+		// A city-state the segment reaches shares the resources inside its
+		// borders (see CityStateTrade).
+		public void AddCityState(City cityState) {
+			if (!cityStates.Add(cityState)) {
+				return;
+			}
+			foreach (Tile t in cityState.location.GetTilesWithinRankDistance(EngineStorage.gameData?.rules?.MaxRankOfWorkableTiles ?? 2)) {
+				if (t != Tile.NONE && t.owningCity == cityState && t.Resource != Resource.NONE) {
+					Count(t.Resource);
 				}
 			}
+		}
+
+		private void Count(Resource r) {
+			resourceCounts[r] = resourceCounts.TryGetValue(r, out int currentCount) ? currentCount + 1 : 1;
 		}
 	}
 
@@ -225,6 +242,13 @@ namespace C7Engine.Pathing {
 				enemies = enemies,
 			};
 			HashSet<Player> enemySet = new(enemies);
+			// The independents' land doesn't cut a route in Kings & Nomads,
+			// where roads to city-states are trade routes (see
+			// CityStateTrade).
+			bool cityStateTrade = CityStateTrade.IsOn(EngineStorage.gameData);
+			if (cityStateTrade) {
+				enemySet.RemoveWhere(p => p.isBarbarians);
+			}
 			Dictionary<City, TradeNetworkSegment> segments = network.cityToSegment;
 			Dictionary<Tile, TradeNetworkSegment> seen = network.tileToSegment;
 
@@ -249,6 +273,9 @@ namespace C7Engine.Pathing {
 
 					if (x.cityAtTile != null) {
 						segments[x.cityAtTile] = segment;
+						if (cityStateTrade && x.cityAtTile.owner.isBarbarians) {
+							segment.AddCityState(x.cityAtTile);
+						}
 					}
 
 					foreach (Tile n in x.neighbors.Values) {
@@ -485,6 +512,19 @@ namespace C7Engine.Pathing {
 			}
 			segment.availableResources = result;
 			segment.availableResourcesTechCount = techCount;
+			return result;
+		}
+
+		// The city-states the player's cities trade with by road (see
+		// CityStateTrade).
+		public HashSet<City> ConnectedCityStates(Player p) {
+			HashSet<City> result = new();
+			PlayerNetwork network = GetNetwork(p);
+			foreach (City c in p.cities) {
+				if (network.cityToSegment.TryGetValue(c, out TradeNetworkSegment segment)) {
+					result.UnionWith(segment.cityStates);
+				}
+			}
 			return result;
 		}
 
