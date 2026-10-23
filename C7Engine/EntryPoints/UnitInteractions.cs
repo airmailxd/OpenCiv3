@@ -1,4 +1,5 @@
 using System.Linq;
+using C7Engine.Pathing;
 using Serilog;
 
 namespace C7Engine {
@@ -133,6 +134,37 @@ namespace C7Engine {
 			busyActionRequested.Clear();
 			busyActionGame = null;
 			busyActionTurn = -1;
+		}
+
+		// The orders for a stack move (the J key): the leader along its own
+		// path, and every other unit of ours on its tile that can move, each
+		// along its own path to the same destination. The paths are all
+		// worked out before anything moves, since moving changes who's on
+		// the tile.
+		//
+		// Every unit with moves left goes, not only those that haven't moved
+		// yet this turn: in Civ3 "when I move a group of units with differing
+		// MP left, it goes to the maximum distance of the unit with the lowest
+		// MP" (ynot56, C3X thread, post-16163674). A stack that had walked
+		// along our roads up to a border, say, still goes into the land
+		// beyond together.
+		public static List<(MapUnit unit, TilePath path)> StackMoveOrders(MapUnit leader, TilePath leaderPath, Tile destination) {
+			List<(MapUnit, TilePath)> moves = [(leader, leaderPath)];
+			foreach (MapUnit unit in leader.location.unitsOnTile) {
+				// Loaded units ride along with their transport. Fortified
+				// units stay put, as do units out of moves.
+				if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
+					|| unit.isFortified
+					|| !unit.movementPoints.canMove
+					|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+					continue;
+				}
+				TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
+				if (path != null && path.PathLength() > 0) {
+					moves.Add((unit, path));
+				}
+			}
+			return moves;
 		}
 
 		public static void waitUnit(ID id) {

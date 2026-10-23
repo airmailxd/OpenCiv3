@@ -3530,32 +3530,15 @@ public partial class Game : Node {
 	}
 
 	// Sends the selected unit along its path and every other unit of ours on
-	// its tile to the same destination, each along its own path. Only the
-	// selected unit attacks; the rest go only where they can walk.
+	// its tile that can move to the same destination, each along its own
+	// path (see UnitInteractions.StackMoveOrders).
 	private void MoveStack(GameData gameData, GotoInfo info) {
 		MapUnit leader = gameData.GetUnit(info.unitID ?? CurrentlySelectedUnit.id);
 		if (leader == null) {
 			return;
 		}
-		Tile destination = info.destinationTile;
-		List<(ID, TilePath)> moves = [(leader.id, info.path)];
-		foreach (MapUnit unit in leader.location.unitsOnTile) {
-			// Loaded units ride along with their transport. Fortified units
-			// stay put, as do units that have already moved this turn.
-			if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
-				|| unit.isFortified
-				|| unit.movementPoints.remaining < unit.MaxMovementPoints()
-				|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
-				continue;
-			}
-			TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
-			if (path != null && path.PathLength() > 0) {
-				moves.Add((unit.id, path));
-			}
-		}
-
-		// The paths are all worked out before anything moves, since moving
-		// changes who's on the tile.
+		List<(ID, TilePath)> moves = UnitInteractions.StackMoveOrders(leader, info.path, info.destinationTile)
+			.ConvertAll(move => (move.unit.id, move.path));
 		foreach ((ID id, TilePath path) in moves) {
 			new MsgSetUnitPath(id, path).send();
 		}
