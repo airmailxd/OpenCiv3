@@ -74,6 +74,9 @@ namespace C7Engine {
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			// Stop paying for obsolete units over the free support (see ObsoleteUnits).
 			await ObsoleteUnits.DisbandOverSupport(player);
+			// In Kings & Nomads, the horde marches on cities to take (see
+			// KingsAndNomadsAI); WarCampaign stands down there.
+			await KingsAndNomadsAI.PlayTurn(player, gameData);
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
 			// Mobilize for a major war, and back to Normalcy when the wars
@@ -987,6 +990,12 @@ namespace C7Engine {
 		// (https://forums.civfanatics.com/threads/regicide.436212/). Without
 		// a capital it stays where it is.
 		private static UnitAI MakeKingAI(MapUnit unit, Player player) {
+			// In Kings & Nomads the King may start with no capital and
+			// never get one (captured cities have no palace), so it retires
+			// to the safest of our cities instead (see KingsAndNomadsAI).
+			if (KingsAndNomadsAI.PlaysFor(player)) {
+				return KingsAndNomadsAI.MakeKingAI(unit, player);
+			}
 			City capital = player.cities.FirstOrDefault(c => c.capital);
 			TilePath path = null;
 			if (capital != null && capital.location != unit.location) {
@@ -1008,11 +1017,20 @@ namespace C7Engine {
 			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
 				return new ArmyAI();
 			}
+			// In Kings & Nomads a hurt King doesn't go off to heal like an
+			// attacker: it keeps to its city (see KingsAndNomadsAI.MakeKingAI).
+			if (unit.unitType.isKing && KingsAndNomadsAI.PlaysFor(player)) {
+				return MakeKingAI(unit, player);
+			}
 			if (RestAI.ShouldRest(unit, player) && RestAI.Make(unit, player) is RestAI rest) {
 				return rest;
 			}
 			if (unit.unitType.isKing) {
 				return MakeKingAI(unit, player);
+			}
+			// Kings & Nomads: the King's city keeps its guard.
+			if (KingsAndNomadsAI.GuardsTheKing(unit, player)) {
+				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);

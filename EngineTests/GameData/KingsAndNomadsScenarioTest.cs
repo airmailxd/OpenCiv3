@@ -10,7 +10,7 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class KingsAndNomadsScenarioTest {
-	private static (SaveGame, C7GameData.GameData) NewGame(int seed) {
+	internal static (SaveGame, C7GameData.GameData) NewGame(int seed) {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = WorldCharacteristics.Landform.Continents,

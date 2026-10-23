@@ -315,6 +315,9 @@ namespace C7Engine {
 			}
 
 			score += StockGarrisonBonus(player, unit);
+			// Kings & Nomads: defenders, settlers from captured cities, and
+			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
+			score += KingsAndNomadsAI.UnitBonus(city, player, unit);
 
 			if (isSettler) {
 				// Don't build settlers if we don't have anywhere to go or if we
@@ -420,6 +423,8 @@ namespace C7Engine {
 			// nothing).
 			if (building.providesWalls) {
 				score += atWar ? 20 : DevelopmentAI.NearRivalCity(player, city) ? 8 : -10;
+				// Kings & Nomads: walls for the King's city.
+				score += KingsAndNomadsAI.BuildingBonus(city, player, building);
 			}
 
 			// If a city has a decent number of corrupt shields, prioritize

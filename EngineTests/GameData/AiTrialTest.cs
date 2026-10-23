@@ -155,6 +155,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The Mercenary Market (Eternal War): units the civ bought, and
 			// the gold it paid for them.
 			"mktBought", "mktGold",
+			// Kings & Nomads: cities the civ took from the independents
+			// (city-states, and fallen civs' cities), and the turn it fell
+			// (the game's length if it didn't).
+			"freeCaps", "fellTurn",
+			// The turn the game was on at the end, which is short of the
+			// turns asked for when someone won.
+			"endTurn",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -499,6 +506,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, HashSet<ID>> leaders = civs.ToDictionary(p => p, _ => new HashSet<ID>());
 		Dictionary<Player, HashSet<ID>> armies = civs.ToDictionary(p => p, _ => new HashSet<ID>());
 		Dictionary<Player, int> armyCaptures = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> freeCaptures = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> fellTurn = civs.ToDictionary(p => p, _ => turns);
 		void CountCaptures() {
 			foreach (Player p in civs) {
 				foreach (MapUnit u in p.units) {
@@ -517,6 +526,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
 						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
+						if (before.isBarbarians) {
+							++freeCaptures[city.owner];
+						}
 						if (city.location.unitsOnTile.Any(u => u.IsArmy() && u.owner == city.owner)) {
 							++armyCaptures[city.owner];
 						}
@@ -551,6 +563,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				CountCaptures();
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
+				foreach (Player p in civs) {
+					if (p.defeated && fellTurn[p] == turns) {
+						fellTurn[p] = turn + 1;
+					}
+				}
 				foreach (Player p in civs) {
 					if (!p.defeated && civs.Any(o => o != p && !o.defeated && p.playerRelationships.TryGetValue(o.id, out PlayerRelationship r) && r.AtWar())) {
 						++warTurns[p];
@@ -652,6 +669,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.mobilized;
 			m.values[i++] = marketBought[p];
 			m.values[i++] = marketGold[p];
+			m.values[i++] = freeCaptures[p];
+			m.values[i++] = p.defeated ? fellTurn[p] : gameData.turn;
+			m.values[i++] = gameData.turn;
 			return m;
 		}
 

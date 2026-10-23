@@ -61,6 +61,15 @@ namespace C7Engine.AI {
 		// Whether any enemy unit we can see could attack.
 		public bool AnyEnemies => enemies.Count > 0;
 
+		// Where the enemy units we can see stand.
+		public IEnumerable<Tile> EnemyTiles {
+			get {
+				foreach ((Tile at, int _) in enemies) {
+					yield return at;
+				}
+			}
+		}
+
 		// Whether an enemy we can see could reach the tile next turn.
 		public bool EnemyCanReach(Tile tile) {
 			foreach ((Tile at, int reach) in enemies) {

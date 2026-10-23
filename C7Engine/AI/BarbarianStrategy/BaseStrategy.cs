@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using C7Engine.AI;
 using C7Engine.AI.UnitAI;
 using C7GameData;
 using C7GameData.AIData;
@@ -73,6 +74,11 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 	protected async Task<UnitAI> Decide(Player player, MapUnit unit, Orientation orientation) {
 		// Barbarians defend their camp if it is unguarded.
 		if (orientation.IsLastUnitInCamp)
+			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
+
+		// A Kings & Nomads city-state's garrison stays home (see
+		// KingsAndNomadsAI.HoldsCityState).
+		if (KingsAndNomadsAI.HoldsCityState(player, unit))
 			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 
 		// Otherwise a unit keeps to a plan in progress while it is still

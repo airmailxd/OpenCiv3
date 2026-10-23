@@ -35,8 +35,10 @@ namespace C7Engine.AI {
 	public static class WarCampaign {
 		private static readonly ILogger log = Log.ForContext(typeof(WarCampaign));
 
+		// Not in Kings & Nomads, whose horde takes cities its own way (see
+		// KingsAndNomadsAI): the two would fight over the same units.
 		public static bool Enabled(Player player) {
-			return !player.isHuman && !player.isBarbarians;
+			return !player.isHuman && !player.isBarbarians && !KingsAndNomadsAI.IsActive(EngineStorage.gameData);
 		}
 
 		private enum Phase {

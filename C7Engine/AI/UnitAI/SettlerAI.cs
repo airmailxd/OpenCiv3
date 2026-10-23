@@ -319,6 +319,11 @@ namespace C7Engine {
 				if (u.location.cityAtTile != null && !u.location.unitsOnTile.Any(o => o != u && o.owner == player && o.CanDefendOnLand())) {
 					continue;
 				}
+				// Nor a King (Regicide), nor the King's guard in Kings &
+				// Nomads (see KingsAndNomadsAI.GuardsTheKing).
+				if ((u.unitType.isKing && KingsAndNomadsAI.PlaysFor(player)) || KingsAndNomadsAI.GuardsTheKing(u, player)) {
+					continue;
+				}
 				best = u;
 				bestDistance = distance;
 			}
