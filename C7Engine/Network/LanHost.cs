@@ -396,8 +396,9 @@ public class LanHost : IDisposable {
 
 	// The turn each away player's turn was last ended for them.
 	private readonly Dictionary<ID, int> awayTurnsEnded = new();
-	// The turn each away player's Staging city was last chosen for them.
-	private readonly Dictionary<ID, int> awayStaged = new();
+	// How far the market had got for each away player when it was last
+	// answered for them (see StageForAwayPlayers), so it's answered once.
+	private readonly Dictionary<ID, string> awayStaged = new();
 
 	// A game resumed from an autosave holds its guests' seats for them from
 	// the lobby on, not just once it has started.
@@ -977,23 +978,27 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	// Chooses the Staging city of each away player Staging waits for, where
-	// an AI would, once a turn, so the others aren't kept waiting.
+	// Answers the Mercenary Market for each away player it waits for, once
+	// a turn, so the others aren't kept waiting: no bids, and a city where
+	// an AI would put each unit they won.
 	private void StageForAwayPlayers(GameData gameData) {
-		UnitPrototype unit = Staging.InProgress(gameData) ? Staging.UnitType(gameData) : null;
-		if (unit == null) {
+		if (!Staging.InProgress(gameData)) {
 			return;
 		}
-		foreach (string id in gameData.staging.waiting) {
-			Player player = gameData.players.Find(p => p.id.ToString() == id);
-			Seat seat = player == null ? null : seats.Find(s => s.info.playerID == player.id);
+		foreach (Player player in gameData.players.Where(p => Staging.IsBidding(gameData, p) || Staging.IsWaitingFor(gameData, p)).ToList()) {
+			Seat seat = seats.Find(s => s.info.playerID == player.id);
+			string progress = $"{gameData.turn}:{Staging.IsBidding(gameData, player)}:{gameData.staging.toPlace.Count(w => w.player == player.id.ToString())}";
 			if (seat == null || !seat.away || seat.IsTaken || player.cities.Count == 0
-				|| (awayStaged.TryGetValue(player.id, out int staged) && staged == gameData.turn)) {
+				|| (awayStaged.TryGetValue(player.id, out string staged) && staged == progress)) {
 				continue;
 			}
-			awayStaged[player.id] = gameData.turn;
-			log.Information("{Player} is away, choosing their Staging city", player);
-			EngineStorage.ReceiveFromRemote(new MsgChooseStagingCity(Staging.AiChoice(gameData, player, unit)) { playerID = player.id });
+			awayStaged[player.id] = progress;
+			log.Information("{Player} is away, answering the market for them", player);
+			if (Staging.IsBidding(gameData, player)) {
+				EngineStorage.ReceiveFromRemote(new MsgPlaceMarketBids([]) { playerID = player.id });
+			} else if (Staging.NextToPlace(gameData, player) is UnitPrototype unit) {
+				EngineStorage.ReceiveFromRemote(new MsgChooseStagingCity(Staging.AiChoice(gameData, player, unit)) { playerID = player.id });
+			}
 		}
 	}
 

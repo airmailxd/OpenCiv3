@@ -92,9 +92,22 @@ namespace C7GameData {
 		// (one that must be coastal, such as a harbor or the Colossus): 1
 		// for next to it, as in Civ3, or the farthest rank of its radius.
 		public int CoastalBuildingRange = 1;
-		// Every turn starts with Staging, which gives every civ a unit for
-		// the city of its choice (see C7Engine.Staging).
+		// Every turn starts with Staging, the Mercenary Market, where the
+		// civs bid for units (see C7Engine.Staging).
 		public bool StagingUnits = false;
+		// How many units the market offers a turn.
+		public int MarketOffersPerTurn = 3;
+		// Tidal Waves turn the shore to sea ever faster (see
+		// C7Engine.RisingTide).
+		public bool RisingTide = false;
+		// The citizens a settler founds a city with.
+		public int NewCitySize = 1;
+		// Settlers can only be built in cities taken from someone else
+		// (Kings & Nomads; see GameSetup.KingsAndNomads.cs).
+		public bool SettlersOnlyInConqueredCities = false;
+		// A fallen civ's cities go to the independents (the barbarians)
+		// rather than being destroyed (Kings & Nomads).
+		public bool FallenCitiesGoIndependent = false;
 
 		// Not Civ3: the game was set up with teams, each a locked alliance,
 		// and a team wins together (see GameSetup.Teams.cs and

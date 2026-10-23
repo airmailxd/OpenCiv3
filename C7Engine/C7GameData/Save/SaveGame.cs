@@ -109,6 +109,8 @@ namespace C7GameData.Save {
 				UnitedNations = data.unitedNations,
 				// Left out of games without Staging.
 				Staging = data.rules.StagingUnits ? data.staging : null,
+				// Left out of games without Rising Tide.
+				RisingTide = data.rules.RisingTide ? data.risingTide : null,
 				// Left out of games that never had the tutorial on.
 				Tutorial = data.tutorial.enabled || data.tutorial.shown.Count > 0 ? data.tutorial : null,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
@@ -213,6 +215,9 @@ namespace C7GameData.Save {
 
 			if (conditions?.AllowConquestVictory == true) {
 				data.victories.Add(new ConquestVictory());
+			}
+			if (conditions?.AllowEmpireVictory == true) {
+				data.victories.Add(new EmpireVictory());
 			}
 			if (conditions?.AllowDominationVictory == true) {
 				data.victories.Add(new DominationVictory(conditions.DominationTerritoryPercent, conditions.DominationPopulationPercent));
@@ -347,6 +352,7 @@ namespace C7GameData.Save {
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
 				staging = Staging ?? new StagingState(),
+				risingTide = RisingTide ?? new RisingTideState(),
 				tutorial = Tutorial ?? new TutorialState(),
 			};
 			// A save without a seed has been given a random one.
@@ -708,6 +714,8 @@ namespace C7GameData.Save {
 		public UnitedNationsState UnitedNations = new();
 		// The turn's Staging (see C7Engine.Staging); null in games without it.
 		public StagingState Staging;
+		// The tide (see C7Engine.RisingTide); null in games without it.
+		public RisingTideState RisingTide;
 		// Civ3's tutorial (see Tutorial); null in games that never had it on,
 		// and in saves made before it was saved.
 		public TutorialState Tutorial;

@@ -150,6 +150,9 @@ namespace C7GameData {
 		// The turn's Staging, in a scenario that has it (see C7Engine.Staging).
 		public StagingState staging = new();
 
+		// The tide, in a scenario that has it (see C7Engine.RisingTide).
+		public RisingTideState risingTide = new();
+
 		// The nuclear explosions and meltdowns so far this game, which add to
 		// world pollution (see GlobalWarming).
 		public int nuclearEvents;
@@ -734,8 +737,16 @@ namespace C7GameData {
 			// which "are destroyed, becoming ruins", as are its colonies and
 			// airbases (see InstantElimination).
 			// The capital goes last, so the palace isn't moved on the way.
+			// Under Kings & Nomads they go to the independents instead
+			// (Rules.FallenCitiesGoIndependent).
+			Player independents = rules?.FallenCitiesGoIndependent == true ? players.Find(p => p.isBarbarians) : null;
 			while (player.cities.Count > 0) {
-				CityInteractions.DestroyCity(player.cities.FirstOrDefault(c => !c.capital) ?? player.cities[0]);
+				City city = player.cities.FirstOrDefault(c => !c.capital) ?? player.cities[0];
+				if (independents != null) {
+					CityInteractions.TransferCity(city, independents);
+				} else {
+					CityInteractions.DestroyCity(city);
+				}
 			}
 			foreach (Tile tile in map.tiles) {
 				if (tile.holdingOwner == player && tile.OwnedHolding() is TerrainImprovement holding) {

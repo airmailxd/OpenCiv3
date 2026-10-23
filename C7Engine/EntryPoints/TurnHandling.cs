@@ -205,6 +205,7 @@ namespace C7Engine {
 				foreach (Player player in gameData.players) {
 					player.hasPlayedThisTurn = false;
 				}
+				RisingTide.BeginTurn(gameData);
 				Staging.BeginTurn(gameData);
 			}
 		}

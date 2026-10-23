@@ -92,6 +92,17 @@ public partial class GameSetup {
 		if (scenario == GameScenario.EternalWar) {
 			SetUpEternalWarWorld(save, worldCharacteristics);
 			SetUpEternalWarRules(save);
+			int size = worldCharacteristics?.worldSize == null ? -1 : save.WorldSizes.FindIndex(w => w.name == worldCharacteristics.worldSize.name);
+			int standard = save.WorldSizes.FindIndex(w => w.name == "Standard");
+			save.Rules.MarketOffersPerTurn = Staging.OffersForWorldSize(size, standard);
+		}
+		if (scenario == GameScenario.RisingTide) {
+			SetUpRisingTideWorld(worldCharacteristics);
+			SetUpRisingTideRules(save);
+		}
+		if (scenario == GameScenario.KingsAndNomads) {
+			SetUpKingsAndNomadsWorld(worldCharacteristics);
+			SetUpKingsAndNomadsRules(save);
 		}
 
 		if (save.Map.tiles.Count == 0) {
@@ -323,7 +334,11 @@ public partial class GameSetup {
 			return;
 		}
 
-		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
+		List<SaveTile> starts = scenario switch {
+			GameScenario.RisingTide => RisingTideStarts(save, rand, planned.Count),
+			GameScenario.KingsAndNomads => SetUpKingsAndNomadsSites(save, rand, planned.Count, taken),
+			_ => AssignStartingLocations(save, rand, planned, taken),
+		};
 		for (int i = 0; i < planned.Count; ++i) {
 			SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
 			teams.Add((player, planned[i].team));
@@ -472,7 +487,12 @@ public partial class GameSetup {
 
 		// An Eternal War civ starts with its cities' units instead (see
 		// SetUpEternalWarPlayer).
-		if (scenario != GameScenario.EternalWar) {
+		// A Rising Tide civ has its own (see AddRisingTideUnits).
+		if (scenario == GameScenario.RisingTide) {
+			AddRisingTideUnits(save, player, startingLocation);
+		} else if (scenario == GameScenario.KingsAndNomads) {
+			AddKingsHorde(save, player, startingLocation);
+		} else if (scenario != GameScenario.EternalWar) {
 			AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);
 			AddUnit(save, player, save.Rules.StartUnitType2, startingLocation);
 		}

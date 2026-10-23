@@ -52,6 +52,10 @@ public partial class Popup : TextureRect {
 		return true;
 	}
 
+	// Whether the map may be dragged and zoomed while the popup is in
+	// front. Nothing on the map can be clicked either way.
+	public virtual bool LetsMapMove => false;
+
 	protected void AddButton(string label, int verticalPosition, Action action) {
 		const int HORIZONTAL_POSITION = 30;
 

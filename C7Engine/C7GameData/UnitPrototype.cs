@@ -735,6 +735,9 @@ namespace C7GameData {
 
 		/// Whether the city's Civ could build this unit, if it had the necessary resources.
 		private bool IsAvailableTo(City city) {
+			if (this.isSettler && city.capturedFrom == null && EngineStorage.gameData?.rules?.SettlersOnlyInConqueredCities == true) {
+				return false;
+			}
 			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBySet.Contains(city.owner.civilization);
 		}
 

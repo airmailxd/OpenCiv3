@@ -1331,6 +1331,31 @@ namespace C7Engine {
 
 	// A human chooses the city for the turn's Staging unit (MsgShowStaging).
 	// The last to choose ends Staging, and the turn goes on.
+	// A human's bids in the Mercenary Market, gold for each unit on offer
+	// in order (see Staging).
+	public class MsgPlaceMarketBids : MessageToEngine {
+		public List<int> bids;
+
+		public MsgPlaceMarketBids(List<int> bids) {
+			this.bids = bids ?? new();
+		}
+
+		// Only a human the market waits for, while it does.
+		protected override bool IsAllowed() {
+			return Sender != null && Staging.IsBidding(EngineStorage.gameData, Sender) && !TurnHandling.TurnInProgress;
+		}
+
+		protected override async Task ProcessAllowedAsync() {
+			GameData gameData = EngineStorage.gameData;
+			if (!Staging.AnswerBids(gameData, Sender, bids) || Staging.InProgress(gameData)) {
+				return;
+			}
+			// What happens next isn't a reply to this player.
+			EngineStorage.processingSenderID = null;
+			await TurnHandling.AdvanceTurn();
+		}
+	}
+
 	public class MsgChooseStagingCity : MessageToEngine {
 		public City city;
 

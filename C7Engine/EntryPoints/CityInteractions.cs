@@ -76,6 +76,17 @@ namespace C7Engine {
 			// has to happen after invalidating the trade network.
 			CityTileAssignmentAI.AssignNewCitizenToTile(gameData, firstResident);
 
+			// A scenario may found cities bigger (Rules.NewCitySize).
+			for (int size = 1; size < (gameData.rules?.NewCitySize ?? 1); size++) {
+				CityResident resident = new() {
+					city = newCity,
+					nationality = owner.civilization,
+					citizenType = firstResident.citizenType,
+				};
+				newCity.AddCitizen(resident);
+				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, resident);
+			}
+
 			newCity.SetItemBeingProduced(ChooseProducible.Choose(newCity, owner));
 
 			// Redo corruption calculations after a city is created, since it

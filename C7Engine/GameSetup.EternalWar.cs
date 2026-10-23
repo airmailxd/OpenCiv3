@@ -10,6 +10,8 @@ namespace C7Engine;
 public enum GameScenario {
 	None,
 	EternalWar,
+	RisingTide,
+	KingsAndNomads,
 }
 
 // Eternal War, a custom scenario (owner's design, 2026-10-21): on one
@@ -31,12 +33,13 @@ public enum GameScenario {
 // only past 24. Every tile makes a commerce more, and forest on tundra a
 // food more. A worker beaten in battle becomes a slave worker in the
 // winner's nearest city. (Owner's additions, 2026-10-21.)
-// Every turn after the first starts with Staging, which gives every civ a
-// unit of the leading age for the city of its choice (see Staging). Coastal
+// Every turn after the first starts with Staging, the Mercenary Market,
+// where the civs bid blind for a few units of the leading age (see
+// Staging; owner's change, 2026-10-23, from a free unit for everyone). Coastal
 // buildings, such as harbors and the Colossus, may be built within 3 tiles
 // of the coast. (Owner's additions, 2026-10-22.)
-// Desert makes a shield more, though flood plains don't. (Owner's addition,
-// 2026-10-23.)
+// Desert makes a shield more, though flood plains don't, and the AIs get no
+// extra starting units for the difficulty. (Owner's additions, 2026-10-23.)
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -239,6 +242,9 @@ public partial class GameSetup {
 	private static void StartEternalWar(SaveGame save) {
 		List<SavePlayer> civs = save.Players.Where(p => !p.isBarbarian).ToList();
 		foreach (SavePlayer player in civs) {
+			// The AIs get none of the difficulty's extra starting units
+			// (owner's addition, 2026-10-23).
+			player.receivedStartUnits = true;
 			foreach (SavePlayer other in civs.Where(o => o != player)) {
 				player.playerRelationships[other.id.ToString()] = new PlayerRelationship { firstContactTurn = 0 };
 			}

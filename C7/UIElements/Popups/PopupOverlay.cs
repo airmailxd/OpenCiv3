@@ -27,6 +27,9 @@ public partial class PopupOverlay : HBoxContainer {
 
 	Control currentChild = null;
 
+	// Whether the popup in front lets the map be dragged and zoomed.
+	public bool LetsMapMove => Visible && currentChild is Popup { LetsMapMove: true };
+
 	// A popup asked for while another one is up waits here until the one in
 	// front of it closes, rather than replacing it: the one in front could be
 	// something the player has to answer, like a deal proposal.
@@ -229,8 +232,10 @@ public partial class PopupOverlay : HBoxContainer {
 	/// Inverse of `Reconnect(..)`.
 	/// </summary>
 	private void Isolate() {
-		// 1. Overlay catches mouse events, prevents event propagation
-		MouseFilter = MouseFilterEnum.Stop;
+		// 1. Overlay catches mouse events, prevents event propagation,
+		// unless the popup lets the map be moved: then they go on to the
+		// game, which only drags and zooms the map with them.
+		MouseFilter = currentChild is Popup { LetsMapMove: true } ? MouseFilterEnum.Ignore : MouseFilterEnum.Stop;
 
 		// 2. Stop the world: switch off UI elements
 		control.ProcessMode = ProcessModeEnum.Disabled;

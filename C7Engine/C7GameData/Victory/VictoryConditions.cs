@@ -10,6 +10,9 @@ public class VictoryConditions {
 	public bool AllowConquestVictory { get; set; }
 	public bool AllowCulturalVictory { get; set; }
 	public bool AllowWonderVictory { get; set; }
+	// Won by holding half the world's cities (Kings & Nomads; see
+	// EmpireVictory).
+	public bool AllowEmpireVictory { get; set; }
 	public bool CityElimination { get; set; }
 	public bool Regicide { get; set; }
 	public bool MassRegicide { get; set; }

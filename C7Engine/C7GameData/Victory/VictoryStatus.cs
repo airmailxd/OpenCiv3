@@ -54,6 +54,8 @@ public class VictoryStatus {
 	// Regicide and Elimination: the player's King units left, and the
 	// cities enemies have taken from them.
 	public int KingsLeft { get; set; }
+	public int CitiesHeld { get; set; }
+	public int CitiesInWorld { get; set; }
 	public int CitiesLost { get; set; }
 
 	// Victory points: the player's, and the most any rival has.

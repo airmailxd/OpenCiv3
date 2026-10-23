@@ -369,6 +369,9 @@ public partial class Game : Node {
 			// Without it, a spectator still chooses how to watch there.
 			ShowScoreboard(viewChoiceOnly: true);
 		}
+		if (EngineStorage.gameData?.rules?.RisingTide == true) {
+			ShowTidePanel();
+		}
 
 		if (LanSession.IsSpectator) {
 			// Spectators never play; see _UnhandledInput for what they can do.
@@ -816,6 +819,17 @@ public partial class Game : Node {
 		scoreboard.OffsetTop = scoreboard.OffsetBottom = 48;
 	}
 
+	// When the next Tidal Wave comes, left of the scoreboard (see
+	// TidePanel).
+	private void ShowTidePanel() {
+		TidePanel panel = new();
+		GetNode<Control>("CanvasLayer/Control").AddChild(panel);
+		panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		panel.GrowHorizontal = Control.GrowDirection.Begin;
+		panel.OffsetLeft = panel.OffsetRight = 0;
+		panel.OffsetTop = panel.OffsetBottom = 48;
+	}
+
 	// Shows whose turn it is while another machine's player moves.
 	private void ShowLanWaiting(Player active) {
 		ShowLanWaiting([active]);
@@ -1181,7 +1195,8 @@ public partial class Game : Node {
 		// can Staging, which every human answers before anyone moves.
 		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id
 			&& (!LanSession.IsActive || LanSession.IsLocalPlayer(msg.recipient))
-			&& msg is not MsgShowDealProposal && msg is not MsgShowStaging) {
+			&& msg is not MsgShowDealProposal && msg is not MsgShowStaging
+			&& msg is not MsgShowMarket && msg is not MsgShowMarketResults) {
 			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
 				held = new();
 				heldMessages[msg.recipient.id] = held;
@@ -1630,6 +1645,21 @@ public partial class Game : Node {
 					InterestingEvent();
 					break;
 				}
+			case MsgShowMarket mSM: {
+					// Bid for the player it's for, who in a hotseat game may
+					// not be the one at the screen.
+					Player player = mSM.recipient ?? controller;
+					popupOverlay.ShowPopup(
+						new MarketPopup(player, mSM.offers, mSM.gold, mSM.seconds,
+							bids => new MsgPlaceMarketBids(bids) { playerID = player.id }.send()),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
+				}
+			case MsgShowMarketResults mSMR: {
+					popupOverlay.ShowPopup(new MarketResultsPopup(mSMR.recipient ?? controller, mSMR.results), null);
+					break;
+				}
 			case MsgShowStaging mSS: {
 					// Answered for the player it's for, who in a hotseat game
 					// may not be the one at the screen.
@@ -1997,7 +2027,11 @@ public partial class Game : Node {
 	}
 
 	// If "location" is not already near the center of the screen, moves the camera to bring it into view.
+	// Not while Staging shows the city being chosen.
 	public void ensureLocationIsInView(Tile location) {
+		if (StagingPopup.IsOpen) {
+			return;
+		}
 		if (controller.tileKnowledge.isTileKnown(location) && location != Tile.NONE) {
 			Vector2 relativeScreenLocation = mapView.screenLocationOfTile(location, true) / mapView.getVisibleAreaSize();
 			if (relativeScreenLocation.DistanceTo(new Vector2((float)0.5, (float)0.5)) > 0.30)
@@ -2381,6 +2415,9 @@ public partial class Game : Node {
 		// Don't handle if there's an open modal, if it's the AI's turn, or if
 		// the screen is being handed to the next hotseat player.
 		// A spectator may always look around.
+		if (MovesMapUnderPopup(@event)) {
+			return;
+		}
 		bool waiting = CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator;
 		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || waiting || hotseatHandoff != null) {
 			IsMovingCamera = false;
@@ -2397,6 +2434,37 @@ public partial class Game : Node {
 		} else if (@event is InputEventMagnifyGesture magnifyGesture) {
 			HandleMagnifyGesture(magnifyGesture);
 		}
+	}
+
+	// While a popup that lets the map move (Staging) is in front, the mouse
+	// drags and zooms the map, and does nothing else. Returns whether it
+	// took the event.
+	private bool MovesMapUnderPopup(InputEvent @event) {
+		if (!popupOverlay.LetsMapMove || hotseatHandoff != null
+			|| cityScreen.Visible || diplomacy.Visible || advisor.Visible || gameViews.Visible || civilopedia.Visible) {
+			return false;
+		}
+		if (@event is InputEventMouseButton button) {
+			if (button.ButtonIndex == MouseButton.Left) {
+				IsMovingCamera = button.IsPressed() && GetViewport().GuiGetHoveredControl() == null;
+				OldPosition = button.Position;
+			} else if (button.ButtonIndex == MouseButton.WheelUp && button.IsPressed()) {
+				AdjustZoom(0.1f);
+			} else if (button.ButtonIndex == MouseButton.WheelDown && button.IsPressed()) {
+				AdjustZoom(-0.1f);
+			}
+			GetViewport().SetInputAsHandled();
+			return true;
+		}
+		if (@event is InputEventMouseMotion motion) {
+			if (IsMovingCamera) {
+				mapView.cameraLocation += OldPosition - motion.Position;
+				OldPosition = motion.Position;
+			}
+			GetViewport().SetInputAsHandled();
+			return true;
+		}
+		return false;
 	}
 
 	private void HandleMouseButtonInput(InputEventMouseButton eventMouseButton) {

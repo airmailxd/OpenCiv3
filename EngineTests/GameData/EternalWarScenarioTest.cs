@@ -317,8 +317,9 @@ public class EternalWarScenarioTest {
 		Assert.Contains(slaves, s => s.nationality == loser.civilization);
 	}
 
-	// Staging gives units of the leading civ's age, but never a unique unit,
-	// though it may give a unit some civ's unique unit replaces.
+	// Staging gives units of the leading civ's age and the ancient times,
+	// but never a unique unit, though it may give a unit some civ's unique
+	// unit replaces.
 	[Fact]
 	public void StagingGivesUnitsOfTheLeadingAgeButNoUniqueUnits() {
 		(_, C7GameData.GameData gameData) = NewGame(12);
@@ -327,7 +328,8 @@ public class EternalWarScenarioTest {
 
 		List<UnitPrototype> pool = Staging.Pool(gameData);
 		Assert.NotEmpty(pool);
-		Assert.All(pool, u => Assert.Equal(1, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
+		Assert.All(pool, u => Assert.Contains(EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName), new[] { 0, 1 }));
+		Assert.Contains(pool, u => u.name == "Swordsman");
 		Assert.Contains(pool, u => u.name == "Knight");
 		Assert.Contains(pool, u => u.name == "Musketman");
 		Assert.DoesNotContain(pool, u => u.name == "Musketeer" || u.name == "Man-O-War");
@@ -337,12 +339,23 @@ public class EternalWarScenarioTest {
 			&& EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName) == 1 && !civs.All(c => u.IsProducibleBy(c.civilization)));
 
 		civs[2].eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
-		Assert.All(Staging.Pool(gameData), u => Assert.Equal(2, EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName)));
+		Assert.All(Staging.Pool(gameData), u => Assert.Contains(EraUtils.GetEraIndex(u.requiredTech.EraCivilopediaName), new[] { 0, 2 }));
 	}
 
-	// Land units are given more often than ships.
+	// The AIs get no extra starting units for the difficulty.
 	[Fact]
-	public void StagingGivesLandUnitsMoreOftenThanShips() {
+	public void TheAIsGetNoExtraStartingUnits() {
+		(_, C7GameData.GameData gameData) = NewGame(18);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player ai = gameData.players.First(p => !p.isHuman && !p.isBarbarians);
+		int before = ai.units.Count;
+		ai.MaybeSpawnBonusUnits(gameData);
+		Assert.Equal(before, ai.units.Count);
+	}
+
+	// Ships are given only one time in twenty.
+	[Fact]
+	public void StagingRarelyGivesShips() {
 		(_, C7GameData.GameData gameData) = NewGame(12);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		List<UnitPrototype> pool = Staging.Pool(gameData);
@@ -353,8 +366,8 @@ public class EternalWarScenarioTest {
 		C7GameData.GameData.rng = new System.Random(1);
 		try {
 			int ships = Enumerable.Range(0, 4000).Count(_ => Staging.Pick(pool).IsSeaUnit());
-			double expected = 4000.0 * sea / (sea + Staging.LandUnitWeight * land);
-			Assert.InRange(ships, expected * 0.85, expected * 1.15);
+			double expected = 4000.0 / Staging.ShipOneIn;
+			Assert.InRange(ships, expected * 0.75, expected * 1.25);
 		} finally {
 			C7GameData.GameData.rng = original;
 		}
@@ -372,45 +385,99 @@ public class EternalWarScenarioTest {
 		Assert.True(Staging.AiChoice(gameData, owner, ship).location.NeighborsOcean());
 	}
 
-	// The AIs' units are placed at once; the humans choose a city, and no
-	// one moves until they have.
+	// The highest bid for each unit wins it and pays; civs tied for the
+	// highest each get one; a unit no one bid on goes unsold. The AIs
+	// place theirs at once, and nobody moves until the humans have bid.
 	[Fact]
-	public void StagingWaitsForTheHumansToChooseACity() {
+	public void TheMarketSellsEachUnitToTheHighestBidders() {
 		(_, C7GameData.GameData gameData) = NewGame(13);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		Player human = gameData.players.First(p => p.isHuman);
 		EngineStorage.activePlayerID = human.id;
 		List<Player> ais = gameData.players.Where(p => !p.isHuman && !p.isBarbarians).ToList();
-		Dictionary<Player, int> unitsBefore = gameData.players.ToDictionary(p => p, p => p.units.Count);
+		foreach (Player p in gameData.players) {
+			p.gold = 100;
+		}
 		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
 
 		Staging.BeginTurn(gameData);
-		UnitPrototype unit = Staging.UnitType(gameData);
-		Assert.NotNull(unit);
-		Assert.All(ais, ai => {
-			Assert.Equal(unitsBefore[ai] + 1, ai.units.Count);
-			Assert.Equal(unit, ai.units.Last().unitType);
-		});
+		Assert.Equal(Staging.StandardOffers, gameData.staging.offers.Count);
 		Assert.True(Staging.InProgress(gameData));
-		Assert.Equal(unitsBefore[human], human.units.Count);
 		Assert.False(TurnHandling.IsPlayersTurn(gameData, human.id));
+		Assert.True(Staging.IsBidding(gameData, human));
 
-		// Only one of their own cities.
-		City theirs = ais[0].cities.First();
+		// Two AIs tie for the first unit, one wins the third, and no one
+		// bids on the second.
+		foreach (Player ai in ais) {
+			gameData.staging.bids[ai.id.ToString()] = [0, 0, 0];
+		}
+		gameData.staging.bids[ais[0].id.ToString()] = [10, 0, 5];
+		gameData.staging.bids[ais[1].id.ToString()] = [10, 0, 7];
+		Dictionary<Player, int> unitsBefore = gameData.players.ToDictionary(p => p, p => p.units.Count);
+		List<UnitPrototype> offers = Staging.Offers(gameData);
+
+		Assert.True(Staging.AnswerBids(gameData, human, [3, 0, 0]));
+		Assert.Equal(90, ais[0].gold);
+		Assert.Equal(83, ais[1].gold);
+		Assert.Equal(100, human.gold);
+		Assert.Equal(unitsBefore[ais[0]] + 1, ais[0].units.Count);
+		Assert.Equal(unitsBefore[ais[1]] + 2, ais[1].units.Count);
+		Assert.Contains(ais[0].units, u => u.unitType == offers[0]);
+		Assert.Contains(ais[1].units, u => u.unitType == offers[2]);
+		Assert.All(ais.Skip(2), ai => Assert.Equal(unitsBefore[ai], ai.units.Count));
+		Assert.False(Staging.InProgress(gameData));
+		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
+	}
+
+	// Bids can't come to more than the bidder's gold: the last are cut. A
+	// human who wins chooses a city for the unit before anyone moves.
+	[Fact]
+	public void AHumanWhoWinsChoosesACity() {
+		(_, C7GameData.GameData gameData) = NewGame(13);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player human = gameData.players.First(p => p.isHuman);
+		EngineStorage.activePlayerID = human.id;
+		foreach (Player p in gameData.players) {
+			p.gold = 0;
+		}
+		human.gold = 50;
+		Staging.BeginTurn(gameData);
+		List<UnitPrototype> offers = Staging.Offers(gameData);
+
+		Staging.AnswerBids(gameData, human, [40, 30, 0]);
+		Assert.Equal([40, 10, 0], gameData.staging.bids[human.id.ToString()]);
+		Assert.Equal(0, human.gold);
+		Assert.True(Staging.InProgress(gameData));
+		Assert.Equal(offers[0], Staging.NextToPlace(gameData, human));
+
+		City theirs = gameData.cities.First(c => c.owner != human);
 		Assert.False(Staging.Answer(gameData, human, theirs));
-		City city = Staging.Choices(human, unit).Last();
+		City city = human.cities.Last();
+		Assert.True(Staging.Answer(gameData, human, city));
+		Assert.Equal(offers[1], Staging.NextToPlace(gameData, human));
 		Assert.True(Staging.Answer(gameData, human, city));
 		Assert.False(Staging.InProgress(gameData));
-		Assert.Contains(human.units, u => u.unitType == unit && (u.location == city.location || !unit.IsLandUnit()));
+		Assert.Contains(human.units, u => u.unitType == offers[0]);
+		Assert.Contains(human.units, u => u.unitType == offers[1]);
 		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
-		Assert.False(Staging.Answer(gameData, human, city));
+	}
+
+	// One more unit is offered for each world size above standard, and one
+	// fewer for each below, but at least one.
+	[Fact]
+	public void TheMarketOffersMoreUnitsOnBiggerWorlds() {
+		Assert.Equal(3, Staging.OffersForWorldSize(2, 2));
+		Assert.Equal(5, Staging.OffersForWorldSize(4, 2));
+		Assert.Equal(1, Staging.OffersForWorldSize(0, 2));
+		Assert.Equal(1, Staging.OffersForWorldSize(0, 5));
 	}
 
 	// Through the turn loop: once everyone has played a turn, the human is
-	// asked where their unit goes before the next turn starts, and the next
-	// starts once they've chosen. The question and answer cross a LAN too.
+	// shown the market before the next turn starts, then who won, then
+	// asked where their unit goes, and the next turn starts once they've
+	// chosen. The messages cross a LAN too.
 	[Fact]
-	public async Task StagingComesBetweenTurnsInTheTurnLoop() {
+	public async Task TheMarketComesBetweenTurnsInTheTurnLoop() {
 		(_, C7GameData.GameData gameData) = NewGame(17);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		new MsgSetAnimationsEnabled(false).send();
@@ -424,19 +491,29 @@ public class EternalWarScenarioTest {
 		Task firstTurn = TurnHandling.AdvanceTurn();
 		EngineWaits.WaitForStartTurnMessage(_ => { });
 		await firstTurn;
+		foreach (Player p in gameData.players) {
+			p.gold = 0;
+		}
+		human.gold = 1000;
 
 		new MsgEndTurn { turn = gameData.turn }.send();
-		MsgShowStaging ask = EngineWaits.WaitForMessageToUI<MsgShowStaging>(m => Assert.IsNotType<MsgStartTurn>(m));
-		Assert.Equal(human, ask.recipient);
-		Assert.Equal(Staging.UnitType(gameData).name, ask.unitType);
+		MsgShowMarket market = EngineWaits.WaitForMessageToUI<MsgShowMarket>(m => Assert.IsNotType<MsgStartTurn>(m));
+		Assert.Equal(human, market.recipient);
+		Assert.Equal(Staging.BidSeconds, market.seconds);
 		Assert.False(TurnHandling.IsPlayersTurn(gameData, human.id));
-		MsgShowStaging sent = (MsgShowStaging)C7Engine.Network.NetSerialization.DeserializeMessageToUI(C7Engine.Network.NetSerialization.Serialize(ask));
-		Assert.Equal(ask.cities.Count, sent.cities.Count);
 
 		int unitsBefore = human.units.Count;
-		MessageToEngine answer = C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
-			C7Engine.Network.NetSerialization.Serialize(new MsgChooseStagingCity(ask.cities[0]) { playerID = human.id }));
-		EngineStorage.SendToEngine(answer);
+		EngineStorage.SendToEngine(C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
+			C7Engine.Network.NetSerialization.Serialize(new MsgPlaceMarketBids([gameData.players.Max(p => p.gold), 0, 0]) { playerID = human.id })));
+		MsgShowMarketResults results = EngineWaits.WaitForMessageToUI<MsgShowMarketResults>(m => Assert.IsNotType<MsgStartTurn>(m));
+		MsgShowMarketResults sentResults = (MsgShowMarketResults)C7Engine.Network.NetSerialization.DeserializeMessageToUI(C7Engine.Network.NetSerialization.Serialize(results));
+		Assert.Equal([human], sentResults.results[0].winners);
+		Assert.Empty(sentResults.results[1].winners);
+
+		MsgShowStaging ask = EngineWaits.WaitForMessageToUI<MsgShowStaging>(m => Assert.IsNotType<MsgStartTurn>(m));
+		Assert.Equal(market.offers[0], ask.unitType);
+		EngineStorage.SendToEngine(C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
+			C7Engine.Network.NetSerialization.Serialize(new MsgChooseStagingCity(ask.cities[0]) { playerID = human.id })));
 		EngineWaits.WaitForStartTurnMessage(_ => { });
 		Assert.Equal(unitsBefore + 1, human.units.Count);
 		Assert.Equal(ask.unitType, human.units.Last().unitType.name);
@@ -451,7 +528,7 @@ public class EternalWarScenarioTest {
 		gameData.rules.StagingUnits = false;
 		Staging.BeginTurn(gameData);
 		Assert.False(Staging.InProgress(gameData));
-		Assert.Null(Staging.UnitType(gameData));
+		Assert.Empty(Staging.Offers(gameData));
 	}
 
 	// A ship sent to an inland city puts to sea at the coast nearest it.
@@ -465,6 +542,9 @@ public class EternalWarScenarioTest {
 
 		MapUnit placed = Staging.Place(gameData, owner, ship, inland);
 		Assert.NotNull(placed);
+		// The owner sees around it.
+		Assert.All(placed.location.neighbors.Values.Where(t => t != Tile.NONE).Append(placed.location),
+			t => Assert.True(owner.tileKnowledge.isTileKnown(t)));
 		Assert.True(placed.location.baseTerrainType.IsCoast);
 		Assert.False(placed.location.isFreshWater);
 		int distance = inland.location.DistanceTo(placed.location);

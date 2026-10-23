@@ -297,6 +297,14 @@ public partial class WorldSetup : Control {
 			"A scenario: every civilization starts in the Middle Ages with cities scattered among its enemies', "
 			+ "at war with all the others for good. No one can build Settlers, so cities change hands only by conquest. "
 			+ "Played on a pangaea."),
+		(GameScenario.RisingTide, "Rising Tide",
+			"A scenario: the sea eats a pangaea a ring of shore at a time, the Tidal Waves coming ever faster, "
+			+ "until no land is left. Every civilization starts near the edge; settlers found cities of size 5. "
+			+ "The last civilization standing wins."),
+		(GameScenario.KingsAndNomads, "Kings & Nomads",
+			"A scenario: no one starts with a city, only a King and a wandering horde. Walled independent city-states "
+			+ "dot the map, and Settlers can only be built in conquered cities. Lose your King and your empire falls, "
+			+ "its cities free again. The last King standing wins, or whoever holds half the world's cities. Any map."),
 	];
 
 	// The first choice for a new game: a normal game, or a scenario, which
@@ -344,16 +352,16 @@ public partial class WorldSetup : Control {
 		if (global != null) {
 			global.Scenario = scenario;
 		}
-		// Eternal War is always played on a pangaea; only how much water is
+		// Eternal War and Rising Tide are always played on a pangaea; only how much water is
 		// left to choose.
-		bool pangaeaOnly = scenario == GameScenario.EternalWar;
+		bool pangaeaOnly = scenario is GameScenario.EternalWar or GameScenario.RisingTide;
 		if (pangaeaOnly && landform != WorldCharacteristics.Landform.Pangaea) {
 			Choose(LandformButton(WorldCharacteristics.Landform.Pangaea, ocean));
 		}
 		foreach (TextureButton button in new[] { continents60, continents70, continents80, archipelago60, archipelago70, archipelago80 }) {
 			button.Disabled = pangaeaOnly;
 			button.Modulate = pangaeaOnly ? new Color(1, 1, 1, 0.35f) : Colors.White;
-			button.TooltipText = pangaeaOnly ? "Eternal War is played on a pangaea." : "";
+			button.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea." : "";
 		}
 	}
 
