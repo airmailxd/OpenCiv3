@@ -113,8 +113,8 @@ public partial class ScenarioIntroPopup : Popup {
 
 	private const string KingsAndNomadsText =
 		"[b]The world[/b]\n"
-		+ "No one starts with a city. You are a [b]King[/b] at the head of a wandering horde: two Archers, two Horsemen, a Warrior "
-		+ "and a Worker. Independent [b]city-states[/b] dot the land; their garrisons grow every 10 turns, and they raise walls "
+		+ "No one starts with a city. You are a [b]King[/b] at the head of a wandering horde: two Archers, two Horsemen, a Swordsman, "
+		+ "a Warrior and a Worker. Independent [b]city-states[/b] dot the land; their garrisons grow every 10 turns, and they raise walls "
 		+ "on turn 40.\n\n"
 		+ "[b]How to win[/b]\n"
 		+ "Be the last King standing, or hold half of all the cities in the world.\n\n"

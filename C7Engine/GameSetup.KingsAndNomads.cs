@@ -8,7 +8,8 @@ namespace C7Engine;
 
 // Kings & Nomads, a custom scenario (owner's design, 2026-10-23): no civ
 // starts with a city. Each is a King and a wandering horde: two archers, two
-// horsemen, a warrior and a worker. Independent city-states,
+// horsemen, a swordsman (owner's addition, 2026-10-23), a warrior and a
+// worker. Independent city-states,
 // garrisoned, are scattered over the map, held by the barbarians. Settlers
 // can only be built in a city taken from someone else, so an empire is
 // built by conquest. When a civ's King dies, the civ falls (Regicide), and
@@ -34,7 +35,7 @@ public partial class GameSetup {
 	private const int MinCityStatesPerStart = 2;
 
 	private static readonly string[] CityStateGarrison = ["Spearman", "Spearman", "Archer"];
-	private static readonly string[] KingsHorde = ["Archer", "Archer", "Horseman", "Horseman", "Warrior", "Worker"];
+	private static readonly string[] KingsHorde = ["Archer", "Archer", "Horseman", "Horseman", "Swordsman", "Warrior", "Worker"];
 
 	private static void SetUpKingsAndNomadsWorld(WorldCharacteristics world) {
 		// Played on continents or a pangaea, not an archipelago's islets

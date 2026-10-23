@@ -55,6 +55,7 @@ public class KingsAndNomadsScenarioTest {
 			Assert.DoesNotContain(civ.units, u => u.unitType.isSettler);
 			Assert.Equal(2, civ.units.Count(u => u.unitType.name == "Horseman"));
 			Assert.Equal(2, civ.units.Count(u => u.unitType.name == "Archer"));
+			Assert.Single(civ.units, u => u.unitType.name == "Swordsman");
 		}
 	}
 
