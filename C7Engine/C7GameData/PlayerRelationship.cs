@@ -234,6 +234,13 @@ public class PlayerRelationship {
 	// joining that way, which keeps its word rather than breaking it.
 	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn, int? currentTurn = null,
 			bool honourPacts = true, bool keepingPact = false) {
+		// Civs in the same locked alliance, such as teammates, "can _never_
+		// attack one another" (see MsgDeclareWar). Everything that declares
+		// war checks first; this makes sure.
+		if (EngineStorage.gameData?.AreInLockedPeace(aggressor, defender) == true) {
+			Serilog.Log.Warning("{Aggressor} can't declare war on {Defender}, a locked ally", aggressor, defender);
+			return;
+		}
 		var defenderRelationshipToAggressor = defender.playerRelationships[aggressor.id];
 		var aggressorRelationshipToDefender = aggressor.playerRelationships[defender.id];
 		// increment the times the aggressor has declared war on the defender

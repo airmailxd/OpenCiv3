@@ -594,6 +594,11 @@ namespace C7GameData {
 		// provoked: the other civ brought the war on itself, so its people
 		// don't rally against us.
 		public void DeclareWarOn(Player other, int currentTurn, bool afterWarning = false, bool provoked = false) {
+			// Locked allies, such as teammates, never go to war with each
+			// other, whatever asks them to (see PlayerRelationship.DeclareWar).
+			if (EngineStorage.gameData?.AreInLockedPeace(this, other) == true) {
+				return;
+			}
 			EnsureRelationshipExists(other);
 
 			// Check to see if there was a sneak attack - we consider a sneak

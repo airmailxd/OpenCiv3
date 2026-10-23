@@ -83,6 +83,32 @@ public class TeamsTest {
 		Assert.True(conquest.HasVictory(conquest.Evaluate(civs[2], gameData)));
 	}
 
+	// Teammates can't go to war with each other, whichever way war is
+	// declared; anyone else can.
+	[Fact]
+	public void TeammatesCantDeclareWarOnEachOther() {
+		(_, C7GameData.GameData gameData) = NewGame(2, [1, 2, 1, 2]);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		List<Player> civs = Civs(gameData);
+		(Player us, Player mate, Player rival) = (civs[0], civs[2], civs[1]);
+		EngineStorage.activePlayerID = us.id;
+		Assert.True(TurnHandling.IsPlayersTurn(gameData, us.id));
+
+		new MsgDeclareWar(mate) { playerID = us.id }.send();
+		while (EngineStorage.HasPendingMessagesToEngine()) {
+			EngineStorage.ProcessNextMessageToEngine();
+		}
+		us.DeclareWarOn(mate, gameData.turn);
+		PlayerRelationship.DeclareWar(mate, us, sneakAttack: false, refuseContactUntilTurn: 0);
+		Assert.False(PlayerRelationship.AtWar(us, mate));
+		Assert.False(PlayerRelationship.AtWar(mate, us));
+
+		us.EnsureRelationshipExists(rival);
+		rival.EnsureRelationshipExists(us);
+		us.DeclareWarOn(rival, gameData.turn);
+		Assert.True(PlayerRelationship.AtWar(us, rival));
+	}
+
 	[Fact]
 	public void AGameWithoutTeamsIsAFreeForAll() {
 		(_, C7GameData.GameData gameData) = NewGame(0, [0, 0, 0, 0, 0]);
