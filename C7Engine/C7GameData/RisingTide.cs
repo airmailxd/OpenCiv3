@@ -59,6 +59,7 @@ namespace C7Engine {
 			if (!IsOn(gameData)) {
 				return;
 			}
+			SinkShipsAtSea(gameData);
 			RisingTideState state = gameData.risingTide;
 			if (state.nextWaveTurn < 0) {
 				state.nextWaveTurn = Interval(0);
@@ -74,6 +75,33 @@ namespace C7Engine {
 		// The land tiles the next wave takes: those next to salt water.
 		public static List<Tile> Shore(GameData gameData) {
 			return gameData.map.tiles.Where(t => t.IsLand() && t.NeighborsOcean()).ToList();
+		}
+
+		// The sea is no refuge (owner's ruling, 2026-10-23): no ships can be
+		// built (see UnitPrototype.IsAvailableTo), and a ship out on the
+		// water, outside a city, sinks at once with whatever it carries.
+		public static bool SinksAt(MapUnit unit, Tile tile) {
+			return IsOn(EngineStorage.gameData) && unit.IsWaterUnit() && Tile.IsTileValid(tile)
+				&& tile.baseTerrainType.IsWater && !tile.HasCity();
+		}
+
+		public static void Sink(MapUnit unit) {
+			Player owner = unit.owner;
+			log.Information("The tidal sea sinks {Unit}", unit);
+			onUnitDrowned?.Invoke(unit);
+			unit.RemoveFromPlay();
+			if (owner?.IsToldNews == true) {
+				new MsgShowMilitaryAdvisorPopup(owner, $"Our {unit.unitType.name} was lost to the raging sea!", happy: false).send();
+			}
+		}
+
+		// Sinks every ship at sea, as each turn begins.
+		private static void SinkShipsAtSea(GameData gameData) {
+			foreach (MapUnit unit in gameData.mapUnits.Where(u => SinksAt(u, u.location)).ToList()) {
+				if (gameData.mapUnits.Contains(unit)) {
+					Sink(unit);
+				}
+			}
 		}
 
 		// A Tidal Wave: the shore becomes Coast.

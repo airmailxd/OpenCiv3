@@ -97,6 +97,32 @@ public class RisingTideScenarioTest {
 		Assert.Equal(1, gameData.risingTide.waves);
 	}
 
+	// The sea is no refuge: no ships can be built, and a ship that sails
+	// out of port sinks at once with what it carries.
+	[Fact]
+	public async System.Threading.Tasks.Task ShipsSinkAtSea() {
+		(_, C7GameData.GameData gameData) = NewGame(4);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Tile shore = RisingTide.Shore(gameData).First(t => t.unitsOnTile.Count == 0 && !t.HasCity() && t.IsAllowCities());
+		City port = CityInteractions.BuildCity(shore, civ, "Port");
+		Assert.DoesNotContain(port.ListProductionOptions(gameData), p => p is UnitPrototype u && u.IsSeaUnit());
+
+		UnitPrototype galley = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.capacity > 0);
+		MapUnit ship = gameData.SpawnUnit(civ, galley, shore);
+		MapUnit settler = civ.units.First(u => u.unitType.isSettler);
+		settler.location.unitsOnTile.Remove(settler);
+		settler.location = shore;
+		shore.unitsOnTile.Add(settler);
+		ship.Board(settler);
+		(TileDirection dir, Tile sea) = shore.neighbors.First(n => n.Value != Tile.NONE && n.Value.baseTerrainType.IsWater && !n.Value.isFreshWater && n.Value.unitsOnTile.Count == 0);
+
+		Assert.False(await ship.Move(dir));
+		Assert.DoesNotContain(ship, gameData.mapUnits);
+		Assert.DoesNotContain(settler, gameData.mapUnits);
+	}
+
 	// The tide survives a save.
 	[Fact]
 	public void TheTideSurvivesASave() {

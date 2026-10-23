@@ -738,6 +738,10 @@ namespace C7GameData {
 			if (this.isSettler && city.capturedFrom == null && EngineStorage.gameData?.rules?.SettlersOnlyInConqueredCities == true) {
 				return false;
 			}
+			// Rising Tide's sea sinks every ship (see RisingTide.SinksAt).
+			if (this.IsSeaUnit() && EngineStorage.gameData?.rules?.RisingTide == true) {
+				return false;
+			}
 			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBySet.Contains(city.owner.civilization);
 		}
 

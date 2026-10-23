@@ -607,6 +607,11 @@ public partial class MapUnit {
 		List<City> coastalFortresses = FindCoastalFortressesAlong(location, newLoc);
 
 		RelocateTo(newLoc, movedThere: true);
+		// Rising Tide's sea sinks a ship that sails out (see RisingTide).
+		if (RisingTide.SinksAt(this, newLoc)) {
+			RisingTide.Sink(this);
+			return false;
+		}
 		WakeNearbySentries(newLoc);
 
 		if (wait)
