@@ -345,14 +345,19 @@ namespace C7Engine.AI.UnitAI {
 
 		// The nearest enemy ship near our coast the warship can reach, and
 		// the way to it.
+		// Hidden nationality ships count, whoever's they are.
 		private static Tile EnemyShipNearCoast(MapUnit ship, Player player, out TilePath shipPath) {
 			shipPath = null;
 			List<Tile> targets = new();
 			foreach (Player other in EngineStorage.gameData.players) {
-				if (other == player || other.defeated || !AtWar(player, other)) {
+				if (other == player || other.defeated) {
 					continue;
 				}
+				bool atWar = AtWar(player, other);
 				foreach (MapUnit u in other.units) {
+					if (!atWar && !u.IsFairGameFor(player)) {
+						continue;
+					}
 					// Only ships it would attack once there.
 					if (u.IsWaterUnit() && Tile.IsTileValid(u.location) && u.location.IsWater() && !u.location.HasCity() && SafeFor(ship, u.location)
 							&& NearOurCoast(player, u.location) && AIFogOfWar.SeesUnitsOn(player, u.location)
@@ -385,10 +390,14 @@ namespace C7Engine.AI.UnitAI {
 
 		private static bool HostileShipNearCoast(Player player) {
 			foreach (Player other in EngineStorage.gameData.players) {
-				if (other == player || other.defeated || !AtWar(player, other)) {
+				if (other == player || other.defeated) {
 					continue;
 				}
+				bool atWar = AtWar(player, other);
 				foreach (MapUnit u in other.units) {
+					if (!atWar && !u.IsFairGameFor(player)) {
+						continue;
+					}
 					if (u.IsWaterUnit() && Tile.IsTileValid(u.location) && u.location.IsWater() && (u.unitType.attack > 0 || u.unitType.bombard > 0)
 							&& NearOurCoast(player, u.location) && AIFogOfWar.SeesUnitsOn(player, u.location)) {
 						return true;

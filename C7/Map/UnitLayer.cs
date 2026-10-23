@@ -320,7 +320,13 @@ public partial class UnitLayer : LooseLayer {
 		AnimationInstance inst = GetInstance(looseView, unitInsts, tile);
 		inst.SetZIndex(unitAnimZIndex);
 		inst.SetPosition(GetFramePosition(appearance, animation, tileCenter));
-		inst.SetCivColor(unit.owner.GetPlayerColor());
+		// A hidden nationality unit, like a privateer, shows no civ's color
+		// to anyone but its owner.
+		if (unit.ShowsOwnerTo(looseView.mapView.game.controller)) {
+			inst.SetCivColor(unit.owner.GetPlayerColor());
+		} else {
+			inst.SetUntinted();
+		}
 		inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
 		inst.Show();
 		return inst;

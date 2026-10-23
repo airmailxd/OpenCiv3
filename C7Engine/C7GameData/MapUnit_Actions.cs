@@ -541,9 +541,9 @@ public partial class MapUnit {
 		MapUnit defender = DefenderAgainstAttackOn(newLoc, stealthTarget);
 		bool fought = false;
 		bool enemyOnTile = defender != MapUnit.NONE && MayAttack(defender);
-		// A hidden nationality unit attacking a civ it is at peace with (see
-		// MapUnit_HiddenNationality.cs).
-		bool hiddenAttack = MakesHiddenAttackOn(defender);
+		// An attack on a civ at peace, by or on a hidden nationality unit
+		// (see MapUnit_HiddenNationality.cs).
+		bool hiddenAttack = AttacksWithoutWar(defender);
 		bool armedEnemyOnTile = enemyOnTile && HasArmedEnemyDefender(newLoc);
 		// Units that can't attack, including empty armies, don't start fights
 		// or take captives, and without Blitz a unit only attacks once per

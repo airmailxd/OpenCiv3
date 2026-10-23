@@ -2313,9 +2313,12 @@ namespace C7GameData {
 			}
 		}
 
-		// A unit of the defender's was attacked by one of the attacker's.
+		// A unit of the defender's was attacked by one of the attacker's. No
+		// one knows whose a hidden nationality unit is, so a fight with one
+		// counts for nothing.
 		public static void AddWarWearinessForAttack(MapUnit attacker, MapUnit defender, bool attackerDefeated) {
-			if (attacker?.owner == null || defender?.owner == null) {
+			if (attacker?.owner == null || defender?.owner == null
+				|| attacker.unitType.hasHiddenNationality || defender.unitType.hasHiddenNationality) {
 				return;
 			}
 			if (defender.unitType.defense > 0) {

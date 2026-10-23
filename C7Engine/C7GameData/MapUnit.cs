@@ -818,9 +818,9 @@ namespace C7GameData {
 		}
 
 		// Whether the opponent attacking this unit's tile is not at peace with
-		// this unit's owner.
+		// this unit's owner, or may attack it anyway (hidden nationality).
 		internal bool IsEnemyDefenderAgainst(MapUnit opponent) {
-			return !opponent.owner?.IsAtPeaceWith(owner) ?? false;
+			return (!opponent.owner?.IsAtPeaceWith(owner) ?? false) || IsFairGameFor(opponent.owner);
 		}
 
 		// This unit's defensive strength against the opponent, times its hit
@@ -1317,7 +1317,7 @@ namespace C7GameData {
 
 		private static bool HasHostileUnits(Tile tile, Player player) {
 			foreach (MapUnit other in tile.unitsOnTile) {
-				if (player != other.owner && AtWar(player, other.owner) && other.IsSeenBy(player))
+				if (player != other.owner && (AtWar(player, other.owner) || other.IsFairGameFor(player)) && other.IsSeenBy(player))
 					return true;
 			}
 			return false;

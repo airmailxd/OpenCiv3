@@ -325,18 +325,21 @@ public partial class RightClickTileMenu : RightClickMenu {
 				game.OnDiplomacySelected(new ParameterWrapper<ID>(nonPlayerUnits[0].owner.id));
 			};
 
+			// A hidden nationality unit, like a privateer, is named without
+			// its civ, and gives no one to contact.
+			string Whose(MapUnit unit) => unit.ShowsOwnerTo(game.controller) ? $"{unit.owner.civilization.noun} " : "";
 			if (tile.cityAtTile == null) {
 				foreach (MapUnit unit in nonPlayerUnits) {
-					AddItem($"{unit.owner.civilization.noun} {unit.Describe()}", null);
+					AddItem($"{Whose(unit)}{unit.Describe()}", null);
 				}
 			} else {
 				// TODO: This isn't necessarily the top unit, get that code to an accessible
 				// location and then use it here.
 				MapUnit unit = nonPlayerUnits[0];
-				AddItem($"{unit.owner.civilization.noun} {unit.Describe()}", null);
+				AddItem($"{Whose(unit)}{unit.Describe()}", null);
 			}
 
-			if (!nonPlayerUnits[0].owner.isBarbarians)
+			if (!nonPlayerUnits[0].owner.isBarbarians && nonPlayerUnits[0].ShowsOwnerTo(game.controller))
 				AddItem($"Contact {nonPlayerUnits[0].owner.civilization.name}", contactCiv);
 		}
 

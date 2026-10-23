@@ -85,7 +85,7 @@ namespace C7Engine {
 			// there is someone on the tile we aren't at peace with.
 			if (HasUnitsNotAtPeaceWith(nextTile, unit.owner)) {
 				MapUnit defender = nextTile.FindTopDefender(unit);
-				if (defender != MapUnit.NONE && !unit.owner.IsAtPeaceWith(defender.owner)) {
+				if (defender != MapUnit.NONE && unit.MayAttack(defender)) {
 					if (!unit.CanAttack()) {
 						return UnitAI.Result.Error;
 					}
@@ -113,7 +113,7 @@ namespace C7Engine {
 
 		private static bool HasUnitsNotAtPeaceWith(Tile tile, Player owner) {
 			foreach (MapUnit u in tile.unitsOnTile) {
-				if (!owner.IsAtPeaceWith(u.owner)) {
+				if (!owner.IsAtPeaceWith(u.owner) || u.IsFairGameFor(owner)) {
 					return true;
 				}
 			}

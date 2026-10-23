@@ -10,7 +10,8 @@ namespace EngineTests.GameData;
 // "you can attack another civilization's shipping without precipitating war"
 // (Conquests Civilopedia, PRTO_Privateer); "they can attack without starting a
 // war, but if you attack them it starts a war"
-// (https://forums.civfanatics.com/threads/hidden-nationality-observations.434753/).
+// (https://forums.civfanatics.com/threads/hidden-nationality-observations.434753/),
+// though here, by the owner's ruling, anyone may attack them without war too.
 // See MapUnit_HiddenNationality.cs.
 public class HiddenNationalityTest : IClassFixture<SaveGameFixture> {
 	private readonly C7GameData.GameData gameData;
@@ -64,17 +65,48 @@ public class HiddenNationalityTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(MapUnit.Intent.Fight, intent);
 	}
 
-	// Others still have to declare war, to attack either a privateer or
-	// another ship.
+	// A privateer is at war with everyone: others may attack it without
+	// declaring war, and aren't told whose it is. Other ships still need a
+	// war.
 	[Fact]
-	public void OthersMustDeclareWar() {
+	public void OthersMayAttackAPrivateerWithoutWar() {
 		(Tile from, _, Tile to) = FindAdjacentSea();
 		MapUnit frigate = Spawn(us, "Frigate", from);
 		MapUnit privateer = Spawn(them, "Privateer", to);
 
-		Assert.False(frigate.CanEnter(to, out MapUnit.Intent intent));
+		Assert.True(frigate.CanEnter(to, out MapUnit.Intent intent));
+		Assert.Equal(MapUnit.Intent.Fight, intent);
+		Assert.True(frigate.MayAttack(privateer));
+		Assert.False(privateer.ShowsOwnerTo(us));
+		Assert.True(privateer.ShowsOwnerTo(them));
+
+		privateer.RemoveFromPlay();
+		MapUnit galleon = Spawn(them, "Galleon", to);
+		Assert.False(frigate.CanEnter(to, out intent));
 		Assert.Equal(MapUnit.Intent.WarDeclaration, intent);
-		Assert.False(frigate.MayAttack(privateer));
+		Assert.False(frigate.MayAttack(galleon));
+	}
+
+	[Fact]
+	public async Task AttackingAPrivateerDoesntStartAWarOrWeariness() {
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentSea();
+		MapUnit frigate = Spawn(us, "Frigate", from);
+		Spawn(them, "Privateer", to);
+		int declarations = us.playerRelationships[them.id].warDeclarationCount;
+		int weariness = them.WarWearinessPointsAgainst(us);
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ZeroRandom();
+		try {
+			await frigate.Move(dir);
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.True(frigate.hasAttackedThisTurn);
+		Assert.True(us.IsAtPeaceWith(them));
+		Assert.Equal(declarations, us.playerRelationships[them.id].warDeclarationCount);
+		Assert.Equal(weariness, them.WarWearinessPointsAgainst(us));
 	}
 
 	[Fact]
