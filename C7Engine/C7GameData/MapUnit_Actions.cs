@@ -694,6 +694,7 @@ public partial class MapUnit {
 				continue;
 			}
 			enemy.owner.AddWarWeariness(owner, Player.WarWearinessForLostUnitWithoutDefence);
+			C7Engine.AI.AiExperiments.onUnitTaken?.Invoke(enemy, owner);
 			if (owner.isBarbarians) {
 				gameData.RemoveUnit(enemy);
 			} else if (enemy.unitType.isSettler) {

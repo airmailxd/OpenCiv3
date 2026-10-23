@@ -166,6 +166,17 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// destroyed and its units it drowned, and the turn the civ was
 			// destroyed (the game's length if it never was).
 			"tideCities", "drowned", "deathTurn",
+			// Kings & Nomads' trade with the city-states (see
+			// CityStateTrade): the city-states the civ's roads reach at the
+			// end and halfway through, and the gold the trade brought in
+			// over the game.
+			"csConn", "midCsConn", "csGold",
+			// Workers: those the civ lost (captured or destroyed by an
+			// enemy walking onto them, or killed in battle), the
+			// worker-turns its workers ended outside its borders, those of
+			// them with no defender of ours on the tile, and the attacks
+			// city-state garrisons made on its units.
+			"wkLost", "wkOut", "wkOutAlone", "csAttacks",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -226,6 +237,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	// Per civ, how its development went over a game (see Measures).
 	private sealed class Development {
 		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
+		public int midCityStates, cityStateGold, workerTurnsOut, workerTurnsOutAlone;
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
@@ -398,6 +410,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					d.city10Turn = turn;
 				}
 				if (turn == turns / 2) {
+					d.midCityStates = p.defeated ? 0 : gameData.GetTradeNetwork().ConnectedCityStates(p).Count;
 					d.midTechs = p.knownTechs.Count;
 					d.midCities = p.cities.Count;
 					d.midCitizens = p.cities.Sum(c => c.residents.Count);
@@ -415,6 +428,15 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				if (p.mobilized) {
 					++d.mobilized;
 				}
+				d.cityStateGold += CityStateTrade.Income(gameData, p);
+				foreach (MapUnit u in p.units) {
+					if (u.unitType.isWorker && u.IsLandUnit() && !u.IsLoaded() && u.location.OwningPlayer() != p && u.location.cityAtTile?.owner != p) {
+						++d.workerTurnsOut;
+						if (!u.location.unitsOnTile.Any(o => o.owner == p && o.CanDefendOnLand() && !o.unitType.isWorker && !o.unitType.isSettler)) {
+							++d.workerTurnsOutAlone;
+						}
+					}
+				}
 			}
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
@@ -425,6 +447,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> kills = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> unitsLost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> shipKills = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> workersLost = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> cityStateAttacks = civs.ToDictionary(p => p, _ => 0);
 		void Add(Dictionary<Player, int> counts, Player p) {
 			if (p != null && counts.ContainsKey(p)) {
 				++counts[p];
@@ -479,8 +503,19 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Add(rops, asker);
 			Add(rops, partner);
 		};
+		AiExperiments.onUnitTaken = (unit, _) => {
+			if (unit.unitType.isWorker) {
+				Add(workersLost, unit.owner);
+			}
+		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
+			if (attacker.owner.isBarbarians && attacker.location.cityAtTile != null) {
+				Add(cityStateAttacks, defender.owner);
+			}
+			if (result == CombatResult.DefenderKilled && defender.unitType.isWorker) {
+				Add(workersLost, defender.owner);
+			}
 			if (OpenWar(attacker.owner, defender.owner) is WarRecord war) {
 				++war.attacks;
 			}
@@ -599,6 +634,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onCombat = null;
 			AiExperiments.onHurry = null;
 			AiExperiments.onCultureFlip = null;
+			AiExperiments.onUnitTaken = null;
 			RightOfPassageAI.onSigned = null;
 			Staging.onBuy = null;
 			RisingTide.onCityDrowned = null;
@@ -686,6 +722,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = tideCities[p];
 			m.values[i++] = drowned[p];
 			m.values[i++] = d.deathTurn;
+			m.values[i++] = p.defeated ? 0 : gameData.GetTradeNetwork().ConnectedCityStates(p).Count;
+			m.values[i++] = d.midCityStates;
+			m.values[i++] = d.cityStateGold;
+			m.values[i++] = workersLost[p];
+			m.values[i++] = d.workerTurnsOut;
+			m.values[i++] = d.workerTurnsOutAlone;
+			m.values[i++] = cityStateAttacks[p];
 			return m;
 		}
 

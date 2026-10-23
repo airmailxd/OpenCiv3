@@ -29,5 +29,9 @@ namespace C7Engine.AI {
 		// And culture flips: the city (already the new owner's), the civ
 		// it left, and the chance it flipped with.
 		internal static Action<City, Player, CultureFlip.Chance> onCultureFlip;
+		// And defenceless units taken by an enemy walking onto them
+		// (captured, or destroyed by barbarians): the unit, still its
+		// owner's, and the taker.
+		internal static Action<MapUnit, Player> onUnitTaken;
 	}
 }
