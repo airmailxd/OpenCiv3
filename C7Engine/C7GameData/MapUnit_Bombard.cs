@@ -145,6 +145,7 @@ namespace C7GameData {
 
 			facingDirection = location.DirectionTo(tile);
 			hasAttackedThisTurn = true;
+			bool barricaded = tile.overlays.HasImprovementWithKey(Tile.TileOverlays.BARRICADE, TerrainImprovement.Layer.Holdings);
 
 			// A city is hit in a fixed order that depends on the bombarder
 			// (see BombardCityInOrder). Elsewhere the units are hit before the
@@ -165,6 +166,16 @@ namespace C7GameData {
 			// Missile" flag (the Cruise Missile in conquests.biq).
 			if (unitType.isCruiseMissile && hitPointsRemaining > 0) {
 				RemoveFromPlay();
+				return;
+			}
+
+			// Bombarding a barricade ends the unit's turn, where another
+			// bombardment costs one move: C3X, whose author reads the 1.22
+			// code, added an "Option not to end a unit's turn after it bombards
+			// a barricade" (https://github.com/maxpetul/C3X/blob/master/changelog.txt,
+			// Release 17), so the base game does.
+			if (barricaded) {
+				movementPoints.onConsumeAll();
 			}
 		}
 

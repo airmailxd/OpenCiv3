@@ -538,6 +538,25 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Same(them.civilization, slave.nationality);
 	}
 
+	// A bombardment costs one move, but bombarding a barricade ends the
+	// unit's turn (see MapUnit.Bombard).
+	[Theory]
+	[InlineData(false, 2)]
+	[InlineData(true, 0)]
+	public async Task BombardingABarricadeEndsTheTurn(bool barricade, float movesLeft) {
+		GoToWar();
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit artillery = Spawn(us, "Artillery", from);
+		artillery.movementPoints.reset(3);
+		Spawn(them, "Warrior", to);
+		if (barricade) {
+			to.overlays.Add(gameData.terrainImprovements.Find(ti => ti.key == C7GameData.Tile.TileOverlays.BARRICADE));
+		}
+
+		await WithZeroRandom(async () => await artillery.Bombard(to));
+		Assert.Equal(movesLeft, artillery.movementPoints.remaining);
+	}
+
 	private class FixedRandom(double value) : System.Random {
 		protected override double Sample() => value;
 	}
