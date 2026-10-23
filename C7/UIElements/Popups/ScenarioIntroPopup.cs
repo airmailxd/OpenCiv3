@@ -120,12 +120,14 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "Be the last King standing, or hold half of all the cities in the world.\n\n"
 		+ "[b]Rules[/b]\n"
 		+ "- If your King dies, your civilization falls, and its cities become independent again.\n"
+		+ "- The King leads from the front: your units on his tile or next to it fight at double strength, attacking and defending.\n"
+		+ "- A city-state's units fight at +50% inside their own city.\n"
 		+ "- Settlers can only be built in cities you have taken from someone else.\n"
 		+ "- City-states never build Settlers, but you can trade with them: a road from one of your cities to a city-state "
 		+ "brings you the luxuries and strategic resources inside its borders, and 3 gold a turn.\n"
 		+ "- Played on continents or a pangaea; every civilization starts with city-states nearby.\n\n"
 		+ "[b]Tips[/b]\n"
 		+ "Strike the nearest city-state early, before its garrison grows and its walls go up. "
-		+ "Keep your King well guarded and out of the fighting; once you have a city, keep him safe inside it. "
+		+ "March your King with your army for double strength in battle, but keep him well guarded: lose him and you lose everything. "
 		+ "Choose which city-states to conquer and which to trade with, and escort your Workers outside your borders.";
 }

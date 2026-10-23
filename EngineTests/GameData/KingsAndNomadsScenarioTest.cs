@@ -145,6 +145,37 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Equal(before, ai.units.Count);
 	}
 
+	// The civ's units on the King's tile or next to it fight at +100%;
+	// farther away, they don't.
+	[Fact]
+	public void TheKingsPresenceStrengthensUnitsNearHim() {
+		(_, C7GameData.GameData gameData) = NewGame(11);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		MapUnit king = civ.units.Single(u => u.unitType.isKing);
+		MapUnit swordsman = civ.units.Single(u => u.unitType.name == "Swordsman");
+		double Attack() => swordsman.StrengthVersus(null, CombatRole.Attack, null);
+		double near = Attack();
+		Assert.Equal(swordsman.unitType.attack * 2.0, near, 3);
+
+		Tile far = gameData.map.tiles.First(t => t.IsLand() && t.DistanceTo(king.location) > 3 && t.unitsOnTile.Count == 0);
+		king.location.unitsOnTile.Remove(king);
+		king.location = far;
+		far.unitsOnTile.Add(king);
+		Assert.Equal(swordsman.unitType.attack, Attack(), 3);
+	}
+
+	// A city-state's units fight at +50% in their own city.
+	[Fact]
+	public void CityStateUnitsAreStrongerAtHome() {
+		(_, C7GameData.GameData gameData) = NewGame(12);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		City city = gameData.players.Single(p => p.isBarbarians).cities[0];
+		MapUnit defender = city.location.unitsOnTile.First(u => u.owner == city.owner);
+		Assert.Contains(defender.ListStrengthBonusesVersus(null, CombatRole.Defense, null), b => b.description == "Defending their city-state" && b.amount == 0.5);
+		Assert.Contains(defender.ListStrengthBonusesVersus(null, CombatRole.Attack, null), b => b.description == "Defending their city-state");
+	}
+
 	// Settlers are built only in a city taken from someone else.
 	[Fact]
 	public void SettlersOnlyInConqueredCities() {

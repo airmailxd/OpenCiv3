@@ -518,6 +518,12 @@ namespace C7GameData {
 			if (HasRadarBonus(role))
 				yield return RadarTowerBonus;
 
+			if (HasKingsPresence(role))
+				yield return KingsPresenceBonus;
+
+			if (HoldsItsCityState(role))
+				yield return CityStateHomeBonus;
+
 			if (DifficultyBonusAgainst(opponent, role) is StrengthBonus difficultyBonus)
 				yield return difficultyBonus;
 		}
@@ -577,6 +583,37 @@ namespace C7GameData {
 			if (role != CombatRole.Attack && role != CombatRole.Defense)
 				return false;
 			return owner != null && Tile.IsTileValid(location) && location.IsCoveredByRadarOf(owner);
+		}
+
+		// Kings & Nomads: the King leads from the front (owner's design,
+		// 2026-10-23). Its civ's units on its tile or next to it fight at
+		// +100%, attacking and defending, so there's reason to march it with
+		// the army, at the risk of losing the game with it. Like the other
+		// combat modifiers it adds to the rest; the King itself doesn't
+		// count, nor does bombardment.
+		private static readonly StrengthBonus KingsPresenceBonus = new("King's presence", 1.0);
+
+		// Kings & Nomads: a city-state's units fight at +50% in their own
+		// city (owner's design, 2026-10-23), so the city-states hold out
+		// longer.
+		private static readonly StrengthBonus CityStateHomeBonus = new("Defending their city-state", 0.5);
+
+		private bool HoldsItsCityState(CombatRole role) {
+			return (role == CombatRole.Attack || role == CombatRole.Defense) && owner?.isBarbarians == true
+				&& Tile.IsTileValid(location) && location.cityAtTile?.owner == owner && CityStateTrade.IsOn(EngineStorage.gameData);
+		}
+
+		private bool HasKingsPresence(CombatRole role) {
+			if ((role != CombatRole.Attack && role != CombatRole.Defense) || unitType.isKing || owner == null
+				|| !Tile.IsTileValid(location) || !CityStateTrade.IsOn(EngineStorage.gameData)) {
+				return false;
+			}
+			foreach (MapUnit u in owner.units) {
+				if (u.unitType.isKing && Tile.IsTileValid(u.location) && u.location.DistanceTo(location) <= 1) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
