@@ -1383,6 +1383,12 @@ namespace C7GameData {
 				}
 			}
 
+			// Kings & Nomads' trade with the city-states brings shields that
+			// nothing wastes (see CityStateTrade).
+			if (working) {
+				result.useful += CityStateTrade.Shields(EngineStorage.gameData, this);
+			}
+
 			return result;
 		}
 

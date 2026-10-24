@@ -125,10 +125,13 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "- A city-state's units fight at +50% inside their own city.\n"
 		+ "- Settlers can only be built in cities you have taken from someone else.\n"
 		+ "- City-states never build Settlers, but you can trade with them: a road from one of your cities to a city-state "
-		+ "brings you the luxuries and strategic resources inside its borders, and 3 gold a turn.\n"
+		+ "brings you the luxuries and strategic resources inside its borders and 3 gold a turn, and every city of yours on "
+		+ "the road makes a shield more that nothing wastes. Now and then a city-state sends each civilization it trades with "
+		+ "a unit as a gift.\n"
+		+ "- Everyone is a Monarchy, for good: there are no other governments.\n"
 		+ "- Played on continents or a pangaea; every civilization starts with city-states nearby.\n\n"
 		+ "[b]Tips[/b]\n"
 		+ "Strike the nearest city-state early, before its garrison grows and its walls go up. "
 		+ "March your King with your army for double strength in battle, but keep him well guarded: lose him and you lose everything. "
-		+ "Choose which city-states to conquer and which to trade with, and escort your Workers outside your borders.";
+		+ "A city-state you trade with is often worth more than one you take. Choose which to conquer and which to trade with, and escort your Workers outside your borders.";
 }

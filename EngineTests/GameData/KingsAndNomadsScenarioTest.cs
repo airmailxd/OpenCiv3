@@ -34,8 +34,9 @@ public class KingsAndNomadsScenarioTest {
 		return (save, SaveGameFixture.HydrateSaveGame(save));
 	}
 
-	// Each civ starts with a King and its horde, and no city or settler;
-	// walled, garrisoned city-states belong to the independents.
+	// Each civ starts with a King and its horde, and no city or settler,
+	// under Monarchy for good; garrisoned city-states belong to the
+	// independents.
 	[Fact]
 	public void SetsUpTheScenario() {
 		(_, C7GameData.GameData gameData) = NewGame(1);
@@ -50,6 +51,12 @@ public class KingsAndNomadsScenarioTest {
 			Assert.Equal(3, c.location.unitsOnTile.Count(u => u.owner == independents));
 		});
 		foreach (Player civ in civs) {
+			Assert.Equal("Monarchy", civ.government.name);
+			foreach (Tech tech in gameData.techs) {
+				civ.knownTechs.Add(tech.id);
+			}
+			Assert.Equal(["Monarchy"], civ.GetAvailableGovernments(gameData).Select(g => g.name));
+			Assert.False(civ.CanStartRevolution(gameData));
 			Assert.Empty(civ.cities);
 			Assert.Single(civ.units, u => u.unitType.isKing);
 			Assert.DoesNotContain(civ.units, u => u.unitType.isSettler);
@@ -76,8 +83,9 @@ public class KingsAndNomadsScenarioTest {
 	}
 
 	// A road from a civ's city to a city-state is a trade route: the
-	// civ gets the resources inside the city-state's borders and gold a
-	// turn (see CityStateTrade).
+	// civ gets the resources inside the city-state's borders, gold a turn,
+	// shields in the city that nothing wastes, and now and then a unit
+	// (see CityStateTrade).
 	[Fact]
 	public void ARoadToACityStateIsATradeRoute() {
 		(_, C7GameData.GameData gameData) = NewGame(8);
@@ -96,6 +104,7 @@ public class KingsAndNomadsScenarioTest {
 		resourceTile.Resource = luxury;
 		gameData.InvalidateCachedTradeNetwork();
 		int before = civ.CalculateGoldPerTurn();
+		int shieldsBefore = city.CurrentProductionYield().useful;
 		Assert.Empty(gameData.GetTradeNetwork().ConnectedCityStates(civ));
 
 		middle.overlays.Add(gameData.terrainImprovements.Single(ti => ti.key == C7GameData.Tile.TileOverlays.ROAD));
@@ -105,6 +114,18 @@ public class KingsAndNomadsScenarioTest {
 		if (civ.KnowsAboutResource(luxury)) {
 			Assert.Contains(luxury, gameData.GetTradeNetwork().GetResourcesAvailableToCity(civ, city).Keys);
 		}
+		Assert.Equal(shieldsBefore + CityStateTrade.ShieldsPerCityState, city.CurrentProductionYield().useful);
+
+		// When the city-state's chance comes up, it sends the civ a unit.
+		gameData.turn = 1;
+		gameData.random = new AlwaysZero();
+		int units = city.location.unitsOnTile.Count(u => u.owner == civ);
+		CityStateTrade.GiveGifts(gameData);
+		Assert.Equal(units + 1, city.location.unitsOnTile.Count(u => u.owner == civ));
+	}
+
+	private class AlwaysZero : System.Random {
+		public override int Next(int maxValue) => 0;
 	}
 
 	// The city-states' garrisons grow every 10 turns, up to 6, and they

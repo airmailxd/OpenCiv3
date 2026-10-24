@@ -39,6 +39,7 @@ namespace C7Engine {
 					}
 				}
 			}
+			CityStateTrade.GiveGifts(gameData);
 		}
 
 		public static int Garrison(City city) {

@@ -528,6 +528,11 @@ namespace C7Engine.Pathing {
 			return result;
 		}
 
+		// The city-states the city trades with by road (see CityStateTrade).
+		public IReadOnlyCollection<City> CityStatesTradingWith(Player p, City c) {
+			return GetNetwork(p).cityToSegment.TryGetValue(c, out TradeNetworkSegment segment) ? segment.cityStates : [];
+		}
+
 		// Whether the tile is joined by the player's trade network to one of
 		// their cities (or is a city's tile).
 		public bool IsJoinedToCity(Tile t, Player p) {

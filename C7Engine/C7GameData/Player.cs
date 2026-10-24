@@ -1317,6 +1317,11 @@ namespace C7GameData {
 					continue;
 				}
 
+				// A scenario may allow only one (Rules.OnlyGovernment).
+				if (gameData.rules?.AllowsGovernment(g) == false) {
+					continue;
+				}
+
 				if (this.HasTech(g.prerequisiteTech)) {
 
 					result.Add(g);

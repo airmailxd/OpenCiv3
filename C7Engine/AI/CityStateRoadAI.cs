@@ -159,7 +159,9 @@ namespace C7Engine.AI {
 						lacking.Add(t.Resource);
 					}
 				}
+				// The shields come to each of our cities on the road.
 				double value = CityStateTrade.IncomePerCityState
+					+ CityStateTrade.ShieldsPerCityState * (network.CityGroups(player).Find(g => g.Contains(from))?.Count ?? 1)
 					+ lacking.Sum(r => r.Category == ResourceCategory.LUXURY ? LuxuryValue : StrategicValue);
 				// Our city is the end of the path: the tiles nearest it first.
 				roadless.Reverse();

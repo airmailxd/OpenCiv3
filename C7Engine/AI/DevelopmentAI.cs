@@ -235,7 +235,7 @@ namespace C7Engine.AI {
 			}
 
 			foreach (Government government in gameData.governments) {
-				if (!government.transitionType && government.prerequisiteTech == tech.id) {
+				if (!government.transitionType && government.prerequisiteTech == tech.id && gameData.rules.AllowsGovernment(government)) {
 					perTurn += GovernmentPerTurn;
 				}
 			}

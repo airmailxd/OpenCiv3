@@ -111,6 +111,13 @@ namespace C7GameData {
 		// A fallen civ's cities go to the independents (the barbarians)
 		// rather than being destroyed (Kings & Nomads).
 		public bool FallenCitiesGoIndependent = false;
+		// The name of the only government anyone may have, or null for any
+		// (Kings & Nomads: Monarchy).
+		public string OnlyGovernment = null;
+
+		public bool AllowsGovernment(Government government) {
+			return OnlyGovernment == null || government?.name == OnlyGovernment;
+		}
 
 		// Not Civ3: the game was set up with teams, each a locked alliance,
 		// and a team wins together (see GameSetup.Teams.cs and

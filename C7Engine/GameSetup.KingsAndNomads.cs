@@ -17,7 +17,8 @@ namespace C7Engine;
 // as does a civ holding half of all the cities in the world. Played on
 // continents or a pangaea, each civ on a landmass with city-states of its
 // own, the bigger landmasses taking more civs. The city-states' garrisons
-// grow, and they gain walls on turn 40 (see CityStates).
+// grow, and they gain walls on turn 40 (see CityStates). Every civ is a
+// Monarchy, for good (owner's ruling, 2026-10-24).
 public partial class GameSetup {
 	// How many independent city-states the map has for each civ (owner's
 	// change, 2026-10-23, from 3).
@@ -29,6 +30,7 @@ public partial class GameSetup {
 		return Math.Max(2, (int)Math.Round(numberOfCivs * 0.75));
 	}
 	public const int CityStateSize = 3;
+	private const string KingsAndNomadsGovernment = "Monarchy";
 	// The closest a city-state may be to a civ's start.
 	private const int CityStateDistanceFromStart = 5;
 	// The fewest city-states a civ's landmass should have for it.
@@ -51,6 +53,10 @@ public partial class GameSetup {
 	private static void SetUpKingsAndNomadsRules(SaveGame save) {
 		save.Rules.SettlersOnlyInConqueredCities = true;
 		save.Rules.FallenCitiesGoIndependent = true;
+		if (!save.Governments.Any(g => g.name == KingsAndNomadsGovernment)) {
+			throw new InvalidOperationException($"The Kings & Nomads scenario needs the {KingsAndNomadsGovernment} government, which these rules don't have");
+		}
+		save.Rules.OnlyGovernment = KingsAndNomadsGovernment;
 		save.VictoryConditions ??= new VictoryConditions();
 		save.VictoryConditions.Regicide = true;
 		save.VictoryConditions.MassRegicide = false;
@@ -59,8 +65,10 @@ public partial class GameSetup {
 		save.VictoryConditions.AllowEmpireVictory = true;
 	}
 
-	// A civ's horde, on its start; its King comes with Regicide.
+	// A civ's horde, on its start; its King comes with Regicide. The civ is
+	// a Monarchy.
 	private void AddKingsHorde(SaveGame save, SavePlayer player, TileLocation location) {
+		player.governmentId = save.Governments.Find(g => g.name == KingsAndNomadsGovernment).id;
 		foreach (string unit in KingsHorde) {
 			AddUnit(save, player, unit, location);
 		}
