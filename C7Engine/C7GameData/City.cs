@@ -1641,9 +1641,30 @@ namespace C7GameData {
 					result.beakers += cr.citizenType.Research;
 					result.taxes += cr.citizenType.Taxes;
 				}
+				// And so do buildings that bring in gold by themselves.
+				result.taxes += BuildingGold(buildings);
 			}
 
 			return result;
+		}
+
+		// The gold a turn the buildings bring the city by themselves (a
+		// scenario's, e.g. Eternal War's): each one's own, and as much for
+		// each coast tile a citizen works, all doubled by a building that
+		// doubles it.
+		public int BuildingGold(List<CityBuilding> buildings) {
+			int gold = 0, perCoastTile = 0;
+			bool doubled = false;
+			foreach (CityBuilding cb in buildings) {
+				gold += cb.building.goldPerTurn;
+				perCoastTile += cb.building.goldPerWorkedCoastTile;
+				doubled |= cb.building.doublesBuildingGold;
+			}
+			if (perCoastTile > 0) {
+				gold += perCoastTile * WorkingResidents().Count(r => r.tileWorked != null && r.tileWorked != Tile.NONE
+					&& r.tileWorked.baseTerrainType.IsCoast);
+			}
+			return doubled ? 2 * gold : gold;
 		}
 
 		// Shares out commerce by the owner's sliders, as CurrentCommerceYieldRaw

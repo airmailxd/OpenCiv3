@@ -40,6 +40,12 @@ public enum GameScenario {
 // of the coast. (Owner's additions, 2026-10-22.)
 // Desert makes a shield more, though flood plains don't, and the AIs get no
 // extra starting units for the difficulty. (Owner's additions, 2026-10-23.)
+// Economic buildings (owner's rework, 2026-10-24; see
+// SetUpEternalWarBuildings): the Colosseum makes 3 culture and 3 gold a turn
+// and costs nothing to keep up; the Marketplace makes 2 gold and doubles the
+// gold of the city's buildings, keeping its luxury bonus but no longer adding
+// to taxes; the Harbor makes a gold for each coast tile worked; the
+// Courthouse makes 2 gold and adds to taxes as the Marketplace did.
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -175,6 +181,7 @@ public partial class GameSetup {
 			?? throw new InvalidOperationException($"The Eternal War scenario needs a {EternalWarBuilding}, which these rules don't have");
 		library.maintenanceCost = 0;
 		save.Rules.BuildingsKeptOnCapture = [library.name];
+		SetUpEternalWarBuildings(save);
 
 		RequireUnit(save, EternalWarBarbarian);
 		save.BarbarianInfo.basicBarbarianUnit = EternalWarBarbarian;
@@ -183,6 +190,28 @@ public partial class GameSetup {
 		// Every civ starts in the Middle Ages, which would set off its
 		// uprising on the first turn.
 		save.BarbarianInfo.middleAgesUprisingHappened = true;
+	}
+
+	// The economic buildings' rework (see above). Any the rules lack are left
+	// out.
+	private static void SetUpEternalWarBuildings(SaveGame save) {
+		if (save.Buildings.Find(b => b.name == "Colosseum") is SaveBuilding colosseum) {
+			colosseum.culturePerTurn = 3;
+			colosseum.goldPerTurn = 3;
+			colosseum.maintenanceCost = 0;
+		}
+		if (save.Buildings.Find(b => b.name == "Marketplace") is SaveBuilding marketplace) {
+			marketplace.goldPerTurn = 2;
+			marketplace.doublesBuildingGold = true;
+			marketplace.flags.Remove(SaveBuilding.Flag.Plus50PercentCommerce);
+		}
+		if (save.Buildings.Find(b => b.name == "Harbor") is SaveBuilding harbor) {
+			harbor.goldPerWorkedCoastTile = 1;
+		}
+		if (save.Buildings.Find(b => b.name == "Courthouse") is SaveBuilding courthouse) {
+			courthouse.goldPerTurn = 2;
+			courthouse.flags.Add(SaveBuilding.Flag.Plus50PercentCommerce);
+		}
 	}
 
 	private static void RequireUnit(SaveGame save, string name) {

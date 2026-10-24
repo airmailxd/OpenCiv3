@@ -184,6 +184,45 @@ public class EternalWarScenarioTest {
 		}
 	}
 
+	// The economic buildings: the Colosseum makes 3 culture and 3 gold and
+	// costs nothing; the Marketplace makes 2 gold and doubles the buildings'
+	// gold, keeping its luxury bonus but not its tax bonus, which goes to
+	// the Courthouse with 2 gold; the Harbor makes a gold a worked coast tile.
+	[Fact]
+	public void EconomicBuildingsMakeGold() {
+		(_, C7GameData.GameData gameData) = NewGame(3);
+		Building Find(string name) => gameData.Buildings.First(b => b.name == name);
+		Building colosseum = Find("Colosseum"), marketplace = Find("Marketplace"), harbor = Find("Harbor"), courthouse = Find("Courthouse");
+		Assert.Equal((3, 3, 0), (colosseum.culturePerTurn, colosseum.goldPerTurn, colosseum.maintenanceCost));
+		Assert.Equal(2, marketplace.goldPerTurn);
+		Assert.True(marketplace.doublesBuildingGold);
+		Assert.True(marketplace.increasesLuxuryTrade);
+		Assert.False(marketplace.increasesTax);
+		Assert.Equal(2, courthouse.goldPerTurn);
+		Assert.True(courthouse.increasesTax);
+		Assert.Equal(1, harbor.goldPerWorkedCoastTile);
+
+		City city = gameData.cities.First(c => c.residents.Count > 0);
+		CityBuilding Has(Building b) => new() { building = b };
+		Assert.Equal(5, city.BuildingGold([Has(colosseum), Has(courthouse)]));
+		Assert.Equal(14, city.BuildingGold([Has(colosseum), Has(courthouse), Has(marketplace)]));
+
+		// Two citizens on the coast.
+		Tile coast = gameData.map.tiles.First(t => t.baseTerrainType.IsCoast);
+		city.residents[0].tileWorked = coast;
+		if (city.residents.Count > 1) {
+			city.residents[1].tileWorked = coast;
+		}
+		int coastWorked = System.Math.Min(2, city.residents.Count);
+		Assert.Equal(coastWorked, city.BuildingGold([Has(harbor)]));
+		Assert.Equal(2 * (coastWorked + 2), city.BuildingGold([Has(harbor), Has(marketplace)]));
+
+		// The gold goes to the city's taxes.
+		int taxes = city.CurrentCommerceYield(respectCivilDisorder: false).taxes;
+		city.AddBuilding(colosseum);
+		Assert.Equal(taxes + 3, city.CurrentCommerceYield(respectCivilDisorder: false).taxes);
+	}
+
 	// A captured city keeps its library, though it has culture.
 	[Fact]
 	public void CapturedCitiesKeepTheirLibrary() {

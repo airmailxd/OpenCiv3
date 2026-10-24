@@ -81,6 +81,12 @@ namespace C7Engine.AI {
 				gain += baseLuxury * 0.25f;
 			}
 
+			// Gold the buildings bring in by themselves (see City.BuildingGold).
+			if (building.goldPerTurn > 0 || building.goldPerWorkedCoastTile > 0 || building.doublesBuildingGold) {
+				valued = true;
+				gain += city.BuildingGold(new(have) { new CityBuilding { building = building } }) - city.BuildingGold(have);
+			}
+
 			// Shields: factories and power plants multiply the useful shields
 			// (a city runs only one power plant; see City.ProductionBonusPercent).
 			if (building.productionBonusPercent > 0) {

@@ -129,6 +129,12 @@ namespace C7GameData.Save {
 		public double combatDefenseBonus;
 		public double navalDefenseBonus;
 		public int maintenanceCost;
+		// Gold the building brings its city each turn by itself, and for each
+		// coast tile a citizen works, and whether it doubles the gold the
+		// city's buildings bring in so (a scenario's; see City.BuildingGold).
+		public int goldPerTurn;
+		public int goldPerWorkedCoastTile;
+		public bool doublesBuildingGold;
 		// The percentage by which the building increases the city's useful
 		// shield production.
 		public int productionBonusPercent;

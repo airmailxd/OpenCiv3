@@ -1115,6 +1115,16 @@ public partial class Civilopedia : CenterContainer {
 			stats.Add(($"Maintenance: {building.maintenanceCost}", "icons.good_gold"));
 		}
 		stats.Add(($"Culture per turn: {building.culturePerTurn}", null));
+		// A scenario's gold-making buildings (see City.BuildingGold).
+		if (building.goldPerTurn > 0) {
+			stats.Add(($"Gold per turn: {building.goldPerTurn}", "icons.good_gold"));
+		}
+		if (building.goldPerWorkedCoastTile > 0) {
+			stats.Add(($"Gold per worked coast tile: {building.goldPerWorkedCoastTile}", "icons.good_gold"));
+		}
+		if (building.doublesBuildingGold) {
+			stats.Add(("Doubles the gold of the city's buildings", null));
+		}
 		float y = 388;
 		foreach ((string s, string icon) in stats) {
 			Label label = AddLabel(s, new Vector2(356, y));

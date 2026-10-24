@@ -146,6 +146,10 @@ namespace C7GameData {
 
 		public int culturePerTurn = 0;
 		public int maintenanceCost = 0;
+		// See SaveBuilding and City.BuildingGold.
+		public int goldPerTurn = 0;
+		public int goldPerWorkedCoastTile = 0;
+		public bool doublesBuildingGold;
 
 		// The number of unhappy faces that become content in the city with this
 		// building.
@@ -173,6 +177,9 @@ namespace C7GameData {
 			isSmallWonder = building.isSmallWonder;
 			culturePerTurn = building.culturePerTurn;
 			maintenanceCost = building.maintenanceCost;
+			goldPerTurn = building.goldPerTurn;
+			goldPerWorkedCoastTile = building.goldPerWorkedCoastTile;
+			doublesBuildingGold = building.doublesBuildingGold;
 			iconRowIndex = building.iconRowIndex;
 
 			if (building.contentFacesInCity < 0) {
