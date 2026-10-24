@@ -8,18 +8,22 @@ namespace C7Engine;
 
 // Rising Tide, a custom scenario (owner's design, 2026-10-23; see
 // RisingTide): on a pangaea that the sea eats away a ring at a time, every
-// civ starts in the Ancient Times near the edge of the land, with a
-// settler, three workers and two archers (and a scout, if expansionist).
-// Settlers found cities of size 5, so a civ can move its people inland
-// ahead of the tide.
+// civ starts in the Ancient Times with a city of size 5 on the shore, three
+// workers and two archers (and a scout, if expansionist) (owner's change,
+// 2026-10-24, from a settler three tiles inland). The first wave takes the
+// start city. Settlers found cities of size 5, so a civ can move its people
+// inland ahead of the tide, and a city's center feeds three citizens.
 public partial class GameSetup {
 	// The citizens a settler founds a city with.
 	public const int RisingTideCitySize = 5;
 
-	// How many tiles from the sea each civ starts: near the edge, but out of
-	// reach of the first waves (the capital falls to the RisingTideStartDepth-th
-	// wave unless the land around it is higher).
-	public const int RisingTideStartDepth = 3;
+	// How many tiles from the sea each civ starts: on the shore (owner's
+	// ruling, 2026-10-24), so the capital falls to the first wave.
+	public const int RisingTideStartDepth = 1;
+
+	// The food a city's center makes: enough for three citizens (owner's
+	// ruling, 2026-10-24).
+	public const int RisingTideCityCenterFood = 6;
 
 	private const string RisingTideWorker = "Worker";
 	private const string RisingTideArcher = "Archer";
@@ -34,15 +38,31 @@ public partial class GameSetup {
 	private static void SetUpRisingTideRules(SaveGame save) {
 		save.Rules.RisingTide = true;
 		save.Rules.NewCitySize = RisingTideCitySize;
+		save.Rules.CityCenterFood = RisingTideCityCenterFood;
 		save.RisingTide = new RisingTideState { nextWaveTurn = RisingTide.Interval(0) };
 		// The last civ standing wins.
 		save.VictoryConditions ??= new VictoryConditions();
 		save.VictoryConditions.AllowConquestVictory = true;
 	}
 
-	// The starting units of a Rising Tide civ, on its start.
-	private void AddRisingTideUnits(SaveGame save, SavePlayer player, TileLocation location) {
-		AddUnit(save, player, save.Rules.StartUnitType1, location);
+	// A Rising Tide civ's capital, on its start, and its starting units.
+	private void AddRisingTideStart(SaveGame save, SavePlayer player, Civilization civ, TileLocation location) {
+		SaveCity city = new() {
+			id = ids.CreateID("city"),
+			owner = player.id,
+			location = location,
+			capital = true,
+			name = civ.cityNames.Count > 0 ? civ.cityNames[0] : civ.name,
+			size = save.Rules.NewCitySize,
+			producible = RisingTideArcher,
+			producibleType = ProducibleType.UNIT,
+		};
+		city.perPlayerCulture.Add(player.id.ToString(), 0);
+		if (save.Buildings.Find(b => b.flags.Contains(SaveBuilding.Flag.IsCenterOfEmpire)) is SaveBuilding palace) {
+			city.buildings.Add(new SaveCityBuilding { building = palace.name, builtByPlayer = player.id });
+		}
+		save.Cities.Add(city);
+		player.citiesFounded = 1;
 		for (int i = 0; i < RisingTideWorkers; i++) {
 			AddUnit(save, player, RisingTideWorker, location);
 		}
@@ -51,7 +71,7 @@ public partial class GameSetup {
 		}
 	}
 
-	// A start for each civ near the edge of the land: on land a city may
+	// A start for each civ at the edge of the land: on land a city may
 	// stand on, RisingTideStartDepth tiles from the sea (or as near to that
 	// as the land allows), spread as far from each other as can be: each
 	// next start the one farthest from those already chosen.

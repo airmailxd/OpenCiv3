@@ -493,9 +493,10 @@ public partial class GameSetup {
 
 		// An Eternal War civ starts with its cities' units instead (see
 		// SetUpEternalWarPlayer).
-		// A Rising Tide civ has its own (see AddRisingTideUnits).
+		// A Rising Tide civ starts with a city and units of its own (see
+		// AddRisingTideStart).
 		if (scenario == GameScenario.RisingTide) {
-			AddRisingTideUnits(save, player, startingLocation);
+			AddRisingTideStart(save, player, civ, startingLocation);
 		} else if (scenario == GameScenario.KingsAndNomads) {
 			AddKingsHorde(save, player, startingLocation);
 		} else if (scenario != GameScenario.EternalWar) {

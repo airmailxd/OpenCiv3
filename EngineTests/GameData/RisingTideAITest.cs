@@ -107,7 +107,10 @@ public class RisingTideAITest {
 	public void SettlersChooseSitesThatLast() {
 		C7GameData.GameData gameData = NewGame(14);
 		Player civ = FirstCiv(gameData);
-		MapUnit settler = civ.units.First(u => u.unitType.isSettler);
+		// A civ whose start city the sea has taken, left with a settler.
+		Tile start = civ.cities[0].location;
+		CityInteractions.DestroyCity(civ.cities[0]);
+		MapUnit settler = gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), start);
 		int least = System.Math.Min(TideAI.MinSiteWaves, TideAI.DeepestLand());
 
 		Dictionary<Tile, float> sites = SettlerLocationAI.GetScoredSettlerCandidates(settler.location, civ);
@@ -119,8 +122,8 @@ public class RisingTideAITest {
 		Assert.True(TideAI.SiteSurvivalFactor(sites.MaxBy(s => TideAI.WavesUntilDrowned(s.Key)).Key)
 			> TideAI.SiteSurvivalFactor(sites.MinBy(s => TideAI.WavesUntilDrowned(s.Key)).Key));
 
-		// The first city goes a few tiles inland at most, where the land
-		// lasts at least as long as where the settler starts.
+		// Its next city goes a few tiles inland at most, where the land
+		// lasts at least as long as where the settler stands.
 		SettlerAIData plan = SettlerAI.MakeAiData(settler, civ);
 		Assert.Equal(SettlerAIData.SettlerGoal.BUILD_CITY, plan.goal);
 		Assert.True(plan.destination.DistanceTo(settler.location) <= TideAI.FirstCityMaxWalk);
@@ -132,8 +135,7 @@ public class RisingTideAITest {
 	public void CitiesStandCloserUnderTheTide() {
 		C7GameData.GameData gameData = NewGame(15);
 		Player civ = FirstCiv(gameData);
-		MapUnit settler = civ.units.First(u => u.unitType.isSettler);
-		City city = CityInteractions.BuildCity(settler.location, civ, "Atlantis");
+		City city = civ.cities[0];
 		Tile near = city.location.GetTilesWithinTileSquare(2).First(t => t != Tile.NONE && t.DistanceTo(city.location) == 2
 			&& t.IsAllowCities() && TideAI.LastsLongEnough(t, TideAI.MinKeptSiteWaves) && (t.OwningPlayer() == null || t.OwningPlayer() == civ));
 		Assert.True(SettlerLocationAI.IsStillValidSite(near, civ));
@@ -180,6 +182,9 @@ public class RisingTideAITest {
 	public async Task UnitsGetOutOfTheWayOfTheWave() {
 		C7GameData.GameData gameData = NewGame(17);
 		Player civ = FirstCiv(gameData);
+		// A city inland, so the civ outlives its start city on the shore.
+		Tile deep = gameData.map.tiles.Where(t => t.IsAllowCities() && t.unitsOnTile.Count == 0).MaxBy(TideAI.WavesUntilDrowned);
+		CityInteractions.BuildCity(deep, civ, "Safe");
 		Tile shore = RisingTide.Shore(gameData).First(t => t.unitsOnTile.Count == 0 && t.OwningPlayer() == null
 			&& t.neighbors.Values.Any(n => n.IsLand() && TideAI.WavesUntilDrowned(n) == 2 && n.unitsOnTile.Count == 0 && n.OwningPlayer() == null));
 		MapUnit archer = gameData.SpawnUnit(civ, Prototype(gameData, "Archer"), shore);

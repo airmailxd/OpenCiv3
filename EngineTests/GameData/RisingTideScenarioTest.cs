@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
+using C7Engine.AI;
 using C7GameData;
 using C7Engine.Lua;
 using C7GameData.Save;
@@ -34,29 +35,37 @@ public class RisingTideScenarioTest {
 		return (save, SaveGameFixture.HydrateSaveGame(save));
 	}
 
-	// One landmass; every civ near its edge with a settler, three workers
-	// and two archers, and a scout if expansionist.
+	// One landmass; every civ on its shore with a capital of size 5, three
+	// workers and two archers, and a scout if expansionist.
 	[Fact]
 	public void SetsUpTheScenario() {
 		(_, C7GameData.GameData gameData) = NewGame(1);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		Assert.True(gameData.rules.RisingTide);
 		Assert.Equal(GameSetup.RisingTideCitySize, gameData.rules.NewCitySize);
+		Assert.Equal(GameSetup.RisingTideCityCenterFood, gameData.rules.CityCenterFood);
 		Assert.Equal(21, RisingTide.TurnsUntilNextWave(gameData));
 		Assert.Contains(gameData.victories, v => v is ConquestVictory);
 		gameData.map.recomputeContinents();
 		Assert.Single(gameData.map.continents, c => c.First().IsLand());
 
 		foreach (Player civ in gameData.players.Where(p => !p.isBarbarians)) {
-			Assert.Empty(civ.cities);
-			Assert.Equal(1, civ.units.Count(u => u.unitType.isSettler));
+			City capital = Assert.Single(civ.cities);
+			Assert.True(capital.IsCapital());
+			Assert.Equal(GameSetup.RisingTideCitySize, capital.residents.Count);
+			Assert.Equal(0, civ.units.Count(u => u.unitType.isSettler));
 			Assert.Equal(3, civ.units.Count(u => u.unitType.name == "Worker"));
 			Assert.Equal(2, civ.units.Count(u => u.unitType.name == "Archer"));
 			bool expansionist = civ.civilization.traits.Contains(Civilization.Trait.Expansionist);
 			Assert.Equal(expansionist ? 1 : 0, civ.units.Count(u => u.unitType.name == gameData.rules.ScoutUnitType));
-			// Near the edge, but not on the shore.
-			Tile start = civ.units[0].location;
-			Assert.False(start.NeighborsOcean());
+			// On the shore.
+			Tile start = capital.location;
+			Assert.True(start.NeighborsOcean());
+			// Its center feeds three citizens even under Despotism, and an
+			// agricultural civ's a fourth by fresh water.
+			bool agricultural = civ.civilization.traits.Contains(Civilization.Trait.Agricultural);
+			bool freshWater = start.BordersRiver() || start.NeighborsFreshWater();
+			Assert.Equal(agricultural && freshWater ? 7 : 6, start.FoodYield(capital).yield);
 			int toSea = gameData.map.tiles.Where(t => t.baseTerrainType.IsWater && !t.isFreshWater).Min(t => t.DistanceTo(start));
 			Assert.Equal(GameSetup.RisingTideStartDepth, toSea);
 		}
@@ -77,7 +86,8 @@ public class RisingTideScenarioTest {
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
 		Player civ = gameData.players.First(p => !p.isBarbarians);
-		MapUnit settler = civ.units.First(u => u.unitType.isSettler);
+		Tile inland = gameData.map.tiles.Where(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && !t.HasCity()).MaxBy(TideAI.WavesUntilDrowned);
+		MapUnit settler = gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.isSettler), inland);
 		City city = await settler.BuildCity("Atlantis");
 		Assert.Equal(GameSetup.RisingTideCitySize, city.residents.Count);
 
@@ -111,10 +121,7 @@ public class RisingTideScenarioTest {
 
 		UnitPrototype galley = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.capacity > 0);
 		MapUnit ship = gameData.SpawnUnit(civ, galley, shore);
-		MapUnit settler = civ.units.First(u => u.unitType.isSettler);
-		settler.location.unitsOnTile.Remove(settler);
-		settler.location = shore;
-		shore.unitsOnTile.Add(settler);
+		MapUnit settler = gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.isSettler), shore);
 		ship.Board(settler);
 		(TileDirection dir, Tile sea) = shore.neighbors.First(n => n.Value != Tile.NONE && n.Value.baseTerrainType.IsWater && !n.Value.isFreshWater && n.Value.unitsOnTile.Count == 0);
 
