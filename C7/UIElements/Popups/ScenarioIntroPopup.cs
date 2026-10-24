@@ -88,9 +88,9 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "- Workers defend but can't attack; one beaten in battle becomes the winner's slave.\n"
 		+ "- Coastal buildings can be built within three tiles of the sea.\n"
 		+ "- Governments support three times the usual units for free.\n"
-		+ "- Buildings that earn gold: a Colosseum makes 3 culture and 3 gold a turn and costs nothing to keep up; "
+		+ "- Buildings that earn gold: a Colosseum makes 3 culture and 3 gold a turn; "
 		+ "a Marketplace makes 2 gold and doubles the gold of the city's buildings, and still boosts luxuries, but not taxes; "
-		+ "a Harbor makes a gold for each coast tile worked; a Courthouse makes 2 gold and adds half again to taxes.\n\n"
+		+ "a Harbor makes a gold for each coast tile worked; a Courthouse makes 2 gold and adds half again to taxes. None of them costs anything to keep up.\n\n"
 		+ "[b]Tips[/b]\n"
 		+ "Keep gold in hand for the market: a well-timed bid can buy the army your cities can't build. "
 		+ "Guard your workers, and strike the enemy cities nearest yours before they strike you.";

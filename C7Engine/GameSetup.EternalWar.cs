@@ -41,11 +41,11 @@ public enum GameScenario {
 // Desert makes a shield more, though flood plains don't, and the AIs get no
 // extra starting units for the difficulty. (Owner's additions, 2026-10-23.)
 // Economic buildings (owner's rework, 2026-10-24; see
-// SetUpEternalWarBuildings): the Colosseum makes 3 culture and 3 gold a turn
-// and costs nothing to keep up; the Marketplace makes 2 gold and doubles the
-// gold of the city's buildings, keeping its luxury bonus but no longer adding
-// to taxes; the Harbor makes a gold for each coast tile worked; the
-// Courthouse makes 2 gold and adds to taxes as the Marketplace did.
+// SetUpEternalWarBuildings): the Colosseum makes 3 culture and 3 gold a turn;
+// the Marketplace makes 2 gold and doubles the gold of the city's buildings,
+// keeping its luxury bonus but no longer adding to taxes; the Harbor makes a
+// gold for each coast tile worked; the Courthouse makes 2 gold and adds to
+// taxes as the Marketplace did. None of them costs anything to keep up.
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -203,13 +203,16 @@ public partial class GameSetup {
 		if (save.Buildings.Find(b => b.name == "Marketplace") is SaveBuilding marketplace) {
 			marketplace.goldPerTurn = 2;
 			marketplace.doublesBuildingGold = true;
+			marketplace.maintenanceCost = 0;
 			marketplace.flags.Remove(SaveBuilding.Flag.Plus50PercentCommerce);
 		}
 		if (save.Buildings.Find(b => b.name == "Harbor") is SaveBuilding harbor) {
 			harbor.goldPerWorkedCoastTile = 1;
+			harbor.maintenanceCost = 0;
 		}
 		if (save.Buildings.Find(b => b.name == "Courthouse") is SaveBuilding courthouse) {
 			courthouse.goldPerTurn = 2;
+			courthouse.maintenanceCost = 0;
 			courthouse.flags.Add(SaveBuilding.Flag.Plus50PercentCommerce);
 		}
 	}

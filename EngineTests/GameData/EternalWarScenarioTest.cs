@@ -201,6 +201,7 @@ public class EternalWarScenarioTest {
 		Assert.Equal(2, courthouse.goldPerTurn);
 		Assert.True(courthouse.increasesTax);
 		Assert.Equal(1, harbor.goldPerWorkedCoastTile);
+		Assert.All(new[] { colosseum, marketplace, harbor, courthouse }, b => Assert.Equal(0, b.maintenanceCost));
 
 		City city = gameData.cities.First(c => c.residents.Count > 0);
 		CityBuilding Has(Building b) => new() { building = b };
