@@ -155,6 +155,7 @@ public partial class PlayerSetup : Control {
 		AddOpponentSelectors(numberOfCivs);
 		ChooseOpponentsAsLastTime();
 		ApplyDefaultTeams();
+		ShowTeams();
 
 		// Set up game rules
 		AddRules();
@@ -283,8 +284,10 @@ public partial class PlayerSetup : Control {
 			Text = "Accelerated production",
 			FontSize = 14,
 			// As chosen last time, or as the scenario or ruleset sets it,
-			// like in Civ3.
-			ButtonPressed = choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction,
+			// like in Civ3. Rising Tide always starts with it on (owner's
+			// ruling, 2026-10-24).
+			ButtonPressed = GetNode<GlobalSingleton>("/root/GlobalSingleton").Scenario == GameScenario.RisingTide
+				|| (choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
 			TooltipText = "Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
@@ -405,7 +408,9 @@ public partial class PlayerSetup : Control {
 		freeForAll = new Civ3Checkbox {
 			Text = "Free-for-all",
 			FontSize = 13,
-			ButtonPressed = false,
+			// Every game type starts as a free-for-all (owner's ruling,
+			// 2026-10-24).
+			ButtonPressed = true,
 			Position = new Vector2(845, 76),
 			TooltipText = "No teams: every civilization plays for itself.",
 		};
@@ -846,7 +851,10 @@ public partial class PlayerSetup : Control {
 			choices.SetVictoryConditions(gameSetup.victoryConditions);
 			choices.ShowScoreboard = gameSetup.showScoreboard;
 			choices.CoreCitiesFreeOfCorruption = gameSetup.coreCitiesFreeOfCorruption;
-			choices.AcceleratedProduction = gameSetup.acceleratedProduction;
+			// Not Rising Tide's, which has it on by default.
+			if (gameSetup.scenario != GameScenario.RisingTide) {
+				choices.AcceleratedProduction = gameSetup.acceleratedProduction;
+			}
 			choices.CultureFlips = gameSetup.allowCultureFlips;
 			choices.ScientificLeaders = gameSetup.scientificLeaders;
 			choices.CorruptionRate = gameSetup.corruptionRate;
