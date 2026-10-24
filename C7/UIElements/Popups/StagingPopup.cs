@@ -20,7 +20,7 @@ public partial class StagingPopup : Popup {
 	private readonly string unitType;
 	private readonly List<City> cities;
 	private readonly Action<City> choose;
-	private readonly Action<City, Vector2> show;
+	private readonly Action<City> show;
 	private bool ship;
 	private int selected = 0;
 	// The list: a button showing the city chosen, which opens the others.
@@ -31,8 +31,8 @@ public partial class StagingPopup : Popup {
 	// chosen and doesn't follow other units' moves.
 	public static bool IsOpen { get; private set; }
 
-	// show moves the map so the city is at the given point on the screen.
-	public StagingPopup(Player player, string unitType, List<City> cities, Action<City> choose, Action<City, Vector2> show = null) {
+	// show moves the map so the city is in the middle of the screen.
+	public StagingPopup(Player player, string unitType, List<City> cities, Action<City> choose, Action<City> show = null) {
 		alignment = BoxContainer.AlignmentMode.Center;
 		margins = new Margins(top: 100);
 		this.player = player;
@@ -72,10 +72,8 @@ public partial class StagingPopup : Popup {
 		list.Pressed += OpenDropdown;
 		AddChild(list);
 		ShowSelected();
-		// Once the popup is laid out, so its bottom edge is known, and again
-		// whenever it moves.
+		// Once the popup is in the tree.
 		Callable.From(ShowChosen).CallDeferred();
-		ItemRectChanged += ShowChosen;
 		IsOpen = true;
 
 		AddConfirmButton(new Vector2(Width - 66, Height - 66), Choose);
@@ -168,15 +166,13 @@ public partial class StagingPopup : Popup {
 		return row;
 	}
 
-	// Moves the map so the city chosen is in the middle of the screen below
-	// the popup.
+	// Moves the map so the city chosen is in the middle of the screen, just
+	// below the popup, as for a city's production.
 	private void ShowChosen() {
 		if (show == null || selected >= cities.Count || !IsInsideTree()) {
 			return;
 		}
-		Vector2 screen = GetViewportRect().Size;
-		float below = Mathf.Min(GetGlobalRect().End.Y, screen.Y);
-		show(cities[selected], new Vector2(screen.X / 2, (below + screen.Y) / 2));
+		show(cities[selected]);
 	}
 
 	private void Choose() {

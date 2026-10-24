@@ -1671,7 +1671,7 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(
 						new StagingPopup(player, mSS.unitType, mSS.cities,
 							city => new MsgChooseStagingCity(city) { playerID = player.id }.send(),
-							(city, point) => mapView?.centerCameraOnTileAt(city.location, point)),
+							city => mapView?.centerCameraOnTile(city.location)),
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
 					break;
