@@ -167,8 +167,9 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.Equal(w.cityState.location, king.destination);
 	}
 
-	// The King's city keeps the defenders it wants, which the rest of the AI
-	// leaves alone; any more are free to go.
+	// The King's city keeps the defenders it wants (two in a first city out
+	// of the enemy's reach), which the rest of the AI leaves alone; any more
+	// are free to go.
 	[Fact]
 	public void TheKingsCityKeepsItsGuard() {
 		World w = NewWorld(5);
@@ -180,7 +181,7 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		List<MapUnit> spearmen = Enumerable.Range(0, 6)
 			.Select(_ => w.gameData.SpawnUnit(w.civ, Prototype(w.gameData, "Spearman"), w.cityState.location)).ToList();
 		int want = KingsAndNomadsAI.GarrisonWanted(w.civ, w.cityState, AIThreat.Assess(w.civ));
-		Assert.InRange(want, 3, 5);
+		Assert.InRange(want, 2, 5);
 		Assert.Equal(want, spearmen.Count(u => KingsAndNomadsAI.GuardsTheKing(u, w.civ)));
 		foreach (MapUnit guard in spearmen.Where(u => KingsAndNomadsAI.GuardsTheKing(u, w.civ))) {
 			C7Engine.AI.UnitAI.DefenderAI stay = Assert.IsType<C7Engine.AI.UnitAI.DefenderAI>(PlayerAI.GetAIForUnit(guard, w.civ));
