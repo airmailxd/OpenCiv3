@@ -202,6 +202,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Cities the civ took from other civs (not city-states or
 			// barbarians), and of those, cities it had held before.
 			"civCaps", "retaken",
+			// Wars the civ started that saw it attack, and that won it a
+			// city.
+			"warsFought", "warsWon",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -498,7 +501,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		static bool AtWarWith(Player a, Player b) => a.playerRelationships.TryGetValue(b.id, out PlayerRelationship r) && r.AtWar();
 		AiExperiments.onWarDeclared = (aggressor, defender) => {
 			Add(wars, aggressor);
-			if (listWars && civs.Contains(aggressor) && civs.Contains(defender)) {
+			if (civs.Contains(aggressor) && civs.Contains(defender)) {
 				// Peace made and war declared again within one round of
 				// turns, before the check at the end of the round saw the
 				// peace.
@@ -681,7 +684,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					}
 				}
 			}
-			foreach (WarRecord w in warRecords) {
+			foreach (WarRecord w in listWars ? warRecords : []) {
 				warLines.Add($"war turn {w.start}: {w.aggressor.civilization.name} -> {w.defender.civilization.name}"
 					+ $"{(w.overseas ? " overseas" : "")} via={w.via} attacks={w.attacks} captures={w.captures} "
 					+ (w.end < 0 ? "ongoing" : $"ended turn {w.end}{(w.renewed ? " (peace, then war again within the round)" : w.defender.defeated ? " (defender destroyed)" : w.aggressor.defeated ? " (aggressor destroyed)" : "")}"));
@@ -798,6 +801,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = cityStateCaptures[p].Count > 1 ? cityStateCaptures[p][1] : turns;
 			m.values[i++] = civCaptures[p];
 			m.values[i++] = retaken[p];
+			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.attacks > 0);
+			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.captures > 0);
 			return m;
 		}
 

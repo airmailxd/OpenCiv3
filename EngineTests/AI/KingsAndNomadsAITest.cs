@@ -390,4 +390,22 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		}
 		Assert.True(KingsAndNomadsAI.WarGoalMet(w.gameData, w.civ, rival));
 	}
+
+	// A peace isn't broken at once: for a few turns after it, no war.
+	[Fact]
+	public void APeaceHoldsForATruce() {
+		World w = NewWorld(10);
+		Player rival = w.gameData.players.First(p => !p.IsIndependent && p != w.civ);
+		w.civ.EnsureRelationshipExists(rival);
+		rival.EnsureRelationshipExists(w.civ);
+		w.gameData.turn = 30;
+		w.civ.DeclareWarOn(rival, w.gameData.turn);
+		w.gameData.turn = 40;
+		PlayerRelationship.SignPeaceAfterWar(w.civ, rival, w.gameData);
+		Assert.True(KingsAndNomadsAI.InTruce(w.gameData, w.civ, rival));
+		w.gameData.turn = 44;
+		Assert.True(KingsAndNomadsAI.InTruce(w.gameData, w.civ, rival));
+		w.gameData.turn = 45;
+		Assert.False(KingsAndNomadsAI.InTruce(w.gameData, w.civ, rival));
+	}
 }

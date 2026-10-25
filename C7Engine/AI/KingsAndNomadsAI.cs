@@ -611,8 +611,11 @@ namespace C7Engine.AI {
 		private const double WeakerArmyDisincentive = 3;
 
 		// A war for a goal (see WarIncentive) has met it once we've taken a
-		// city from them, or after WarGoalTurns: we then make peace if they
-		// will (see PeaceAI.BuildPeaceOffer).
+		// city from them and it no longer goes our way: we then make peace
+		// if they will (see PeaceAI.BuildPeaceOffer). Otherwise it goes on
+		// until PeaceAI ends it (a war we're losing, or a stalemate): a war
+		// made to end after 20 turns was often ended mid-fight, and declared
+		// again at once.
 		public static bool WarGoalMet(GameData gameData, Player us, Player them) {
 			if (!PlaysFor(us)) {
 				return false;
@@ -624,11 +627,24 @@ namespace C7Engine.AI {
 			if (took && PeaceAI.Assess(us, them) >= PeaceAI.WarOutlook.Winning) {
 				took = false;
 			}
-			return turns >= WarGoalTurns || took;
+			return took;
 		}
 
-		// HEURISTIC: how long a war for a goal goes on, at most.
-		private const int WarGoalTurns = 20;
+
+		// Whether we made peace with them within TruceTurns: a peace isn't
+		// broken at once (owner's ruling, 2026-10-25). Only a short truce:
+		// in AI trials (20 games of 6 civs and 120 turns, every civ AI) most
+		// wars declared again at once were the loser's, to win back what it
+		// lost, and a truce of 5 turns kept two thirds of those wins (0.9
+		// cities won back a civ on Pangaea, against 1.4 with none and 0.7
+		// with a truce of 10).
+		internal static bool InTruce(GameData gameData, Player player, Player rival) {
+			return player.playerRelationships.TryGetValue(rival.id, out PlayerRelationship r)
+				&& r.multiTurnDeals.Any(d => d != null && d.dealSubType == DealSubType.Peace && d.turnStartDeal > 0
+					&& gameData.turn - d.turnStartDeal < TruceTurns);
+		}
+
+		private const int TruceTurns = 5;
 
 		// HEURISTIC: the fewest fighters a horde declares war with.
 		private const int MinWarFighters = 4;
@@ -696,8 +712,13 @@ namespace C7Engine.AI {
 		private const double KingValue = 16;
 
 		// HEURISTIC: how far (in tiles) the horde goes after a rival King
-		// in the open.
-		private const int KingHuntRange = 6;
+		// in the open: only one it can strike at once. Going after one up to
+		// 6 tiles away, a horde that had declared war on a city chased the
+		// King about, and often never attacked: in AI trials (20 games of 6
+		// civs and 120 turns, every civ AI), with 2, civs took 3.4 cities
+		// each from other civs on Pangaea (2.1 with 6) and 2.5 on Continents
+		// (1.0), and won back 1.4 and 1.0 (0.5 and 0.3).
+		private const int KingHuntRange = 2;
 
 		// HEURISTIC: how much better another target must score for the horde
 		// to turn from the one it's after.
@@ -765,6 +786,7 @@ namespace C7Engine.AI {
 			bool MayDeclareFor(City c) => c != null && gameData.cities.Contains(c) && !c.owner.IsIndependent && c.owner != player
 				&& !c.owner.defeated && !AtWarWith(player, c.owner) && player.playerRelationships.ContainsKey(c.owner.id)
 				&& !gameData.AreInLockedPeace(player, c.owner) && horde.units.Count(IsFighter) >= MinWarFighters
+				&& !InTruce(gameData, player, c.owner)
 				&& !(horde.avoid.TryGetValue(c, out int until) && Turn < until) && !others.Contains(c)
 				&& c.location.continent == continent && AIFogOfWar.KnowsTile(player, c.location) && Worth(c.owner);
 			double Score(City c) => TargetScore(player, gameData, c, from);
@@ -833,7 +855,8 @@ namespace C7Engine.AI {
 				Player owner = c.owner;
 				if (owner == player || owner.IsIndependent || owner.defeated || c.location.continent != from.continent
 						|| !AIFogOfWar.KnowsTile(player, c.location) || AtWarWith(player, owner)
-						|| !player.playerRelationships.ContainsKey(owner.id) || gameData.AreInLockedPeace(player, owner)) {
+						|| !player.playerRelationships.ContainsKey(owner.id) || gameData.AreInLockedPeace(player, owner)
+						|| InTruce(gameData, player, owner)) {
 					continue;
 				}
 				if (nearest == null || from.DistanceTo(c.location) < from.DistanceTo(nearest.location)) {
