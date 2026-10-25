@@ -199,6 +199,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Kings & Nomads: the turns the civ took its first and second
 			// city-states (the game's length if it never did).
 			"cs1Turn", "cs2Turn",
+			// Cities the civ took from other civs (not city-states or
+			// barbarians), and of those, cities it had held before.
+			"civCaps", "retaken",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -469,6 +472,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
 		Dictionary<Player, List<int>> cityStateCaptures = civs.ToDictionary(p => p, _ => new List<int>());
+		Dictionary<Player, int> civCaptures = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> retaken = civs.ToDictionary(p => p, _ => 0);
+		// Each city's owners so far.
+		Dictionary<ID, HashSet<Player>> heldBy = new();
 		Dictionary<Player, int> wars = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> warTurns = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> attacks = civs.ToDictionary(p => p, _ => 0);
@@ -608,6 +615,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
 						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
+						if (!before.IsIndependent) {
+							++civCaptures[city.owner];
+							if (heldBy.TryGetValue(city.id, out HashSet<Player> held) && held.Contains(city.owner)) {
+								++retaken[city.owner];
+							}
+						}
 						if (before.IsIndependent) {
 							++freeCaptures[city.owner];
 							if (before.isCityStates) {
@@ -623,6 +636,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					}
 				}
 				cityOwners[city.id] = city.owner;
+				if (!heldBy.TryGetValue(city.id, out HashSet<Player> owners)) {
+					heldBy[city.id] = owners = new();
+				}
+				owners.Add(city.owner);
 			}
 		}
 
@@ -779,6 +796,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = partners.Count == 0 ? 0 : partners.Average(c => c.residents.Count);
 			m.values[i++] = cityStateCaptures[p].Count > 0 ? cityStateCaptures[p][0] : turns;
 			m.values[i++] = cityStateCaptures[p].Count > 1 ? cityStateCaptures[p][1] : turns;
+			m.values[i++] = civCaptures[p];
+			m.values[i++] = retaken[p];
 			return m;
 		}
 

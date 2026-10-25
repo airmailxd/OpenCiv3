@@ -580,7 +580,15 @@ namespace C7Engine.AI {
 		private const double OpportunistMultiplier = 1.5;
 
 		// HEURISTIC: WarIncentive's points.
-		internal const double WarIncentiveNeeded = 4;
+		// The points a war must be worth for a civ to declare it. The
+		// owner wants warring kingdoms (2026-10-25), measured by wars
+		// started rather than by how the warring civs fare against the rest
+		// (wars cost both sides). In AI trials (20 games of 6 civs and 120
+		// turns, every civ AI), at 4 civs started 1.6 wars each on Pangaea
+		// and 1.0 on Continents; at 2, 2.2 and 1.5, taking a little more
+		// from each other, with as many civs left; at 1, 2.6 and 1.8, at
+		// some cost in research on Pangaea.
+		internal const double WarIncentiveNeeded = 2;
 		private const double OwnTradeAtRisk = 1.5;
 		private const double OwnWarDisincentive = 2;
 		private const double LeaderIncentive = 2;
