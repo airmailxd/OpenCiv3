@@ -1384,9 +1384,13 @@ namespace C7GameData {
 			}
 
 			// Kings & Nomads' trade with the city-states brings shields that
-			// nothing wastes (see CityStateTrade).
+			// nothing wastes (see CityStateTrade), and a city-state's
+			// specialists make shields (see CityStates).
 			if (working) {
 				result.useful += CityStateTrade.Shields(EngineStorage.gameData, this);
+				if (CityStateTrade.IsCityState(this)) {
+					result.useful += CityStates.Specialists(this) * CityStates.SpecialistShields;
+				}
 			}
 
 			return result;
@@ -2390,7 +2394,10 @@ namespace C7GameData {
 		// borders haven't expanded yet.
 		public List<Tile> GetWorkableTiles() {
 			List<Tile> result = new();
-			foreach (Tile t in GetTilesOfRank(owner.rules.MaxRankOfWorkableTiles)) {
+			// A Kings & Nomads city-state works only the tiles around it (see
+			// CityStates).
+			int rank = CityStateTrade.IsCityState(this) ? 1 : owner.rules.MaxRankOfWorkableTiles;
+			foreach (Tile t in GetTilesOfRank(rank)) {
 				// Skip tiles not owned by this player.
 				if (t.owningCity == null || t.owningCity.owner != this.owner) {
 					continue;
@@ -2878,6 +2885,14 @@ namespace C7GameData {
 			}
 			ApplyMoodChange(unhappyFaces, content, unhappy);
 			ConsumeContentToHappyMoves(happyFaces);
+
+			// A Kings & Nomads city-state's citizens are all happy (see
+			// CityStates).
+			if (CityStateTrade.IsCityState(this)) {
+				foreach (CityResident cr in Laborers()) {
+					cr.mood = CityResident.Mood.Happy;
+				}
+			}
 
 			// A city riots when happy - unhappy < 0; content citizens count as
 			// 0. Specialists and resisters take no part (see

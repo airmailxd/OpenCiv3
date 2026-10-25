@@ -39,12 +39,29 @@ namespace C7Engine {
 			return city?.owner?.isBarbarians == true && IsOn(gameData);
 		}
 
+		// The same, by the rules the city's owner plays by, for while a game
+		// is loading.
+		public static bool IsCityState(City city) {
+			Rules rules = city?.owner?.rules;
+			return city.owner.isBarbarians && rules != null && rules.SettlersOnlyInConqueredCities && rules.FallenCitiesGoIndependent;
+		}
+
 		// The gold a turn the player's trade with city-states brings in.
 		public static int Income(GameData gameData, Player player) {
 			if (!IsOn(gameData) || player.isBarbarians || player.cities.Count == 0) {
 				return 0;
 			}
-			return gameData.GetTradeNetwork().ConnectedCityStates(player).Count * IncomePerCityState;
+			return gameData.GetTradeNetwork().ConnectedCityStates(player).Sum(c => IncomePerCityState
+				+ CityStates.Specialists(c) * CityStates.SpecialistGold);
+		}
+
+		// The beakers a turn the city-states' specialists bring the player
+		// (see CityStates).
+		public static int Beakers(GameData gameData, Player player) {
+			if (!IsOn(gameData) || player.isBarbarians || player.cities.Count == 0) {
+				return 0;
+			}
+			return gameData.GetTradeNetwork().ConnectedCityStates(player).Sum(c => CityStates.Specialists(c) * CityStates.SpecialistBeakers);
 		}
 
 		// The shields the city's trade with city-states adds to it.

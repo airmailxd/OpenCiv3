@@ -126,6 +126,12 @@ public partial class Tile {
 			if (cityAtTile.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true) {
 				yield += 1;
 			}
+
+			// A Kings & Nomads city-state's center makes more, the more so the
+			// bigger it is (see CityStates).
+			if (CityStateTrade.IsCityState(cityAtTile)) {
+				yield += CityStates.CenterFood + CityStates.CenterFoodPerCitizen * cityAtTile.residents.Count;
+			}
 		}
 
 		yield += BaseYieldBonus(YieldType.Food);
@@ -167,6 +173,11 @@ public partial class Tile {
 			&& city.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true
 			&& (BordersRiver() || NeighborsFreshWater())) {
 			result.penalty -= 1;
+		}
+		// A Kings & Nomads city-state's center keeps all its food (see
+		// CityStates).
+		if (cityAtTile == city && CityStateTrade.IsCityState(city)) {
+			result.penalty = 0;
 		}
 		// A scenario's richer city center (Rules.CityCenterFood) keeps its
 		// food under the despotism penalty; an agricultural city's third

@@ -77,7 +77,8 @@ namespace C7Engine.AI {
 
 		// HEURISTIC: what a city-state is worth, in gold a turn: its trade
 		// income, and for each kind of luxury or strategic resource in its
-		// borders that we lack, as much again or a little less.
+		// borders that we lack, as much again or a little less; all weighed
+		// by its citizens, plus its specialists' gold and beakers.
 		private const double LuxuryValue = 3;
 		private const double StrategicValue = 2;
 
@@ -163,6 +164,11 @@ namespace C7Engine.AI {
 				double value = CityStateTrade.IncomePerCityState
 					+ CityStateTrade.ShieldsPerCityState * (network.CityGroups(player).Find(g => g.Contains(from))?.Count ?? 1)
 					+ lacking.Sum(r => r.Category == ResourceCategory.LUXURY ? LuxuryValue : StrategicValue);
+				// A bigger city-state is a better partner: its specialists'
+				// gold and beakers, and the more it will have as it grows
+				// (owner's ruling, 2026-10-25: weigh it by its citizens).
+				value = value * cityState.residents.Count / GameSetup.CityStateSize
+					+ CityStates.Specialists(cityState) * (CityStates.SpecialistGold + CityStates.SpecialistBeakers);
 				// Our city is the end of the path: the tiles nearest it first.
 				roadless.Reverse();
 				options.Add((value / roadless.Count, cityState, from, roadless));

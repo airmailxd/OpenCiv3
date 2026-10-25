@@ -124,6 +124,72 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Equal(units + 1, city.location.unitsOnTile.Count(u => u.owner == civ));
 	}
 
+	// A city-state's citizens are all happy and work only the tiles around
+	// it; its center makes 5 food more and 2 more a citizen; those who find
+	// no tile become specialists, each making 4 shields for it and 2 gold
+	// and 2 beakers for each civ trading with it; its shields build its
+	// defenders; and it never flips to a civ's culture.
+	[Fact]
+	public void CityStatesGrowRichAndTheirSpecialistsEnrichTheirPartners() {
+		(_, C7GameData.GameData gameData) = NewGame(8);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		City cityState = independents.cities[0];
+		Assert.All(cityState.residents.Where(r => r.tileWorked != Tile.NONE), r => Assert.Equal(1, r.tileWorked.DistanceTo(cityState.location)));
+		int baseFood = cityState.location.overlayTerrainType.baseFoodProduction;
+		Assert.Equal(2 + CityStates.CenterFood + CityStates.CenterFoodPerCitizen * cityState.residents.Count,
+			cityState.location.FoodYield(cityState).yield);
+
+		CitizenType laborer = gameData.citizenTypes.Find(c => c.IsDefaultCitizen);
+		while (cityState.residents.Count < 12) {
+			CityResident r = new() { nationality = independents.civilization, city = cityState, citizenType = laborer };
+			cityState.AddCitizen(r);
+			C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, r);
+		}
+		CityStates.ArrangeCitizens(gameData, cityState);
+		int worked = cityState.residents.Count(r => r.tileWorked != Tile.NONE);
+		Assert.True(worked <= 8);
+		int specialists = CityStates.Specialists(cityState);
+		Assert.Equal(12 - worked, specialists);
+		Assert.True(specialists >= 4);
+		Assert.Equal(City.Mood.Happy, cityState.RecalculateCitizenMoods(gameData));
+		Assert.All(cityState.residents.Where(r => r.citizenType.IsDefaultCitizen), r => Assert.Equal(CityResident.Mood.Happy, r.mood));
+		int shields = cityState.CurrentProductionYield().useful;
+		Assert.True(shields >= specialists * CityStates.SpecialistShields);
+
+		// A partner's gold and beakers.
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Tile cs = cityState.location;
+		(Tile site, Tile middle) = cs.GetTilesWithinRankDistance(2)
+			.Where(t => t != Tile.NONE && t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.DistanceTo(cs) == 2)
+			.SelectMany(t => t.neighbors.Values.Where(m => m != Tile.NONE && m.IsLand() && cs.neighbors.ContainsValue(m)).Select(m => (t, m)))
+			.First();
+		CityInteractions.BuildCity(site, civ, "Trader");
+		middle.overlays.Add(gameData.terrainImprovements.Single(ti => ti.key == C7GameData.Tile.TileOverlays.ROAD));
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.Contains(cityState, gameData.GetTradeNetwork().ConnectedCityStates(civ));
+		Assert.Equal(CityStateTrade.IncomePerCityState + specialists * CityStates.SpecialistGold, CityStateTrade.Income(gameData, civ));
+		Assert.Equal(specialists * CityStates.SpecialistBeakers, CityStateTrade.Beakers(gameData, civ));
+
+		// Its shields raise a defender once they pay for one.
+		UnitPrototype defender = CityStates.Defender(gameData);
+		while (CityStates.Garrison(cityState) > 1) {
+			cityState.location.unitsOnTile.First(u => u.owner == independents && u.unitType.defense > 0).RemoveFromPlay();
+		}
+		cityState.SetStoredShields(independents.ShieldCost(defender) - 1);
+		gameData.turn = 1;
+		gameData.random = new AlwaysOne();
+		CityStates.BeginTurn(gameData);
+		Assert.Equal(2, CityStates.Garrison(cityState));
+
+		// And it never flips.
+		Assert.Null(CultureFlip.BestChance(gameData, cityState));
+	}
+
+	private class AlwaysOne : System.Random {
+		public override int Next(int maxValue) => maxValue - 1;
+	}
+
 	private class AlwaysZero : System.Random {
 		public override int Next(int maxValue) => 0;
 	}

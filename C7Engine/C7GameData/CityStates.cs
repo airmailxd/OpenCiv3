@@ -7,11 +7,25 @@ namespace C7Engine {
 	// goes on, so they last into the middle game (owner's design,
 	// 2026-10-23): every GarrisonGrowthTurns turns each gains a defender, up
 	// to MaxGarrison, the best defender the leading civs know, and on turn
-	// WallsTurn they all gain walls. They build nothing themselves (no
-	// barbarian city does).
+	// WallsTurn they all gain walls.
+	//
+	// Owner's rework, 2026-10-25: a city-state's citizens are all happy;
+	// its center makes CenterFood food more, and CenterFoodPerCitizen more
+	// for each citizen; its citizens work only the eight tiles around it
+	// (see City.GetWorkableTiles), and those beyond become specialists, each
+	// making SpecialistShields shields for the city-state and
+	// SpecialistBeakers beakers and SpecialistGold gold for each civ trading
+	// with it (see CityStateTrade). Its shields build its best defender,
+	// while its garrison is short of MaxGarrison (barbarian cities build
+	// nothing otherwise).
 	public static class CityStates {
 		private static readonly ILogger log = Log.ForContext(typeof(CityStates));
 
+		public const int CenterFood = 5;
+		public const int CenterFoodPerCitizen = 2;
+		public const int SpecialistShields = 4;
+		public const int SpecialistBeakers = 2;
+		public const int SpecialistGold = 2;
 		public const int GarrisonGrowthTurns = 10;
 		public const int MaxGarrison = 6;
 		public const int WallsTurn = 40;
@@ -39,7 +53,45 @@ namespace C7Engine {
 					}
 				}
 			}
+			foreach (City city in independents.cities) {
+				ArrangeCitizens(gameData, city);
+			}
+			BuildDefenders(gameData, independents);
 			CityStateTrade.GiveGifts(gameData);
+		}
+
+		// Puts the city-state's idle citizens to work: on a free tile around
+		// it, or else as specialists (see CityTileAssignmentAI).
+		public static void ArrangeCitizens(GameData gameData, City city) {
+			foreach (CityResident r in city.residents.Where(r => r.citizenType.IsDefaultCitizen && r.tileWorked == Tile.NONE).ToList()) {
+				AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, r);
+			}
+		}
+
+		// The city-state's specialists: its citizens who work no tile.
+		public static int Specialists(City city) {
+			return city.residents.Count(r => !r.citizenType.IsDefaultCitizen);
+		}
+
+		// Each city-state puts its shields towards its best defender, which
+		// it raises once they pay for it, while its garrison is short.
+		private static void BuildDefenders(GameData gameData, Player independents) {
+			if (Defender(gameData) is not UnitPrototype defender) {
+				return;
+			}
+			int cost = independents.ShieldCost(defender);
+			foreach (City city in independents.cities.ToList()) {
+				if (Garrison(city) >= MaxGarrison) {
+					city.SetStoredShields(0);
+					continue;
+				}
+				int stored = city.shieldsStored + city.CurrentProductionYield().useful;
+				if (stored >= cost) {
+					gameData.SpawnUnit(independents, defender, city.location);
+					stored -= cost;
+				}
+				city.SetStoredShields(stored);
+			}
 		}
 
 		public static int Garrison(City city) {

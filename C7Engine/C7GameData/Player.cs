@@ -1116,7 +1116,7 @@ namespace C7GameData {
 			foreach (City city in cities) {
 				beakersPerTurn += city.CurrentCommerceYield().beakers;
 			}
-			return beakersPerTurn;
+			return beakersPerTurn + CityStateTrade.Beakers(EngineStorage.gameData, this);
 		}
 
 		public int EstimateTurnsToResearch(GameData gameData, Tech tech) {
@@ -1512,6 +1512,8 @@ namespace C7GameData {
 				cityFlows[i] = ComputeCityFlows(cities[i]);
 				beakersThisTurn += cityFlows[i].commerce.beakers;
 			}
+			// Kings & Nomads' city-states' specialists (see CityStates).
+			beakersThisTurn += CityStateTrade.Beakers(gameData, this);
 			beakersThisTurn = WithScienceAgeBonus(beakersThisTurn);
 			beakers += beakersThisTurn;
 			researchFundedThisTurn = beakersThisTurn > 0;
