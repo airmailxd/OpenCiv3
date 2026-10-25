@@ -37,23 +37,15 @@ namespace C7Engine {
 		// 2026-10-25).
 		public const int CapturedSize = 5;
 
-		// What each city-state a civ has taken beyond its second leaves of
-		// its units' strength against the rest: soldiers are loath to fight
-		// their brethren (owner's ruling, 2026-10-25; HEURISTIC: the 0.9).
-		public const double BrethrenStrengthPerCapture = 0.9;
-
-		// The strength of a civ's units against the city-states before it
-		// has taken one: the first city-state is easy to take, the second
-		// feasible but not free (owner's ruling, 2026-10-25; HEURISTIC).
-		public const double FirstConquestStrength = 2.0;
-		public const double SecondConquestStrength = 1.5;
-
 		// A civ's units' strength against the city-states' units, by how
-		// many city-states it has taken: FirstConquestStrength before the
-		// first, full strength for the second, then BrethrenStrengthPerCapture
-		// less for each further one.
+		// many city-states it has taken: its first comes easily, its second
+		// is feasible, and after that its soldiers, many of them of conquered
+		// city-states, are loath to fight their brethren (owner's ruling,
+		// 2026-10-25: 2x, 1.5x, 0.9x, then 0.5x).
+		public static readonly double[] StrengthByCaptures = [2.0, 1.5, 0.9, 0.5];
+
 		public static double StrengthAgainstCityStates(int captured) {
-			return captured <= 0 ? FirstConquestStrength : SecondConquestStrength * System.Math.Pow(BrethrenStrengthPerCapture, captured - 1);
+			return StrengthByCaptures[System.Math.Clamp(captured, 0, StrengthByCaptures.Length - 1)];
 		}
 
 		// Whether two city-states' nine tiles would touch: one of A's tiles

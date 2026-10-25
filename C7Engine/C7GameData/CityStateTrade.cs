@@ -72,6 +72,35 @@ namespace C7Engine {
 			return gameData.GetTradeNetwork().CityStatesTradingWith(city.owner, city).Count * ShieldsPerCityState;
 		}
 
+		// A trade route with a city-state, and what it brings the civ each
+		// turn: gold, beakers, and shields in each of the civ's cities on its
+		// road; and the luxury and strategic resources in its borders that
+		// the civ knows of.
+		public sealed record Route(City cityState, int gold, int beakers, int citiesWithShields, List<Resource> resources) {
+			public int Shields => citiesWithShields * ShieldsPerCityState;
+		}
+
+		// The player's trade routes with city-states, the biggest city-state
+		// first. Shown in the city-states' panel (C7's CityStatesPanel).
+		public static List<Route> Routes(GameData gameData, Player player) {
+			List<Route> result = new();
+			if (!IsOn(gameData) || player == null || player.IsIndependent || player.cities.Count == 0) {
+				return result;
+			}
+			TradeNetwork network = gameData.GetTradeNetwork();
+			foreach (City cityState in network.ConnectedCityStates(player).OrderByDescending(c => c.residents.Count).ThenBy(c => c.name)) {
+				int specialists = CityStates.Specialists(cityState);
+				int cities = player.cities.Count(c => network.CityStatesTradingWith(player, c).Contains(cityState));
+				List<Resource> resources = cityState.location.GetTilesWithinRankDistance(1)
+					.Where(t => t != Tile.NONE && t.owningCity == cityState && t.Resource != Resource.NONE
+						&& t.Resource.Category is ResourceCategory.LUXURY or ResourceCategory.STRATEGIC && player.KnowsAboutResource(t.Resource))
+					.Select(t => t.Resource).Distinct().ToList();
+				result.Add(new Route(cityState, IncomePerCityState + specialists * CityStates.SpecialistGold,
+					specialists * CityStates.SpecialistBeakers, cities, resources));
+			}
+			return result;
+		}
+
 		// The civs trading with the city-state, each with its city on the
 		// road nearest it.
 		public static Dictionary<Player, City> Partners(GameData gameData, City cityState) {

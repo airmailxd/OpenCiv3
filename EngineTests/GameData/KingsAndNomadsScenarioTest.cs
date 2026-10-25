@@ -148,6 +148,14 @@ public class KingsAndNomadsScenarioTest {
 			Assert.Contains(luxury, gameData.GetTradeNetwork().GetResourcesAvailableToCity(civ, city).Keys);
 		}
 		Assert.Equal(shieldsBefore + CityStateTrade.ShieldsPerCityState, city.CurrentProductionYield().useful);
+		// The city-states' panel lists the route and what it brings.
+		CityStateTrade.Route route = Assert.Single(CityStateTrade.Routes(gameData, civ));
+		Assert.Same(cityState, route.cityState);
+		Assert.Equal(CityStateTrade.Income(gameData, civ), route.gold);
+		Assert.Equal(CityStateTrade.ShieldsPerCityState, route.Shields);
+		if (civ.KnowsAboutResource(luxury)) {
+			Assert.Contains(luxury, route.resources);
+		}
 
 		// When the city-state's chance comes up, it sends the civ a unit.
 		gameData.turn = 1;
@@ -414,9 +422,9 @@ public class KingsAndNomadsScenarioTest {
 
 	// A city-state taken comes down to size 5, needs an aqueduct to grow
 	// past 6 even by fresh water. A civ's units fight the city-states at
-	// double strength before it has taken one, at 1.5 for its second, and
-	// a tenth less for each one after. A city-state's land is its nine
-	// tiles.
+	// double strength before it has taken one, at 1.5 for its second, 0.9
+	// for its third, and half strength after. A city-state's land is its
+	// nine tiles.
 	[Fact]
 	public void TakingACityStateCostsTheCaptor() {
 		(_, C7GameData.GameData gameData) = NewGame(6);
@@ -447,7 +455,9 @@ public class KingsAndNomadsScenarioTest {
 		MapUnit other = independents.units.First(u => u.location.cityAtTile != null);
 		Assert.Equal(before * 1.5 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
 		civ.cityStatesCaptured = 2;
-		Assert.Equal(before * 1.35 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+		Assert.Equal(before * 0.9 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+		civ.cityStatesCaptured = 5;
+		Assert.Equal(before * 0.5 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
 	}
 
 	// Holding half the world's cities wins.

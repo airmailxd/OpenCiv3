@@ -127,7 +127,7 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "city-state's; the rest are disbanded.\n"
 		+ "- Taking a city-state brings it down to size 5, and it needs an Aqueduct to grow past 6. Your first comes easily: "
 		+ "until you have taken one, your units fight city-states at double strength, and for your second at half again. "
-		+ "After that your soldiers are loath to fight their brethren: each further city-state you take leaves them a tenth weaker.\n"
+		+ "After that your soldiers are loath to fight their brethren: at 0.9 strength for your third, and half strength after.\n"
 		+ "- The King leads from the front: your units on his tile or next to it fight at double strength, attacking and defending.\n"
 		+ "- A city-state's units fight at +50% inside their own city. Its citizens are always happy, and its own tile makes "
 		+ "5 food more, and 2 more for each citizen, so it grows fast, and it needs no Aqueduct or Hospital to grow. Its land is the nine tiles about it, no more, and it works only the eight around it; citizens beyond "

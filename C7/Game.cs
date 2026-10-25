@@ -372,6 +372,9 @@ public partial class Game : Node {
 		if (EngineStorage.gameData?.rules?.RisingTide == true) {
 			ShowTidePanel();
 		}
+		if (CityStateTrade.IsOn(EngineStorage.gameData)) {
+			ShowCityStatesPanel();
+		}
 		// A custom scenario is introduced as its first turn starts.
 		if (EngineStorage.gameData?.turn == 0 && ScenarioIntroPopup.For(EngineStorage.gameData) is ScenarioIntroPopup intro) {
 			popupOverlay.ShowPopup(intro, PopupOverlay.PopupCategory.Advisor);
@@ -827,6 +830,17 @@ public partial class Game : Node {
 	// TidePanel).
 	private void ShowTidePanel() {
 		TidePanel panel = new();
+		GetNode<Control>("CanvasLayer/Control").AddChild(panel);
+		panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		panel.GrowHorizontal = Control.GrowDirection.Begin;
+		panel.OffsetLeft = panel.OffsetRight = 0;
+		panel.OffsetTop = panel.OffsetBottom = 48;
+	}
+
+	// Kings & Nomads: our strength against the city-states and our trade
+	// with them, left of the scoreboard (see CityStatesPanel).
+	private void ShowCityStatesPanel() {
+		CityStatesPanel panel = new();
 		GetNode<Control>("CanvasLayer/Control").AddChild(panel);
 		panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
 		panel.GrowHorizontal = Control.GrowDirection.Begin;
