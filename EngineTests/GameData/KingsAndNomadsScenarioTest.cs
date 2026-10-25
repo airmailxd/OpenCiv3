@@ -413,9 +413,10 @@ public class KingsAndNomadsScenarioTest {
 	}
 
 	// A city-state taken comes down to size 5, needs an aqueduct to grow
-	// past 6 even by fresh water, and weakens the captor's units against
-	// the city-states, by a tenth more for each one taken. A city-state's
-	// land is its nine tiles.
+	// past 6 even by fresh water. A civ's units fight the city-states at
+	// double strength before it has taken one, at 1.5 for its second, and
+	// a tenth less for each one after. A city-state's land is its nine
+	// tiles.
 	[Fact]
 	public void TakingACityStateCostsTheCaptor() {
 		(_, C7GameData.GameData gameData) = NewGame(6);
@@ -444,9 +445,9 @@ public class KingsAndNomadsScenarioTest {
 		Assert.False(cityState.CanGrowPopulationByOne(gameData));
 
 		MapUnit other = independents.units.First(u => u.location.cityAtTile != null);
-		Assert.Equal(before * 0.9, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+		Assert.Equal(before * 1.5 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
 		civ.cityStatesCaptured = 2;
-		Assert.Equal(before * 0.81, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+		Assert.Equal(before * 1.35 / 2.0, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
 	}
 
 	// Holding half the world's cities wins.

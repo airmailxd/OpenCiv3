@@ -37,10 +37,24 @@ namespace C7Engine {
 		// 2026-10-25).
 		public const int CapturedSize = 5;
 
-		// What each city-state a civ has taken leaves of its units'
-		// strength against the rest: soldiers are loath to fight their
-		// brethren (owner's ruling, 2026-10-25; HEURISTIC: the 0.9).
+		// What each city-state a civ has taken beyond its second leaves of
+		// its units' strength against the rest: soldiers are loath to fight
+		// their brethren (owner's ruling, 2026-10-25; HEURISTIC: the 0.9).
 		public const double BrethrenStrengthPerCapture = 0.9;
+
+		// The strength of a civ's units against the city-states before it
+		// has taken one: the first city-state is easy to take, the second
+		// feasible but not free (owner's ruling, 2026-10-25; HEURISTIC).
+		public const double FirstConquestStrength = 2.0;
+		public const double SecondConquestStrength = 1.5;
+
+		// A civ's units' strength against the city-states' units, by how
+		// many city-states it has taken: FirstConquestStrength before the
+		// first, full strength for the second, then BrethrenStrengthPerCapture
+		// less for each further one.
+		public static double StrengthAgainstCityStates(int captured) {
+			return captured <= 0 ? FirstConquestStrength : SecondConquestStrength * System.Math.Pow(BrethrenStrengthPerCapture, captured - 1);
+		}
 
 		// Whether two city-states' nine tiles would touch: one of A's tiles
 		// is one of B's, or next to one.
@@ -113,7 +127,7 @@ namespace C7Engine {
 		// garrison is short.
 		private static void BuildUnits(GameData gameData, Player independents) {
 			foreach (City city in independents.cities.ToList()) {
-				if (Garrison(city) >= MaxGarrison || NextUnit(gameData, city) is not UnitPrototype unit) {
+				if (Garrison(city) >= GarrisonAllowed(gameData) || NextUnit(gameData, city) is not UnitPrototype unit) {
 					city.SetStoredShields(0);
 					continue;
 				}
@@ -213,6 +227,17 @@ namespace C7Engine {
 			}
 			return result;
 		}
+
+		// The most units a city-state builds itself to on the turn: its
+		// starting garrison, and one more every GarrisonGrowthTurns turns, up
+		// to MaxGarrison, so that the second city-state a civ takes is
+		// feasible (owner's ruling, 2026-10-25; HEURISTIC).
+		public static int GarrisonAllowed(GameData gameData) {
+			return System.Math.Min(MaxGarrison, StartingGarrison + gameData.turn / GarrisonGrowthTurns);
+		}
+
+		// The units a city-state starts with (GameSetup.CityStateGarrison).
+		public const int StartingGarrison = 3;
 
 		public static int Garrison(City city) {
 			return city.location.unitsOnTile.Count(u => u.owner == city.owner && IsGarrison(u));

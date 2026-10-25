@@ -106,6 +106,16 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		return int.TryParse(Environment.GetEnvironmentVariable(name), out int n) ? n : fallback;
 	}
 
+	// Writes each log message, on a line of its own, to a file.
+	private sealed class FileSink(string path) : Serilog.Core.ILogEventSink {
+		private readonly StreamWriter writer = new(path) { AutoFlush = true };
+		public void Emit(Serilog.Events.LogEvent e) {
+			lock (writer) {
+				writer.WriteLine(e.RenderMessage());
+			}
+		}
+	}
+
 	// What is measured of each civ at the end of a game.
 	private sealed class Measures {
 		public static readonly string[] Names = [
@@ -186,6 +196,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// specialists on average at the end, and the citizens of those
 			// the civ trades with.
 			"csSize", "csSpec", "partSize",
+			// Kings & Nomads: the turns the civ took its first and second
+			// city-states (the game's length if it never did).
+			"cs1Turn", "cs2Turn",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -285,6 +298,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
 		if (string.IsNullOrEmpty(outPath)) {
 			return;
+		}
+		// The engine's log, to a file, to see what the AIs do.
+		string logPath = Environment.GetEnvironmentVariable("C7_TRIAL_LOG");
+		if (!string.IsNullOrEmpty(logPath)) {
+			Serilog.Log.Logger = new Serilog.LoggerConfiguration().MinimumLevel.Information()
+				.WriteTo.Sink(new FileSink(logPath)).CreateLogger();
 		}
 		string[] experiments = (Environment.GetEnvironmentVariable("C7_TRIAL_EXPERIMENTS") ?? "")
 			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -449,6 +468,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
+		Dictionary<Player, List<int>> cityStateCaptures = civs.ToDictionary(p => p, _ => new List<int>());
 		Dictionary<Player, int> wars = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> warTurns = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> attacks = civs.ToDictionary(p => p, _ => 0);
@@ -590,6 +610,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
 						if (before.IsIndependent) {
 							++freeCaptures[city.owner];
+							if (before.isCityStates) {
+								cityStateCaptures[city.owner].Add(gameData.turn);
+							}
 						}
 						if (city.location.unitsOnTile.Any(u => u.IsArmy() && u.owner == city.owner)) {
 							++armyCaptures[city.owner];
@@ -754,6 +777,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = cityStates.Count == 0 ? 0 : cityStates.Average(CityStates.Specialists);
 			HashSet<City> partners = p.defeated ? [] : gameData.GetTradeNetwork().ConnectedCityStates(p);
 			m.values[i++] = partners.Count == 0 ? 0 : partners.Average(c => c.residents.Count);
+			m.values[i++] = cityStateCaptures[p].Count > 0 ? cityStateCaptures[p][0] : turns;
+			m.values[i++] = cityStateCaptures[p].Count > 1 ? cityStateCaptures[p][1] : turns;
 			return m;
 		}
 

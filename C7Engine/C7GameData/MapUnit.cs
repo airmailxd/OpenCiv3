@@ -598,20 +598,19 @@ namespace C7GameData {
 		// longer.
 		private static readonly StrengthBonus CityStateHomeBonus = new("Defending their city-state", 0.5);
 
-		// Kings & Nomads: each city-state a civ has taken leaves its units
-		// CityStates.BrethrenStrengthPerCapture of their strength against
-		// the city-states' units, attacking or defending: its soldiers, many
-		// of them of conquered city-states, are loath to fight their
-		// brethren (owner's design, 2026-10-25). It scales the unit's whole
-		// strength, bonuses and all, rather than adding to them as Civ3's
-		// modifiers do, so that it bites whatever bonuses the unit has (an
-		// AI has +200% against barbarians, see DifficultyBonusAgainst).
+		// Kings & Nomads: a civ's units' strength against the city-states'
+		// units, attacking or defending, by how many city-states the civ has
+		// taken (see CityStates.StrengthAgainstCityStates): the first comes
+		// easily, and after the second its soldiers, many of them of
+		// conquered city-states, are loath to fight their brethren (owner's
+		// design, 2026-10-25). It scales the unit's whole strength, bonuses
+		// and all, rather than adding to them as Civ3's modifiers do.
 		internal double BrethrenFactorAgainst(MapUnit opponent, CombatRole role) {
 			if ((role != CombatRole.Attack && role != CombatRole.Defense) || owner == null || owner.IsIndependent
-				|| owner.cityStatesCaptured <= 0 || opponent?.owner?.isCityStates != true || !CityStateTrade.IsOn(EngineStorage.gameData)) {
+				|| opponent?.owner?.isCityStates != true || !CityStateTrade.IsOn(EngineStorage.gameData)) {
 				return 1;
 			}
-			return Math.Pow(CityStates.BrethrenStrengthPerCapture, owner.cityStatesCaptured);
+			return CityStates.StrengthAgainstCityStates(owner.cityStatesCaptured);
 		}
 
 		private bool HoldsItsCityState(CombatRole role) {
