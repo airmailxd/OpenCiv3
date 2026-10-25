@@ -509,7 +509,15 @@ namespace C7Engine.AI {
 		// bordering rivals so) these civs fought 0.7 fewer wars at once on
 		// Pangaea and 0.3 more on Continents, with no significant change in
 		// cities; counting a rival's other wars in its favour too cost them
-		// 17 beakers a turn on Pangaea for no more cities.
+		// 17 beakers a turn on Pangaea for no more cities. The cities a
+		// rival took from us count RetakeIncentive each, so that a war lost
+		// starts another (owner's design, 2026-10-25: a tug of war). With
+		// that, the enemy's cities coming first at war (see TargetScore),
+		// and a war going our way going on after a city is taken (see
+		// WarGoalMet), every civ AI (20 games of 6 civs and 120 turns), civs
+		// took 2.1 cities each from other civs on Pangaea (1.5 before),
+		// won back 0.5 (0.3), and lost 2.2 (1.7), at 65 beakers a turn (81);
+		// on Continents they changed little.
 		//
 		// Owner's design, 2026-10-25: wars where there's good reason for
 		// them, for goals like these. Before, a horde only declared war with
@@ -556,6 +564,8 @@ namespace C7Engine.AI {
 				}
 			}
 			int ourWars = civs.Count(p => p != rival && p != player && PlayerRelationship.AtWar(player, p));
+			// The cities it took from us are ours to win back.
+			gain += RetakeIncentive * rival.cities.Count(c => c.capturedFrom == player.civilization);
 			// Our King leads one war at a time, so each war we're already in
 			// counts against another (owner's design, 2026-10-25).
 			cost += ourWars * OwnWarDisincentive;
@@ -578,6 +588,7 @@ namespace C7Engine.AI {
 		}
 
 		private const double OpportunistMultiplier = 1.5;
+		private const double RetakeIncentive = 3;
 
 		// HEURISTIC: WarIncentive's points.
 		// The points a war must be worth for a civ to declare it. The
@@ -608,7 +619,12 @@ namespace C7Engine.AI {
 			}
 			int turns = PeaceAI.WarTurns(gameData, us, them);
 			int start = gameData.turn - turns;
-			return turns >= WarGoalTurns || us.cities.Any(c => c.capturedFrom == them.civilization && c.ownerChangedTurn >= start);
+			bool took = us.cities.Any(c => c.capturedFrom == them.civilization && c.ownerChangedTurn >= start);
+			// A war still going our way goes on after a city is taken.
+			if (took && PeaceAI.Assess(us, them) >= PeaceAI.WarOutlook.Winning) {
+				took = false;
+			}
+			return turns >= WarGoalTurns || took;
 		}
 
 		// HEURISTIC: how long a war for a goal goes on, at most.
@@ -652,6 +668,15 @@ namespace C7Engine.AI {
 				}
 				if (KingOf(owner) is MapUnit king && Tile.IsTileValid(king.location) && king.location.DistanceTo(city.location) <= 1) {
 					defenders *= 2;
+				}
+				// A city taken from us is one to win back, and at war the
+				// enemy's cities come before city-states (owner's design,
+				// 2026-10-25: a tug of war; see WarIncentive).
+				if (city.capturedFrom == player.civilization) {
+					value *= 2;
+				}
+				if (AtWarWith(player, owner)) {
+					value *= 2;
 				}
 			}
 			int distance = from.DistanceTo(city.location);

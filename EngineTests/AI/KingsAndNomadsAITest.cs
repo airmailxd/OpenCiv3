@@ -361,8 +361,8 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.DoesNotContain(w.cityState, KingsAndNomadsAI.SparedPartners(w.civ, w.gameData));
 	}
 
-	// A war for a goal is over once we've taken a city from them: then
-	// we'd make peace.
+	// A war for a goal is over once we've taken a city from them and it
+	// no longer goes our way: then we'd make peace.
 	[Fact]
 	public void AWarForAGoalEndsOnceACityIsTaken() {
 		World w = NewWorld(9);
@@ -382,6 +382,12 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		w.gameData.turn += 1;
 		CityInteractions.CaptureCity(city, w.civ);
 		Assert.Same(w.civ, city.owner);
+		// A war going our way goes on; once it isn't, we'd make peace.
+		Tile barracks = w.gameData.map.tiles.First(t => t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0 && t.continent == site.continent);
+		while (PeaceAI.Assess(w.civ, rival) >= PeaceAI.WarOutlook.Winning) {
+			Assert.False(KingsAndNomadsAI.WarGoalMet(w.gameData, w.civ, rival));
+			w.gameData.SpawnUnit(rival, Prototype(w.gameData, "Swordsman"), barracks);
+		}
 		Assert.True(KingsAndNomadsAI.WarGoalMet(w.gameData, w.civ, rival));
 	}
 }
