@@ -10,7 +10,8 @@ namespace C7Engine {
 	// to MaxGarrison, the best defender the leading civs know, and on turn
 	// WallsTurn they all gain walls.
 	//
-	// Owner's rework, 2026-10-25: a city-state's citizens are all happy;
+	// Owner's rework, 2026-10-25: a city-state's citizens are all happy, and
+	// it grows without limit (see City.CanGrowPopulationByOne);
 	// its center makes CenterFood food more, and CenterFoodPerCitizen more
 	// for each citizen; its citizens work only the eight tiles around it
 	// (see City.GetWorkableTiles), and those beyond become specialists, each

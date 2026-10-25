@@ -1132,6 +1132,12 @@ namespace C7GameData {
 		}
 
 		internal bool CanGrowPopulationByOne(GameData gD) {
+			// A Kings & Nomads city-state grows without limit (owner's ruling,
+			// 2026-10-25), so it comes to have specialists (see CityStates).
+			if (CityStateTrade.IsCityState(this)) {
+				return true;
+			}
+
 			// We can always grow up to size 6 (see Rules.SizeWithoutAqueduct).
 			if (residents.Count + 1 <= gD.rules.GrowthLimitWithoutAqueduct) {
 				return true;

@@ -147,6 +147,8 @@ public class KingsAndNomadsScenarioTest {
 			C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, r);
 		}
 		CityStates.ArrangeCitizens(gameData, cityState);
+		// It grows without limit, with no aqueduct or hospital.
+		Assert.True(cityState.CanGrowPopulationByOne(gameData));
 		int worked = cityState.residents.Count(r => r.tileWorked != Tile.NONE);
 		Assert.True(worked <= 8);
 		int specialists = CityStates.Specialists(cityState);

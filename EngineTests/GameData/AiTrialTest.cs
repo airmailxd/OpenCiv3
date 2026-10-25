@@ -182,6 +182,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// next to the attacker's tile (so at +100%, see
 			// MapUnit.KingsPresenceBonus).
 			"kingAtk",
+			// Kings & Nomads: the world's city-states' citizens and
+			// specialists on average at the end, and the citizens of those
+			// the civ trades with.
+			"csSize", "csSpec", "partSize",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -745,6 +749,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.workerTurnsOutAlone;
 			m.values[i++] = cityStateAttacks[p];
 			m.values[i++] = kingAttacks[p];
+			List<City> cityStates = gameData.cities.Where(c => CityStateTrade.IsCityState(c)).ToList();
+			m.values[i++] = cityStates.Count == 0 ? 0 : cityStates.Average(c => c.residents.Count);
+			m.values[i++] = cityStates.Count == 0 ? 0 : cityStates.Average(CityStates.Specialists);
+			HashSet<City> partners = p.defeated ? [] : gameData.GetTradeNetwork().ConnectedCityStates(p);
+			m.values[i++] = partners.Count == 0 ? 0 : partners.Average(c => c.residents.Count);
 			return m;
 		}
 

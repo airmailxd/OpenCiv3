@@ -126,7 +126,7 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "- If your King dies, your civilization falls, and its cities become independent again.\n"
 		+ "- The King leads from the front: your units on his tile or next to it fight at double strength, attacking and defending.\n"
 		+ "- A city-state's units fight at +50% inside their own city. Its citizens are always happy, and its own tile makes "
-		+ "5 food more, and 2 more for each citizen, so it grows fast. It works only the eight tiles around it; citizens beyond "
+		+ "5 food more, and 2 more for each citizen, so it grows fast, and it needs no Aqueduct or Hospital to grow. It works only the eight tiles around it; citizens beyond "
 		+ "those become specialists, each making it 4 shields.\n"
 		+ "- City-states build the best units the most advanced civilization knows (with the resources on roads joined to them): "
 		+ "two defenders, an attacker, then a bombard unit, over and over, up to six. Their attackers and bombard units strike "
