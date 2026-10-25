@@ -87,6 +87,8 @@ namespace C7GameData.Save {
 		// The turn the city last changed hands; absent if it never has, or
 		// in saves made before this was saved.
 		public int? ownerChangedTurn;
+		// See City.wasCityState.
+		public bool wasCityState;
 		// A culture flip offered to a human who hasn't answered yet
 		// (City.cultureFlipOfferedTo and cultureFlipOfferTurn); absent if
 		// none.
@@ -149,6 +151,7 @@ namespace C7GameData.Save {
 			resisters = city.resisters;
 			resistanceFrom = city.resistanceFrom?.id;
 			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
+			wasCityState = city.wasCityState;
 			if (city.cultureFlipOfferedTo != null && city.cultureFlipOfferTurn >= 0) {
 				cultureFlipOfferedTo = city.cultureFlipOfferedTo.id;
 				cultureFlipOfferTurn = city.cultureFlipOfferTurn;
@@ -289,6 +292,7 @@ namespace C7GameData.Save {
 				resisters = resisters,
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				ownerChangedTurn = ownerChangedTurn ?? -1,
+				wasCityState = wasCityState,
 				cultureFlipOfferedTo = Lookups.Find(lookups.playersById, cultureFlipOfferedTo),
 				cultureFlipOfferTurn = cultureFlipOfferTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,

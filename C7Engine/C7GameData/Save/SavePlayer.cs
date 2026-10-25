@@ -84,6 +84,7 @@ namespace C7GameData.Save {
 		public bool mayEndMobilization;
 		public int scienceAgeTurnsRemaining;
 		public int citiesFounded;
+		public int cityStatesCaptured;
 		// Saves from before this was saved have it false, and loading works
 		// it out again (see SaveGame.ConvertCities).
 		public bool neverHadCityOrSettler;
@@ -170,6 +171,7 @@ namespace C7GameData.Save {
 				mayEndMobilization = mayEndMobilization,
 				scienceAgeTurnsRemaining = scienceAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
+				cityStatesCaptured = cityStatesCaptured,
 				freeTechsRemaining = freeTechsRemaining,
 				bonusFreeTechsRemaining = bonusFreeTechsRemaining,
 				neverHadCityOrSettler = neverHadCityOrSettler,
@@ -306,6 +308,7 @@ namespace C7GameData.Save {
 			mayEndMobilization = player.mayEndMobilization;
 			scienceAgeTurnsRemaining = player.scienceAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
+			cityStatesCaptured = player.cityStatesCaptured;
 			freeTechsRemaining = player.freeTechsRemaining;
 			bonusFreeTechsRemaining = player.bonusFreeTechsRemaining;
 			neverHadCityOrSettler = player.neverHadCityOrSettler;

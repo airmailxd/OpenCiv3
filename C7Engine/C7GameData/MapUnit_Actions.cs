@@ -840,8 +840,10 @@ public partial class MapUnit {
 
 		IEnumerable<StrengthBonus> attackBonuses  = attacker.ListStrengthBonusesVersus(defender, CombatRole.Attack , attackerAttackDirection),
 								   defenseBonuses = defender.ListStrengthBonusesVersus(attacker, CombatRole.Defense, attackerAttackDirection);
-		double attackMultiplier  = StrengthBonus.ListToMultiplier(attackBonuses),
-			   defenseMultiplier = StrengthBonus.ListToMultiplier(defenseBonuses);
+		// Kings & Nomads' soldiers loath to fight their brethren (see
+		// MapUnit.BrethrenFactorAgainst) scale the rest.
+		double attackMultiplier  = StrengthBonus.ListToMultiplier(attackBonuses) * attacker.BrethrenFactorAgainst(defender, CombatRole.Attack),
+			   defenseMultiplier = StrengthBonus.ListToMultiplier(defenseBonuses) * defender.BrethrenFactorAgainst(attacker, CombatRole.Defense);
 
 		// An army's member also gets its share of the army's strength (see
 		// ArmyStrengthBonus).

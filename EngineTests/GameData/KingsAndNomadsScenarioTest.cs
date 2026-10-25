@@ -356,6 +356,66 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Contains(city, gameData.cities);
 	}
 
+	// A fallen civ's cities become city-states only where their nine tiles
+	// wouldn't touch another city-state's; the rest are disbanded.
+	[Fact]
+	public void AFallenCivsCitiesNearCityStatesAreDisbanded() {
+		(_, C7GameData.GameData gameData) = NewGame(3);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		City cityState = independents.cities[0];
+		// A city three tiles from a city-state, whose land would touch it,
+		// and one far from them all.
+		Tile near = gameData.map.tiles.First(t => t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& t.DistanceTo(cityState.location) == 3 && CityStates.WouldTouch(t, cityState.location));
+		Tile far = gameData.map.tiles.First(t => t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& independents.cities.All(c => !CityStates.WouldTouch(t, c.location)) && t.DistanceTo(near) > 4);
+		City doomed = CityInteractions.BuildCity(near, civ, "Doomed");
+		City freed = CityInteractions.BuildCity(far, civ, "Freed");
+		gameData.RemoveUnit(civ.units.Single(u => u.unitType.isKing));
+		Assert.True(civ.defeated);
+		Assert.DoesNotContain(doomed, gameData.cities);
+		Assert.Equal(independents, freed.owner);
+	}
+
+	// A city-state taken comes down to size 5, needs an aqueduct to grow
+	// past 6 even by fresh water, and weakens the captor's units against
+	// the city-states, by a tenth more for each one taken. A city-state's
+	// land is its nine tiles.
+	[Fact]
+	public void TakingACityStateCostsTheCaptor() {
+		(_, C7GameData.GameData gameData) = NewGame(6);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		gameData.UpdateTileOwners();
+		foreach (City c in independents.cities) {
+			Assert.All(gameData.map.tiles.Where(t => t.owningCity == c), t => Assert.True(t.RankDistanceTo(c.location) <= 1));
+		}
+
+		City cityState = independents.cities[0];
+		CitizenType laborer = gameData.citizenTypes.Find(c => c.IsDefaultCitizen);
+		while (cityState.residents.Count < 12) {
+			cityState.AddCitizen(new CityResident { nationality = independents.civilization, city = cityState, citizenType = laborer });
+		}
+		MapUnit soldier = civ.units.First(u => u.unitType.name == "Swordsman");
+		MapUnit enemy = cityState.location.unitsOnTile.First(u => u.owner == independents);
+		double before = soldier.StrengthVersus(enemy, CombatRole.Attack, null);
+
+		CityInteractions.CaptureCity(cityState, civ);
+		Assert.Equal(CityStates.CapturedSize, cityState.residents.Count);
+		Assert.True(cityState.wasCityState);
+		Assert.Equal(1, civ.cityStatesCaptured);
+		cityState.AddCitizen(new CityResident { nationality = civ.civilization, city = cityState, citizenType = laborer });
+		Assert.False(cityState.CanGrowPopulationByOne(gameData));
+
+		MapUnit other = independents.units.First(u => u.location.cityAtTile != null);
+		Assert.Equal(before * 0.9, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+		civ.cityStatesCaptured = 2;
+		Assert.Equal(before * 0.81, soldier.StrengthVersus(other, CombatRole.Attack, null), 6);
+	}
+
 	// Holding half the world's cities wins.
 	[Fact]
 	public void HoldingHalfTheCitiesWins() {

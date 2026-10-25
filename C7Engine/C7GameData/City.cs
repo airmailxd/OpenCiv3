@@ -146,6 +146,11 @@ namespace C7GameData {
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
 
+		// Kings & Nomads: the city was a city-state a civ took, so it needs
+		// an aqueduct to grow past the first size limit, fresh water or not
+		// (see CanGrowPopulationByOne).
+		public bool wasCityState;
+
 		// The civ this city was last taken from by force, so that razing it
 		// can give slave workers of that nationality (see
 		// CityInteractions.RazeCity). Not saved: the captor decides whether
@@ -1153,6 +1158,11 @@ namespace C7GameData {
 					hasFreshwaterAccess = true;
 					break;
 				}
+			}
+			// A city-state a civ took needs an aqueduct (owner's ruling,
+			// 2026-10-25).
+			if (wasCityState) {
+				hasFreshwaterAccess = false;
 			}
 
 			List<CityBuilding> buildings = EffectiveBuildings();
@@ -2422,6 +2432,11 @@ namespace C7GameData {
 		// The list of tiles that are within the borders of this city, without
 		// taking into account border collisions with other cities.
 		public List<Tile> GetTilesWithinBorders() {
+			// A Kings & Nomads city-state's land is its nine tiles, no more
+			// (owner's ruling, 2026-10-25).
+			if (CityStateTrade.IsCityState(this)) {
+				return GetTilesOfRank(Math.Min(1, GetBorderExpansionLevel()));
+			}
 			return GetTilesOfRank(GetBorderExpansionLevel());
 		}
 

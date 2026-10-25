@@ -297,6 +297,18 @@ namespace C7Engine {
 				city.RemoveCitizens(1);
 			}
 
+			// Kings & Nomads: a city-state taken comes down to
+			// CityStates.CapturedSize, needs an aqueduct to grow past the
+			// first size limit, and weakens the captor against the rest (see
+			// MapUnit.BrethrenPenaltyAgainst).
+			if (CityStateTrade.IsCityState(city) && !captor.isBarbarians) {
+				if (city.residents.Count > CityStates.CapturedSize) {
+					city.RemoveCitizens(city.residents.Count - CityStates.CapturedSize);
+				}
+				city.wasCityState = true;
+				captor.cityStatesCaptured++;
+			}
+
 			// Citizens of unknown nationality (e.g. from older saves) are
 			// taken to be the old owner's, so that they may resist.
 			foreach (CityResident r in city.residents) {

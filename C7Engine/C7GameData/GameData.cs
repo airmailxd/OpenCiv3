@@ -567,6 +567,8 @@ namespace C7GameData {
 		// Returns true if the tile was given to a city.
 		private bool TryResolveOpposingNeighbors(Tile t, TileDirection dirA, TileDirection dirB) {
 			if (!EvaluateOpposingNeighbors(t, dirA, dirB, out City winnerCity)) return false;
+			// A Kings & Nomads city-state's land is its nine tiles, no more.
+			if (winnerCity != null && CityStateTrade.IsCityState(winnerCity) && t.RankDistanceTo(winnerCity.location) > 1) return false;
 
 			if (winnerCity == null) {
 				SetTileOwner(t, null);
@@ -742,9 +744,22 @@ namespace C7GameData {
 			// Under Kings & Nomads they go to the independents instead
 			// (Rules.FallenCitiesGoIndependent).
 			Player independents = rules?.FallenCitiesGoIndependent == true ? players.Find(p => p.isBarbarians) : null;
+			// Only those whose nine tiles wouldn't touch another city-state's
+			// do, the biggest first; the rest are disbanded (owner's ruling,
+			// 2026-10-25).
+			HashSet<City> freed = new();
+			if (independents != null) {
+				List<Tile> taken = independents.cities.Select(c => c.location).ToList();
+				foreach (City city in player.cities.OrderByDescending(c => c.residents.Count).ThenBy(c => c.id.ToString())) {
+					if (!taken.Any(t => CityStates.WouldTouch(t, city.location))) {
+						freed.Add(city);
+						taken.Add(city.location);
+					}
+				}
+			}
 			while (player.cities.Count > 0) {
 				City city = player.cities.FirstOrDefault(c => !c.capital) ?? player.cities[0];
-				if (independents != null) {
+				if (freed.Contains(city)) {
 					CityInteractions.TransferCity(city, independents);
 				} else {
 					CityInteractions.DestroyCity(city);

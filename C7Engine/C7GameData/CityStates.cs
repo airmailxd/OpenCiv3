@@ -33,6 +33,31 @@ namespace C7Engine {
 		public const int SpecialistGold = 2;
 		public const int GarrisonGrowthTurns = 10;
 
+		// What a city-state a civ takes comes down to (owner's ruling,
+		// 2026-10-25).
+		public const int CapturedSize = 5;
+
+		// What each city-state a civ has taken leaves of its units'
+		// strength against the rest: soldiers are loath to fight their
+		// brethren (owner's ruling, 2026-10-25; HEURISTIC: the 0.9).
+		public const double BrethrenStrengthPerCapture = 0.9;
+
+		// Whether two city-states' nine tiles would touch: one of A's tiles
+		// is one of B's, or next to one.
+		public static bool WouldTouch(Tile a, Tile b) {
+			HashSet<Tile> near = new();
+			foreach (Tile t in a.GetTilesWithinRankDistance(1)) {
+				if (t == Tile.NONE) {
+					continue;
+				}
+				near.Add(t);
+				foreach (Tile n in t.neighbors.Values) {
+					near.Add(n);
+				}
+			}
+			return b.GetTilesWithinRankDistance(1).Any(t => t != Tile.NONE && near.Contains(t));
+		}
+
 		// What a city-state's garrison is made of, and the order it builds
 		// them in, over and over.
 		public enum Role { Defender, Attacker, Bombard }

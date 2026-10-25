@@ -364,6 +364,11 @@ namespace C7GameData {
 		// name from the civ's city name list.
 		public int citiesFounded = 0;
 
+		// Kings & Nomads: the city-states this player has taken, each of
+		// which weakens its units against the rest (see
+		// MapUnit.BrethrenPenaltyAgainst).
+		public int cityStatesCaptured = 0;
+
 		// Whether this player has never held a city or a settler, like a
 		// scenario civ that starts with only units. Such a civ isn't destroyed
 		// for having no cities or settlers while it still has units. It's

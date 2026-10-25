@@ -598,6 +598,22 @@ namespace C7GameData {
 		// longer.
 		private static readonly StrengthBonus CityStateHomeBonus = new("Defending their city-state", 0.5);
 
+		// Kings & Nomads: each city-state a civ has taken leaves its units
+		// CityStates.BrethrenStrengthPerCapture of their strength against
+		// the city-states' units, attacking or defending: its soldiers, many
+		// of them of conquered city-states, are loath to fight their
+		// brethren (owner's design, 2026-10-25). It scales the unit's whole
+		// strength, bonuses and all, rather than adding to them as Civ3's
+		// modifiers do, so that it bites whatever bonuses the unit has (an
+		// AI has +200% against barbarians, see DifficultyBonusAgainst).
+		internal double BrethrenFactorAgainst(MapUnit opponent, CombatRole role) {
+			if ((role != CombatRole.Attack && role != CombatRole.Defense) || owner == null || owner.isBarbarians
+				|| owner.cityStatesCaptured <= 0 || opponent?.owner?.isBarbarians != true || !CityStateTrade.IsOn(EngineStorage.gameData)) {
+				return 1;
+			}
+			return Math.Pow(CityStates.BrethrenStrengthPerCapture, owner.cityStatesCaptured);
+		}
+
 		private bool HoldsItsCityState(CombatRole role) {
 			return (role == CombatRole.Attack || role == CombatRole.Defense) && owner?.isBarbarians == true
 				&& Tile.IsTileValid(location) && location.cityAtTile?.owner == owner && CityStateTrade.IsOn(EngineStorage.gameData);
@@ -617,7 +633,8 @@ namespace C7GameData {
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
-			return CombatBaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
+			return CombatBaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection))
+				* BrethrenFactorAgainst(opponent, role);
 		}
 
 		// The unit's base strength in a fight. An army has none of its own and
