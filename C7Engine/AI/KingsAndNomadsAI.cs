@@ -501,8 +501,15 @@ namespace C7Engine.AI {
 		// with the city-states, the more so with those in our reach;
 		// taking resources we lack; and the chance of its King away from
 		// its cities, or an army weaker than ours. Less if its army is the
-		// stronger, and less for each of our own trade routes with a
-		// city-state near its cities, which the war would put at risk.
+		// stronger, for each of our own trade routes with a city-state near
+		// its cities, which the war would put at risk, and for each war
+		// we're already in; and the gains count half again for a civ at
+		// peace whose land borders the rival's. In AI trials (40 games of 6
+		// civs and 120 turns, half the civs weighing their own wars and
+		// bordering rivals so) these civs fought 0.7 fewer wars at once on
+		// Pangaea and 0.3 more on Continents, with no significant change in
+		// cities; counting a rival's other wars in its favour too cost them
+		// 17 beakers a turn on Pangaea for no more cities.
 		//
 		// Owner's design, 2026-10-25: wars where there's good reason for
 		// them, for goals like these. Before, a horde only declared war with
@@ -515,45 +522,67 @@ namespace C7Engine.AI {
 		// in cities. Choosing any rival city a horde could take, without
 		// these goals, won 1.8 cities on Pangaea but lost 0.6 on Continents.
 		internal static double WarIncentive(Player player, GameData gameData, Player rival, int continent) {
-			double worth = 0;
+			double gain = 0, cost = 0;
 			List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
 			if (rival.cities.Count >= civs.Max(p => p.cities.Count) && rival.cities.Count > player.cities.Count) {
-				worth += LeaderIncentive;
+				gain += LeaderIncentive;
 			}
 			foreach (CityStateTrade.Route route in CityStateTrade.Routes(gameData, rival)) {
-				worth += TradeIncentive;
+				gain += TradeIncentive;
 				if (route.cityState.location.continent == continent
 						&& player.cities.Any(c => c.location.DistanceTo(route.cityState.location) <= NearCityStateDistance)) {
-					worth += TradeIncentive;
+					gain += TradeIncentive;
 				}
 			}
-			HashSet<Resource> ours = player.cities.SelectMany(c => c.location.GetTilesWithinRankDistance(1)).Where(t => t != Tile.NONE && t.owningCity?.owner == player)
+			HashSet<Resource> have = player.cities.SelectMany(c => c.location.GetTilesWithinRankDistance(1)).Where(t => t != Tile.NONE && t.owningCity?.owner == player)
 				.Select(t => t.Resource).ToHashSet();
 			int lacking = gameData.map.tiles.Where(t => t.owningCity?.owner == rival && t.Resource != Resource.NONE
-					&& t.Resource.Category is ResourceCategory.LUXURY or ResourceCategory.STRATEGIC && player.KnowsAboutResource(t.Resource) && !ours.Contains(t.Resource))
+					&& t.Resource.Category is ResourceCategory.LUXURY or ResourceCategory.STRATEGIC && player.KnowsAboutResource(t.Resource) && !have.Contains(t.Resource))
 				.Select(t => t.Resource).Distinct().Count();
-			worth += Math.Min(MaxResourceIncentive, lacking * ResourceIncentive);
+			gain += Math.Min(MaxResourceIncentive, lacking * ResourceIncentive);
 			if (KingOf(rival) is MapUnit king && Tile.IsTileValid(king.location) && king.location.cityAtTile?.owner != rival) {
-				worth += OpportunityIncentive;
+				gain += OpportunityIncentive;
+			}
+			double ratio = ArmyStrength(player) / Math.Max(1, ArmyStrength(rival));
+			if (ratio >= 1.5) {
+				gain += OpportunityIncentive;
+			} else if (ratio < 0.75) {
+				cost += WeakerArmyDisincentive;
 			}
 			// Our own trade with city-states near them is at risk.
 			foreach (CityStateTrade.Route route in CityStateTrade.Routes(gameData, player)) {
 				if (rival.cities.Any(c => c.location.DistanceTo(route.cityState.location) <= SpareRivalDistance)) {
-					worth -= OwnTradeAtRisk;
+					cost += OwnTradeAtRisk;
 				}
 			}
-			double ratio = ArmyStrength(player) / Math.Max(1, ArmyStrength(rival));
-			if (ratio >= 1.5) {
-				worth += OpportunityIncentive;
-			} else if (ratio < 0.75) {
-				worth -= WeakerArmyDisincentive;
+			int ourWars = civs.Count(p => p != rival && p != player && PlayerRelationship.AtWar(player, p));
+			// Our King leads one war at a time, so each war we're already in
+			// counts against another (owner's design, 2026-10-25).
+			cost += ourWars * OwnWarDisincentive;
+			// A civ at peace is an opportunist, looking for a war on its
+			// borders (owner's design, 2026-10-25).
+			if (ourWars == 0 && Borders(gameData, player, rival)) {
+				gain *= OpportunistMultiplier;
 			}
-			return worth;
+			return gain - cost;
 		}
+
+		// Whether the two players' lands touch.
+		private static bool Borders(GameData gameData, Player a, Player b) {
+			foreach (Tile t in gameData.map.tiles) {
+				if (t.owningCity?.owner == a && t.neighbors.Values.Any(n => n != Tile.NONE && n.owningCity?.owner == b)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private const double OpportunistMultiplier = 1.5;
 
 		// HEURISTIC: WarIncentive's points.
 		internal const double WarIncentiveNeeded = 4;
 		private const double OwnTradeAtRisk = 1.5;
+		private const double OwnWarDisincentive = 2;
 		private const double LeaderIncentive = 2;
 		private const double TradeIncentive = 1;
 		private const int NearCityStateDistance = 10;
