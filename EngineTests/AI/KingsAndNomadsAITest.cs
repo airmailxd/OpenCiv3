@@ -337,4 +337,26 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.False(w.civ.defeated);
 		Assert.All(w.civ.units.Where(KingsAndNomadsAI.IsFighter), u => Assert.IsType<WarCampaign.MemberAI>(u.currentAI));
 	}
+
+	// A horde spares a city-state its civ trades with, unless a rival city
+	// is near enough to take it in its stead.
+	[Fact]
+	public void TradePartnersAreSparedWhileNoRivalIsNear() {
+		World w = NewWorld(8);
+		Tile cs = w.cityState.location;
+		(Tile site, Tile middle) = cs.GetTilesWithinRankDistance(2)
+			.Where(t => t != Tile.NONE && t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.DistanceTo(cs) == 2)
+			.SelectMany(t => t.neighbors.Values.Where(m => m != Tile.NONE && m.IsLand() && cs.neighbors.ContainsValue(m)).Select(m => (t, m)))
+			.First();
+		CityInteractions.BuildCity(site, w.civ, "Trader");
+		middle.overlays.Add(w.gameData.terrainImprovements.Single(ti => ti.key == C7GameData.Tile.TileOverlays.ROAD));
+		w.gameData.InvalidateCachedTradeNetwork();
+		Assert.Contains(w.cityState, KingsAndNomadsAI.SparedPartners(w.civ, w.gameData));
+
+		Player rival = w.gameData.players.First(p => !p.isBarbarians && p != w.civ);
+		Tile near = w.gameData.map.tiles.First(t => t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& t.DistanceTo(cs) <= KingsAndNomadsAI.SpareRivalDistance && t.DistanceTo(cs) > 2 && t.DistanceTo(site) > 1);
+		CityInteractions.BuildCity(near, rival, "Rival");
+		Assert.DoesNotContain(w.cityState, KingsAndNomadsAI.SparedPartners(w.civ, w.gameData));
+	}
 }

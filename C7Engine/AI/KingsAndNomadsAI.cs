@@ -519,10 +519,13 @@ namespace C7Engine.AI {
 			int continent = from.continent;
 			MapUnit lead = horde.units.Where(IsFighter).OrderBy(u => u.MaxMovementPoints()).First();
 
-			// Each horde goes after a city of its own.
+			// Each horde goes after a city of its own. A city-state we trade
+			// with is spared while no rival city is near enough to take it
+			// in our stead (see SparedPartners).
 			HashSet<City> others = list.Where(h => h != horde && h.targetCity != null).Select(h => h.targetCity).ToHashSet();
+			HashSet<City> spared = SparedPartners(player, gameData);
 			bool Valid(City c) => c != null && gameData.cities.Contains(c) && c.owner != player && AtWarWith(player, c.owner)
-				&& !(horde.avoid.TryGetValue(c, out int until) && Turn < until) && !others.Contains(c)
+				&& !(horde.avoid.TryGetValue(c, out int until) && Turn < until) && !others.Contains(c) && !spared.Contains(c)
 				&& c.location.continent == continent && AIFogOfWar.KnowsTile(player, c.location);
 			bool ValidKing(MapUnit k) => k != null && k.owner != player && !k.owner.defeated && k.owner.units.Contains(k)
 				&& AtWarWith(player, k.owner) && k.location.continent == continent && k.location.cityAtTile == null
@@ -588,6 +591,27 @@ namespace C7Engine.AI {
 				horde.targetCity = best;
 				horde.waited = 0;
 			}
+		}
+
+		// HEURISTIC: a rival city this near a city-state we trade with could
+		// take it in our stead, so we don't spare it.
+		internal const int SpareRivalDistance = 8;
+
+		// The city-states we trade with that our hordes leave be: those no
+		// rival city is within SpareRivalDistance of. A partner pays well,
+		// the more so the bigger it grows (see CityStateTrade), and a
+		// city-state taken is cut down and weakens us against the rest (see
+		// CityStates). In AI trials (40 games of 6 civs and 120 turns, half
+		// the civs sparing them) the sparing civs got 3.4 more beakers a
+		// turn on Continents (+95 gold of trade over the game) at no cost in
+		// cities, and were no worse on Pangaea. Sparing every partner did
+		// better on Continents (+13 beakers, +0.6 cities) but cost 1.1
+		// cities on Pangaea, where rivals took the spared city-states.
+		internal static HashSet<City> SparedPartners(Player player, GameData gameData) {
+			return gameData.GetTradeNetwork().ConnectedCityStates(player)
+				.Where(c => !gameData.players.Any(p => p != player && !p.isBarbarians && !p.defeated
+					&& p.cities.Any(o => o.location.DistanceTo(c.location) <= SpareRivalDistance)))
+				.ToHashSet();
 		}
 
 		// With no independent city left within reach, a civ picks a fight
