@@ -576,8 +576,10 @@ public class PlayerRelationship {
 	// no longer has enough of it on its capital's network, or when the two
 	// capitals are no longer connected. When the exporter is short, its
 	// newest deals for the resource go first. This cancels the broken deals
-	// the player sends or receives, and tells the humans involved.
-	public static void CancelBrokenResourceDeals(GameData gameData, Player player, List<Player> players) {
+	// the player sends or receives, and tells the humans involved. The
+	// exporter is blamed unless blame is false, as when the Rising Tide's
+	// sea broke the deal (see RisingTide.Strike).
+	public static void CancelBrokenResourceDeals(GameData gameData, Player player, List<Player> players, bool blame = true) {
 		List<(Player exporter, Player importer, MultiTurnDeal deal, Resource resource)> broken = BrokenResourceDeals(gameData, player, players);
 		foreach (Player other in players) {
 			if (other != player) {
@@ -589,7 +591,9 @@ public class PlayerRelationship {
 			log.Information("Cancelling the {Resource} deal from {Exporter} to {Importer}", resource.Name, exporter, importer);
 			UnRegisterMultiTurnDeal(exporter, importer, deal);
 			// The exporter broke the deal (see BreaksReputation).
-			importer.playerRelationships[exporter.id].brokeTradeDeal = true;
+			if (blame) {
+				importer.playerRelationships[exporter.id].brokeTradeDeal = true;
+			}
 			NotifyOfCancelledDeal(exporter, $"Our deal to send {resource.Name} to the {importer.civilization?.noun} has been cancelled.");
 			NotifyOfCancelledDeal(importer, $"Our deal to receive {resource.Name} from the {exporter.civilization?.noun} has been cancelled.");
 		}

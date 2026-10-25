@@ -415,6 +415,11 @@ public partial class DealScreen : TextureRect {
 				Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 				if (opponentPlayer.isHuman) {
 					opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} refused the offer.\"";
+				} else {
+					// A computer player says no, so the deal isn't left
+					// looking unanswered. Civ3's words (diplomacy.txt,
+					// #AINEUTRALREJECT).
+					opponentResponse.Text = "\"That deal is not acceptable.\"";
 				}
 			});
 		}

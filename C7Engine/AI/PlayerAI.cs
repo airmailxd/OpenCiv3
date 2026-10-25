@@ -1440,6 +1440,14 @@ namespace C7Engine {
 				if (!EngineStorage.IsPlayerReachable(them.id)) {
 					return;
 				}
+				// Only a deal we would take ourselves, as accepting it puts
+				// it to us again (see MsgProposeDeal): we price a human's
+				// deals with more care (see WouldAcceptDealFrom) than the
+				// offers we make.
+				if (!us.WouldAcceptDealFrom(gD, them, weWant, weGive)) {
+					log.Debug("{Us} doesn't offer {Them} a deal it would turn down itself", us, them);
+					return;
+				}
 				// The human receiving the offer takes the UI to respond.
 				// In a hotseat game they may not be the player at the screen.
 				if (EngineStorage.uiFollowsActivePlayer) {

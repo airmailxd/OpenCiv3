@@ -136,6 +136,12 @@ namespace C7Engine {
 				gameData.map.recomputeContinents();
 				gameData.UpdateTileOwners();
 				gameData.InvalidateCachedTradeNetwork();
+				// The resource deals the sea broke end now, and no one is
+				// blamed for them, as they would be for a deal they broke.
+				List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+				foreach (Player player in civs) {
+					PlayerRelationship.CancelBrokenResourceDeals(gameData, player, civs, blame: false);
+				}
 			}
 			foreach (Player player in gameData.players.Where(p => p.IsToldNews)) {
 				string message = "A Tidal Wave strikes! The sea swallows our shores.";

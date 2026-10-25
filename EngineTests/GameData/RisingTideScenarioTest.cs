@@ -143,6 +143,35 @@ public class RisingTideScenarioTest {
 		Assert.DoesNotContain(settler, gameData.mapUnits);
 	}
 
+	// A resource deal the sea breaks ends with the wave, and no one is
+	// blamed for breaking it.
+	[Fact]
+	public void TheSeaBreaksDealsWithoutBlame() {
+		(_, C7GameData.GameData gameData) = NewGame(3);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		Player exporter = civs[0], importer = civs[1];
+		// Cities inland, so both outlive their start cities on the shore.
+		foreach (Player civ in new[] { exporter, importer }) {
+			Tile deep = gameData.map.tiles.Where(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && !t.HasCity()
+				&& t.GetTilesWithinRankDistance(1).All(n => n == Tile.NONE || !n.HasCity())).MaxBy(TideAI.WavesUntilDrowned);
+			CityInteractions.BuildCity(deep, civ, civ.civilization.name + " Keep");
+		}
+		exporter.EnsureRelationshipExists(importer);
+		importer.EnsureRelationshipExists(exporter);
+		// A deal for a resource the exporter doesn't have, which can't be
+		// kept.
+		Resource luxury = gameData.Resources.First(r => r.Category == ResourceCategory.LUXURY);
+		PlayerRelationship.RegisterMultiTurnDeal(exporter, importer, new MultiTurnDeal(DealType.Luxury, DealSubType.LuxuryPerTurn,
+			DealDetails.Outbound, 0, luxury.Key, 20, 0));
+
+		gameData.turn = 21;
+		RisingTide.BeginTurn(gameData);
+		Assert.DoesNotContain(exporter.playerRelationships[importer.id].multiTurnDeals, d => d.dealSubType == DealSubType.LuxuryPerTurn);
+		Assert.False(importer.playerRelationships[exporter.id].brokeTradeDeal);
+	}
+
 	// A civ needs a city to live: one left with only a settler falls.
 	[Fact]
 	public void ASettlerAloneDoesNotKeepACivAlive() {
