@@ -270,7 +270,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			mapSeed = seed,
 		};
 		new GameSetup {
-			playerCivilization = save.Civilizations.First(c => !c.isBarbarian),
+			playerCivilization = save.Civilizations.First(c => !c.IsIndependent),
 			difficulty = save.Difficulties[Math.Clamp(difficulty, 0, save.Difficulties.Count - 1)],
 			worldCharacteristics = wc,
 			opponents = Enumerable.Repeat(new SelectedOpponent { isRandom = true }, civs - 1).ToList(),
@@ -390,7 +390,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		C7GameData.GameData gameData = EngineStorage.gameData;
 
 		gameData.observerMode = true;
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent).ToList();
 		HashSet<Player> trialCivs = new();
 		// A trial half of -1 is every civ (C7_TRIAL_ALL).
 		for (int i = 0; i < civs.Count; ++i) {
@@ -528,7 +528,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					&& u.location.DistanceTo(attacker.location) <= 1)) {
 				Add(kingAttacks, attacker.owner);
 			}
-			if (attacker.owner.isBarbarians && attacker.location.cityAtTile != null) {
+			if (attacker.owner.isCityStates && attacker.location.cityAtTile != null) {
 				Add(cityStateAttacks, defender.owner);
 			}
 			if (result == CombatResult.DefenderKilled && defender.unitType.isWorker) {
@@ -588,7 +588,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
 						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
-						if (before.isBarbarians) {
+						if (before.IsIndependent) {
 							++freeCaptures[city.owner];
 						}
 						if (city.location.unitsOnTile.Any(u => u.IsArmy() && u.owner == city.owner)) {
