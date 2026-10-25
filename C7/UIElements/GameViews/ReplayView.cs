@@ -84,8 +84,11 @@ public partial class ReplayView : Control {
 			background = new TextureRect { Texture = TextureLoader.LoadByPath(backgroundPath) };
 			AddChild(background);
 		} else {
-			// Without Civ3's art (standalone mode), a plain screen.
-			AddChild(new ColorRect { Color = new Color(0.12f, 0.1f, 0.08f), Size = new Vector2(1024, 768) });
+			// Without Civ3's art (standalone mode), a parchment in a frame,
+			// as the Hall of Fame has, for the dark ink of the labels and
+			// the Histograph.
+			AddChild(new ColorRect { Color = Color.Color8(196, 180, 140), Size = new Vector2(1024, 768) });
+			AddChild(new ColorRect { Color = Color.Color8(240, 226, 190), Position = new Vector2(140, 12), Size = new Vector2(744, 700) });
 		}
 
 		Label title = AdvisorUtils.CreateLabel(this, "SUMMARY REPLAY", new Rect2(247, 21, 530, 26), 20);
@@ -160,8 +163,22 @@ public partial class ReplayView : Control {
 				TooltipText = label,
 			};
 		} else {
-			Button plain = new() { Text = label, ClipText = true };
+			Button plain = new() { Text = label, ClipText = true, TooltipText = label };
 			plain.AddThemeFontSizeOverride("font_size", 10);
+			// Dark buttons edged in gold, with light text, on the parchment.
+			StyleBoxFlat Box(Color fill) => new() {
+				BgColor = fill,
+				BorderColor = Color.Color8(170, 140, 70),
+				BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
+				CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3, CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
+			};
+			plain.AddThemeStyleboxOverride("normal", Box(Color.Color8(70, 55, 35)));
+			plain.AddThemeStyleboxOverride("hover", Box(Color.Color8(95, 75, 45)));
+			plain.AddThemeStyleboxOverride("pressed", Box(Color.Color8(50, 40, 25)));
+			plain.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+			foreach (string color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color" }) {
+				plain.AddThemeColorOverride(color, Color.Color8(245, 232, 200));
+			}
 			button = plain;
 		}
 		button.Position = new Vector2(x, 392);
