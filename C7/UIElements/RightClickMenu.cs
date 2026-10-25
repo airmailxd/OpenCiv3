@@ -295,13 +295,16 @@ public partial class RightClickTileMenu : RightClickMenu {
 					new MsgDisplayHurryProductionPopup(tile.cityAtTile, details).send();
 				});
 			});
-			AddItem("Draft Citizen", () => {
-				this.CloseAndDelete();
-				EngineStorage.ReadGameData((GameData gameData) => {
-					City city = tile.cityAtTile;
-					new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
+			// Only once the advance that allows the draft is known.
+			if (tile.cityAtTile.owner.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesConscription)) {
+				AddItem("Draft Citizen", () => {
+					this.CloseAndDelete();
+					EngineStorage.ReadGameData((GameData gameData) => {
+						City city = tile.cityAtTile;
+						new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
+					});
 				});
-			});
+			}
 			AddItem("Contact Governor", () => {
 				this.CloseAndDelete();
 				EngineStorage.ReadGameData((GameData gameData) => game.ShowGovernor(tile.cityAtTile));
@@ -474,13 +477,16 @@ public partial class RightClickCityMenu : RightClickMenu {
 					new MsgDisplayHurryProductionPopup(tile.cityAtTile, details).send();
 				});
 			});
-			AddItem("Draft Citizen", () => {
-				this.CloseAndDelete();
-				EngineStorage.ReadGameData((GameData gameData) => {
-					City city = tile.cityAtTile;
-					new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
+			// Only once the advance that allows the draft is known.
+			if (tile.cityAtTile.owner.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesConscription)) {
+				AddItem("Draft Citizen", () => {
+					this.CloseAndDelete();
+					EngineStorage.ReadGameData((GameData gameData) => {
+						City city = tile.cityAtTile;
+						new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
+					});
 				});
-			});
+			}
 			AddAbandonCityItem(tile.cityAtTile);
 			AddCivilopediaItem(tile.cityAtTile);
 		}
