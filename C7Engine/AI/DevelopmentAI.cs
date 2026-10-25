@@ -63,7 +63,7 @@ namespace C7Engine.AI {
 
 		internal static bool NearRivalCity(Player player, City city) {
 			foreach (Player other in EngineStorage.gameData.players) {
-				if (other == player || other.isBarbarians || other.defeated) {
+				if (other == player || other.IsIndependent || other.defeated) {
 					continue;
 				}
 				foreach (City theirs in other.cities) {
@@ -357,7 +357,7 @@ namespace C7Engine.AI {
 		// Pangaea (+-47; ahead on each map and seed set), most on Pangaea,
 		// where they also lost fewer cities.
 		public static void HurryProduction(Player player) {
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0
 					|| player.government.hurryingType != Government.HurryProductionType.PaidLabor) {
 				return;
 			}
@@ -471,7 +471,7 @@ namespace C7Engine.AI {
 		// times the reserve. The AI otherwise ran its treasury at about
 		// nothing a turn, so had little to hurry with when it mattered.
 		public static int WantedGoldPerTurn(Player player) {
-			if (player.isHuman || player.isBarbarians
+			if (player.isHuman || player.IsIndependent
 					|| player.government.hurryingType != Government.HurryProductionType.PaidLabor
 					|| player.gold > 3 * BaseReserve(player)) {
 				return int.MinValue;
@@ -527,7 +527,7 @@ namespace C7Engine.AI {
 		// but a lost city loses them all.
 		public static void DefendThreatenedCities(Player player) {
 			GameData gameData = EngineStorage.gameData;
-			if (gameData == null || player.isHuman || player.isBarbarians) {
+			if (gameData == null || player.isHuman || player.IsIndependent) {
 				return;
 			}
 			foreach (City city in player.cities) {
@@ -598,7 +598,7 @@ namespace C7Engine.AI {
 		// small, or while it builds a settler or worker. Humans' cities are
 		// left as they were.
 		public static int DesiredFoodSurplus(City city, int usual) {
-			if (city.owner == null || city.owner.isHuman || city.owner.isBarbarians) {
+			if (city.owner == null || city.owner.isHuman || city.owner.IsIndependent) {
 				return usual;
 			}
 			if (city.itemBeingProduced is UnitPrototype u && u.populationCost > 0) {

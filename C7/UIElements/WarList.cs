@@ -75,7 +75,7 @@ public partial class WarList : CanvasLayer {
 			sinceLastPause.Clear();
 		}
 		int turn = gameData.turn;
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
 		HashSet<(Player, Player)> atWar = new();
 		for (int i = 0; i < civs.Count; ++i) {
 			for (int j = i + 1; j < civs.Count; ++j) {

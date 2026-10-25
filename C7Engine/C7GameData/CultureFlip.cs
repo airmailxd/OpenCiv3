@@ -187,7 +187,7 @@ namespace C7Engine {
 		private static List<Chance> Chances(GameData gameData, City city, RoundFacts facts) {
 			List<Chance> result = new();
 			Player owner = city.owner;
-			if (owner == null || owner.isBarbarians || owner.defeated || city.ownerChangedTurn == gameData.turn) {
+			if (owner == null || owner.IsIndependent || owner.defeated || city.ownerChangedTurn == gameData.turn) {
 				return result;
 			}
 
@@ -207,7 +207,7 @@ namespace C7Engine {
 			}
 
 			foreach (Player other in gameData.players) {
-				if (other == owner || other.isBarbarians || other.defeated || other.cities.Count == 0) {
+				if (other == owner || other.IsIndependent || other.defeated || other.cities.Count == 0) {
 					continue;
 				}
 				tilesOwned.TryGetValue(other, out int tiles);

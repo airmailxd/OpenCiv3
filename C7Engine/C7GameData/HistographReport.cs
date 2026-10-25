@@ -37,7 +37,7 @@ namespace C7GameData {
 		public static List<HistographSeries> AllSeries(GameData gameData, Measure measure, int upToDate) {
 			List<HistographSeries> result = new();
 			foreach (Player civ in gameData.players) {
-				if (civ.isBarbarians || gameData.history == null || !gameData.history.TryGetValue(civ.HistoryKey, out List<HistTurnRecord> records)) {
+				if (civ.IsIndependent || gameData.history == null || !gameData.history.TryGetValue(civ.HistoryKey, out List<HistTurnRecord> records)) {
 					continue;
 				}
 				List<HistographPoint> points = new(records.Count);

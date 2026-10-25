@@ -247,7 +247,7 @@ namespace C7Engine.Pathing {
 			// CityStateTrade).
 			bool cityStateTrade = CityStateTrade.IsOn(EngineStorage.gameData);
 			if (cityStateTrade) {
-				enemySet.RemoveWhere(p => p.isBarbarians);
+				enemySet.RemoveWhere(p => p.IsIndependent);
 			}
 			Dictionary<City, TradeNetworkSegment> segments = network.cityToSegment;
 			Dictionary<Tile, TradeNetworkSegment> seen = network.tileToSegment;
@@ -273,7 +273,7 @@ namespace C7Engine.Pathing {
 
 					if (x.cityAtTile != null) {
 						segments[x.cityAtTile] = segment;
-						if (cityStateTrade && x.cityAtTile.owner.isBarbarians) {
+						if (cityStateTrade && x.cityAtTile.owner.isCityStates) {
 							segment.AddCityState(x.cityAtTile);
 						}
 					}

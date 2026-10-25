@@ -18,7 +18,7 @@ namespace C7Engine.AI {
 		internal const double MinOdds = 0.5;
 
 		public static async Task PlayTurn(Player player, GameData gameData) {
-			if (!player.isBarbarians || !CityStateTrade.IsOn(gameData)) {
+			if (!player.isCityStates || !CityStateTrade.IsOn(gameData)) {
 				return;
 			}
 			foreach (City city in player.cities.ToList()) {
@@ -26,8 +26,11 @@ namespace C7Engine.AI {
 			}
 		}
 
+		// A tile in the open with a civ's units on it. City-states don't
+		// strike a civ's city, and are at peace with the barbarians.
 		private static bool IsEnemyTile(Player player, Tile tile) {
-			return tile != Tile.NONE && tile.unitsOnTile.Any(u => u.owner != null && !u.owner.isBarbarians && AIThreat.IsHostile(player, u.owner));
+			return tile != Tile.NONE && !tile.HasCity()
+				&& tile.unitsOnTile.Any(u => u.owner != null && !u.owner.IsIndependent && AIThreat.IsHostile(player, u.owner));
 		}
 
 		private static List<MapUnit> Ours(Player player, Tile home, CityStates.Role role) {

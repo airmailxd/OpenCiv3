@@ -272,7 +272,7 @@ public partial class GameSetup {
 
 	// Every civ has met every other, and is at war with it.
 	private static void StartEternalWar(SaveGame save) {
-		List<SavePlayer> civs = save.Players.Where(p => !p.isBarbarian).ToList();
+		List<SavePlayer> civs = save.Players.Where(p => !p.IsIndependent).ToList();
 		foreach (SavePlayer player in civs) {
 			// The AIs get none of the difficulty's extra starting units
 			// (owner's addition, 2026-10-23).

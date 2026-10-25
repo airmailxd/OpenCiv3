@@ -113,7 +113,7 @@ namespace C7GameData {
 
 		// Why a and b can't make an agreement against the third civ, or null.
 		private static string ProblemWithThird(GameData gameData, Player a, Player b, Player third) {
-			if (third == null || third == a || third == b || third.isBarbarians || third.defeated
+			if (third == null || third == a || third == b || third.IsIndependent || third.defeated
 				|| gameData.GetPlayer(third.id) != third) {
 				return "the agreement needs a third civ";
 			}
@@ -174,12 +174,12 @@ namespace C7GameData {
 
 		// The civs the two could sign a military alliance or embargo against.
 		public static List<Player> AllianceTargets(GameData gameData, Player a, Player b) {
-			return gameData.players.Where(t => t != a && t != b && !t.isBarbarians && !t.defeated
+			return gameData.players.Where(t => t != a && t != b && !t.IsIndependent && !t.defeated
 				&& ProblemSigningMilitaryAlliance(gameData, a, b, t) == null).ToList();
 		}
 
 		public static List<Player> EmbargoTargets(GameData gameData, Player a, Player b) {
-			return gameData.players.Where(t => t != a && t != b && !t.isBarbarians && !t.defeated
+			return gameData.players.Where(t => t != a && t != b && !t.IsIndependent && !t.defeated
 				&& ProblemSigningTradeEmbargo(gameData, a, b, t) == null).ToList();
 		}
 
@@ -220,10 +220,10 @@ namespace C7GameData {
 		// they are attacked by a third party" (same thread), so the
 		// aggressor's partners stay out.
 		public static void HonourPacts(GameData gameData, Player aggressor, Player defender, int refuseContactUntilTurn, int turn) {
-			if (gameData == null || aggressor.isBarbarians || defender.isBarbarians) {
+			if (gameData == null || aggressor.IsIndependent || defender.IsIndependent) {
 				return;
 			}
-			List<Player> partners = gameData.players.Where(p => p != aggressor && p != defender && !p.isBarbarians && !p.defeated
+			List<Player> partners = gameData.players.Where(p => p != aggressor && p != defender && !p.IsIndependent && !p.defeated
 				&& HasDeal(defender, p, DealSubType.MutualProtectionPact)
 				&& PlayerRelationship.TryGetRelationship(p, aggressor, out _)
 				&& !PlayerRelationship.AtWar(p, aggressor)

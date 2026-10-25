@@ -138,7 +138,7 @@ public partial class AnimationController : Node {
 			return automatic ? Preferences.Mover.OurAutomatic : Preferences.Mover.OurManual;
 		}
 		// A hidden nationality unit is at war with everyone.
-		bool atWar = owner.isBarbarians || unit.IsFairGameFor(us)
+		bool atWar = owner.IsIndependent || unit.IsFairGameFor(us)
 			|| (us.playerRelationships.TryGetValue(owner.id, out PlayerRelationship relationship) && relationship.AtWar());
 		return atWar ? Preferences.Mover.Enemy : Preferences.Mover.Friend;
 	}

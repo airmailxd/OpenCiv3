@@ -342,13 +342,13 @@ public partial class RightClickTileMenu : RightClickMenu {
 				AddItem($"{Whose(unit)}{unit.Describe()}", null);
 			}
 
-			if (!nonPlayerUnits[0].owner.isBarbarians && nonPlayerUnits[0].ShowsOwnerTo(game.controller))
+			if (!nonPlayerUnits[0].owner.IsIndependent && nonPlayerUnits[0].ShowsOwnerTo(game.controller))
 				AddItem($"Contact {nonPlayerUnits[0].owner.civilization.name}", contactCiv);
 		}
 
 		// Diplomatic and espionage missions against a foreign city.
 		City foreignCity = tile.cityAtTile;
-		if (foreignCity != null && foreignCity.owner != game.controller && !foreignCity.owner.isBarbarians
+		if (foreignCity != null && foreignCity.owner != game.controller && !foreignCity.owner.IsIndependent
 				&& PlayerRelationship.TryGetRelationship(game.controller, foreignCity.owner, out _)) {
 			AddTreeSeparator();
 			AddItem("Diplomatic Missions", () => {

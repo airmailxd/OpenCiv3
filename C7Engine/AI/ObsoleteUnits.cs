@@ -34,7 +34,7 @@ namespace C7Engine.AI {
 		private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Player, System.Runtime.CompilerServices.StrongBox<int>> lastDisbanded = new();
 
 		public static async Task DisbandOverSupport(Player player) {
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 				return;
 			}
 			if (PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players)) {

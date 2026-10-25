@@ -57,7 +57,7 @@ public partial class MapUnit {
 	// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16869943).
 	// Our AI uses CanSacrifice.
 	private bool MaySacrifice() {
-		if (owner == null || owner.isBarbarians || unitType.isFlagUnit || hitPointsRemaining <= 0) {
+		if (owner == null || owner.IsIndependent || unitType.isFlagUnit || hitPointsRemaining <= 0) {
 			return false;
 		}
 		if (!owner.HasTechEnabling(SaveTech.Flag.PermitsSacrifice) || !IsCaptive()) {

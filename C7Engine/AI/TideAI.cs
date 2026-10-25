@@ -231,7 +231,7 @@ namespace C7Engine.AI {
 		// drown anyway. (Hurrying with citizens is otherwise left alone, see
 		// DevelopmentAI.HurryProduction.)
 		public static void HurryEvacuation(Player player) {
-			if (!IsOn() || player.isHuman || player.isBarbarians) {
+			if (!IsOn() || player.isHuman || player.IsIndependent) {
 				return;
 			}
 			foreach (City city in player.cities.ToList()) {

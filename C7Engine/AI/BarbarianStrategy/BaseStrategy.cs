@@ -76,11 +76,6 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 		if (orientation.IsLastUnitInCamp)
 			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 
-		// A Kings & Nomads city-state's garrison stays home (see
-		// KingsAndNomadsAI.HoldsCityState).
-		if (KingsAndNomadsAI.HoldsCityState(player, unit))
-			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
-
 		// Otherwise a unit keeps to a plan in progress while it is still
 		// worth following, rather than rolling the dice afresh every turn.
 		// An attack gives up by itself once its target is gone.

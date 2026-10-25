@@ -235,7 +235,7 @@ namespace C7Engine.AI {
 		// see it.
 		private static bool EnemyUnitsNear(Player player, City city, int distance, Func<MapUnit, bool> test) {
 			foreach (Player other in EngineStorage.gameData.players) {
-				if (other == player || other.isBarbarians || other.defeated || !PlayerRelationship.AtWar(player, other)) {
+				if (other == player || other.IsIndependent || other.defeated || !PlayerRelationship.AtWar(player, other)) {
 					continue;
 				}
 				foreach (MapUnit u in other.units) {

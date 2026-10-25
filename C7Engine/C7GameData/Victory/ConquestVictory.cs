@@ -12,7 +12,7 @@ public class ConquestVictory : IVictory {
 		return new VictoryStatus {
 			Player = player,
 			RivalsRemaining = gameData.players.Count(p =>
-				p != player && !p.isBarbarians && !p.defeated && p.isIncludedInGame && !gameData.AreTeammates(player, p)),
+				p != player && !p.IsIndependent && !p.defeated && p.isIncludedInGame && !gameData.AreTeammates(player, p)),
 		};
 	}
 

@@ -116,7 +116,7 @@ namespace C7Engine {
 		// heading for, or null. Barbarians and ships can't open huts (see
 		// GoodyHuts.Enter), so a hut would stay put and keep drawing them back.
 		private static ExplorerAIData? FindNearbyGoodyHut(MapUnit unit, Player player) {
-			if (player.isBarbarians || !unit.IsLandUnit()) {
+			if (player.IsIndependent || !unit.IsLandUnit()) {
 				return null;
 			}
 			List<Tile> huts = unit.location.GetTilesWithinTileSquare(MaxGoodyHutDistance)

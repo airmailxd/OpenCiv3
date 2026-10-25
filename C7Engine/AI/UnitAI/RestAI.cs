@@ -29,7 +29,7 @@ namespace C7Engine.AI.UnitAI {
 
 		// Whether the unit should stop what it's doing and heal.
 		public static bool ShouldRest(MapUnit unit, Player player) {
-			return !player.isHuman && !player.isBarbarians && unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
+			return !player.isHuman && !player.IsIndependent && unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
 				&& unit.unitType.attack >= unit.unitType.defense && unit.currentAI is not WarCampaign.MemberAI && Hurt(unit);
 		}
 

@@ -36,19 +36,19 @@ namespace C7Engine {
 
 		// Whether the city is an independent city-state.
 		public static bool IsCityState(GameData gameData, City city) {
-			return city?.owner?.isBarbarians == true && IsOn(gameData);
+			return city?.owner?.isCityStates == true && IsOn(gameData);
 		}
 
 		// The same, by the rules the city's owner plays by, for while a game
 		// is loading.
 		public static bool IsCityState(City city) {
 			Rules rules = city?.owner?.rules;
-			return city.owner.isBarbarians && rules != null && rules.SettlersOnlyInConqueredCities && rules.FallenCitiesGoIndependent;
+			return city?.owner?.isCityStates == true && rules != null && rules.SettlersOnlyInConqueredCities && rules.FallenCitiesGoIndependent;
 		}
 
 		// The gold a turn the player's trade with city-states brings in.
 		public static int Income(GameData gameData, Player player) {
-			if (!IsOn(gameData) || player.isBarbarians || player.cities.Count == 0) {
+			if (!IsOn(gameData) || player.IsIndependent || player.cities.Count == 0) {
 				return 0;
 			}
 			return gameData.GetTradeNetwork().ConnectedCityStates(player).Sum(c => IncomePerCityState
@@ -58,7 +58,7 @@ namespace C7Engine {
 		// The beakers a turn the city-states' specialists bring the player
 		// (see CityStates).
 		public static int Beakers(GameData gameData, Player player) {
-			if (!IsOn(gameData) || player.isBarbarians || player.cities.Count == 0) {
+			if (!IsOn(gameData) || player.IsIndependent || player.cities.Count == 0) {
 				return 0;
 			}
 			return gameData.GetTradeNetwork().ConnectedCityStates(player).Sum(c => CityStates.Specialists(c) * CityStates.SpecialistBeakers);
@@ -66,7 +66,7 @@ namespace C7Engine {
 
 		// The shields the city's trade with city-states adds to it.
 		public static int Shields(GameData gameData, City city) {
-			if (!IsOn(gameData) || city.owner == null || city.owner.isBarbarians) {
+			if (!IsOn(gameData) || city.owner == null || city.owner.IsIndependent) {
 				return 0;
 			}
 			return gameData.GetTradeNetwork().CityStatesTradingWith(city.owner, city).Count * ShieldsPerCityState;
@@ -77,7 +77,7 @@ namespace C7Engine {
 		public static Dictionary<Player, City> Partners(GameData gameData, City cityState) {
 			Dictionary<Player, City> result = new();
 			TradeNetwork network = gameData.GetTradeNetwork();
-			foreach (Player player in gameData.players.Where(p => !p.isBarbarians && !p.defeated && p.cities.Count > 0)) {
+			foreach (Player player in gameData.players.Where(p => !p.IsIndependent && !p.defeated && p.cities.Count > 0)) {
 				City nearest = player.cities.Where(c => network.CityStatesTradingWith(player, c).Contains(cityState))
 					.OrderBy(c => c.location.DistanceTo(cityState.location)).FirstOrDefault();
 				if (nearest != null) {
@@ -93,7 +93,7 @@ namespace C7Engine {
 			if (!IsOn(gameData) || gameData.turn <= 0) {
 				return;
 			}
-			Player independents = gameData.players.Find(p => p.isBarbarians);
+			Player independents = gameData.players.Find(p => p.isCityStates);
 			if (independents == null || CityStates.Defender(gameData) is not UnitPrototype gift) {
 				return;
 			}

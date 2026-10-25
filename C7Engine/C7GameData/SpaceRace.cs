@@ -178,7 +178,7 @@ namespace C7Engine {
 
 		public static void RevealMapToAll(GameData gameData) {
 			foreach (Player p in gameData.players) {
-				if (p.isBarbarians) {
+				if (p.IsIndependent) {
 					continue;
 				}
 				foreach (Tile t in gameData.map.tiles) {

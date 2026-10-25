@@ -245,6 +245,8 @@ namespace C7Engine {
 				BeginPlayersTurn(player, gameData);
 				if (player.isBarbarians) {
 					await BarbarianAI.PlayTurn(player, gameData);
+				} else if (player.isCityStates) {
+					await CityStatesAI.PlayTurn(player, gameData);
 				} else if (!player.isHuman) {
 					await PlayerAI.PlayTurn(player, gameData);
 				}
@@ -278,7 +280,7 @@ namespace C7Engine {
 			if (followed != null && !followed.defeated) {
 				return;
 			}
-			Player next = PlayersInTurnOrder(gameData).FirstOrDefault(p => !p.defeated && !p.isBarbarians);
+			Player next = PlayersInTurnOrder(gameData).FirstOrDefault(p => !p.defeated && !p.IsIndependent);
 			if (next == null) {
 				return;
 			}
@@ -345,7 +347,7 @@ namespace C7Engine {
 		// Order players: Humans -> AI -> Barbarian AI. The sort is stable, so
 		// humans play in the order they appear in the player list.
 		internal static List<Player> PlayersInTurnOrder(GameData gameData) {
-			return gameData.players.OrderByDescending(p => !p.isBarbarians).ThenByDescending(p => p.isHuman).ToList();
+			return gameData.players.OrderByDescending(p => !p.IsIndependent).ThenByDescending(p => p.isHuman).ToList();
 		}
 
 		// Returns the human player who should control the UI when a game is
@@ -373,7 +375,7 @@ namespace C7Engine {
 			List<Tuple<Player, IVictory>> winners = [];
 
 			foreach (Player player in gameData.players) {
-				if (player.isBarbarians || player.defeated)
+				if (player.IsIndependent || player.defeated)
 					continue;
 
 				foreach (IVictory victory in gameData.victories) {

@@ -241,7 +241,7 @@ namespace C7GameData {
 		}
 
 		public List<Player> GetRivals(Player player) {
-			return players.Where(p => !p.isBarbarians && p != player && !p.defeated).ToList();
+			return players.Where(p => !p.IsIndependent && p != player && !p.defeated).ToList();
 		}
 
 		public List<Player> GetKnownRivals(Player player) {
@@ -356,7 +356,7 @@ namespace C7GameData {
 		}
 		// Under Rules.PermanentWar every pair of civs is, but for teammates.
 		public bool AreInLockedWar(Player one, Player other) {
-			if (rules?.PermanentWar == true && one != other && !one.isBarbarians && !other.isBarbarians
+			if (rules?.PermanentWar == true && one != other && !one.IsIndependent && !other.IsIndependent
 					&& !AreInLockedPeace(one, other)) {
 				return true;
 			}
@@ -691,7 +691,7 @@ namespace C7GameData {
 			// TODO: Implement the full set of conditions for destroying a civ;
 			// handling cases like 1 city elimination, regicide, settlers that
 			// are still alive, etc.
-			if (player.isBarbarians) {
+			if (player.IsIndependent) {
 				return false;
 			}
 			// Regicide, Mass Regicide and Elimination.
@@ -719,7 +719,7 @@ namespace C7GameData {
 			// The destruction of an enemy frees a mobilized civ to return to
 			// Normalcy (see Mobilization).
 			foreach (Player other in players) {
-				if (other != player && !other.isBarbarians && !player.isBarbarians && PlayerRelationship.AtWar(other, player)) {
+				if (other != player && !other.IsIndependent && !player.IsIndependent && PlayerRelationship.AtWar(other, player)) {
 					Mobilization.OnWarEnded(other);
 				}
 			}
@@ -743,7 +743,7 @@ namespace C7GameData {
 			// The capital goes last, so the palace isn't moved on the way.
 			// Under Kings & Nomads they go to the independents instead
 			// (Rules.FallenCitiesGoIndependent).
-			Player independents = rules?.FallenCitiesGoIndependent == true ? players.Find(p => p.isBarbarians) : null;
+			Player independents = rules?.FallenCitiesGoIndependent == true ? players.Find(p => p.isCityStates) : null;
 			// Only those whose nine tiles wouldn't touch another city-state's
 			// do, the biggest first; the rest are disbanded (owner's ruling,
 			// 2026-10-25).
@@ -856,7 +856,7 @@ namespace C7GameData {
 
 			// Its owner holds the capture of a worker against the captor (see
 			// Attitudes).
-			if (unit.unitType.isWorker && previousOwner != captor && !previousOwner.isBarbarians && !captor.isBarbarians) {
+			if (unit.unitType.isWorker && previousOwner != captor && !previousOwner.IsIndependent && !captor.IsIndependent) {
 				previousOwner.EnsureRelationshipExists(captor);
 				// There is none with a defeated civ.
 				if (previousOwner.playerRelationships.TryGetValue(captor.id, out PlayerRelationship relationship)) {
@@ -976,7 +976,7 @@ namespace C7GameData {
 				if (player.playerRelationships.ContainsKey(p.id) && p.knownTechs.Contains(tech.id)) {
 					++knownCivsThatKnowTheTech;
 				}
-				if (!p.isBarbarians && !p.defeated) {
+				if (!p.IsIndependent && !p.defeated) {
 					++civsLeft;
 				}
 			}

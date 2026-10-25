@@ -262,7 +262,7 @@ namespace C7GameData {
 				|| !Pacts.KnowsTech(gameData, receiver, Save.SaveTech.Flag.EnablesCommunicationTrading)) {
 				return new List<Player>();
 			}
-			return gameData.players.Where(third => third != giver && third != receiver && !third.isBarbarians && !third.defeated
+			return gameData.players.Where(third => third != giver && third != receiver && !third.IsIndependent && !third.defeated
 				&& PlayerRelationship.TryGetRelationship(giver, third, out _) && PlayerRelationship.TryGetRelationship(third, giver, out _)
 				&& !receiver.playerRelationships.ContainsKey(third.id) && !third.playerRelationships.ContainsKey(receiver.id))
 				.ToList();
@@ -409,7 +409,7 @@ namespace C7GameData {
 			if (gameData.GetPlayer(proposer.id) != proposer || gameData.GetPlayer(opponent.id) != opponent) {
 				return "a player isn't in the game";
 			}
-			if (proposer.isBarbarians || opponent.isBarbarians || proposer.defeated || opponent.defeated) {
+			if (proposer.IsIndependent || opponent.IsIndependent || proposer.defeated || opponent.defeated) {
 				return "barbarians and defeated players can't trade";
 			}
 			if (!PlayerRelationship.TryGetRelationship(proposer, opponent, out _)

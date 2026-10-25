@@ -21,7 +21,7 @@ namespace C7Engine {
 		public static readonly int MAX_WATER_EXPLORERS = 4;
 
 		public static async Task PlayTurn(Player player, GameData gameData) {
-			if (player.isHuman || player.isBarbarians || !player.isIncludedInGame) {
+			if (player.isHuman || player.IsIndependent || !player.isIncludedInGame) {
 				return;
 			}
 			List<Tech> techs = gameData.techs;
@@ -1376,7 +1376,7 @@ namespace C7Engine {
 				}
 
 				// Barbarians can't trade.
-				if (them.isBarbarians || us.isBarbarians) {
+				if (them.IsIndependent || us.IsIndependent) {
 					continue;
 				}
 

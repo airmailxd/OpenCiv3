@@ -55,7 +55,7 @@ public partial class MapUnit {
 	}
 
 	private bool HasMet(Player other) {
-		return other == owner || other.isBarbarians || other.defeated || owner.isBarbarians
+		return other == owner || other.IsIndependent || other.defeated || owner.IsIndependent
 			|| owner.playerRelationships.ContainsKey(other.id);
 	}
 

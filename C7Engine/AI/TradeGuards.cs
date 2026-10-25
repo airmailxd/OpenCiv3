@@ -35,7 +35,7 @@ namespace C7Engine.AI {
 		public static int MonopolyPremium(GameData gameData, Player us, TradeOffer ourOffer) {
 			int premium = 0;
 			foreach (Tech t in ourOffer.techs) {
-				int knownBy = gameData.players.Count(p => p != us && !p.isBarbarians && !p.defeated && p.knownTechs.Contains(t.id));
+				int knownBy = gameData.players.Count(p => p != us && !p.IsIndependent && !p.defeated && p.knownTechs.Contains(t.id));
 				if (knownBy <= MonopolyKnownBy) {
 					premium += gameData.TechCostFor(t, us) / 2;
 				}

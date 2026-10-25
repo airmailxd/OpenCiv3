@@ -122,8 +122,8 @@ namespace C7Engine {
 		// the era of the advance each needs), leaving out the unique units.
 		// If the leading era has none, the one before.
 		public static List<UnitPrototype> Pool(GameData gameData) {
-			List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
-			int civilizations = gameData.civilizations.Count(c => !c.isBarbarian);
+			List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
+			int civilizations = gameData.civilizations.Count(c => !c.IsIndependent);
 			int leading = civs.Count == 0 ? 0 : civs.Max(p => p.EraIndex());
 			List<UnitPrototype> mayBeGiven = gameData.unitPrototypes.Where(p => MayBeGiven(p, civilizations)).ToList();
 			int Era(UnitPrototype p) => EraUtils.GetEraIndex(p.requiredTech.EraCivilopediaName);
@@ -145,7 +145,7 @@ namespace C7Engine {
 				&& unit.attack + unit.defense > 0
 				&& !unit.isSettler && !unit.isWorker && !unit.isKing && !unit.isLeader && !unit.isArmy
 				&& !unit.isNuclearWeapon && !unit.isTacticalMissile && !unit.isCruiseMissile
-				&& unit.producibleBy.Count(c => !c.isBarbarian) * 2 > civilizations;
+				&& unit.producibleBy.Count(c => !c.IsIndependent) * 2 > civilizations;
 		}
 
 		// A unit type from the pool: a ship one time in ShipOneIn, and
@@ -159,7 +159,7 @@ namespace C7Engine {
 
 		// The civs that take part: those with a city.
 		private static IEnumerable<Player> Bidders(GameData gameData) {
-			return gameData.players.Where(p => !p.isBarbarians && !p.defeated && p.cities.Count > 0);
+			return gameData.players.Where(p => !p.IsIndependent && !p.defeated && p.cities.Count > 0);
 		}
 
 		// Opens the turn's market as the turn begins: chooses the offers and

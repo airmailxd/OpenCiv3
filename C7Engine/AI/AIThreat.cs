@@ -23,7 +23,7 @@ namespace C7Engine.AI {
 		// Whether the tile is within the borders of a civ we're at war with.
 		public static bool IsHostileTerritory(Player player, Tile tile) {
 			Player owner = tile.OwningPlayer();
-			return owner != null && !owner.isBarbarians && IsHostile(player, owner);
+			return owner != null && !owner.IsIndependent && IsHostile(player, owner);
 		}
 
 		// What the player can see of its enemies now (as of the last

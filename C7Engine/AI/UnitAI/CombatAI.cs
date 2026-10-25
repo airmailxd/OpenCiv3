@@ -140,9 +140,9 @@ namespace C7Engine.AI.UnitAI {
 
 			// Special case: barbarians are at war with all other players but
 			// don't have player relationships with them.
-			if (player.isBarbarians) {
+			if (player.IsIndependent) {
 				foreach (Player p in players) {
-					if (!p.isBarbarians) {
+					if (!p.IsIndependent) {
 						enemies.Add(p);
 					}
 				}

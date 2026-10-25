@@ -120,7 +120,7 @@ namespace C7Engine {
 		// The city with the United Nations, or null if it hasn't been built.
 		public static City City(GameData gameData) {
 			foreach (City city in gameData.cities) {
-				if (city.owner == null || city.owner.defeated || city.owner.isBarbarians) {
+				if (city.owner == null || city.owner.defeated || city.owner.IsIndependent) {
 					continue;
 				}
 				foreach (CityBuilding cb in city.constructed_buildings) {
@@ -161,7 +161,7 @@ namespace C7Engine {
 		}
 
 		private static IEnumerable<Player> Voters(GameData gameData) {
-			return gameData.players.Where(p => !p.isBarbarians && !p.defeated && p.isIncludedInGame);
+			return gameData.players.Where(p => !p.IsIndependent && !p.defeated && p.isIncludedInGame);
 		}
 
 		// The candidates: the UN owner first, then up to two civs with 25% of

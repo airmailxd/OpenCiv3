@@ -70,7 +70,7 @@ public class CulturalVictory : IVictory {
 	public VictoryStatus Evaluate(Player player, GameData gameData) {
 		int topRival = 0;
 		foreach (Player p in gameData.players) {
-			if (p != player && !p.isBarbarians && !p.defeated) {
+			if (p != player && !p.IsIndependent && !p.defeated) {
 				topRival = System.Math.Max(topRival, CultureReport.TotalCulture(p));
 			}
 		}

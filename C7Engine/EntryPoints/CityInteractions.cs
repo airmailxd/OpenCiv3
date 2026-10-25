@@ -301,7 +301,7 @@ namespace C7Engine {
 			// CityStates.CapturedSize, needs an aqueduct to grow past the
 			// first size limit, and weakens the captor against the rest (see
 			// MapUnit.BrethrenPenaltyAgainst).
-			if (CityStateTrade.IsCityState(city) && !captor.isBarbarians) {
+			if (CityStateTrade.IsCityState(city) && !captor.IsIndependent) {
 				if (city.residents.Count > CityStates.CapturedSize) {
 					city.RemoveCitizens(city.residents.Count - CityStates.CapturedSize);
 				}

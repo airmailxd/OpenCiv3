@@ -128,7 +128,7 @@ namespace C7Engine.AI {
 			}
 			Player enemy = null;
 			foreach (Player p in gD.players) {
-				if (p == us || p == them || p.isBarbarians || p.defeated || !AtWar(us, p) || AtWar(them, p)
+				if (p == us || p == them || p.IsIndependent || p.defeated || !AtWar(us, p) || AtWar(them, p)
 					|| Attitudes.Level(gD, them, p) is not (AttitudeLevel.Annoyed or AttitudeLevel.Furious)
 					|| Pacts.ProblemSigningMilitaryAlliance(gD, us, them, p) != null) {
 					continue;
@@ -166,7 +166,7 @@ namespace C7Engine.AI {
 			int? towardUs = Attitudes.Points(gD, them, us);
 			Player target = null;
 			foreach (Player p in gD.players) {
-				if (p == us || p == them || p.isBarbarians || p.defeated
+				if (p == us || p == them || p.IsIndependent || p.defeated
 					|| !(AtWar(us, p) || Attitudes.Level(gD, us, p) == AttitudeLevel.Furious)
 					|| !(AtWar(them, p) || Attitudes.Level(gD, them, p) is AttitudeLevel.Annoyed or AttitudeLevel.Furious)
 					|| Pacts.ProblemSigningTradeEmbargo(gD, us, them, p) != null) {

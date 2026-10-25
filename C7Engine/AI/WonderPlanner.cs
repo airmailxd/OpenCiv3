@@ -97,7 +97,7 @@ namespace C7Engine.AI {
 						return true;
 					}
 				}
-				if (other.isBarbarians) {
+				if (other.IsIndependent) {
 					continue;
 				}
 				foreach (City c in other.cities) {
@@ -291,7 +291,7 @@ namespace C7Engine.AI {
 		// About how many techs the Great Library would give: those two civs
 		// we know have and we don't, plus a few more over the coming turns.
 		private static int GreatLibraryTechs(Player player, GameData gameData) {
-			List<Player> contacts = gameData.players.Where(p => p != player && !p.isBarbarians && !p.defeated
+			List<Player> contacts = gameData.players.Where(p => p != player && !p.IsIndependent && !p.defeated
 				&& player.playerRelationships.ContainsKey(p.id)).ToList();
 			if (contacts.Count < 2) {
 				return 0;

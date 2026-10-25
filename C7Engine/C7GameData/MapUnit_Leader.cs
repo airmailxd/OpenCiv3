@@ -42,7 +42,7 @@ public partial class MapUnit {
 	internal bool CouldProduceLeaderBeating(MapUnit opponent, bool wasElite) {
 		if (!wasElite || hasProducedLeader || IsInArmy() || IsArmy() || !IsLandUnit())
 			return false;
-		if (owner == null || owner.isBarbarians || opponent?.owner == null || opponent.owner.isBarbarians)
+		if (owner == null || owner.IsIndependent || opponent?.owner == null || opponent.owner.IsIndependent)
 			return false;
 		if (LeaderPrototype() == null)
 			return false;

@@ -39,7 +39,7 @@ public static class VictoryPoints {
 	public const int DefaultLocationPoints = 25;
 
 	private static void Add(Player player, long points) {
-		if (player == null || player.isBarbarians || points <= 0) {
+		if (player == null || player.IsIndependent || points <= 0) {
 			return;
 		}
 		player.victoryPoints = (int)System.Math.Min(int.MaxValue, player.victoryPoints + points);
@@ -100,7 +100,7 @@ public static class VictoryPoints {
 	public static int TopRivalPoints(Player player, GameData gameData) {
 		int top = 0;
 		foreach (Player p in gameData.players) {
-			if (p != player && !p.isBarbarians && !p.defeated) {
+			if (p != player && !p.IsIndependent && !p.defeated) {
 				top = System.Math.Max(top, p.victoryPoints);
 			}
 		}

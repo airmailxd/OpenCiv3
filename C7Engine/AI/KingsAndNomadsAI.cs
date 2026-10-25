@@ -60,7 +60,7 @@ namespace C7Engine.AI {
 
 		// Whether the player's AI plays by this file.
 		public static bool PlaysFor(Player player) {
-			return player != null && !player.isHuman && !player.isBarbarians && IsActive(EngineStorage.gameData);
+			return player != null && !player.isHuman && !player.IsIndependent && IsActive(EngineStorage.gameData);
 		}
 
 		// Whether the barbarian unit is part of an independent city's
@@ -70,7 +70,7 @@ namespace C7Engine.AI {
 		// three turns, so that the first horde to arrive walked in (owner's
 		// design: they are "walled, garrisoned").
 		public static bool HoldsCityState(Player player, MapUnit unit) {
-			return player.isBarbarians && IsActive(EngineStorage.gameData) && unit.location.cityAtTile?.owner == player
+			return player.isCityStates && IsActive(EngineStorage.gameData) && unit.location.cityAtTile?.owner == player
 				&& unit.IsLandUnit() && unit.CanDefendOnLand();
 		}
 
@@ -168,7 +168,7 @@ namespace C7Engine.AI {
 		}
 
 		private static bool AtWarWith(Player player, Player other) {
-			return other.isBarbarians || (player.playerRelationships.TryGetValue(other.id, out PlayerRelationship r) && r.AtWar());
+			return other.IsIndependent || (player.playerRelationships.TryGetValue(other.id, out PlayerRelationship r) && r.AtWar());
 		}
 
 		// The player's King, or null.
@@ -542,7 +542,7 @@ namespace C7Engine.AI {
 			MapUnit king = null;
 			double kingScore = 0;
 			foreach (Player p in gameData.players) {
-				if (p == player || p.isBarbarians || p.defeated) {
+				if (p == player || p.IsIndependent || p.defeated) {
 					continue;
 				}
 				MapUnit k = KingOf(p);
@@ -609,7 +609,7 @@ namespace C7Engine.AI {
 		// cities on Pangaea, where rivals took the spared city-states.
 		internal static HashSet<City> SparedPartners(Player player, GameData gameData) {
 			return gameData.GetTradeNetwork().ConnectedCityStates(player)
-				.Where(c => !gameData.players.Any(p => p != player && !p.isBarbarians && !p.defeated
+				.Where(c => !gameData.players.Any(p => p != player && !p.IsIndependent && !p.defeated
 					&& p.cities.Any(o => o.location.DistanceTo(c.location) <= SpareRivalDistance)))
 				.ToHashSet();
 		}
@@ -623,7 +623,7 @@ namespace C7Engine.AI {
 			City nearest = null;
 			foreach (City c in gameData.cities) {
 				Player owner = c.owner;
-				if (owner == player || owner.isBarbarians || owner.defeated || c.location.continent != from.continent
+				if (owner == player || owner.IsIndependent || owner.defeated || c.location.continent != from.continent
 						|| !AIFogOfWar.KnowsTile(player, c.location) || AtWarWith(player, owner)
 						|| !player.playerRelationships.ContainsKey(owner.id) || gameData.AreInLockedPeace(player, owner)) {
 					continue;
@@ -1409,7 +1409,7 @@ namespace C7Engine.AI {
 			}
 			int nearest = SafeDistance;
 			foreach (City other in EngineStorage.gameData.cities) {
-				if (other.owner != player && !other.owner.isBarbarians) {
+				if (other.owner != player && !other.owner.IsIndependent) {
 					nearest = Math.Min(nearest, other.location.DistanceTo(city.location));
 				}
 			}

@@ -164,7 +164,7 @@ namespace C7Engine.AI {
 		// and right of passage, military alliances and permanent alliances
 		// let units in.
 		private static bool MustStayOutOf(Player them, Player us, GameData gameData) {
-			if (them == us || them.isBarbarians || them.defeated || !them.isIncludedInGame) {
+			if (them == us || them.IsIndependent || them.defeated || !them.isIncludedInGame) {
 				return false;
 			}
 			if (!TryGetRelationship(us, them, out PlayerRelationship relationship) || relationship.AtWar()) {

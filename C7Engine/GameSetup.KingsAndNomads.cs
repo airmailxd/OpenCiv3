@@ -65,6 +65,40 @@ public partial class GameSetup {
 		save.VictoryConditions.AllowEmpireVictory = true;
 	}
 
+	// The city-states' own player, of a civilization made for it, in the
+	// barbarians' colours (owner's ruling, 2026-10-25: the city-states are
+	// not barbarians). It meets no one, is at war with every civ, and never
+	// wins or falls (see Player.IsIndependent).
+	private SavePlayer AddCityStatesPlayer(SaveGame save) {
+		Civilization barbarians = save.Civilizations.Find(c => c.isBarbarian);
+		Civilization civ = save.Civilizations.Find(c => c.isCityStates);
+		if (civ == null) {
+			civ = CityStatesCivilization(barbarians);
+			save.Civilizations.Add(civ);
+		}
+		return AddPlayer(save, civ, isHuman: false, idKey: "CityStates");
+	}
+
+	public const string CityStatesName = "City-States";
+
+	internal static Civilization CityStatesCivilization(Civilization barbarians) {
+		Civilization civ = new(CityStatesName) {
+			noun = CityStatesName,
+			adjective = "Independent",
+			leader = "The Free Cities",
+			leaderTitle = barbarians?.leaderTitle,
+			isCityStates = true,
+			primaryColorIndex = barbarians?.primaryColorIndex ?? 0,
+			secondaryColorIndex = barbarians?.secondaryColorIndex ?? 0,
+			cultureGroupKey = barbarians?.cultureGroupKey,
+		};
+		// A loaded game's civilizations have their culture group, not its key.
+		if (barbarians?.cultureGroup != null) {
+			civ.SetCultureGroup(barbarians.cultureGroup.index, barbarians.cultureGroup.name);
+		}
+		return civ;
+	}
+
 	// A civ's horde, on its start; its King comes with Regicide. The civ is
 	// a Monarchy.
 	private void AddKingsHorde(SaveGame save, SavePlayer player, TileLocation location) {
@@ -120,7 +154,7 @@ public partial class GameSetup {
 			civsOn[continent]++;
 		}
 
-		SavePlayer independents = save.Players.Find(p => p.isBarbarian);
+		SavePlayer independents = AddCityStatesPlayer(save);
 		// The city-states: first those on each civ's landmass, up to
 		// CityStatesPerCiv for each civ there, then anywhere else on those
 		// landmasses, then overseas, never too near a start.
@@ -137,7 +171,7 @@ public partial class GameSetup {
 			.Take(Math.Max(0, wanted - cityStates.Count)));
 		// Named for the capitals of the civilizations not in the game.
 		Queue<string> names = new(save.Civilizations
-			.Where(c => !c.isBarbarian && !taken.Contains(c.name) && c.cityNames.Count > 0)
+			.Where(c => !c.IsIndependent && !taken.Contains(c.name) && c.cityNames.Count > 0)
 			.OrderBy(_ => rand.Next())
 			.Select(c => c.cityNames[0]));
 		for (int i = 0; i < cityStates.Count && independents != null; i++) {

@@ -20,7 +20,7 @@ namespace C7Engine.AI {
 		private const int TheftChancePercent = 25;
 
 		public static void PlayTurn(Player player, GameData gameData) {
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 				return;
 			}
 			foreach (Player other in gameData.players.ToList()) {

@@ -316,7 +316,7 @@ namespace C7GameData {
 		// every city the game has is.
 		public static List<City> TopCities(GameData gameData, int count = 5) {
 			return gameData.cities
-				.Where(c => c.owner != null && !c.owner.isBarbarians)
+				.Where(c => c.owner != null && !c.owner.IsIndependent)
 				.OrderByDescending(c => c.GetCultureFor(c.owner))
 				.ThenByDescending(c => c.residents.Count)
 				.ThenBy(c => c.name, StringComparer.Ordinal)

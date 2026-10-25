@@ -115,7 +115,7 @@ namespace C7Engine.AI {
 			int rank = gameData.rules?.MaxRankOfWorkableTiles ?? 2;
 			AStarAlgorithm algorithm = new(unit) {
 				StepPenalty = t => (t.IsRoaded() || t.HasCity() ? 0 : RoadlessStepCost)
-					+ (t.OwningPlayer() is Player owner && owner != player && !owner.isBarbarians ? ForeignStepCost : 0),
+					+ (t.OwningPlayer() is Player owner && owner != player && !owner.IsIndependent ? ForeignStepCost : 0),
 			};
 			double maxCost = 3 * MaxDistance * (1 + RoadlessStepCost);
 
@@ -143,7 +143,7 @@ namespace C7Engine.AI {
 					}
 					// A road on another civ's land could be cut, and one in
 					// the land of a civ we're at war with can't be built.
-					if ((t.OwningPlayer() is Player owner && owner != player && !owner.isBarbarians) || AIThreat.IsHostileTerritory(player, t)) {
+					if ((t.OwningPlayer() is Player owner && owner != player && !owner.IsIndependent) || AIThreat.IsHostileTerritory(player, t)) {
 						blocked = true;
 						break;
 					}

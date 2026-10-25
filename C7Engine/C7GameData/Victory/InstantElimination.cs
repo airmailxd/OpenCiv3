@@ -71,7 +71,7 @@ public static class InstantElimination {
 	// that has lost no King, as when the rules have no King units, isn't
 	// eliminated by Regicide.
 	public static bool IsEliminated(Player player, VictoryConditions conditions) {
-		if (player.isBarbarians || conditions == null) {
+		if (player.IsIndependent || conditions == null) {
 			return false;
 		}
 		if (conditions.Regicide && player.kingsLost > 0) {
@@ -105,7 +105,7 @@ public static class InstantElimination {
 	// cities that flip, are traded away or are abandoned don't. Cities taken
 	// by barbarians count.
 	public static void OnCityLost(Player owner, Player captor) {
-		if (owner != captor && !owner.isBarbarians) {
+		if (owner != captor && !owner.IsIndependent) {
 			++owner.citiesLost;
 		}
 	}

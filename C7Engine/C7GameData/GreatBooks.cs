@@ -88,7 +88,7 @@ namespace C7GameData {
 			}
 			// UNVERIFIED with several humans: Civ3 asks the era of the human
 			// whose turn it is; the first human still playing is asked here.
-			Player reader = gameData.players.FirstOrDefault(p => p.isHuman && !p.defeated && !p.isBarbarians);
+			Player reader = gameData.players.FirstOrDefault(p => p.isHuman && !p.defeated && !p.IsIndependent);
 			if (reader == null || year - last < YearsBetweenBooks(reader.EraIndex())) {
 				return null;
 			}
@@ -122,7 +122,7 @@ namespace C7GameData {
 		// RankCount of them. Ties keep the players' order.
 		public static List<Player> Rank(GameData gameData, Title title) {
 			return gameData.players
-				.Where(p => !p.isBarbarians && !p.defeated)
+				.Where(p => !p.IsIndependent && !p.defeated)
 				.OrderByDescending(p => ValueOf(gameData, p, title))
 				.Take(RankCount)
 				.ToList();

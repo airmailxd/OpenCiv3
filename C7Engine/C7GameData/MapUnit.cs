@@ -607,15 +607,15 @@ namespace C7GameData {
 		// modifiers do, so that it bites whatever bonuses the unit has (an
 		// AI has +200% against barbarians, see DifficultyBonusAgainst).
 		internal double BrethrenFactorAgainst(MapUnit opponent, CombatRole role) {
-			if ((role != CombatRole.Attack && role != CombatRole.Defense) || owner == null || owner.isBarbarians
-				|| owner.cityStatesCaptured <= 0 || opponent?.owner?.isBarbarians != true || !CityStateTrade.IsOn(EngineStorage.gameData)) {
+			if ((role != CombatRole.Attack && role != CombatRole.Defense) || owner == null || owner.IsIndependent
+				|| owner.cityStatesCaptured <= 0 || opponent?.owner?.isCityStates != true || !CityStateTrade.IsOn(EngineStorage.gameData)) {
 				return 1;
 			}
 			return Math.Pow(CityStates.BrethrenStrengthPerCapture, owner.cityStatesCaptured);
 		}
 
 		private bool HoldsItsCityState(CombatRole role) {
-			return (role == CombatRole.Attack || role == CombatRole.Defense) && owner?.isBarbarians == true
+			return (role == CombatRole.Attack || role == CombatRole.Defense) && owner?.isCityStates == true
 				&& Tile.IsTileValid(location) && location.cityAtTile?.owner == owner && CityStateTrade.IsOn(EngineStorage.gameData);
 		}
 
@@ -933,7 +933,7 @@ namespace C7GameData {
 		// on the winner's tile, and none is made if it couldn't stand there
 		// (a land unit at sea).
 		public MapUnit RollToEnslave(MapUnit opponent) {
-			if (unitType.enslavesTo == null || owner.isBarbarians) {
+			if (unitType.enslavesTo == null || owner.IsIndependent) {
 				return null;
 			}
 			GameData gameData = EngineStorage.gameData;

@@ -241,7 +241,7 @@ public partial class MapUnit {
 		Tile battle = worker.location;
 		City city = winner.cities.OrderBy(c => c.location.DistanceTo(battle)).FirstOrDefault();
 		UnitPrototype slaveType = CityInteractions.SlaveWorkerType(gameData);
-		if (city == null || slaveType == null || winner.isBarbarians) {
+		if (city == null || slaveType == null || winner.IsIndependent) {
 			return;
 		}
 		MapUnit slave = gameData.SpawnUnit(winner, slaveType, city.location);
@@ -695,7 +695,7 @@ public partial class MapUnit {
 			}
 			enemy.owner.AddWarWeariness(owner, Player.WarWearinessForLostUnitWithoutDefence);
 			C7Engine.AI.AiExperiments.onUnitTaken?.Invoke(enemy, owner);
-			if (owner.isBarbarians) {
+			if (owner.IsIndependent) {
 				gameData.RemoveUnit(enemy);
 			} else if (enemy.unitType.isSettler) {
 				gameData.CaptureSettler(enemy, owner);
@@ -1055,7 +1055,7 @@ public partial class MapUnit {
 
 
 			// A unique unit beating another civ (not barbarians) starts a golden age.
-			if (survivingMember.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
+			if (survivingMember.unitType.startsGoldenAge && !dead.owner.IsIndependent) {
 				alive.owner.StartGoldenAge(EngineStorage.gameData, $"Our {survivingMember.unitType.name} has won a great victory.");
 			}
 			await PauseOnCombatResult(dead, alive);

@@ -22,7 +22,7 @@ namespace C7Engine.AI {
 		// units drafted.
 		public static List<MapUnit> PlayTurn(Player player, GameData gameData) {
 			List<MapUnit> drafted = new();
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0
 				|| !player.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesConscription)) {
 				return drafted;
 			}

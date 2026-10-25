@@ -144,7 +144,7 @@ public partial class GameSetup {
 		}
 		foreach (SavePlayer player in save.Players.ToList()) {
 			Civilization civ = save.Civilizations.Find(c => c.name == player.civilization);
-			if (player.isBarbarian || civ == null || civ.isBarbarian || !player.isIncludedInGame) {
+			if (player.IsIndependent || civ == null || civ.IsIndependent || !player.isIncludedInGame) {
 				continue;
 			}
 			if (save.Units.Any(u => u.owner == player.id && save.UnitPrototypes.Any(p => p.name == u.prototype && p.flags.Contains(SaveUnitPrototype.Flag.King)))) {
@@ -381,7 +381,7 @@ public partial class GameSetup {
 				break;
 			}
 			List<Civilization> others = save.Civilizations.Skip(1)
-				.Where(c => !c.isBarbarian && !taken.Contains(c.name) && !IsSeafaring(c)).ToList();
+				.Where(c => !c.IsIndependent && !taken.Contains(c.name) && !IsSeafaring(c)).ToList();
 			if (others.Count == 0) {
 				break;
 			}
@@ -465,12 +465,16 @@ public partial class GameSetup {
 		}
 	}
 
-	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null, SaveTile startingTile = null) {
+	// idKey names the player's ID: Kings & Nomads' city-states have their
+	// own, so that the civs' player IDs are as GameSetup.HumanPlayerIDs
+	// says.
+	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null, SaveTile startingTile = null, string idKey = "Player") {
 		SavePlayer player = new() {
 			isBarbarian = civ.isBarbarian,
+			isCityStates = civ.isCityStates,
 			human = isHuman,
 			name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
-			id = ids.CreateID("Player"),
+			id = ids.CreateID(idKey),
 			primaryColorIndex = civ.primaryColorIndex,
 			secondaryColorIndex = civ.secondaryColorIndex,
 			civilization = civ.name,
@@ -481,7 +485,7 @@ public partial class GameSetup {
 		};
 		save.Players.Add(player);
 
-		if (civ.isBarbarian) {
+		if (civ.IsIndependent) {
 			player.canBePicked = false;
 			return player;
 		}

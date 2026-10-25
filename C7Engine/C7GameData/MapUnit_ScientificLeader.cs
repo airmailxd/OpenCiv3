@@ -76,7 +76,7 @@ public partial class MapUnit {
 	// capital, or failing that the player's first city; a player with no
 	// city gets none. Returns the leader, or null.
 	internal static MapUnit RollForScientificLeader(GameData gameData, Player player, Tech tech) {
-		if (gameData.rules?.ScientificLeaders == false || player.isBarbarians) {
+		if (gameData.rules?.ScientificLeaders == false || player.IsIndependent) {
 			return null;
 		}
 		UnitPrototype proto = LeaderPrototype();

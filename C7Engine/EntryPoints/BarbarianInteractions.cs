@@ -46,7 +46,7 @@ public class BarbarianInteractions {
 	// Removes the barbarian camp on the tile, if any, and pays the player who
 	// dispersed it. Returns whether there was a camp to disperse.
 	public static bool DisperseCamp(GameData gameData, Tile tile, Player player) {
-		if (!tile.hasBarbarianCamp || player.isBarbarians) {
+		if (!tile.hasBarbarianCamp || player.IsIndependent) {
 			return false;
 		}
 		gameData.map.barbarianCamps.Remove(tile);
@@ -128,7 +128,7 @@ public class BarbarianInteractions {
 	public static int CivsInEra(GameData gameData, int eraIndex) {
 		int count = 0;
 		foreach (Player player in gameData.players) {
-			if (!player.isBarbarians && !player.defeated && player.isIncludedInGame && player.EraIndex() >= eraIndex) {
+			if (!player.IsIndependent && !player.defeated && player.isIncludedInGame && player.EraIndex() >= eraIndex) {
 				++count;
 			}
 		}
@@ -182,7 +182,7 @@ public class BarbarianInteractions {
 
 			City nearest = null;
 			foreach (Player player in gameData.players) {
-				if (player.isBarbarians) {
+				if (player.IsIndependent) {
 					continue;
 				}
 				foreach (City city in player.cities) {
@@ -244,7 +244,7 @@ public class BarbarianInteractions {
 	public static int NumPlayers(GameData gameData) {
 		int count = 0;
 		foreach (Player player in gameData.players) {
-			if (!player.isBarbarians && !player.defeated && player.isIncludedInGame) {
+			if (!player.IsIndependent && !player.defeated && player.isIncludedInGame) {
 				++count;
 			}
 		}
@@ -261,7 +261,7 @@ public class BarbarianInteractions {
 	public static bool CampsMayAppear(GameData gameData) {
 		int cities = 0;
 		foreach (Player player in gameData.players) {
-			if (player.isBarbarians || player.defeated || !player.isIncludedInGame) {
+			if (player.IsIndependent || player.defeated || !player.isIncludedInGame) {
 				continue;
 			}
 			if (player.cities.Count == 0) {
@@ -345,7 +345,7 @@ public class BarbarianInteractions {
 	// cities and goody huts, that no civ can see, which meet the terrain and
 	// spacing rules of the camps placed with the map.
 	public static List<Tile> PossibleNewCampSites(GameData gameData) {
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
 		foreach (Player civ in civs) {
 			civ.tileKnowledge.RecomputeActiveTiles();
 		}
@@ -423,7 +423,7 @@ public class BarbarianInteractions {
 	public static float SettledCivShare(GameData gameData) {
 		int civs = 0, settled = 0;
 		foreach (Player player in gameData.players) {
-			if (player.isBarbarians || player.defeated || !player.isIncludedInGame) {
+			if (player.IsIndependent || player.defeated || !player.isIncludedInGame) {
 				continue;
 			}
 			++civs;
@@ -475,7 +475,7 @@ public class BarbarianInteractions {
 		int cities = 0;
 		foreach (Player player in gameData.players) {
 			cities += player.cities.Count;
-			if (!player.isBarbarians && !player.defeated && player.isIncludedInGame) {
+			if (!player.IsIndependent && !player.defeated && player.isIncludedInGame) {
 				++civs;
 			}
 		}

@@ -43,7 +43,7 @@ namespace C7Engine.AI.UnitAI {
 
 		// Whether the player's armies are played by ArmyAI: an AI's are.
 		public static bool IsEnabled(Player player) {
-			return !player.isHuman && !player.isBarbarians;
+			return !player.isHuman && !player.IsIndependent;
 		}
 
 		// Whether a leader in one of our cities should form an army there

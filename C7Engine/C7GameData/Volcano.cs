@@ -67,7 +67,7 @@ namespace C7Engine {
 		public static bool IsMultiplayer(GameData gameData) {
 			int humans = 0;
 			foreach (Player player in gameData.players) {
-				if (player.isHuman && !player.isBarbarians && ++humans > 1) {
+				if (player.isHuman && !player.IsIndependent && ++humans > 1) {
 					return true;
 				}
 			}

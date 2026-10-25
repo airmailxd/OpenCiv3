@@ -226,7 +226,7 @@ public partial class Scoreboard : PanelContainer {
 		}
 		SpectatorViews allowed = client.AllowedSpectatorViews;
 		SpectatorViewInfo current = client.SpectatorView;
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
 		string summary = $"{allowed}|{current}|{string.Join(",", civs.Select(p => p.id.ToString()))}";
 		if (summary == shownViewChoices) {
 			return;
@@ -330,7 +330,7 @@ public partial class Scoreboard : PanelContainer {
 		// can be several players at once.
 		HashSet<ID> moving = clock?.playersToMove?.ToHashSet() ?? (activeID == null ? [] : [activeID]);
 		return gameData.players
-			.Where(p => !p.isBarbarians && !p.defeated)
+			.Where(p => !p.IsIndependent && !p.defeated)
 			.Select(p => (player: p, score: ScoreOf(gameData, p)))
 			.OrderByDescending(ps => ps.score)
 			.Select((ps, i) => new Row(

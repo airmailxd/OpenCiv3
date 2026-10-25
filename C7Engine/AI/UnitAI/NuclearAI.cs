@@ -18,7 +18,7 @@ namespace C7Engine {
 			Tile best = null;
 			int bestValue = MinTargetValue - 1;
 			foreach (Player enemy in gameData.players) {
-				if (enemy == player || enemy.defeated || enemy.isBarbarians || !AtWar(player, enemy)) {
+				if (enemy == player || enemy.defeated || enemy.IsIndependent || !AtWar(player, enemy)) {
 					continue;
 				}
 				foreach (City city in enemy.cities) {

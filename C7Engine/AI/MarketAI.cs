@@ -260,7 +260,7 @@ namespace C7Engine.AI {
 			// rivals' treasuries (owner's ruling, 2026-10-23), so it guesses
 			// from what it can see, their cities.
 			int richestRival = gameData.players
-				.Where(o => o != player && !o.isBarbarians && !o.defeated && o.cities.Count > 0)
+				.Where(o => o != player && !o.IsIndependent && !o.defeated && o.cities.Count > 0)
 				.Select(o => EstimatedGold(player, o)).DefaultIfEmpty(0).Max();
 
 			int spent = 0, addedUpkeep = 0;
@@ -356,7 +356,7 @@ namespace C7Engine.AI {
 		// tells it prices are low. Units it didn't bid on that someone else
 		// won tell it nothing it can use, as no one is told the price.
 		public static void Learn(GameData gameData, StagingState state, List<MarketResult> results) {
-			foreach (Player player in gameData.players.Where(p => !p.isHuman && !p.isBarbarians)) {
+			foreach (Player player in gameData.players.Where(p => !p.isHuman && !p.IsIndependent)) {
 				if (!state.bids.TryGetValue(player.id.ToString(), out List<int> bids)) {
 					continue;
 				}

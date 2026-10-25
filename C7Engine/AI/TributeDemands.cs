@@ -66,7 +66,7 @@ namespace C7Engine.AI {
 		public const int MIN_GOLD_DEMANDED = 20;
 
 		public static async Task MakeDemands(Player us, GameData gameData) {
-			if (us.isHuman || us.isBarbarians || us.defeated || us.cities.Count == 0) {
+			if (us.isHuman || us.IsIndependent || us.defeated || us.cities.Count == 0) {
 				return;
 			}
 			foreach (Player them in gameData.players.ToList()) {

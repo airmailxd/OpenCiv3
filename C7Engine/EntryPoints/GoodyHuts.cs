@@ -140,7 +140,7 @@ public static class GoodyHuts {
 	// one and the unit may. Returns what was found, or null if nothing
 	// happened.
 	public static Outcome? Enter(GameData gameData, MapUnit unit, Tile tile) {
-		if (!tile.hasGoodyHut || unit.owner.isBarbarians || !unit.IsLandUnit()) {
+		if (!tile.hasGoodyHut || unit.owner.IsIndependent || !unit.IsLandUnit()) {
 			return null;
 		}
 		log.Information("{Player}'s {Unit} entered a goody hut at {Tile}", unit.owner, unit, tile);
@@ -153,7 +153,7 @@ public static class GoodyHuts {
 	// Civ3: owner's decision, 2026-10-12, "Planting a city next to a
 	// goody hut should pop it for a reward, with no chance of barbarians".
 	public static void OpenNextToNewCity(GameData gameData, City city) {
-		if (city.owner.isBarbarians) {
+		if (city.owner.IsIndependent) {
 			return;
 		}
 		foreach (Tile tile in city.location.neighbors.Values) {
@@ -171,7 +171,7 @@ public static class GoodyHuts {
 	// http://www.civforum.de/showthread.php?t=66671). As with a city
 	// founded next to one, no barbarians come out (no unit opened it).
 	public static void OpenWithinBorders(GameData gameData, City city) {
-		if (city.owner == null || city.owner.isBarbarians) {
+		if (city.owner == null || city.owner.IsIndependent) {
 			return;
 		}
 		foreach (Tile tile in city.GetTilesWithinBorders()) {
@@ -226,7 +226,7 @@ public static class GoodyHuts {
 		level = Math.Clamp(level, 0, LevelCount - 1);
 		bool expansionist = player.civilization?.traits.Contains(Civilization.Trait.Expansionist) == true;
 		IReadOnlyDictionary<Outcome, double[]> odds = expansionist ? ExpansionistOdds : BaseOdds;
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
 
 		// Settlers go only to civs with fewer cities than the average. Cities
 		// do too: UNVERIFIED, as the article gives no condition for a city

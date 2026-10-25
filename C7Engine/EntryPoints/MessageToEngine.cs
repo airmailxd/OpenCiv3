@@ -908,7 +908,7 @@ namespace C7Engine {
 			// An observed player whose turn began before observing, as the
 			// first turn of a game watched from the start does, has the AI
 			// play it now rather than miss it.
-			if (EngineStorage.gameData.observerMode && !controller.isHuman && !controller.isBarbarians
+			if (EngineStorage.gameData.observerMode && !controller.isHuman && !controller.IsIndependent
 				&& TurnHandling.aiPlayedPausedTurn != controller.id) {
 				await PlayerAI.PlayTurn(controller, EngineStorage.gameData);
 			}
@@ -1093,7 +1093,7 @@ namespace C7Engine {
 			// UNVERIFIED (no Civ3 source found): that a civ must have met
 			// the other to declare war on it.
 			if (opponent == null || opponent == us || gameData.GetPlayer(opponent.id) != opponent
-				|| opponent.isBarbarians || opponent.defeated
+				|| opponent.IsIndependent || opponent.defeated
 				|| !PlayerRelationship.TryGetRelationship(us, opponent, out _)
 				|| PlayerRelationship.AtWar(us, opponent) || gameData.AreInLockedPeace(us, opponent)) {
 				Log.Warning("{Player} can't declare war on {Opponent}", us, opponent);

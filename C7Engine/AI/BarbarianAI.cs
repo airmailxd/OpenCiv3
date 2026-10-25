@@ -24,10 +24,6 @@ namespace C7Engine {
 				throw new Exception("Barbarian AI can only play barbarian players");
 			}
 
-			// Kings & Nomads' city-states strike the enemies next to them,
-			// whatever the barbarians' activity.
-			await CityStateDefenseAI.PlayTurn(player, gameData);
-
 			if (gameData.barbarianInfo.barbarianActivity == BarbarianActivity.None)
 				return;
 

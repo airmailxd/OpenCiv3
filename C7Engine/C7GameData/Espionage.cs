@@ -482,7 +482,7 @@ namespace C7Engine {
 			if (!Enum.IsDefined(mission)) {
 				return "There is no such mission.";
 			}
-			if (actor == null || target == null || actor == target || target.isBarbarians || target.defeated) {
+			if (actor == null || target == null || actor == target || target.IsIndependent || target.defeated) {
 				return "There is no one to send a mission to.";
 			}
 			if (!PlayerRelationship.TryGetRelationship(actor, target, out PlayerRelationship pr)) {

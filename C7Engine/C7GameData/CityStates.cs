@@ -71,7 +71,7 @@ namespace C7Engine {
 			if (!CityStateTrade.IsOn(gameData) || gameData.turn <= 0) {
 				return;
 			}
-			Player independents = gameData.players.Find(p => p.isBarbarians);
+			Player independents = gameData.players.Find(p => p.isCityStates);
 			if (independents == null) {
 				return;
 			}
@@ -159,7 +159,7 @@ namespace C7Engine {
 
 		// The civ that knows the most advances.
 		private static Player MostAdvanced(GameData gameData) {
-			return gameData.players.Where(p => !p.isBarbarians && !p.defeated).MaxBy(p => p.knownTechs.Count);
+			return gameData.players.Where(p => !p.IsIndependent && !p.defeated).MaxBy(p => p.knownTechs.Count);
 		}
 
 		// The common units (not unique ones) of the role the most advanced
@@ -167,12 +167,12 @@ namespace C7Engine {
 		// city-state is given.
 		private static IEnumerable<UnitPrototype> Available(GameData gameData, City cityState) {
 			Player leader = MostAdvanced(gameData);
-			int civilizations = gameData.civilizations.Count(c => !c.isBarbarian);
+			int civilizations = gameData.civilizations.Count(c => !c.IsIndependent);
 			HashSet<Resource> resources = cityState == null ? null : Resources(cityState);
 			return gameData.unitPrototypes
 				.Where(u => u.IsLandUnit() && !u.unproducible && (u.attack > 0 || u.defense > 0 || u.bombard > 0)
 					&& !u.isWorker && !u.isSettler && !u.isKing && !u.isLeader && !u.isArmy
-					&& u.producibleBy.Count(c => !c.isBarbarian) * 2 > civilizations
+					&& u.producibleBy.Count(c => !c.IsIndependent) * 2 > civilizations
 					&& (u.requiredTech == null || leader?.knownTechs.Contains(u.requiredTech.id) == true)
 					&& (resources == null || u.requiredResources.All(resources.Contains)));
 		}

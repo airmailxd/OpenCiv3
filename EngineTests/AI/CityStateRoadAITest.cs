@@ -59,13 +59,13 @@ public sealed class CityStateRoadAITest : IClassFixture<SaveGameFixture>, IDispo
 			EngineStorage.InitializeGameDataForTests(gameData);
 			EngineStorage.animationsEnabled = false;
 			EngineStorage.aiFogOfWar = false;
-			foreach (Player p in gameData.players.Where(p => !p.isBarbarians)) {
+			foreach (Player p in gameData.players.Where(p => !p.IsIndependent)) {
 				p.isHuman = false;
 			}
-			Player independents = gameData.players.Single(p => p.isBarbarians);
+			Player independents = gameData.players.Single(p => p.isCityStates);
 			foreach (City cityState in independents.cities) {
 				Tile cs = cityState.location;
-				Player civ = gameData.players.Where(p => !p.isBarbarians)
+				Player civ = gameData.players.Where(p => !p.IsIndependent)
 					.FirstOrDefault(p => p.units.All(u => u.location.DistanceTo(cs) > 8));
 				if (civ == null || cs.GetTilesWithinRankDistance(6).Any(t => t != Tile.NONE && t != cs && (t.HasCity() || t.unitsOnTile.Count > 0))) {
 					continue;
@@ -106,7 +106,7 @@ public sealed class CityStateRoadAITest : IClassFixture<SaveGameFixture>, IDispo
 
 		C7GameData.GameData ordinary = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(ordinary);
-		Player ai = ordinary.players.First(p => !p.isBarbarians && !p.isHuman);
+		Player ai = ordinary.players.First(p => !p.IsIndependent && !p.isHuman);
 		Assert.False(CityStateRoadAI.IsOn(ai));
 		MapUnit worker = ai.units.FirstOrDefault(u => u.unitType.isWorker) ?? ai.units.First(u => u.IsLandUnit());
 		Assert.Empty(CityStateRoadAI.ComputeRoadTiles(ai, worker));
@@ -208,20 +208,21 @@ public sealed class CityStateRoadAITest : IClassFixture<SaveGameFixture>, IDispo
 		Assert.Equal(w.worker.location, escort.location);
 	}
 
-	// A city-state's garrison stays in its city: it doesn't attack an
-	// escorted worker next to it.
+	// A city-state's defenders stay in its city: they don't go after an
+	// escorted worker next to it (its attackers may strike, see
+	// CityStateDefenseAI).
 	[Fact]
 	public async Task TheGarrisonLeavesAnEscortedWorkerAlone() {
 		World w = NewWorld();
 		Tile next = w.cityState.location.neighbors.Values.First(t => t != Tile.NONE && IsOpenLand(t));
-		MapUnit spearman = w.gameData.SpawnUnit(w.civ, Prototype(w.gameData, "Spearman"), next);
+		w.gameData.SpawnUnit(w.civ, Prototype(w.gameData, "Spearman"), next);
 		MapUnit worker = w.gameData.SpawnUnit(w.civ, Prototype(w.gameData, "Worker"), next);
-		Player independents = w.gameData.players.Single(p => p.isBarbarians);
-		int garrison = w.cityState.location.unitsOnTile.Count(u => u.owner == independents);
+		Player independents = w.gameData.players.Single(p => p.isCityStates);
+		int Defenders() => w.cityState.location.unitsOnTile.Count(u => u.owner == independents && CityStates.RoleOf(u.unitType) == CityStates.Role.Defender);
+		int garrison = Defenders();
 
-		await BarbarianAI.PlayTurn(independents, w.gameData);
+		await CityStatesAI.PlayTurn(independents, w.gameData);
 		Assert.Same(w.civ, worker.owner);
-		Assert.Contains(spearman, w.civ.units);
-		Assert.Equal(garrison, w.cityState.location.unitsOnTile.Count(u => u.owner == independents));
+		Assert.Equal(garrison, Defenders());
 	}
 }

@@ -138,6 +138,11 @@ namespace C7GameData.Save {
 		// It's not meant to be saved in the json.
 		[JsonIgnore]
 		public bool isBarbarian { get; init; }
+		// The same for the city-states (see Civilization.isCityStates).
+		[JsonIgnore]
+		public bool isCityStates { get; init; }
+		[JsonIgnore]
+		public bool IsIndependent => isBarbarian || isCityStates;
 
 		public Player ToPlayer(GameMap map, List<Civilization> civilizations, List<Government> governments, List<Tech> techs, Rules rules, HashSet<Alliance> alliances,
 				List<TerrainImprovement> terrainImprovements) {
@@ -246,7 +251,7 @@ namespace C7GameData.Save {
 				player.AddTechItemToResearchQueue(tech);
 			}
 
-			if (player.civilization.isBarbarian) {
+			if (player.civilization.IsIndependent) {
 				player.canBePicked = false;
 			}
 
@@ -268,7 +273,7 @@ namespace C7GameData.Save {
 			id = player.id;
 			isIncludedInGame = player.isIncludedInGame;
 			canBePicked = player.canBePicked;
-			alliance = (player.isBarbarians || player.alliance == null) ? null : player.alliance.name;
+			alliance = (player.IsIndependent || player.alliance == null) ? null : player.alliance.name;
 			primaryColorIndex = player.primaryColorIndex;
 			secondaryColorIndex = player.secondaryColorIndex;
 			human = player.isHuman;

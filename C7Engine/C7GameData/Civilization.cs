@@ -85,6 +85,14 @@ namespace C7GameData {
 
 		public bool isBarbarian = false;
 
+		// Kings & Nomads' independent city-states, a player of their own,
+		// made at setup (see GameSetup.KingsAndNomads.cs).
+		public bool isCityStates = false;
+
+		// Not a civilization one plays: the barbarians or the city-states.
+		[System.Text.Json.Serialization.JsonIgnore]
+		public bool IsIndependent => isBarbarian || isCityStates;
+
 		// How aggressive the civ's AI is, from -2 (the least) to 2 (the
 		// most), as in Civ3's editor. It sets the AI's starting attitude (see
 		// Attitudes).

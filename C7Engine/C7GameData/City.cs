@@ -1928,7 +1928,7 @@ namespace C7GameData {
 		// resisters are moved to the end of residents, keeping their order.
 		public void StartResistance(Player formerOwner) {
 			EndResistance();
-			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
+			if (formerOwner == null || formerOwner.IsIndependent || formerOwner == owner) {
 				return;
 			}
 			// The city was the old owner's last.
@@ -2754,7 +2754,7 @@ namespace C7GameData {
 		// country that they come from",
 		// https://forums.civfanatics.com/threads/getting-rid-of-foreigners.10085/).
 		internal int MotherlandUnhappiness(GameData gameData) {
-			if (owner == null || owner.isBarbarians) {
+			if (owner == null || owner.IsIndependent) {
 				return 0;
 			}
 			Dictionary<Civilization, int> foreigners = null;
@@ -2770,7 +2770,7 @@ namespace C7GameData {
 			}
 			int unhappy = 0;
 			foreach (Player p in gameData.players) {
-				if (p == owner || p.isBarbarians || p.defeated || p.civilization == null
+				if (p == owner || p.IsIndependent || p.defeated || p.civilization == null
 					|| !foreigners.TryGetValue(p.civilization, out int count)
 					|| !PlayerRelationship.AtWar(owner, p)) {
 					continue;

@@ -234,7 +234,7 @@ namespace C7GameData {
 			terrains.AddRange(gameData.terrainTypes.Where(t => t != null && t != TerrainType.NONE));
 			improvements.AddRange(gameData.terrainImprovements.Where(i => i != null));
 
-			foreach (Civilization civ in gameData.civilizations.Where(c => c != null && !c.isBarbarian)) {
+			foreach (Civilization civ in gameData.civilizations.Where(c => c != null && !c.IsIndependent)) {
 				string key = civ.civilopediaEntry ?? FindArticleKey("RACE_", civ.noun, civ.name, civ.adjective);
 				Add(new CivilopediaEntry { Key = key, Name = civ.noun ?? civ.name, Section = CivilopediaSection.Civilizations, Civilization = civ }, civ);
 			}

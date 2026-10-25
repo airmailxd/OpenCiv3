@@ -38,7 +38,7 @@ namespace C7Engine.AI {
 		// Not in Kings & Nomads, whose horde takes cities its own way (see
 		// KingsAndNomadsAI): the two would fight over the same units.
 		public static bool Enabled(Player player) {
-			return !player.isHuman && !player.isBarbarians && !KingsAndNomadsAI.IsActive(EngineStorage.gameData);
+			return !player.isHuman && !player.IsIndependent && !KingsAndNomadsAI.IsActive(EngineStorage.gameData);
 		}
 
 		private enum Phase {
@@ -253,7 +253,7 @@ namespace C7Engine.AI {
 		}
 
 		private static bool CanDeclareWarOn(Player player, Player other) {
-			return player != other && !other.isBarbarians && !other.defeated
+			return player != other && !other.IsIndependent && !other.defeated
 				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
 				&& !EngineStorage.gameData.AreInLockedPeace(player, other);
 		}
@@ -396,7 +396,7 @@ namespace C7Engine.AI {
 			// Civ3's logic on AI war starting").
 			bool coolingDown = nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value;
 			foreach (Player p in gameData.players) {
-				if (coolingDown || p == player || p.isBarbarians || p.defeated || !AtWarWith(player, p)) {
+				if (coolingDown || p == player || p.IsIndependent || p.defeated || !AtWarWith(player, p)) {
 					continue;
 				}
 				City t = PickTarget(player, p, out float score);

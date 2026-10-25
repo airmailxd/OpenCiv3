@@ -92,7 +92,7 @@ namespace C7GameData.AIData {
 		// are at peace with, outside our alliance. Barbarians are always at
 		// war with everyone.
 		private static bool CanDeclareWarOn(Player player, Player other) {
-			return player != other && !other.isBarbarians && !other.defeated
+			return player != other && !other.IsIndependent && !other.defeated
 				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
 				&& !EngineStorage.gameData.AreInLockedPeace(player, other);
 		}

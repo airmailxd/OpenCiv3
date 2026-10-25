@@ -124,7 +124,7 @@ namespace C7Engine.AI {
 			if (!CanFightEachOther(us, them)) {
 				return false;
 			}
-			if (gameData.players.Any(p => p != us && p != them && !p.isBarbarians && !p.defeated && AtWar(us, p))) {
+			if (gameData.players.Any(p => p != us && p != them && !p.IsIndependent && !p.defeated && AtWar(us, p))) {
 				return false;
 			}
 			return us.CalculateMilitaryStrength() + extraStrength >= WinningStrengthRatio * StrengthWithPartners(gameData, them);
@@ -285,11 +285,11 @@ namespace C7Engine.AI {
 		// badly for us (or demands a city for it, if it's going very well).
 		// A human is shown the offer and may accept it on the deal screen.
 		public static async Task ProposePeace(Player us, GameData gameData) {
-			if (us.isHuman || us.isBarbarians) {
+			if (us.isHuman || us.IsIndependent) {
 				return;
 			}
 			foreach (Player them in gameData.players.ToList()) {
-				if (them == us || them.isBarbarians || them.defeated
+				if (them == us || them.IsIndependent || them.defeated
 					|| !TryGetRelationship(us, them, out PlayerRelationship ourView) || !ourView.AtWar()
 					|| gameData.AreInLockedWar(us, them)) {
 					continue;

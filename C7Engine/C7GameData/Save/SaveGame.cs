@@ -140,6 +140,7 @@ namespace C7GameData.Save {
 		}
 
 		public GameData ToGameData(BehaviorEngine behaviors) {
+			GiveCityStatesTheirOwnPlayer();
 			GameData data = InitializeGameData();
 
 			data.luaBehaviorEngine = behaviors;
@@ -197,7 +198,7 @@ namespace C7GameData.Save {
 
 		private void BeginHistory(GameData data) {
 			foreach (var player in data.players) {
-				if (!player.isBarbarians) {
+				if (!player.IsIndependent) {
 					if (!data.history.ContainsKey(player.id.ToString()))
 						data.history[player.id.ToString()] = new List<HistTurnRecord>();
 				}
@@ -324,6 +325,46 @@ namespace C7GameData.Save {
 				return new GameRandom(state);
 			}
 			return new GameRandom(GameRandom.InitialState(seed, TurnNumber));
+		}
+
+		// Kings & Nomads saves from before the city-states had a player of
+		// their own (2026-10-25) have them held by the barbarians: they go,
+		// with the units in them, to a City-States player made for them.
+		private void GiveCityStatesTheirOwnPlayer() {
+			if (Rules?.SettlersOnlyInConqueredCities != true || !Rules.FallenCitiesGoIndependent
+					|| Civilizations.Any(c => c.isCityStates)) {
+				return;
+			}
+			Civilization barbarianCiv = Civilizations.Find(c => c.isBarbarian);
+			SavePlayer barbarians = barbarianCiv == null ? null : Players.Find(p => p.civilization == barbarianCiv.name);
+			if (barbarians == null) {
+				return;
+			}
+			Civilization civ = C7Engine.GameSetup.CityStatesCivilization(barbarianCiv);
+			Civilizations.Add(civ);
+			SavePlayer cityStates = new() {
+				id = ID.FromString("CityStates-1"),
+				isCityStates = true,
+				civilization = civ.name,
+				primaryColorIndex = civ.primaryColorIndex,
+				secondaryColorIndex = civ.secondaryColorIndex,
+				canBePicked = false,
+				eraCivilopediaName = barbarians.eraCivilopediaName,
+				governmentId = barbarians.governmentId,
+				knownTechs = new HashSet<ID>(barbarians.knownTechs),
+			};
+			Players.Add(cityStates);
+			HashSet<(int, int)> held = new();
+			foreach (SaveCity city in Cities.Where(c => c.owner == barbarians.id)) {
+				city.owner = cityStates.id;
+				held.Add((city.location.X, city.location.Y));
+				if (city.perPlayerCulture.Remove(barbarians.id.ToString(), out int culture)) {
+					city.perPlayerCulture[cityStates.id.ToString()] = culture;
+				}
+			}
+			foreach (SaveUnit unit in Units.Where(u => u.owner == barbarians.id && held.Contains((u.currentLocation.X, u.currentLocation.Y)))) {
+				unit.owner = cityStates.id;
+			}
 		}
 
 		private GameData InitializeGameData() {
@@ -562,7 +603,7 @@ namespace C7GameData.Save {
 				// founded a city, is one that started that way, as some
 				// scenario civs do. (Any other civ in that state would have
 				// been destroyed when it lost its last city or settler.)
-				if (!player.isBarbarians && player.citiesFounded == 0 && player.cities.Count == 0
+				if (!player.IsIndependent && player.citiesFounded == 0 && player.cities.Count == 0
 					&& player.units.Count > 0 && !player.units.Any(u => u.unitType.isSettler)) {
 					player.neverHadCityOrSettler = true;
 				}

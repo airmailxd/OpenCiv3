@@ -9,7 +9,7 @@ namespace C7GameData {
 	// turns it on for some AI players only, overriding the rule's value.
 	public static class AiHouseRules {
 		private static bool IsAi(Player player) {
-			return player != null && !player.isHuman && player.civilization?.isBarbarian != true;
+			return player != null && !player.isHuman && player.civilization?.IsIndependent != true;
 		}
 
 		// The percentage of their normal maintenance this player's buildings

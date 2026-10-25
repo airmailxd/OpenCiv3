@@ -37,7 +37,7 @@ namespace C7Engine.AI {
 		// advisor's strength (Player.CalculateMilitaryStrength) stands in
 		// for the histograph's power.
 		private static List<Player> ByPower(GameData gameData) {
-			return gameData.players.Where(p => !p.isBarbarians && !p.defeated)
+			return gameData.players.Where(p => !p.IsIndependent && !p.defeated)
 				.OrderByDescending(p => p.CalculateMilitaryStrength()).ToList();
 		}
 
@@ -122,7 +122,7 @@ namespace C7Engine.AI {
 				return false;
 			}
 			// "If already at war, roll one in 16"
-			if (gameData.players.Any(p => p != player && !p.isBarbarians && !p.defeated && AtWar(player, p)) && !OneIn(16)) {
+			if (gameData.players.Any(p => p != player && !p.IsIndependent && !p.defeated && AtWar(player, p)) && !OneIn(16)) {
 				return false;
 			}
 			// "If in anarchy, roll one in 8"
@@ -169,7 +169,7 @@ namespace C7Engine.AI {
 		}
 
 		private static int CommonEnemies(GameData gameData, Player a, Player b) {
-			return gameData.players.Count(p => p != a && p != b && !p.isBarbarians && !p.defeated
+			return gameData.players.Count(p => p != a && p != b && !p.IsIndependent && !p.defeated
 				&& AtWar(a, p) && AtWar(b, p));
 		}
 
@@ -267,7 +267,7 @@ namespace C7Engine.AI {
 			}
 			// "If the target has a peace treaty or mutual protection pact
 			// with any player, X = X // 2."
-			if (gameData.players.Any(p => p != target && !p.isBarbarians && !p.defeated && HasPeaceOrPact(target, p))) {
+			if (gameData.players.Any(p => p != target && !p.IsIndependent && !p.defeated && HasPeaceOrPact(target, p))) {
 				x /= 2;
 			}
 			// "If the AI has a peace treaty or mutual protection pact with

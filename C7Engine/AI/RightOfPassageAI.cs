@@ -141,7 +141,7 @@ namespace C7Engine.AI {
 		// What getting through the partner's territory to our enemies is
 		// worth to us, or 0 if the way doesn't cross it.
 		public static int Need(GameData gameData, Player us, Player partner) {
-			if (us.isHuman || us.isBarbarians) {
+			if (us.isHuman || us.IsIndependent) {
 				return 0;
 			}
 			int tiles = TerritoryOnWarRoutes(gameData, us).GetValueOrDefault(partner);
@@ -199,7 +199,7 @@ namespace C7Engine.AI {
 				}
 			}
 			foreach (Player p in gameData.players) {
-				if (p == player || p == campaignEnemy || p.isBarbarians || p.defeated || !TryGetRelationship(player, p, out PlayerRelationship r)
+				if (p == player || p == campaignEnemy || p.IsIndependent || p.defeated || !TryGetRelationship(player, p, out PlayerRelationship r)
 					|| !r.AtWar()) {
 					continue;
 				}
@@ -213,7 +213,7 @@ namespace C7Engine.AI {
 			foreach ((Player e, Tile from, Tile to, MapUnit unit) in ways) {
 				foreach (Tile t in Way(from, to, unit)) {
 					Player owner = t.OwningPlayer();
-					if (owner == null || owner == player || owner == e || owner.isBarbarians
+					if (owner == null || owner == player || owner == e || owner.IsIndependent
 						|| AtWar(player, owner)) {
 						continue;
 					}
@@ -279,7 +279,7 @@ namespace C7Engine.AI {
 		// Asks each civ whose land the ways to our enemies cross for a right
 		// of passage, paying what it would ask.
 		public static async Task PlayTurn(Player player, GameData gameData) {
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 				return;
 			}
 			Dictionary<Player, int> crossed = TerritoryOnWarRoutes(gameData, player);
@@ -324,7 +324,7 @@ namespace C7Engine.AI {
 			Player them = null;
 			TradeOffer weGive = null, weWant = null;
 			foreach (Player p in gameData.players
-				.Where(p => p != player && !p.isBarbarians && !p.defeated && RightOfPassage.CanSign(gameData, player, p)
+				.Where(p => p != player && !p.IsIndependent && !p.defeated && RightOfPassage.CanSign(gameData, player, p)
 					&& !Refuses(gameData, player, p) && !RecentlyAsked(gameData, player, p) && !WarCampaign.IsPlannedTarget(player, p)
 					&& p.WillAcceptCommunicationFrom(player, gameData.turn))
 				.OrderBy(p => NearestCityDistance(player, p))) {

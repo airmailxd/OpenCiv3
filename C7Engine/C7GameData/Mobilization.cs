@@ -52,7 +52,7 @@ public static class Mobilization {
 	// Whether the player may mobilize now: it knows the tech and isn't
 	// mobilized already.
 	public static bool CanMobilize(Player player) {
-		return player != null && !player.isBarbarians && !player.mobilized
+		return player != null && !player.IsIndependent && !player.mobilized
 			&& player.HasTechEnabling(SaveTech.Flag.EnablesMobilization);
 	}
 
@@ -135,7 +135,7 @@ public static class Mobilization {
 	// trials of 350 turns (doc/ai-review-2026-10.md, 21 October) found it
 	// within the noise.
 	public static void PlayAi(Player player, GameData gameData) {
-		if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+		if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 			return;
 		}
 		if (player.mobilized) {
@@ -152,7 +152,7 @@ public static class Mobilization {
 	internal static bool InMajorWar(Player player, GameData gameData) {
 		int ours = MilitaryStrength(player);
 		foreach (Player other in gameData.players) {
-			if (other == player || other.isBarbarians || other.defeated || !PlayerRelationship.AtWar(player, other)) {
+			if (other == player || other.IsIndependent || other.defeated || !PlayerRelationship.AtWar(player, other)) {
 				continue;
 			}
 			bool neighbour = other.cities.Any(c => player.cities.Any(mine => mine.location.continent == c.location.continent));

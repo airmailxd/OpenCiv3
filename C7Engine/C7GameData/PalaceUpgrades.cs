@@ -200,7 +200,7 @@ namespace C7GameData {
 		// Checks the achievements Civ3 checks for each civ every turn
 		// (FUN_00589ae0, called for each player from FUN_0056c5a0).
 		public static void CheckAchievements(Player player, GameData gameData) {
-			if (player.isBarbarians || player.defeated) {
+			if (player.IsIndependent || player.defeated) {
 				return;
 			}
 			PalaceUpgrades palace = player.palace;
@@ -263,7 +263,7 @@ namespace C7GameData {
 			}
 
 			foreach (Player other in gameData.players) {
-				if (other == player || other.isBarbarians || other.defeated) {
+				if (other == player || other.IsIndependent || other.defeated) {
 					continue;
 				}
 				Check(player, Achievement.PeaceOrPact,
@@ -313,7 +313,7 @@ namespace C7GameData {
 		// later one, it is the first into the next era (or, from the last
 		// era, has completed it).
 		public static void OnEraCompleted(Player player, GameData gameData, int era) {
-			if (player.isBarbarians || era < 0 || era > 3) {
+			if (player.IsIndependent || era < 0 || era > 3) {
 				return;
 			}
 			if (gameData.players.Any(p => p != player && !p.defeated && p.EraIndex() > era)) {
@@ -324,7 +324,7 @@ namespace C7GameData {
 
 		// The destroyer of a civ earns an upgrade (FUN_004e5870).
 		public static void OnCivDestroyed(Player destroyed, Player destroyer) {
-			if (destroyer == null || destroyer.isBarbarians || destroyed == null || destroyed.isBarbarians) {
+			if (destroyer == null || destroyer.IsIndependent || destroyed == null || destroyed.IsIndependent) {
 				return;
 			}
 			Check(destroyer, Achievement.DestroyedACiv, true);

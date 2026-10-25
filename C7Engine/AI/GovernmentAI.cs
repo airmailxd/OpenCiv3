@@ -21,7 +21,7 @@ namespace C7Engine.AI {
 		internal const float RevolutionMargin = 10;
 
 		public static void PlayTurn(Player player, GameData gameData) {
-			if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 				return;
 			}
 
@@ -98,7 +98,7 @@ namespace C7Engine.AI {
 			int level = 0;
 			bool longWar = false;
 			foreach (Player other in gameData.players) {
-				if (other == player || other.isBarbarians || other.id == null
+				if (other == player || other.IsIndependent || other.id == null
 						|| !player.playerRelationships.TryGetValue(other.id, out PlayerRelationship pr) || !pr.AtWar()) {
 					continue;
 				}

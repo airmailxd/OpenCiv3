@@ -70,7 +70,7 @@ public partial class VictoryScreen : Control {
 			return null;
 		}
 
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && p.civilization != null).ToList();
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent && p.civilization != null).ToList();
 		bool lockedAlliances = civs.Any(p => p.alliance != null);
 		bool Alive(Player p) => !p.defeated;
 		bool Allied(Player a, Player b) => gameData.AreInLockedPeace(a, b);

@@ -68,7 +68,7 @@ namespace C7Engine.AI.UnitAI {
 		private string plan = "idle";
 
 		public static bool Enabled(Player player) {
-			return !player.isHuman && !player.isBarbarians;
+			return !player.isHuman && !player.IsIndependent;
 		}
 
 		// A ship built to fight: one that attacks or bombards and carries
@@ -264,7 +264,7 @@ namespace C7Engine.AI.UnitAI {
 		// Whether a privateer of ours raids the civ's ships in peacetime: a
 		// civ that isn't our ally and is weaker than us.
 		private static bool IsRaidable(Player player, Player other) {
-			if (other == null || other.isBarbarians || other == player || EngineStorage.gameData.AreInLockedPeace(player, other)) {
+			if (other == null || other.IsIndependent || other == player || EngineStorage.gameData.AreInLockedPeace(player, other)) {
 				return false;
 			}
 			return other.cities.Count * 3 < player.cities.Count * 2;
@@ -285,7 +285,7 @@ namespace C7Engine.AI.UnitAI {
 					MapUnit.BombardTarget.Unit => t.FindTopDefenderForBombard(ship).owner,
 					_ => null,
 				};
-				if (owner == null || owner.isBarbarians && kind == MapUnit.BombardTarget.City || !AtWar(player, owner)) {
+				if (owner == null || owner.IsIndependent && kind == MapUnit.BombardTarget.City || !AtWar(player, owner)) {
 					continue;
 				}
 				int rank = t.cityAtTile != null && t.cityAtTile == campaignTarget ? 0 : kind == MapUnit.BombardTarget.City ? 1 : 2;
@@ -493,7 +493,7 @@ namespace C7Engine.AI.UnitAI {
 					int ships = 0;
 					while (open.TryDequeue(out (Tile t, int d) next)) {
 						foreach (MapUnit u in next.t.unitsOnTile) {
-							if (u.IsWaterUnit() && !u.owner.isBarbarians && u.owner != player && AtWar(player, u.owner)
+							if (u.IsWaterUnit() && !u.owner.IsIndependent && u.owner != player && AtWar(player, u.owner)
 									&& AIFogOfWar.SeesUnitsOn(player, next.t)) {
 								++ships;
 							}
@@ -502,7 +502,7 @@ namespace C7Engine.AI.UnitAI {
 							if (n == Tile.NONE) {
 								continue;
 							}
-							if (n.cityAtTile is City c && c.owner != player && !c.owner.isBarbarians && AtWar(player, c.owner)
+							if (n.cityAtTile is City c && c.owner != player && !c.owner.IsIndependent && AtWar(player, c.owner)
 									&& AIFogOfWar.KnowsTile(player, n)) {
 								enemyCities.Add(c);
 							}

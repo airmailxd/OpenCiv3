@@ -97,11 +97,11 @@ public static class SnapshotFilter {
 					++dominationTiles;
 				}
 			}
-			List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+			List<Player> civs = gameData.players.Where(p => !p.IsIndependent).ToList();
 			Dictionary<Player, DemographicsReport.Territory> demographicsTerritory = DemographicsReport.TerritoriesOf(gameData, civs);
 			foreach (Player player in gameData.players) {
 				ownTerritory[player.id] = territories[player].places.ToArray();
-				if (player.isBarbarians) {
+				if (player.IsIndependent) {
 					continue;
 				}
 				players[territories[player].id] = new PlayerFacts {

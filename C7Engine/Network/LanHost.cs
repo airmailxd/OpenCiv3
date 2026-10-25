@@ -697,7 +697,7 @@ public class LanHost : IDisposable {
 	// the whole game.
 	private static List<ID> ViewPlayers(Spectator spectator) {
 		return spectator.view?.mode switch {
-			SpectatorViewMode.AllCivs => EngineStorage.gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList(),
+			SpectatorViewMode.AllCivs => EngineStorage.gameData.players.Where(p => !p.IsIndependent).Select(p => p.id).ToList(),
 			SpectatorViewMode.OneCiv => [spectator.view.playerID],
 			_ => null,
 		};
@@ -1845,7 +1845,7 @@ public class LanHost : IDisposable {
 			return view.playerID == hostPlayerID || seats.Any(s => s.info.playerID == view.playerID);
 		}
 		Player player = EngineStorage.gameData?.GetPlayer(view.playerID);
-		return player != null && !player.isBarbarians;
+		return player != null && !player.IsIndependent;
 	}
 
 	// A spectator sees the game the way it chose from now on, if the host
@@ -1945,7 +1945,7 @@ public class LanHost : IDisposable {
 		}
 		return view?.mode switch {
 			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldAsCivTo(civ),
-			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.isBarbarians && msg.IsToldTo(p)),
+			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.IsIndependent && msg.IsToldTo(p)),
 			_ => true,
 		};
 	}

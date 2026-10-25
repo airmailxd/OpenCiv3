@@ -22,7 +22,7 @@ public class KingsAndNomadsScenarioTest {
 			worldSize = new WorldSize() { width = 80, height = 80, numberOfCivs = 4, distanceBetweenCivs = 12, techRate = 240, optimalNumberOfCities = 16 },
 			mapSeed = seed,
 		};
-		Civilization player = save.Civilizations.First(c => !c.isBarbarian && c.traits.Contains(Civilization.Trait.Expansionist));
+		Civilization player = save.Civilizations.First(c => !c.IsIndependent && c.traits.Contains(Civilization.Trait.Expansionist));
 		new GameSetup {
 			playerCivilization = player,
 			difficulty = save.Difficulties.First(d => d.Name == "Regent"),
@@ -42,9 +42,18 @@ public class KingsAndNomadsScenarioTest {
 		(_, C7GameData.GameData gameData) = NewGame(1);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		Assert.True(gameData.victoryConditions.Regicide);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		List<Player> civs = gameData.players.Where(p => !p.IsIndependent).ToList();
 		Assert.Equal(civs.Count * GameSetup.CityStatesPerCiv, independents.cities.Count);
+		// The city-states are a player of their own, not the barbarians: at
+		// war with every civ, at peace with the barbarians, and without the
+		// barbarians' hit points.
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+		Assert.NotSame(barbarians, independents);
+		Assert.Empty(barbarians.cities);
+		Assert.All(civs, c => Assert.True(PlayerRelationship.AtWar(c, independents)));
+		Assert.False(PlayerRelationship.AtWar(barbarians, independents));
+		Assert.All(independents.units, u => Assert.Equal(gameData.defaultExperienceLevel, u.experienceLevel));
 		Assert.All(independents.cities, c => {
 			Assert.Equal(GameSetup.CityStateSize, c.residents.Count);
 			Assert.DoesNotContain(c.constructed_buildings, b => b.building.name == "Walls");
@@ -66,6 +75,30 @@ public class KingsAndNomadsScenarioTest {
 		}
 	}
 
+	// A save from before the city-states had their own player, held by the
+	// barbarians, gives them one when loaded.
+	[Fact]
+	public void OldSavesGiveTheCityStatesTheirOwnPlayer() {
+		(SaveGame save, _) = NewGame(2);
+		SavePlayer barbarians = save.Players.Single(p => save.Civilizations.Single(c => c.isBarbarian).name == p.civilization);
+		SavePlayer cityStates = save.Players.Single(p => p.civilization == GameSetup.CityStatesName);
+		int held = save.Cities.Count(c => c.owner == cityStates.id);
+		foreach (SaveCity c in save.Cities.Where(c => c.owner == cityStates.id)) {
+			c.owner = barbarians.id;
+		}
+		foreach (SaveUnit u in save.Units.Where(u => u.owner == cityStates.id)) {
+			u.owner = barbarians.id;
+		}
+		save.Players.Remove(cityStates);
+		save.Civilizations.RemoveAll(c => c.isCityStates);
+
+		C7GameData.GameData gameData = SaveGameFixture.HydrateSaveGame(save);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Assert.Equal(held, independents.cities.Count);
+		Assert.Empty(gameData.players.Single(p => p.isBarbarians).cities);
+		Assert.All(independents.cities, c => Assert.Contains(c.location.unitsOnTile, u => u.owner == independents));
+	}
+
 	// Every civ starts on a landmass with city-states of its own to take.
 	[Theory]
 	[InlineData(5)]
@@ -75,8 +108,8 @@ public class KingsAndNomadsScenarioTest {
 		(_, C7GameData.GameData gameData) = NewGame(seed);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		gameData.map.recomputeContinents();
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		foreach (Player civ in gameData.players.Where(p => !p.isBarbarians)) {
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
 			int home = civ.units[0].location.continent;
 			Assert.True(independents.cities.Count(c => c.location.continent == home) >= 2, $"{civ} has too few city-states at home");
 		}
@@ -90,8 +123,8 @@ public class KingsAndNomadsScenarioTest {
 	public void ARoadToACityStateIsATradeRoute() {
 		(_, C7GameData.GameData gameData) = NewGame(8);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
-		City cityState = gameData.players.Single(p => p.isBarbarians).cities[0];
+		Player civ = gameData.players.First(p => !p.IsIndependent);
+		City cityState = gameData.players.Single(p => p.isCityStates).cities[0];
 		Tile cs = cityState.location;
 		(Tile site, Tile middle) = cs.GetTilesWithinRankDistance(2)
 			.Where(t => t != Tile.NONE && t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.DistanceTo(cs) == 2)
@@ -133,7 +166,7 @@ public class KingsAndNomadsScenarioTest {
 	public void CityStatesGrowRichAndTheirSpecialistsEnrichTheirPartners() {
 		(_, C7GameData.GameData gameData) = NewGame(8);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
 		City cityState = independents.cities[0];
 		Assert.All(cityState.residents.Where(r => r.tileWorked != Tile.NONE), r => Assert.Equal(1, r.tileWorked.DistanceTo(cityState.location)));
 		int baseFood = cityState.location.overlayTerrainType.baseFoodProduction;
@@ -160,7 +193,7 @@ public class KingsAndNomadsScenarioTest {
 		Assert.True(shields >= specialists * CityStates.SpecialistShields);
 
 		// A partner's gold and beakers.
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		Tile cs = cityState.location;
 		(Tile site, Tile middle) = cs.GetTilesWithinRankDistance(2)
 			.Where(t => t != Tile.NONE && t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.DistanceTo(cs) == 2)
@@ -195,8 +228,8 @@ public class KingsAndNomadsScenarioTest {
 	public void CityStatesBuildDefendersAttackersAndBombardUnitsInTurn() {
 		(_, C7GameData.GameData gameData) = NewGame(9);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		Player leader = gameData.players.First(p => !p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Player leader = gameData.players.First(p => !p.IsIndependent);
 		foreach (Tech tech in gameData.techs.Where(t => t.EraCivilopediaName == gameData.techs.First().EraCivilopediaName)) {
 			leader.knownTechs.Add(tech.id);
 		}
@@ -224,8 +257,8 @@ public class KingsAndNomadsScenarioTest {
 		(_, C7GameData.GameData gameData) = NewGame(10);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		City cityState = independents.cities[0];
 		Tile next = cityState.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity());
 		gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.name == "Worker"), next);
@@ -253,7 +286,7 @@ public class KingsAndNomadsScenarioTest {
 	public void CityStatesGrowStronger() {
 		(_, C7GameData.GameData gameData) = NewGame(9);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		City city = gameData.players.Single(p => p.isBarbarians).cities[0];
+		City city = gameData.players.Single(p => p.isCityStates).cities[0];
 		int start = CityStates.Garrison(city);
 		gameData.turn = CityStates.GarrisonGrowthTurns;
 		CityStates.BeginTurn(gameData);
@@ -278,8 +311,8 @@ public class KingsAndNomadsScenarioTest {
 		(_, C7GameData.GameData gameData) = NewGame(10);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		gameData.gameDifficulty = gameData.difficulties.First(d => d.Name == difficulty);
-		Player ai = gameData.players.First(p => !p.isHuman && !p.isBarbarians);
-		CityInteractions.CaptureCity(gameData.players.Single(p => p.isBarbarians).cities[0], ai);
+		Player ai = gameData.players.First(p => !p.isHuman && !p.IsIndependent);
+		CityInteractions.CaptureCity(gameData.players.Single(p => p.isCityStates).cities[0], ai);
 		int before = ai.units.Count;
 		ai.MaybeSpawnBonusUnits(gameData);
 		Assert.Equal(before, ai.units.Count);
@@ -291,7 +324,7 @@ public class KingsAndNomadsScenarioTest {
 	public void TheKingsPresenceStrengthensUnitsNearHim() {
 		(_, C7GameData.GameData gameData) = NewGame(11);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		MapUnit king = civ.units.Single(u => u.unitType.isKing);
 		MapUnit swordsman = civ.units.Single(u => u.unitType.name == "Swordsman");
 		double Attack() => swordsman.StrengthVersus(null, CombatRole.Attack, null);
@@ -310,7 +343,7 @@ public class KingsAndNomadsScenarioTest {
 	public void CityStateUnitsAreStrongerAtHome() {
 		(_, C7GameData.GameData gameData) = NewGame(12);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		City city = gameData.players.Single(p => p.isBarbarians).cities[0];
+		City city = gameData.players.Single(p => p.isCityStates).cities[0];
 		MapUnit defender = city.location.unitsOnTile.First(u => u.owner == city.owner);
 		Assert.Contains(defender.ListStrengthBonusesVersus(null, CombatRole.Defense, null), b => b.description == "Defending their city-state" && b.amount == 0.5);
 		Assert.Contains(defender.ListStrengthBonusesVersus(null, CombatRole.Attack, null), b => b.description == "Defending their city-state");
@@ -321,8 +354,8 @@ public class KingsAndNomadsScenarioTest {
 	public void SettlersOnlyInConqueredCities() {
 		(_, C7GameData.GameData gameData) = NewGame(2);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
-		City city = gameData.players.Single(p => p.isBarbarians).cities[0];
+		Player civ = gameData.players.First(p => !p.IsIndependent);
+		City city = gameData.players.Single(p => p.isCityStates).cities[0];
 		CityInteractions.CaptureCity(city, civ);
 		void Grow(City c) {
 			while (c.residents.Count < 6) {
@@ -344,8 +377,8 @@ public class KingsAndNomadsScenarioTest {
 	public void AFallenCivsCitiesGoIndependent() {
 		(_, C7GameData.GameData gameData) = NewGame(3);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		City city = independents.cities[0];
 		CityInteractions.CaptureCity(city, civ);
 		Assert.Equal(civ, city.owner);
@@ -362,8 +395,8 @@ public class KingsAndNomadsScenarioTest {
 	public void AFallenCivsCitiesNearCityStatesAreDisbanded() {
 		(_, C7GameData.GameData gameData) = NewGame(3);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		City cityState = independents.cities[0];
 		// A city three tiles from a city-state, whose land would touch it,
 		// and one far from them all.
@@ -387,8 +420,8 @@ public class KingsAndNomadsScenarioTest {
 	public void TakingACityStateCostsTheCaptor() {
 		(_, C7GameData.GameData gameData) = NewGame(6);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player independents = gameData.players.Single(p => p.isBarbarians);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player independents = gameData.players.Single(p => p.isCityStates);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		gameData.UpdateTileOwners();
 		foreach (City c in independents.cities) {
 			Assert.All(gameData.map.tiles.Where(t => t.owningCity == c), t => Assert.True(t.RankDistanceTo(c.location) <= 1));
@@ -421,7 +454,7 @@ public class KingsAndNomadsScenarioTest {
 	public void HoldingHalfTheCitiesWins() {
 		(_, C7GameData.GameData gameData) = NewGame(4);
 		EngineStorage.InitializeGameDataForTests(gameData);
-		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
 		EmpireVictory empire = Assert.Single(gameData.victories.OfType<EmpireVictory>());
 		List<City> all = gameData.cities.ToList();
 		foreach (City c in all.Take((all.Count + 1) / 2 - 1)) {

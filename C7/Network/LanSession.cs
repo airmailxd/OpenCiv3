@@ -202,13 +202,13 @@ public static class LanSession {
 		}
 		gameData.observerMode = mode == SpectatorViewMode.Omniscient;
 		Player shown = watched ?? gameData.GetPlayer(EngineStorage.uiControllerID);
-		if (shown == null || shown.isBarbarians) {
+		if (shown == null || shown.IsIndependent) {
 			shown = gameData.players.FirstOrDefault(p => p.isHuman && !p.defeated)
-				?? gameData.players.FirstOrDefault(p => !p.isBarbarians) ?? gameData.players[0];
+				?? gameData.players.FirstOrDefault(p => !p.IsIndependent) ?? gameData.players[0];
 		}
 		EngineStorage.uiControllerID = shown.id;
 		if (mode == SpectatorViewMode.AllCivs) {
-			shown.tileKnowledge.ShowAlso(gameData.players.Where(p => !p.isBarbarians).Select(p => p.tileKnowledge));
+			shown.tileKnowledge.ShowAlso(gameData.players.Where(p => !p.IsIndependent).Select(p => p.tileKnowledge));
 		}
 	}
 

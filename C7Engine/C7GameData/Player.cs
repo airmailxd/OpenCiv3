@@ -114,6 +114,14 @@ namespace C7GameData {
 		public int primaryColorIndex;
 		public int secondaryColorIndex;
 		public bool isBarbarians { get => civilization.isBarbarian; }
+
+		// Kings & Nomads' city-states (see Civilization.isCityStates).
+		public bool isCityStates { get => civilization?.isCityStates == true; }
+
+		// Not a civ: the barbarians or the city-states. They meet no one,
+		// make no deals, are at war with every civ for good, and never win,
+		// score or fall.
+		public bool IsIndependent { get => civilization?.IsIndependent == true; }
 		//TODO: Refactor front-end so it sends player GUID with requests.
 		//We should allow multiple humans, this is a temporary measure.
 		public bool isHuman = false;
@@ -561,19 +569,19 @@ namespace C7GameData {
 		// Whether paths for our units go only by what we've explored, taking
 		// tiles we haven't to be passable: a human's always do, and an AI's
 		// do with the AI fog of war (see C7Engine.AI.AIFogOfWar).
-		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !isBarbarians);
+		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !IsIndependent);
 
 		// Whether to tell this player news meant just for them, such as a
 		// golden age beginning: a human, and while spectators may watch as
 		// it (see EngineStorage.newsForComputerPlayers), a computer player.
-		public bool IsToldNews => isHuman || (EngineStorage.newsForComputerPlayers && !isBarbarians);
+		public bool IsToldNews => isHuman || (EngineStorage.newsForComputerPlayers && !IsIndependent);
 
 		public bool IsAtPeaceWith(Player other) {
 			return AtPeace(this, other);
 		}
 
 		public void EnsureRelationshipExists(Player other) {
-			if (this.isBarbarians || other.isBarbarians || this.id == other.id || this.defeated || other.defeated)
+			if (this.IsIndependent || other.IsIndependent || this.id == other.id || this.defeated || other.defeated)
 				return;
 
 			// If the mutual relationship is not established it means that the 2 civs
@@ -628,7 +636,7 @@ namespace C7GameData {
 			// owner) refusing our demand to take their units out of our
 			// territory, when the war is the direct result of that refusal
 			// (see WarWearinessWhenWarIsDeclaredOnUs).
-			if (!isBarbarians && !provoked && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
+			if (!IsIndependent && !provoked && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
 				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
 				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
 			}
@@ -677,7 +685,7 @@ namespace C7GameData {
 		}
 
 		public bool SitsOutFirstTurn() {
-			return this.isBarbarians || this.skipFirstTurn;
+			return this.IsIndependent || this.skipFirstTurn;
 		}
 
 		// Whether the player's units get the roads' and railroads' movement
@@ -1503,7 +1511,7 @@ namespace C7GameData {
 		}
 
 		public void DoPerTurnFinanceUpdates(GameData gameData) {
-			if (isBarbarians) {
+			if (IsIndependent) {
 				return;
 			}
 
@@ -1689,7 +1697,7 @@ namespace C7GameData {
 				// and no units)" and its "culture ... always stayed at zero"
 				// (Civinator,
 				// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
-				bool active = !isBarbarians;
+				bool active = !IsIndependent;
 
 				// Ensure borders expand before we assign the new citizen, so that
 				// the new citizen can go on one of our new tiles.
@@ -1754,7 +1762,7 @@ namespace C7GameData {
 
 		// Whether no other civ knows the tech yet. Barbarians don't count.
 		internal bool IsFirstToLearn(GameData gameData, Tech tech) {
-			return !gameData.players.Any(p => p != this && !p.isBarbarians && p.knownTechs.Contains(tech.id));
+			return !gameData.players.Any(p => p != this && !p.IsIndependent && p.knownTechs.Contains(tech.id));
 		}
 
 		// The Great Library: each turn, while it is active, its owner learns
@@ -1780,7 +1788,7 @@ namespace C7GameData {
 		// Returns the techs learned.
 		public List<Tech> DoGreatLibraryUpdates(GameData gameData) {
 			List<Tech> learned = new();
-			if (isBarbarians || defeated) {
+			if (IsIndependent || defeated) {
 				return learned;
 			}
 
@@ -1803,7 +1811,7 @@ namespace C7GameData {
 			// granted" (patch_Leader_update_great_library_unlocks,
 			// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
 			List<Player> contacts = gameData.players.Where(p => p != this
-				&& !p.isBarbarians
+				&& !p.IsIndependent
 				&& !p.defeated
 				&& playerRelationships.ContainsKey(p.id)
 				&& p.playerRelationships.ContainsKey(id)).ToList();
@@ -2320,7 +2328,7 @@ namespace C7GameData {
 		// the other civ. Barbarians, and civs we have no relationship with,
 		// don't count.
 		public void AddWarWeariness(Player other, int points) {
-			if (other == null || other == this || other.isBarbarians || isBarbarians || other.id == null) {
+			if (other == null || other == this || other.IsIndependent || IsIndependent || other.id == null) {
 				return;
 			}
 			if (playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
@@ -2355,7 +2363,7 @@ namespace C7GameData {
 			if (warWeariness > 0) {
 				warWeariness -= DecayAtPeace(warWeariness);
 			}
-			if (isBarbarians) {
+			if (IsIndependent) {
 				return;
 			}
 			// Whose territory our units are in, found the first time we're at
@@ -2363,7 +2371,7 @@ namespace C7GameData {
 			// per enemy.
 			HashSet<Player> territoriesWeAreIn = null;
 			foreach (Player other in gameData.players) {
-				if (other == this || other.isBarbarians || other.id == null
+				if (other == this || other.IsIndependent || other.id == null
 					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
 					continue;
 				}
@@ -2400,7 +2408,7 @@ namespace C7GameData {
 		// people are overthrowing our $GOVERNMENT0. Our Civilization is
 		// descending into Anarchy!" (Civ3's Script.txt, REVOLUTION).
 		internal bool RevoltFromWarWeariness(GameData gameData) {
-			if (isBarbarians || government == null || government.transitionType || government.warWeariness < 2) {
+			if (IsIndependent || government == null || government.transitionType || government.warWeariness < 2) {
 				return false;
 			}
 			// Points kept from saves made before they were kept per civ count
@@ -2408,7 +2416,7 @@ namespace C7GameData {
 			int total = warWeariness;
 			int contacts = 0;
 			foreach (Player other in gameData.players) {
-				if (other == this || other.isBarbarians || other.defeated || other.id == null
+				if (other == this || other.IsIndependent || other.defeated || other.id == null
 					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
 					continue;
 				}
@@ -2547,7 +2555,7 @@ namespace C7GameData {
 		}
 
 		public void StartGoldenAge(GameData gameData, string reason) {
-			if (hadGoldenAge || isBarbarians) {
+			if (hadGoldenAge || IsIndependent) {
 				return;
 			}
 			hadGoldenAge = true;
@@ -2597,7 +2605,7 @@ namespace C7GameData {
 		public const int ScienceAgeResearchBonusPercent = 25;
 
 		public bool CanStartScienceAge() {
-			return !isBarbarians && !InScienceAge;
+			return !IsIndependent && !InScienceAge;
 		}
 
 		public void StartScienceAge() {
@@ -2991,7 +2999,7 @@ namespace C7GameData {
 			// turn it has a city: an AI whose settler walked a few turns
 			// before founding its capital used to miss them, as they came
 			// only on turn 1.
-			if (receivedStartUnits || isHuman || isBarbarians || cities.Count == 0) {
+			if (receivedStartUnits || isHuman || IsIndependent || cities.Count == 0) {
 				return;
 			}
 			receivedStartUnits = true;

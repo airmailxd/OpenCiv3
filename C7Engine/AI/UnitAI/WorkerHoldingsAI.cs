@@ -44,7 +44,7 @@ namespace C7Engine.AI.UnitAI {
 
 		// The sites for a colony, nearest the unit first, or none.
 		internal static List<Tile> ColonySites(MapUnit unit, Player player, bool tripUnderway) {
-			if (player.isHuman || player.isBarbarians || tripUnderway || !unit.unitType.actions.Contains(UnitAction.BuildColony)) {
+			if (player.isHuman || player.IsIndependent || tripUnderway || !unit.unitType.actions.Contains(UnitAction.BuildColony)) {
 				return [];
 			}
 			int workers = WorkerCount(player);
@@ -112,7 +112,7 @@ namespace C7Engine.AI.UnitAI {
 
 		// The sites for an outpost, nearest the unit first, or none.
 		internal static List<Tile> OutpostSites(MapUnit unit, Player player, bool tripUnderway) {
-			if (player.isHuman || player.isBarbarians || tripUnderway) {
+			if (player.isHuman || player.IsIndependent || tripUnderway) {
 				return [];
 			}
 			Terraform outpost = OutpostTerraform(unit);
@@ -163,7 +163,7 @@ namespace C7Engine.AI.UnitAI {
 		private static bool FacesRival(Tile t, Player player) {
 			foreach (Tile n in t.GetTilesWithinRankDistance(OutpostRivalDistance)) {
 				Player owner = n.OwningPlayer();
-				if (owner != null && owner != player && !owner.isBarbarians) {
+				if (owner != null && owner != player && !owner.IsIndependent) {
 					return true;
 				}
 			}

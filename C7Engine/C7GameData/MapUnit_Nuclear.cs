@@ -104,7 +104,7 @@ namespace C7GameData {
 				return false;
 
 			// Only tiles the owner has seen can be targeted.
-			if (owner != null && !owner.isBarbarians && !owner.tileKnowledge.knownTiles.Contains(tile))
+			if (owner != null && !owner.IsIndependent && !owner.tileKnowledge.knownTiles.Contains(tile))
 				return false;
 
 			if (tile.HasCity() && tile.cityAtTile.owner == owner)
@@ -161,10 +161,10 @@ namespace C7GameData {
 		// Whether a nuclear attack on the victim puts the attacker at war
 		// with it.
 		private static bool WouldDeclareWarOverNuke(Player attacker, Player victim, GameData gameData) {
-			if (attacker == null || attacker.isBarbarians || attacker.defeated) {
+			if (attacker == null || attacker.IsIndependent || attacker.defeated) {
 				return false;
 			}
-			if (victim == attacker || victim.isBarbarians || victim.defeated) {
+			if (victim == attacker || victim.IsIndependent || victim.defeated) {
 				return false;
 			}
 			return !AtWar(attacker, victim) && !gameData.AreInLockedPeace(attacker, victim);
@@ -357,7 +357,7 @@ namespace C7GameData {
 		// angry over a nuclear attack; we record it in the relationship, and
 		// the civs hit, if at peace, are at war with the attacker.
 		private static void ApplyNuclearDiplomacy(Player attacker, HashSet<Player> victims, GameData gameData) {
-			if (attacker == null || attacker.isBarbarians) {
+			if (attacker == null || attacker.IsIndependent) {
 				return;
 			}
 			foreach (Player victim in victims) {

@@ -184,7 +184,7 @@ public class PlayerRelationship {
 
 		if (left == null || right == null) return false;
 		if (left.id == right.id) return false;
-		if (left.isBarbarians || right.isBarbarians) return false;
+		if (left.IsIndependent || right.IsIndependent) return false;
 		if (left.defeated || right.defeated) return false;
 		if (!left.playerRelationships.TryGetValue(right.id, out var pr)) return false;
 
@@ -193,8 +193,9 @@ public class PlayerRelationship {
 	}
 
 	public static bool AtWar(Player left, Player right) {
-		// only one is barbarians, but not both
-		if (left.isBarbarians != right.isBarbarians) return true;
+		// The barbarians and the city-states are at war with every civ, and
+		// at peace with each other.
+		if (left.IsIndependent != right.IsIndependent) return true;
 
 		if (TryGetRelationship(left, right, out var relationship) && relationship.AtWar()) {
 			return true;
@@ -214,7 +215,7 @@ public class PlayerRelationship {
 	/// <param name="players"></param>
 	/// <returns></returns>
 	public static bool IsInAnyWar(Player player, List<Player> players) {
-		if (players.Any(other => !other.isBarbarians && AtWar(player, other))) {
+		if (players.Any(other => !other.IsIndependent && AtWar(player, other))) {
 			return true;
 		}
 
@@ -330,12 +331,12 @@ public class PlayerRelationship {
 	// nuke adds +32!" and "Other civs will add on +16" (AI Attitude Study,
 	// https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/).
 	public static void RecordNuclearAttack(GameData gameData, Player attacker, IEnumerable<Player> victims) {
-		if (attacker == null || attacker.isBarbarians) {
+		if (attacker == null || attacker.IsIndependent) {
 			return;
 		}
 		HashSet<Player> hit = new(victims ?? []);
 		foreach (Player other in gameData.players) {
-			if (other == attacker || other.isBarbarians || other.defeated) {
+			if (other == attacker || other.IsIndependent || other.defeated) {
 				continue;
 			}
 			if (other.playerRelationships.TryGetValue(attacker.id, out PlayerRelationship relationship)) {
@@ -439,7 +440,7 @@ public class PlayerRelationship {
 			return true;
 		}
 		foreach (Player third in players) {
-			if (third == judge || third == other || third.isBarbarians
+			if (third == judge || third == other || third.IsIndependent
 				|| !judge.playerRelationships.ContainsKey(third.id)
 				|| !third.playerRelationships.TryGetValue(other.id, out PlayerRelationship view) || !view.brokeTradeDeal) {
 				continue;
@@ -452,7 +453,7 @@ public class PlayerRelationship {
 	}
 
 	public static void SignPeaceAfterWar(Player left, Player right, GameData gameData) {
-		if (left.isBarbarians || left.defeated || right.isBarbarians || right.defeated || left.id == right.id)
+		if (left.IsIndependent || left.defeated || right.IsIndependent || right.defeated || left.id == right.id)
 			throw new Exception($"Can't sign peace between {left} and {right}");
 
 		if (!AtWar(left, right))

@@ -44,12 +44,12 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
 		EngineStorage.aiFogOfWar = false;
-		World w = new() { gameData = gameData, independents = gameData.players.Single(p => p.isBarbarians) };
-		foreach (Player civ in gameData.players.Where(p => !p.isBarbarians)) {
+		World w = new() { gameData = gameData, independents = gameData.players.Single(p => p.isCityStates) };
+		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
 			civ.isHuman = false;
 		}
 		// A civ with a city-state on its landmass.
-		foreach (Player civ in gameData.players.Where(p => !p.isBarbarians)) {
+		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
 			MapUnit king = civ.units.Single(u => u.unitType.isKing);
 			City near = w.independents.cities.Where(c => c.location.continent == king.location.continent)
 				.OrderBy(c => c.location.DistanceTo(king.location)).FirstOrDefault();
@@ -88,7 +88,7 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 
 		C7GameData.GameData ordinary = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(ordinary);
-		Player ai = ordinary.players.First(p => !p.isBarbarians && !p.isHuman);
+		Player ai = ordinary.players.First(p => !p.IsIndependent && !p.isHuman);
 		Assert.False(KingsAndNomadsAI.IsActive(ordinary));
 		Assert.False(KingsAndNomadsAI.PlaysFor(ai));
 		Assert.True(WarCampaign.Enabled(ai));
@@ -310,7 +310,7 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		foreach (MapUnit u in w.civ.units.Where(u => u.currentAI is WarCampaign.MemberAI).ToList()) {
 			Teleport(u, field);
 		}
-		Player rival = w.gameData.players.First(p => p != w.civ && !p.isBarbarians);
+		Player rival = w.gameData.players.First(p => p != w.civ && !p.IsIndependent);
 		w.civ.DeclareWarOn(rival, w.gameData.turn);
 		for (int i = 0; i < 20; ++i) {
 			w.gameData.SpawnUnit(rival, Prototype(w.gameData, "Knight"), enemyAt);
@@ -353,7 +353,7 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		w.gameData.InvalidateCachedTradeNetwork();
 		Assert.Contains(w.cityState, KingsAndNomadsAI.SparedPartners(w.civ, w.gameData));
 
-		Player rival = w.gameData.players.First(p => !p.isBarbarians && p != w.civ);
+		Player rival = w.gameData.players.First(p => !p.IsIndependent && p != w.civ);
 		Tile near = w.gameData.map.tiles.First(t => t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
 			&& t.DistanceTo(cs) <= KingsAndNomadsAI.SpareRivalDistance && t.DistanceTo(cs) > 2 && t.DistanceTo(site) > 1);
 		CityInteractions.BuildCity(near, rival, "Rival");
