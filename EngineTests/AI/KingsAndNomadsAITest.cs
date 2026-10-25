@@ -360,4 +360,28 @@ public sealed class KingsAndNomadsAITest : IClassFixture<SaveGameFixture>, IDisp
 		CityInteractions.BuildCity(near, rival, "Rival");
 		Assert.DoesNotContain(w.cityState, KingsAndNomadsAI.SparedPartners(w.civ, w.gameData));
 	}
+
+	// A war for a goal is over once we've taken a city from them: then
+	// we'd make peace.
+	[Fact]
+	public void AWarForAGoalEndsOnceACityIsTaken() {
+		World w = NewWorld(9);
+		Player rival = w.gameData.players.First(p => !p.IsIndependent && p != w.civ);
+		w.civ.EnsureRelationshipExists(rival);
+		rival.EnsureRelationshipExists(w.civ);
+		Tile site = w.gameData.map.tiles.First(t => t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& w.gameData.cities.All(c => c.location.DistanceTo(t) > 3));
+		City city = CityInteractions.BuildCity(site, rival, "Prize");
+		// Big enough to survive being taken.
+		CitizenType laborer = w.gameData.citizenTypes.Find(c => c.IsDefaultCitizen);
+		while (city.residents.Count < 3) {
+			city.AddCitizen(new CityResident { nationality = rival.civilization, city = city, citizenType = laborer });
+		}
+		w.civ.DeclareWarOn(rival, w.gameData.turn);
+		Assert.False(KingsAndNomadsAI.WarGoalMet(w.gameData, w.civ, rival));
+		w.gameData.turn += 1;
+		CityInteractions.CaptureCity(city, w.civ);
+		Assert.Same(w.civ, city.owner);
+		Assert.True(KingsAndNomadsAI.WarGoalMet(w.gameData, w.civ, rival));
+	}
 }

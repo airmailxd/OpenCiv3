@@ -490,12 +490,109 @@ namespace C7Engine.AI {
 				.OrderByDescending(g => g.Count()).ThenBy(g => g.Key.DistanceTo(horde.TargetTile ?? g.Key)).First().Key;
 		}
 
+		// The sum of the attack or defence, whichever is greater, of the
+		// player's land fighters.
+		private static double ArmyStrength(Player player) {
+			return player.units.Where(u => u.IsLandUnit() && IsFighter(u)).Sum(u => Math.Max(u.unitType.attack, u.unitType.defense));
+		}
+
+		// What a war with the rival would win us, in points: knocking
+		// down the civ with the most cities, ahead of us; cutting its trade
+		// with the city-states, the more so with those in our reach;
+		// taking resources we lack; and the chance of its King away from
+		// its cities, or an army weaker than ours. Less if its army is the
+		// stronger, and less for each of our own trade routes with a
+		// city-state near its cities, which the war would put at risk.
+		//
+		// Owner's design, 2026-10-25: wars where there's good reason for
+		// them, for goals like these. Before, a horde only declared war with
+		// no city-state left in its reach, which hardly ever happened: in AI
+		// trials (20 games of 6 civs and 120 turns, every civ AI) there were
+		// no wars at all on Pangaea. In AI trials (40 games, half the civs
+		// choosing wars this way) these civs fought 2.1 wars each on Pangaea
+		// and took 1.1 more cities; on Continents, where a war is most often
+		// with the one neighbour, 0.3 more wars, and no significant change
+		// in cities. Choosing any rival city a horde could take, without
+		// these goals, won 1.8 cities on Pangaea but lost 0.6 on Continents.
+		internal static double WarIncentive(Player player, GameData gameData, Player rival, int continent) {
+			double worth = 0;
+			List<Player> civs = gameData.players.Where(p => !p.IsIndependent && !p.defeated).ToList();
+			if (rival.cities.Count >= civs.Max(p => p.cities.Count) && rival.cities.Count > player.cities.Count) {
+				worth += LeaderIncentive;
+			}
+			foreach (CityStateTrade.Route route in CityStateTrade.Routes(gameData, rival)) {
+				worth += TradeIncentive;
+				if (route.cityState.location.continent == continent
+						&& player.cities.Any(c => c.location.DistanceTo(route.cityState.location) <= NearCityStateDistance)) {
+					worth += TradeIncentive;
+				}
+			}
+			HashSet<Resource> ours = player.cities.SelectMany(c => c.location.GetTilesWithinRankDistance(1)).Where(t => t != Tile.NONE && t.owningCity?.owner == player)
+				.Select(t => t.Resource).ToHashSet();
+			int lacking = gameData.map.tiles.Where(t => t.owningCity?.owner == rival && t.Resource != Resource.NONE
+					&& t.Resource.Category is ResourceCategory.LUXURY or ResourceCategory.STRATEGIC && player.KnowsAboutResource(t.Resource) && !ours.Contains(t.Resource))
+				.Select(t => t.Resource).Distinct().Count();
+			worth += Math.Min(MaxResourceIncentive, lacking * ResourceIncentive);
+			if (KingOf(rival) is MapUnit king && Tile.IsTileValid(king.location) && king.location.cityAtTile?.owner != rival) {
+				worth += OpportunityIncentive;
+			}
+			// Our own trade with city-states near them is at risk.
+			foreach (CityStateTrade.Route route in CityStateTrade.Routes(gameData, player)) {
+				if (rival.cities.Any(c => c.location.DistanceTo(route.cityState.location) <= SpareRivalDistance)) {
+					worth -= OwnTradeAtRisk;
+				}
+			}
+			double ratio = ArmyStrength(player) / Math.Max(1, ArmyStrength(rival));
+			if (ratio >= 1.5) {
+				worth += OpportunityIncentive;
+			} else if (ratio < 0.75) {
+				worth -= WeakerArmyDisincentive;
+			}
+			return worth;
+		}
+
+		// HEURISTIC: WarIncentive's points.
+		internal const double WarIncentiveNeeded = 4;
+		private const double OwnTradeAtRisk = 1.5;
+		private const double LeaderIncentive = 2;
+		private const double TradeIncentive = 1;
+		private const int NearCityStateDistance = 10;
+		private const double ResourceIncentive = 0.5;
+		private const double MaxResourceIncentive = 2;
+		private const double OpportunityIncentive = 1;
+		private const double WeakerArmyDisincentive = 3;
+
+		// A war for a goal (see WarIncentive) has met it once we've taken a
+		// city from them, or after WarGoalTurns: we then make peace if they
+		// will (see PeaceAI.BuildPeaceOffer).
+		public static bool WarGoalMet(GameData gameData, Player us, Player them) {
+			if (!PlaysFor(us)) {
+				return false;
+			}
+			int turns = PeaceAI.WarTurns(gameData, us, them);
+			int start = gameData.turn - turns;
+			return turns >= WarGoalTurns || us.cities.Any(c => c.capturedFrom == them.civilization && c.ownerChangedTurn >= start);
+		}
+
+		// HEURISTIC: how long a war for a goal goes on, at most.
+		private const int WarGoalTurns = 20;
+
+		// HEURISTIC: the fewest fighters a horde declares war with.
+		private const int MinWarFighters = 4;
+
 		// HEURISTIC: what taking a city is worth against its garrison and the
 		// way there: its size (a captured city builds settlers, so even a
 		// small one is worth a lot), far more with a rival King inside
 		// (killing it brings down that civ), over the defenders' hit points
-		// and the distance.
-		private static double CityScore(Player player, City city, Tile from) {
+		// as our units would find them and the distance; and what taking a
+		// rival civ's city does to that civ. A
+		// city-state's defenders count for more the more city-states we've
+		// taken (see CityStates.StrengthAgainstCityStates); a rival city's
+		// for twice as much with its King in or next to it (his +100%). A
+		// rival city is worth more for each city-state it trades with (its
+		// owner loses that trade), if its owner holds the most cities of any
+		// civ, and if it's cut off from its owner's capital.
+		private static double TargetScore(Player player, GameData gameData, City city, Tile from) {
 			double value = 4 + city.residents.Count;
 			if (city.location.unitsOnTile.Any(u => u.unitType.isKing && u.owner != player)) {
 				value += KingValue;
@@ -503,9 +600,33 @@ namespace C7Engine.AI {
 			double defenders = AIFogOfWar.SeesUnitsOn(player, city.location)
 				? WarCampaign.DefenderHitPoints(player, city.location) / 3.0
 				: Math.Max(2, 1 + city.residents.Count / 3);
+			Player owner = city.owner;
+			if (owner.isCityStates) {
+				defenders /= CityStates.StrengthAgainstCityStates(player.cityStatesCaptured);
+			} else if (!owner.IsIndependent) {
+				TradeNetwork network = gameData.GetTradeNetwork();
+				value += RivalTradeValue * network.CityStatesTradingWith(owner, city).Count;
+				int most = gameData.players.Where(p => !p.IsIndependent && !p.defeated).Max(p => p.cities.Count);
+				if (owner.cities.Count >= most) {
+					value += LeaderValue;
+				}
+				if (!network.ConnectedToCapital(owner, city)) {
+					value += CutOffValue;
+				}
+				if (KingOf(owner) is MapUnit king && Tile.IsTileValid(king.location) && king.location.DistanceTo(city.location) <= 1) {
+					defenders *= 2;
+				}
+			}
 			int distance = from.DistanceTo(city.location);
 			return value / (1 + defenders) / (1 + distance / 4.0);
 		}
+
+		// HEURISTIC: TargetScore's worth, in citizens, of a rival city's
+		// trade with each city-state, of hurting the civ with the most
+		// cities, and of a city cut off from its capital.
+		private const double RivalTradeValue = 2;
+		private const double LeaderValue = 3;
+		private const double CutOffValue = 2;
 
 		// HEURISTIC: what a rival King is worth as a target, as so many
 		// citizens: killing it eliminates that civ, and its cities go
@@ -574,7 +695,18 @@ namespace C7Engine.AI {
 
 			City best = null;
 			double bestScore = 0;
-			List<City> candidates = gameData.cities.Where(Valid).OrderByDescending(c => CityScore(player, c, from)).ToList();
+			// A rival civ's city is weighed against the city-states, as one
+			// we'd declare war to take (see TargetScore), if a war with that
+			// civ would be worth it (see WarIncentive).
+			Dictionary<Player, double> incentive = new();
+			bool Worth(Player rival) => (incentive.TryGetValue(rival, out double w) ? w : incentive[rival] = WarIncentive(player, gameData, rival, continent)) >= WarIncentiveNeeded;
+			bool MayDeclareFor(City c) => c != null && gameData.cities.Contains(c) && !c.owner.IsIndependent && c.owner != player
+				&& !c.owner.defeated && !AtWarWith(player, c.owner) && player.playerRelationships.ContainsKey(c.owner.id)
+				&& !gameData.AreInLockedPeace(player, c.owner) && horde.units.Count(IsFighter) >= MinWarFighters
+				&& !(horde.avoid.TryGetValue(c, out int until) && Turn < until) && !others.Contains(c)
+				&& c.location.continent == continent && AIFogOfWar.KnowsTile(player, c.location) && Worth(c.owner);
+			double Score(City c) => TargetScore(player, gameData, c, from);
+			List<City> candidates = gameData.cities.Where(c => Valid(c) || MayDeclareFor(c)).OrderByDescending(Score).ToList();
 			// The best that can be reached by land, scored as the crow flies.
 			foreach (City c in candidates.Take(6)) {
 				TilePath path = PathingAlgorithmChooser.GetAlgorithm(lead).PathFrom(from, c.location, lead);
@@ -582,12 +714,20 @@ namespace C7Engine.AI {
 					continue;
 				}
 				best = c;
-				bestScore = CityScore(player, c, from);
+				bestScore = Score(c);
 				break;
 			}
 			if (horde.targetCity != null && best != null && best != horde.targetCity
-					&& bestScore < SwitchMargin * CityScore(player, horde.targetCity, from)) {
+					&& bestScore < SwitchMargin * Score(horde.targetCity)) {
 				return;
+			}
+			if (best != null && !AtWarWith(player, best.owner)) {
+				player.DeclareWarOn(best.owner, gameData.turn);
+				MsgWarDeclaration.Announce(player, best.owner);
+				log.Information("{Player} declares war on {Enemy} to take {City}", player, best.owner, best.name);
+				if (!AtWarWith(player, best.owner)) {
+					best = null;
+				}
 			}
 			if (best == null && horde.targetCity == null) {
 				best = MaybeDeclareWar(player, gameData, horde);

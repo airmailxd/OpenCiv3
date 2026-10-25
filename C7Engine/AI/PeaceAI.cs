@@ -244,6 +244,11 @@ namespace C7Engine.AI {
 			WarOutlook outlook = Assess(us, them);
 			TradeOffer weGive = new() { partOfPeaceTreaty = true };
 			TradeOffer weWant = new() { partOfPeaceTreaty = true };
+			// Kings & Nomads: a war for a goal that has been met ends in a
+			// white peace, unless we're losing (see KingsAndNomadsAI.WarGoalMet).
+			if (outlook >= WarOutlook.Even && KingsAndNomadsAI.WarGoalMet(gameData, us, them)) {
+				return (weGive, weWant);
+			}
 			switch (outlook) {
 				case WarOutlook.Losing:
 				case WarOutlook.LosingBadly: {
