@@ -12,7 +12,7 @@ namespace C7Engine;
 // workers and two archers (and a scout, if expansionist) (owner's change,
 // 2026-10-24, from a settler three tiles inland). The first wave takes the
 // start city. Settlers found cities of size 5, so a civ can move its people
-// inland ahead of the tide, and a city's center feeds three citizens.
+// inland ahead of the tide, and a city's center feeds two citizens.
 public partial class GameSetup {
 	// The citizens a settler founds a city with.
 	public const int RisingTideCitySize = 5;
@@ -21,9 +21,9 @@ public partial class GameSetup {
 	// ruling, 2026-10-24), so the capital falls to the first wave.
 	public const int RisingTideStartDepth = 1;
 
-	// The food a city's center makes: enough for three citizens (owner's
-	// ruling, 2026-10-24).
-	public const int RisingTideCityCenterFood = 6;
+	// The food a city's center makes: enough for two citizens (owner's
+	// ruling, 2026-10-24; lowered from 6, 2026-10-25).
+	public const int RisingTideCityCenterFood = 4;
 
 	private const string RisingTideWorker = "Worker";
 	private const string RisingTideArcher = "Archer";

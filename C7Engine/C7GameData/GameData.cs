@@ -699,7 +699,9 @@ namespace C7GameData {
 			if (player.RemainingCities() > 0) {
 				return false;
 			}
-			if (player.units.Any(u => u.unitType.isSettler)) {
+			// Under Rising Tide a civ needs a city to live; a settler isn't
+			// enough (owner's ruling, 2026-10-25).
+			if (!RisingTide.IsOn(this) && player.units.Any(u => u.unitType.isSettler)) {
 				return false;
 			}
 			// A civ that has never held a city or a settler, like a scenario

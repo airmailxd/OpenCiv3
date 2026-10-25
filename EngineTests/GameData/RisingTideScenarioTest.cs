@@ -61,11 +61,11 @@ public class RisingTideScenarioTest {
 			// On the shore.
 			Tile start = capital.location;
 			Assert.True(start.NeighborsOcean());
-			// Its center feeds three citizens even under Despotism, and an
-			// agricultural civ's a fourth by fresh water.
+			// Its center feeds two citizens even under Despotism, and an
+			// agricultural civ's a third by fresh water.
 			bool agricultural = civ.civilization.traits.Contains(Civilization.Trait.Agricultural);
 			bool freshWater = start.BordersRiver() || start.NeighborsFreshWater();
-			Assert.Equal(agricultural && freshWater ? 7 : 6, start.FoodYield(capital).yield);
+			Assert.Equal(agricultural && freshWater ? 5 : 4, start.FoodYield(capital).yield);
 			int toSea = gameData.map.tiles.Where(t => t.baseTerrainType.IsWater && !t.isFreshWater).Min(t => t.DistanceTo(start));
 			Assert.Equal(GameSetup.RisingTideStartDepth, toSea);
 		}
@@ -128,6 +128,20 @@ public class RisingTideScenarioTest {
 		Assert.False(await ship.Move(dir));
 		Assert.DoesNotContain(ship, gameData.mapUnits);
 		Assert.DoesNotContain(settler, gameData.mapUnits);
+	}
+
+	// A civ needs a city to live: one left with only a settler falls.
+	[Fact]
+	public void ASettlerAloneDoesNotKeepACivAlive() {
+		(_, C7GameData.GameData gameData) = NewGame(5);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		Tile inland = gameData.map.tiles.Where(t => t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity()).MaxBy(TideAI.WavesUntilDrowned);
+		gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.isSettler), inland);
+		CityInteractions.DestroyCity(civ.cities[0]);
+		gameData.CheckForCivDestructionAndNotifyUi(civ);
+		Assert.True(civ.defeated);
 	}
 
 	// The tide survives a save.

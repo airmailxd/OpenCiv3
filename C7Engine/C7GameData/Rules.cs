@@ -103,7 +103,7 @@ namespace C7GameData {
 		// The citizens a settler founds a city with.
 		public int NewCitySize = 1;
 		// The food a city's center makes, before the agricultural bonus
-		// (Civ3's is 2; Rising Tide's feeds three citizens).
+		// (Civ3's is 2; Rising Tide's feeds two citizens).
 		public int CityCenterFood = 2;
 		// Settlers can only be built in cities taken from someone else
 		// (Kings & Nomads; see GameSetup.KingsAndNomads.cs).
