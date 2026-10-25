@@ -186,6 +186,57 @@ public class KingsAndNomadsScenarioTest {
 		Assert.Null(CultureFlip.BestChance(gameData, cityState));
 	}
 
+	// A city-state builds the best units the most advanced civ knows, that
+	// the resources on its roads allow: two defenders, an attacker and a
+	// bombard unit, over and over.
+	[Fact]
+	public void CityStatesBuildDefendersAttackersAndBombardUnitsInTurn() {
+		(_, C7GameData.GameData gameData) = NewGame(9);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		Player leader = gameData.players.First(p => !p.isBarbarians);
+		foreach (Tech tech in gameData.techs.Where(t => t.EraCivilopediaName == gameData.techs.First().EraCivilopediaName)) {
+			leader.knownTechs.Add(tech.id);
+		}
+		City cityState = independents.cities[0];
+		foreach (MapUnit u in cityState.location.unitsOnTile.Where(u => u.owner == independents).ToList()) {
+			u.RemoveFromPlay();
+		}
+		List<CityStates.Role> built = new();
+		for (int i = 0; i < 4; ++i) {
+			UnitPrototype next = CityStates.NextUnit(gameData, cityState);
+			Assert.NotNull(next);
+			Assert.True(next.requiredResources.All(CityStates.Resources(cityState).Contains), $"{next.name} needs resources the city-state lacks");
+			Assert.Equal(CityStates.Best(gameData, cityState, CityStates.RoleOf(next)), next);
+			built.Add(CityStates.RoleOf(next));
+			gameData.SpawnUnit(independents, next, cityState.location);
+		}
+		Assert.Equal([CityStates.Role.Defender, CityStates.Role.Defender, CityStates.Role.Attacker, CityStates.Role.Bombard], built);
+		Assert.Equal(CityStates.Role.Defender, CityStates.NextRole(gameData, cityState));
+	}
+
+	// A city-state's attackers strike an enemy next to it when the odds are
+	// good (here a knight against a warrior).
+	[Fact]
+	public async System.Threading.Tasks.Task CityStatesStrikeEnemiesNextToThem() {
+		(_, C7GameData.GameData gameData) = NewGame(10);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		Player independents = gameData.players.Single(p => p.isBarbarians);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		City cityState = independents.cities[0];
+		Tile next = cityState.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity());
+		gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.name == "Worker"), next);
+		gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.name == "Warrior"), next);
+		MapUnit knight = gameData.SpawnUnit(independents, gameData.unitPrototypes.First(p => p.name == "Knight"), cityState.location);
+		MapUnit warrior = next.unitsOnTile.First(u => u.unitType.name == "Warrior");
+		int knightHp = knight.hitPointsRemaining, warriorHp = warrior.hitPointsRemaining;
+		await C7Engine.AI.CityStateDefenseAI.StrikeBack(independents, cityState);
+		// It fought: one of them was hurt or killed.
+		Assert.True(!gameData.mapUnits.Contains(knight) || !gameData.mapUnits.Contains(warrior)
+			|| knight.hitPointsRemaining < knightHp || warrior.hitPointsRemaining < warriorHp);
+	}
+
 	private class AlwaysOne : System.Random {
 		public override int Next(int maxValue) => maxValue - 1;
 	}
