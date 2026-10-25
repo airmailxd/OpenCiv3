@@ -26,6 +26,18 @@ namespace C7Engine {
 
 		// Assigns the texture file and index to all the tiles in the provided map.
 		public static void AssignTextureDetails(Random rand, List<TerrainType> terrainTypes, GameMap m) {
+			AssignTextureDetails(rand, terrainTypes, m.tiles);
+		}
+
+		// Assigns them again to tiles whose terrain, or whose north, northwest
+		// or northeast neighbor's, has changed during the game (a tile's art
+		// is the corner it shares with those three), as the Rising Tide's
+		// floods change it.
+		public static void ReassignTextureDetails(Random rand, List<TerrainType> terrainTypes, IEnumerable<Tile> tiles) {
+			AssignTextureDetails(rand, terrainTypes, tiles);
+		}
+
+		private static void AssignTextureDetails(Random rand, List<TerrainType> terrainTypes, IEnumerable<Tile> tiles) {
 			// Count terrain types by index into terrainTypes rather than with a
 			// per-tile dictionary.
 			Dictionary<string, int> terrainIndex = new();
@@ -37,7 +49,9 @@ namespace C7Engine {
 			string[] neighbors = new string[4];
 			int[] neighborIndices = new int[4];
 
-			foreach (Tile t in m.tiles) {
+			foreach (Tile t in tiles) {
+				// A new one, not this one changed: a saved tile compares it by
+				// reference (see SaveTile.Describes).
 				t.ExtraInfo = new();
 
 				// Count the terrain types of ourself and our neighbors.

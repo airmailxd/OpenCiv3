@@ -132,6 +132,7 @@ namespace C7Engine {
 				Flood(tile, coast);
 			}
 			if (shore.Count > 0) {
+				RedrawFlooded(gameData, shore);
 				gameData.map.recomputeContinents();
 				gameData.UpdateTileOwners();
 				gameData.InvalidateCachedTradeNetwork();
@@ -142,6 +143,27 @@ namespace C7Engine {
 					message += $" Lost beneath the waves: {string.Join(", ", lost)}.";
 				}
 				new MsgShowDomesticAdvisorPopup(player, message).send();
+			}
+		}
+
+		// The flooded tiles' art, and that of the tiles south of them, whose
+		// corners they share, is chosen again for their new terrain (see
+		// TerrainTextureFiles). With a random of its own, as the choice only
+		// varies among corners of open sea, which these never are, and the
+		// game's random sequence stays as it was.
+		private static void RedrawFlooded(GameData gameData, List<Tile> flooded) {
+			HashSet<Tile> tiles = new(flooded);
+			foreach (Tile t in flooded) {
+				foreach (TileDirection d in new[] { TileDirection.SOUTH, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST }) {
+					if (t.neighbors.TryGetValue(d, out Tile n) && n != Tile.NONE) {
+						tiles.Add(n);
+					}
+				}
+			}
+			try {
+				TerrainTextureFiles.ReassignTextureDetails(new System.Random(gameData.turn), gameData.terrainTypes, tiles);
+			} catch (System.Exception e) {
+				log.Warning(e, "Could not choose the art of the flooded tiles");
 			}
 		}
 

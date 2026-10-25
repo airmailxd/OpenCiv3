@@ -96,10 +96,23 @@ public class RisingTideScenarioTest {
 		MapUnit archer = gameData.SpawnUnit(civ, gameData.unitPrototypes.First(p => p.name == "Archer"), shore);
 		int land = gameData.map.tiles.Count(t => t.IsLand());
 		int shoreTiles = RisingTide.Shore(gameData).Count;
+		// The art of each tile, which the flooded tiles' must change with.
+		Dictionary<Tile, Civ3ExtraInfo> art = gameData.map.tiles.ToDictionary(t => t, t => t.ExtraInfo);
+		HashSet<Tile> redrawn = RisingTide.Shore(gameData).ToHashSet();
+		foreach (Tile t in redrawn.ToList()) {
+			foreach (TileDirection d in new[] { TileDirection.SOUTH, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST }) {
+				if (t.neighbors.TryGetValue(d, out Tile n) && n != Tile.NONE) {
+					redrawn.Add(n);
+				}
+			}
+		}
 
 		gameData.turn = 21;
 		RisingTide.BeginTurn(gameData);
 		Assert.True(shore.baseTerrainType.IsCoast);
+		// The flooded tiles, and those whose art shows their corners, are
+		// drawn anew; the rest are as they were.
+		Assert.All(gameData.map.tiles, t => Assert.Equal(redrawn.Contains(t), !ReferenceEquals(art[t], t.ExtraInfo)));
 		Assert.DoesNotContain(doomed, gameData.cities);
 		Assert.DoesNotContain(archer, gameData.mapUnits);
 		Assert.Equal(land - shoreTiles, gameData.map.tiles.Count(t => t.IsLand()));
