@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using C7Engine;
+using C7Engine.AI;
 using C7Engine.AI.UnitAI;
 using C7GameData;
 using EngineTests.Utils;
@@ -79,5 +80,34 @@ public sealed class AttackForceTest : IClassFixture<SaveGameFixture>, IDisposabl
 		}
 
 		Assert.Equal(city, CombatAI.MakeAiData(sword, ai)?.destination);
+	}
+
+	// The odds of an attack count a river crossing: a defender across a
+	// river is harder to beat than one on the same side.
+	[Fact]
+	public void TheOddsCountARiverCrossing() {
+		(Tile defended, Tile across, Tile dry) = gameData.map.tiles
+			.Where(t => IsFlatEmptyLand(t))
+			.Select(t => (t,
+				t.neighbors.Values.FirstOrDefault(n => IsFlatEmptyLand(n) && CombatAI.CrossesRiver(n, t)),
+				t.neighbors.Values.FirstOrDefault(n => IsFlatEmptyLand(n) && !CombatAI.CrossesRiver(n, t))))
+			.First(x => x.Item2 != null && x.Item3 != null);
+		MapUnit defender = gameData.SpawnUnit(enemy, Prototype("Spearman"), defended);
+		MapUnit fromAcross = gameData.SpawnUnit(ai, Prototype("Swordsman"), across);
+		MapUnit fromDry = gameData.SpawnUnit(ai, Prototype("Swordsman"), dry);
+		Assert.True(CombatAI.EstimateChanceToWin(fromAcross, defender) < CombatAI.EstimateChanceToWin(fromDry, defender));
+	}
+
+	// An attacker goes after a barbarian it can beat nearby.
+	[Fact]
+	public void AnAttackerHuntsANearbyBarbarian() {
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+		MapUnit hunter = gameData.map.tiles.Where(IsFlatEmptyLand).Select(t => gameData.SpawnUnit(ai, Prototype("Swordsman"), t)).First();
+		Tile prey = hunter.location.GetTilesWithinRankDistance(3).First(t => IsFlatEmptyLand(t) && t.DistanceTo(hunter.location) == 3);
+		gameData.SpawnUnit(barbarians, Prototype("Warrior"), prey);
+		ai.tileKnowledge.AddTilesToKnown(prey);
+		C7GameData.UnitAI plan = PlayerAI.GetAIForUnit(hunter, ai);
+		CombatAI combat = Assert.IsType<CombatAI>(plan);
+		Assert.Equal(prey, combat.data.destination);
 	}
 }
