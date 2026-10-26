@@ -169,8 +169,14 @@ public partial class ReplayView : Control {
 			StyleBoxFlat Box(Color fill) => new() {
 				BgColor = fill,
 				BorderColor = Color.Color8(170, 140, 70),
-				BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
-				CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3, CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
+				BorderWidthLeft = 1,
+				BorderWidthTop = 1,
+				BorderWidthRight = 1,
+				BorderWidthBottom = 1,
+				CornerRadiusTopLeft = 3,
+				CornerRadiusTopRight = 3,
+				CornerRadiusBottomLeft = 3,
+				CornerRadiusBottomRight = 3,
 			};
 			plain.AddThemeStyleboxOverride("normal", Box(Color.Color8(70, 55, 35)));
 			plain.AddThemeStyleboxOverride("hover", Box(Color.Color8(95, 75, 45)));
