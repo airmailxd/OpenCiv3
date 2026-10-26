@@ -205,6 +205,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Wars the civ started that saw it attack, and that won it a
 			// city.
 			"warsFought", "warsWon",
+			// The civ's cities with barracks at the end.
+			"barracks",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -803,6 +805,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = retaken[p];
 			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.attacks > 0);
 			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.captures > 0);
+			m.values[i++] = p.cities.Count(c => c.constructed_buildings.Any(b => b.building.providesVeteranGroundUnits));
 			return m;
 		}
 
