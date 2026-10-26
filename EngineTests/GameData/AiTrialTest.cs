@@ -212,6 +212,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"vetPct",
 			// Bombard units (catapults and the like) the civ holds at the end.
 			"bombarders",
+			// Attacks the civ made across a river.
+			"riverAtk",
+			// The civs the civ has met at the end, and the average turn it
+			// met the other civs (the game's length for one it never met).
+			"met", "metTurn",
+			// Barbarian units the civ killed.
+			"barbKills",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -559,14 +566,23 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}
 			}
 		};
+		Dictionary<Player, int> riverAttacks = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> barbKills = civs.ToDictionary(p => p, _ => 0);
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
+			if (Tile.IsTileValid(attacker.location) && Tile.IsTileValid(defender.location)
+					&& C7Engine.AI.UnitAI.CombatAI.CrossesRiver(attacker.location, defender.location)) {
+				Add(riverAttacks, attacker.owner);
+			}
 			if (Tile.IsTileValid(attacker.location) && attacker.owner.units.Any(u => u.unitType.isKing && Tile.IsTileValid(u.location)
 					&& u.location.DistanceTo(attacker.location) <= 1)) {
 				Add(kingAttacks, attacker.owner);
 			}
 			if (attacker.owner.isCityStates && attacker.location.cityAtTile != null) {
 				Add(cityStateAttacks, defender.owner);
+			}
+			if (result == CombatResult.DefenderKilled && defender.owner.isBarbarians) {
+				Add(barbKills, attacker.owner);
 			}
 			if (result == CombatResult.DefenderKilled && defender.unitType.isWorker) {
 				Add(workersLost, defender.owner);
@@ -814,6 +830,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			List<MapUnit> landFighters = p.units.Where(u => u.IsLandUnit() && u.unitType.attack + u.unitType.defense > 0 && !u.unitType.isKing && !u.unitType.isWorker).ToList();
 			m.values[i++] = landFighters.Count == 0 ? 0 : 100.0 * landFighters.Count(u => u.experienceLevel.baseHitPoints > gameData.defaultExperienceLevel.baseHitPoints) / landFighters.Count;
 			m.values[i++] = p.units.Count(u => u.IsLandUnit() && u.unitType.bombard > 0 && u.unitType.attack == 0);
+			m.values[i++] = riverAttacks[p];
+			List<int> contactTurns = civs.Where(o => o != p).Select(o => p.playerRelationships.TryGetValue(o.id, out PlayerRelationship r)
+				&& r.firstContactTurn >= 0 ? r.firstContactTurn : turns).ToList();
+			m.values[i++] = contactTurns.Count(t => t < turns);
+			m.values[i++] = contactTurns.Count == 0 ? 0 : contactTurns.Average();
+			m.values[i++] = barbKills[p];
 			return m;
 		}
 
