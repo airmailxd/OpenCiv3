@@ -1035,6 +1035,22 @@ namespace C7Engine.AI {
 				}
 			}
 
+			// Next to the city across a river, the horde first steps round to
+			// a tile that isn't, if one is a step away (see
+			// CombatAI.AttackDirection).
+			if (horde.targetCity != null && CombatAI.CrossesRiver(horde.stackTile, target)
+					&& horde.stackTile.neighbors.Values.Where(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && IsNeighbor(t, target)
+						&& !CombatAI.CrossesRiver(t, target) && !t.unitsOnTile.Any(u => u.owner != player)
+						&& !CombatAI.CrossesRiver(horde.stackTile, t))
+						.OrderByDescending(t => t.overlayTerrainType.defenseBonus.amount).FirstOrDefault() is Tile dry) {
+				TilePath step = PathingAlgorithmChooser.GetAlgorithm(stack[0]).PathFrom(horde.stackTile, dry, stack[0]);
+				if (step != null && step.PathLength() > 0) {
+					log.Information("{Player}'s horde steps round to {Tile} so as not to attack {City} across the river", player, dry, horde.targetCity.name);
+					await MoveStack(player, horde, stack, step, stopNextTo: null);
+					stack = StackUnits(player, horde);
+				}
+			}
+
 			if (horde.targetCity != null) {
 				await Storm(player, horde, stack, homeless);
 			} else {

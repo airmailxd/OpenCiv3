@@ -448,10 +448,32 @@ namespace C7Engine.AI.UnitAI {
 			return hits >= FORCE_MARGIN * WarCampaign.DefenderHitPoints(player, t);
 		}
 
+		// The direction an attack between neighbours comes from, so that the
+		// odds count a river crossing (see MapUnit, where the defender gets
+		// the river bonus); null otherwise. Owner's request, 2026-10-26, with
+		// stepping round a river before attacking a city (see
+		// WarCampaign.RallyTile and KingsAndNomadsAI.Advance). In AI trials
+		// (paired, half the civs) these civs attacked across rivers about a
+		// third less in ordinary games on Pangaea, with perhaps a city more
+		// over 300 turns, and were no different elsewhere (Kings & Nomads on
+		// Pangaea perhaps half a city worse, within the noise).
+		internal static TileDirection? AttackDirection(MapUnit attacker, MapUnit defender) {
+			if (!Tile.IsTileValid(attacker.location) || !Tile.IsTileValid(defender.location)
+					|| !attacker.location.neighbors.ContainsValue(defender.location)) {
+				return null;
+			}
+			return attacker.location.DirectionTo(defender.location);
+		}
+
+		// Whether an attack from one tile on its neighbour crosses a river.
+		internal static bool CrossesRiver(Tile from, Tile to) {
+			return from.neighbors.ContainsValue(to) && to.HasRiverCrossing(from.DirectionTo(to).Reversed());
+		}
+
 		// A rough estimate of the attacker's chance to beat the defender: the
 		// chance of winning each round of combat, weighed by the hit points
-		// each side can lose. Bonuses that depend on where the attack comes
-		// from (like river crossings) are left out.
+		// each side can lose. A river crossing counts when the two are
+		// neighbours (see AttackDirection).
 		//
 		// This is not the true chance of a race of rounds to lose all hit
 		// points (it calls a fight with round odds of 0.3 a 30% chance when
@@ -459,8 +481,9 @@ namespace C7Engine.AI.UnitAI {
 		// the thresholds below were tuned against it: in AI trials the exact
 		// chance, with the same thresholds, did worse.
 		internal static double EstimateChanceToWin(MapUnit attacker, MapUnit defender) {
-			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
-			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);
+			TileDirection? from = AttackDirection(attacker, defender);
+			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, from);
+			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, from);
 			if (attack <= 0) {
 				return 0;
 			}

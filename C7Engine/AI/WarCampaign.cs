@@ -535,8 +535,9 @@ namespace C7Engine.AI {
 		// An army fights on with each of its members in turn, so it lasts
 		// for all their hit points.
 		internal static double ExpectedHits(MapUnit attacker, MapUnit defender) {
-			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
-			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);
+			TileDirection? from = CombatAI.AttackDirection(attacker, defender);
+			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, from);
+			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, from);
 			if (attack <= 0) {
 				return 0;
 			}
@@ -832,12 +833,18 @@ namespace C7Engine.AI {
 		// The tile next to the target the stack attacks from: one it can
 		// get to, preferring good defensive terrain. A tile enemy units
 		// stand on will do if need be: the stack fights its way there.
+		// HEURISTIC: what attacking across a river costs a rally tile, in
+		// tiles of distance.
+		private const int RiverRallyPenalty = 6;
+
 		private static Tile RallyTile(Player player, Campaign c, MapUnit lead, out TilePath path) {
 			List<Tile> candidates = c.target.location.neighbors.Values
 				.Where(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.continent == c.target.location.continent
 					&& !t.unitsOnTile.Any(u => u.owner != player && u.owner.IsAtPeaceWith(player)))
 				.OrderByDescending(t => t.overlayTerrainType.defenseBonus.amount * 4 - t.DistanceTo(c.stackTile)
-					- (t.unitsOnTile.Any(u => u.owner != player) ? 10 : 0))
+					- (t.unitsOnTile.Any(u => u.owner != player) ? 10 : 0)
+					// A tile that doesn't attack across a river.
+					- (CombatAI.CrossesRiver(t, c.target.location) ? RiverRallyPenalty : 0))
 				.ToList();
 			int index = PathingAlgorithmChooser.GetAlgorithm(lead).FindFirstReachable(c.stackTile, candidates, lead, out path);
 			return index < 0 ? null : candidates[index];
