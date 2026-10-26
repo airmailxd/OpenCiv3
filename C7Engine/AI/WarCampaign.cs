@@ -158,6 +158,16 @@ namespace C7Engine.AI {
 			return campaigns.TryGetValue(player, out Campaign c) && c.units.Count(IsAttacker) < NeededAttackers(player, c) + 2;
 		}
 
+		// Whether a campaign has fewer than max bombarders, counting those
+		// being built.
+		public static bool WantsBombarders(Player player, int max) {
+			if (!campaigns.TryGetValue(player, out Campaign c)) {
+				return false;
+			}
+			int building = player.cities.Count(city => city.itemBeingProduced is UnitPrototype u && u.bombard > 0 && u.attack == 0);
+			return c.units.Count(IsBombarder) + building < max;
+		}
+
 		public static bool WantsBombarders(Player player) {
 			if (!campaigns.TryGetValue(player, out Campaign c)) {
 				return false;
@@ -613,10 +623,13 @@ namespace C7Engine.AI {
 					hitsEach = c.knownHitsEach;
 				}
 			}
-			// Bombardment softens the defenders.
-			if (c.units.Any(IsBombarder)) {
-				defenderHitPoints *= 0.8;
-			}
+			// Bombardment softens the defenders, but doesn't stand in for
+			// attackers: counted as taking a fifth off the defenders, it had
+			// campaigns with siege engines storm cities with too few, and in
+			// AI trials (paired, 16 games of 6 civs and 300 turns, half the
+			// civs building siege engines) cost those civs 1.2 cities on
+			// Continents; counted as nothing, they were no worse there and
+			// had 1.3 more cities on Pangaea (see ChooseProducible.SiegeBonus).
 			int needed = (int)Math.Ceiling(AssaultMargin * defenderHitPoints / Math.Max(0.5, hitsEach)) + 1;
 			// An army counts for (at least) as many attackers as it has
 			// members.
@@ -842,7 +855,7 @@ namespace C7Engine.AI {
 			// city even with everyone who's on the way doesn't go and stand
 			// outside it.
 			if (AIFogOfWar.SeesUnitsOn(player, c.target.location) && HasArmedEnemy(player, c.target.location)
-					&& !CampaignStrongEnough(player, c, c.target.location, HopelessMargin(c))) {
+					&& !CampaignStrongEnough(player, c, c.target.location, HopelessMargin)) {
 				log.Information("{Player} sees {City} is too strongly held, and falls back", player, c.target.name);
 				StartRetreat(player, c);
 				return;
@@ -929,10 +942,9 @@ namespace C7Engine.AI {
 
 		// Below this many expected hits per defender hit point, not even
 		// everyone in the campaign could take the city: they don't expect to
-		// wear down every defender (bombardment helping).
-		private static double HopelessMargin(Campaign c) {
-			return c.units.Any(IsBombarder) ? 0.8 : 1.0;
-		}
+		// wear down every defender. Bombardment doesn't lower it (see
+		// NeededAttackers).
+		private const double HopelessMargin = 1.0;
 
 		// HEURISTIC: an attack the stack makes even without the force to win
 		// the whole fight: it's very likely to kill a defender.
@@ -1050,7 +1062,7 @@ namespace C7Engine.AI {
 			} else {
 				++c.shortTurns;
 				bool reinforcements = c.units.Any(u => PlayerAI.IsStillOurs(u, player) && IsFighter(u) && u.location.DistanceTo(c.stackTile) > 1)
-					&& CampaignStrongEnough(player, c, city, HopelessMargin(c));
+					&& CampaignStrongEnough(player, c, city, HopelessMargin);
 				if (c.shortTurns > (reinforcements ? ReinforcedWaitTurns : ShortWaitTurns)) {
 					log.Information("{Player} is too weak to take {City}, and falls back", player, c.target.name);
 					StartRetreat(player, c);

@@ -320,6 +320,14 @@ namespace C7Engine {
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
 			score += KingsAndNomadsAI.UnitBonus(city, player, unit);
 
+			// The other cities build rounds of siege engines for a war
+			// campaign, to march with the army and soften the cities (owner's
+			// design, 2026-10-25; see SiegeBonus).
+			if (UsesUnitBuilders(player) && stats.CityGuarded && unit.IsLandUnit() && unit.bombard > 0 && unit.attack == 0
+					&& !UnitBuilders(player).Contains(city) && WarCampaign.WantsBombarders(player, SiegeEngines)) {
+				score += SiegeBonus;
+			}
+
 			// The unit builders raise the army, the other cities everything
 			// else (once the city has a defender). See UnitBuilders.
 			if (UsesUnitBuilders(player) && stats.CityGuarded && !isSettler && !isWorker
@@ -724,6 +732,13 @@ namespace C7Engine {
 		}
 
 		private const int UnitBuilderMinSize = 3;
+		// HEURISTIC: a city other than the unit builders scores siege
+		// engines (bombard units that don't attack) SiegeBonus more while a
+		// war campaign has fewer than SiegeEngines (a campaign takes three,
+		// see WarCampaign), counting those being built. Before, the AI
+		// hardly built any: they have no attack or defence to score.
+		private const int SiegeEngines = 3;
+		private const float SiegeBonus = 30;
 		private const float UnitBuilderMaxCorruption = 0.25f;
 		private const float UnitBuilderBonus = 10;
 		private const float OtherCityUnitPenalty = 5;
