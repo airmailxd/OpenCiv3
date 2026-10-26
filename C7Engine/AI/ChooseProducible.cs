@@ -496,6 +496,14 @@ namespace C7Engine {
 			// war.
 			if (building.providesVeteranGroundUnits) {
 				score += (city.residents.Count / 5) * (atWar ? 3 : 1);
+				// Barracks in the core cities that raise the army (see
+				// CoreBarracksBonus).
+				if (!atWar && city.residents.Count >= CoreBarracksMinSize
+						&& (!KingsAndNomadsAI.PlaysFor(player) || player.cities.Count >= KingsAndNomadsBarracksCities)
+						&& player.cities.OrderByDescending(c => c.CurrentProductionYield().useful).ThenBy(c => c.id.ToString())
+							.Take(CoreBarracksCities).Contains(city)) {
+					score += CoreBarracksBonus;
+				}
 			}
 
 			// The space race: the Apollo Program opens it, and every
@@ -653,6 +661,25 @@ namespace C7Engine {
 		// (A city without a defender builds one first; see NeedsTransport's
 		// caller.)
 		private const float TransportScore = 500;
+
+		// HEURISTIC: barracks in the civ's CoreBarracksCities most
+		// productive cities of at least CoreBarracksMinSize get
+		// CoreBarracksBonus, in peacetime, between wars (and in Kings &
+		// Nomads once the civ has KingsAndNomadsBarracksCities cities), so
+		// that the next army comes out veteran (owner: "+1 health on units is
+		// a valuable stat"). Otherwise the AI hardly built any: they add no
+		// yield, which is how it values improvements (see BuildingEffects).
+		// In AI trials (paired, half the civs) the veteran share of these
+		// civs' land units rose from 15% to 28% in Kings & Nomads on
+		// Continents, where they lost 4 fewer units and were 15 stronger,
+		// and from 6-7% to 8-9% in ordinary games, with no significant
+		// change in score or cities; in Kings & Nomads on Pangaea, from 10%
+		// to 22%, with perhaps a city fewer (-0.96 +- 0.59). Built at war
+		// too, they cost Kings & Nomads civs on Pangaea 23 beakers a turn.
+		private const int CoreBarracksCities = 2;
+		private const int CoreBarracksMinSize = 4;
+		private const float CoreBarracksBonus = 25;
+		private const int KingsAndNomadsBarracksCities = 3;
 
 		private static bool NeedsTransport(City city, Player player) {
 			bool waiting = false;

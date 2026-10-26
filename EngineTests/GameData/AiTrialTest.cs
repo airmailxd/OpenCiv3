@@ -207,6 +207,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"warsFought", "warsWon",
 			// The civ's cities with barracks at the end.
 			"barracks",
+			// The share of the civ's land fighters at the end that are
+			// veterans or better, in percent.
+			"vetPct",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -806,6 +809,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.attacks > 0);
 			m.values[i++] = warRecords.Count(w => w.aggressor == p && w.captures > 0);
 			m.values[i++] = p.cities.Count(c => c.constructed_buildings.Any(b => b.building.providesVeteranGroundUnits));
+			List<MapUnit> landFighters = p.units.Where(u => u.IsLandUnit() && u.unitType.attack + u.unitType.defense > 0 && !u.unitType.isKing && !u.unitType.isWorker).ToList();
+			m.values[i++] = landFighters.Count == 0 ? 0 : 100.0 * landFighters.Count(u => u.experienceLevel.baseHitPoints > gameData.defaultExperienceLevel.baseHitPoints) / landFighters.Count;
 			return m;
 		}
 
