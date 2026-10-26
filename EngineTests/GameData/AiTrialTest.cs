@@ -210,6 +210,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The share of the civ's land fighters at the end that are
 			// veterans or better, in percent.
 			"vetPct",
+			// Bombard units (catapults and the like) the civ holds at the end.
+			"bombarders",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -811,6 +813,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = p.cities.Count(c => c.constructed_buildings.Any(b => b.building.providesVeteranGroundUnits));
 			List<MapUnit> landFighters = p.units.Where(u => u.IsLandUnit() && u.unitType.attack + u.unitType.defense > 0 && !u.unitType.isKing && !u.unitType.isWorker).ToList();
 			m.values[i++] = landFighters.Count == 0 ? 0 : 100.0 * landFighters.Count(u => u.experienceLevel.baseHitPoints > gameData.defaultExperienceLevel.baseHitPoints) / landFighters.Count;
+			m.values[i++] = p.units.Count(u => u.IsLandUnit() && u.unitType.bombard > 0 && u.unitType.attack == 0);
 			return m;
 		}
 
