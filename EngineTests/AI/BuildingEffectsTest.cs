@@ -156,4 +156,17 @@ public sealed class BuildingEffectsTest : IClassFixture<SaveGameFixture>, IDispo
 		city.AddBuilding(Named("Coal Plant"));
 		Assert.True(Effect("Solar Plant") < first);
 	}
+
+	// The unit builders are the civ's most productive cities of size 3 or
+	// more that lose little to corruption.
+	[Fact]
+	public void UnitBuildersAreProductiveUncorruptCities() {
+		GrowTo(4);
+		Assert.Contains(city, ChooseProducible.UnitBuilders(player));
+
+		// A corrupt city isn't one, nor a small one.
+		city.corruption = 0.5f;
+		gameData.turn += 1;
+		Assert.DoesNotContain(city, ChooseProducible.UnitBuilders(player));
+	}
 }

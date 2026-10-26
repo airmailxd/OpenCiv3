@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Serilog;
 using Serilog.Events;
 using C7Engine.AI;
@@ -319,6 +320,13 @@ namespace C7Engine {
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
 			score += KingsAndNomadsAI.UnitBonus(city, player, unit);
 
+			// The unit builders raise the army, the other cities everything
+			// else (once the city has a defender). See UnitBuilders.
+			if (UsesUnitBuilders(player) && stats.CityGuarded && !isSettler && !isWorker
+					&& unit.IsLandUnit() && unit.attack + unit.defense > 0) {
+				score += UnitBuilders(player).Contains(city) ? UnitBuilderBonus : -OtherCityUnitPenalty;
+			}
+
 			if (isSettler) {
 				// Don't build settlers if we don't have anywhere to go or if we
 				// already have enough settlers under construction to fill all
@@ -500,8 +508,9 @@ namespace C7Engine {
 				// CoreBarracksBonus).
 				if (!atWar && city.residents.Count >= CoreBarracksMinSize
 						&& (!KingsAndNomadsAI.PlaysFor(player) || player.cities.Count >= KingsAndNomadsBarracksCities)
-						&& player.cities.OrderByDescending(c => c.CurrentProductionYield().useful).ThenBy(c => c.id.ToString())
-							.Take(CoreBarracksCities).Contains(city)) {
+						&& (UsesUnitBuilders(player) ? UnitBuilders(player).Contains(city)
+							: player.cities.OrderByDescending(c => c.CurrentProductionYield().useful).ThenBy(c => c.id.ToString())
+								.Take(CoreBarracksCities).Contains(city))) {
 					score += CoreBarracksBonus;
 				}
 			}
@@ -662,8 +671,9 @@ namespace C7Engine {
 		// caller.)
 		private const float TransportScore = 500;
 
-		// HEURISTIC: barracks in the civ's CoreBarracksCities most
-		// productive cities of at least CoreBarracksMinSize get
+		// HEURISTIC: barracks in the civ's unit builders (see UnitBuilders;
+		// in Kings & Nomads, its CoreBarracksCities most productive cities)
+		// of at least CoreBarracksMinSize get
 		// CoreBarracksBonus, in peacetime, between wars (and in Kings &
 		// Nomads once the civ has KingsAndNomadsBarracksCities cities), so
 		// that the next army comes out veteran (owner: "+1 health on units is
@@ -680,6 +690,43 @@ namespace C7Engine {
 		private const int CoreBarracksMinSize = 4;
 		private const float CoreBarracksBonus = 25;
 		private const int KingsAndNomadsBarracksCities = 3;
+
+		// The civ's unit builders, the cities that raise its army, as a
+		// strong Civ3 player keeps them: its most productive (in shields
+		// after waste) of at least UnitBuilderMinSize, losing less than
+		// UnitBuilderMaxCorruption of their commerce, two of them, or three
+		// with eight cities or more. Their land units score UnitBuilderBonus
+		// more, other cities' OtherCityUnitPenalty less, and they get the
+		// civ's barracks (see CoreBarracksBonus). Worked out once a turn.
+		//
+		// In AI trials (paired, 20 games of 6 civs and 150 turns, half the
+		// civs) the civs keeping unit builders got 17.7 more beakers a turn
+		// on Pangaea (+0.7 cities) and 8 more units on Continents (+0.4
+		// cities). Not in Kings & Nomads, where a civ's few small captured
+		// cities all raise its hordes: there it cost them a city on Pangaea
+		// and 3 more units lost on Continents.
+		private static readonly ConditionalWeakTable<Player, Tuple<int, HashSet<City>>> unitBuilders = new();
+
+		internal static bool UsesUnitBuilders(Player player) => !KingsAndNomadsAI.PlaysFor(player);
+
+		internal static HashSet<City> UnitBuilders(Player player) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (unitBuilders.TryGetValue(player, out Tuple<int, HashSet<City>> cached) && cached.Item1 == turn) {
+				return cached.Item2;
+			}
+			int count = player.cities.Count >= 8 ? 3 : 2;
+			HashSet<City> result = player.cities
+				.Where(c => c.residents.Count >= UnitBuilderMinSize && c.corruption < UnitBuilderMaxCorruption)
+				.OrderByDescending(c => c.CurrentProductionYield().useful).ThenBy(c => c.id.ToString())
+				.Take(count).ToHashSet();
+			unitBuilders.AddOrUpdate(player, Tuple.Create(turn, result));
+			return result;
+		}
+
+		private const int UnitBuilderMinSize = 3;
+		private const float UnitBuilderMaxCorruption = 0.25f;
+		private const float UnitBuilderBonus = 10;
+		private const float OtherCityUnitPenalty = 5;
 
 		private static bool NeedsTransport(City city, Player player) {
 			bool waiting = false;
