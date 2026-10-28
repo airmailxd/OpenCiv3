@@ -260,6 +260,13 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 	public async System.Threading.Tasks.Task EscortKeepsItsSettlerWhenTheSettlersPlanFails() {
 		MapUnit settler = player.units.First(u => u.unitType.isSettler);
 		Tile site = settler.location;
+		// The land about is known, so there are other sites to choose from
+		// (on turn 0 the AI knows no tiles).
+		foreach (Tile t in site.GetTilesWithinTileSquare(6)) {
+			if (t != Tile.NONE) {
+				player.tileKnowledge.knownTiles.Add(t);
+			}
+		}
 		MapUnit escort = gameData.SpawnUnit(player, Proto("Warrior"), site);
 		SettlerAI settlerAi = new(new C7GameData.AIData.SettlerAIData() {
 			goal = C7GameData.AIData.SettlerAIData.SettlerGoal.BUILD_CITY,

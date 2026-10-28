@@ -69,7 +69,6 @@ namespace C7Engine {
 		public Government defaultGovernment = new();
 
 		public int maxRankOfWorkableTiles;
-		public int maxRankOfBarbarianCampTiles;
 
 		// The food each citizen eats a turn (the BIQ's RULE).
 		public int foodPerCitizen = 2;
@@ -84,7 +83,6 @@ namespace C7Engine {
 			defaultGovernment = save.Governments.Find(g => g.defaultType);
 
 			maxRankOfWorkableTiles = save.Rules.MaxRankOfWorkableTiles;
-			maxRankOfBarbarianCampTiles = save.Rules.MaxRankOfBarbarianCampTiles;
 			foodPerCitizen = save.Rules.FoodConsumptionPerCitizen;
 
 			barbarianActivity = save.BarbarianInfo.barbarianActivity;
@@ -123,6 +121,9 @@ namespace C7Engine {
 			// landmass, with land->coast->sea->ocean transitions.
 			FixContinentalShelf(wc, gameMap);
 
+			// Step 2b: a few small lakes inland.
+			AddLakes(wc, gameMap);
+
 			// Step 3: add hills and mountains.
 			AddHillsAndMountains(wc, gameMap);
 
@@ -154,8 +155,6 @@ namespace C7Engine {
 			AddBonusGrasslands(wc, gameMap);
 
 			// Step 10: Place player starting locations
-			// Placing this before barb camps so barbs don't spawn <5 tiles away from players
-			// Tried placing barbs then players, but caused all players to spawn together
 			problem = null;
 			if (wc.citiesPerCiv > 1) {
 				// Too few sites for every civ's cities is no problem: GameSetup
@@ -175,13 +174,12 @@ namespace C7Engine {
 				}
 			}
 
-			// Step 11: Add barb camps. We do this towards the end to make sure
-			// that we don't have barb camps on top of resources.
-			// Previously step 10
-			AddBarbarianCamps(wc, gameMap);
+			// No barbarian camps come with the map: Civ3's own maps have none
+			// at the start (not one in hundreds, see MapGenParityTest), as
+			// camps only appear once every civ has settled and there are two
+			// cities per civ (BarbarianInteractions.CampsMayAppear).
 
-			// Step 12: Add goody huts, away from the players and the barb
-			// camps.
+			// Step 11: Add goody huts, away from the players.
 			if (wc.goodyHuts) {
 				AddGoodyHuts(wc, gameMap);
 			}
@@ -534,7 +532,7 @@ namespace C7Engine {
 			return m;
 		}
 
-		private const int EXTRA_WATER_PERCENT = 4;
+		private const int EXTRA_WATER_PERCENT = 3;
 
 		private static double GetNoiseScale(WorldCharacteristics.Landform landform) {
 			return landform switch {
@@ -662,17 +660,17 @@ namespace C7Engine {
 			switch (wc.age) {
 				case WorldCharacteristics.Age.Billion_3:
 					hillyPercent = 33;
-					mountainPercent = 45;
+					mountainPercent = 60;
 					volcanoPercent = 6;
 					break;
 				case WorldCharacteristics.Age.Billion_4:
-					hillyPercent = 21;
-					mountainPercent = 41;
-					volcanoPercent = 3;
+					hillyPercent = 20;
+					mountainPercent = 56;
+					volcanoPercent = 4;
 					break;
 				case WorldCharacteristics.Age.Billion_5:
 					hillyPercent = 14;
-					mountainPercent = 41;
+					mountainPercent = 56;
 					volcanoPercent = 2;
 					break;
 				default:
@@ -1138,11 +1136,11 @@ namespace C7Engine {
 				TerrainType biome;
 				if (latitude >= BiomeClimate.TUNDRA_LATITUDE) {
 					biome = tundra;
-				} else if (moisture < .31 && latitude < 38 || moisture < .05) {
+				} else if (moisture < .32 && latitude < 38 || moisture < .05) {
 					// Deserts mostly sit in the dry subtropics, with the odd
 					// cold desert further out where it's very dry.
 					biome = desert;
-				} else if (moisture < .425) {
+				} else if (moisture < .44) {
 					biome = plains;
 				} else {
 					biome = grassland;
@@ -1195,7 +1193,7 @@ namespace C7Engine {
 		// in the subtropics (the Sahara, the Outback), and middling beyond.
 		private class BiomeClimate {
 			// Land at or above this effective latitude is tundra.
-			public const double TUNDRA_LATITUDE = 70;
+			public const double TUNDRA_LATITUDE = 62;
 
 			private readonly GameMap map;
 			private readonly HeightMap temperatureNoise;
@@ -1322,26 +1320,26 @@ namespace C7Engine {
 			double[] growthPercentiles = BiomeClimate.NoisePercentiles(growthNoise);
 			double[] patchPercentiles = BiomeClimate.NoisePercentiles(patchNoise);
 			HeightMap marshNoise = new(seed: wc.mapSeed + 0x3a75, width:wc.worldSize.width, height:wc.worldSize.height, scale:1.2, forceLowPointsAtPoles:false);
-			int marshLevel = marshNoise.FindSeaLevel(94);
+			int marshLevel = marshNoise.FindSeaLevel(90);
 
 			// Jungle only grows near the equator. Wetter worlds grow more of
 			// everything, and spread jungle further out.
 			double jungleLatitude, jungleThreshold, forestThreshold;
 			switch (wc.climate) {
 				case WorldCharacteristics.Climate.Wet:
-					jungleLatitude = 20;
-					jungleThreshold = .64;
-					forestThreshold = .69;
+					jungleLatitude = 26;
+					jungleThreshold = .54;
+					forestThreshold = .61;
 					break;
 				case WorldCharacteristics.Climate.Normal:
-					jungleLatitude = 16;
-					jungleThreshold = .68;
-					forestThreshold = .73;
+					jungleLatitude = 22;
+					jungleThreshold = .58;
+					forestThreshold = .65;
 					break;
 				case WorldCharacteristics.Climate.Arid:
-					jungleLatitude = 12;
-					jungleThreshold = .74;
-					forestThreshold = .78;
+					jungleLatitude = 17;
+					jungleThreshold = .64;
+					forestThreshold = .70;
 					break;
 				default:
 					throw new Exception($"Unknown climate: {wc.climate}");
@@ -1819,6 +1817,75 @@ namespace C7Engine {
 			}
 		}
 
+		// Civ3's maps have a few small lakes inland: about five on a standard
+		// map whatever its landform (a few more with more land), three in
+		// four of them a single tile, and about ten lake tiles in all (from
+		// Civ3's own maps, see tools/civ3_maps and MapGenParityTest). A lake
+		// is coast enclosed by land, fresh water up to
+		// GameMap.MaxFreshWaterLakeTiles.
+		private const double LAKES_PER_MAP_TILE = 2.0 / 5000;
+		private const double LAKES_PER_LAND_TILE = 1.0 / 600;
+		private const double ONE_TILE_LAKE_CHANCE = .75;
+		private const int MAX_LAKE_TILES = 8;
+
+		private static void AddLakes(WorldCharacteristics wc, GameMap m) {
+			TerrainType coast = wc.terrainTypes.Find(x => x.Key == "coast");
+			Random rand = new(wc.mapSeed + 0x1a4e);
+			List<Tile> land = m.tiles.Where(t => t.IsLand()).ToList();
+			if (land.Count == 0 || coast == null) {
+				return;
+			}
+			int count = (int)Math.Round(m.tiles.Count * LAKES_PER_MAP_TILE + land.Count * LAKES_PER_LAND_TILE + rand.NextDouble() * 2 - 1);
+
+			// A lake stays two tiles from other water, so it is enclosed by
+			// land and doesn't run into the sea or another lake.
+			bool DryAround(Tile t, HashSet<Tile> lake) {
+				foreach (Tile n in t.neighbors.Values) {
+					if (n == null || n == Tile.NONE) {
+						return false;
+					}
+					foreach (Tile nn in n.neighbors.Values) {
+						if (nn == null || nn == Tile.NONE || (!nn.IsLand() && !lake.Contains(nn))) {
+							return false;
+						}
+					}
+				}
+				return true;
+			}
+
+			rand.Shuffle(CollectionsMarshal.AsSpan(land));
+			int made = 0;
+			foreach (Tile start in land) {
+				if (made >= count) {
+					break;
+				}
+				HashSet<Tile> lake = new();
+				if (!start.IsLand() || !DryAround(start, lake)) {
+					continue;
+				}
+				lake.Add(start);
+				int size = rand.NextDouble() < ONE_TILE_LAKE_CHANCE ? 1 : 2 + rand.Next(MAX_LAKE_TILES - 1);
+				for (int tries = 0; lake.Count < size && tries < 4 * size; ++tries) {
+					List<Tile> edge = lake.SelectMany(t => t.neighbors.Values).Where(n => n != null && n != Tile.NONE && n.IsLand() && !lake.Contains(n)).Distinct().ToList();
+					if (edge.Count == 0) {
+						break;
+					}
+					Tile next = edge[rand.Next(edge.Count)];
+					if (DryAround(next, lake)) {
+						lake.Add(next);
+					}
+				}
+				foreach (Tile t in lake) {
+					t.baseTerrainType = coast;
+					t.overlayTerrainType = coast;
+				}
+				++made;
+			}
+			if (made > 0) {
+				m.recomputeContinents();
+			}
+		}
+
 		private static void AddResources(WorldCharacteristics wc, GameMap m) {
 			Random rand = new(wc.mapSeed + 0x7171);
 
@@ -2074,8 +2141,9 @@ namespace C7Engine {
 
 		private static void PlaceBonusResources(Random rand, WorldCharacteristics wc, GameMap m,
 												List<Resource> bonusResources, List<int> tileIndicies) {
-			// About as dense as on Civ3's maps.
-			int totalPossibleBonusResources = m.tiles.Count * 22 / 1000;
+			// As dense as on Civ3's own standard maps, about 104 on their 5000
+			// tiles whatever the land (see MapGenParityTest).
+			int totalPossibleBonusResources = m.tiles.Count * 21 / 1000;
 			int placed = 0;
 
 			Dictionary<Resource, int> terrainScores = CalculateBonusResourceTerrainScores(wc, bonusResources);
@@ -2170,67 +2238,10 @@ namespace C7Engine {
 			return result;
 		}
 
-		private static void AddBarbarianCamps(WorldCharacteristics wc, GameMap m) {
-			Random rand = new(wc.mapSeed + 0xba7b5);
-			List<int> tileIndicies = Enumerable.Range(0, m.tiles.Count).ToList();
-			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
-
-			int landTiles = 0;
-			foreach (Tile t in m.tiles) {
-				if (t.IsLand()) {
-					++landTiles;
-				}
-			}
-
-			int totalPossibleBarbCamps = DeriveTotalPossibleBarbCamps(wc, landTiles);
-			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
-
-			int numCamps = 0;
-			for (int i = 0; i < tileIndicies.Count && numCamps < totalPossibleBarbCamps; ++i) {
-				Tile t = m.tiles[tileIndicies[i]];
-				if (IsValidForBarbarianCamp(wc, m, t, continentSizes)) {
-					m.barbarianCamps.Add(t);
-					t.hasBarbarianCamp = true;
-					++numCamps;
-				}
-			}
-		}
-
-		// How many barbarian camps a map starts with: one for every
-		// LAND_TILES_PER_BARBARIAN_CAMP land tiles, with more at the higher
-		// barbarian activity levels. These are tuned guesses, NOT taken from
-		// Civ3, whose own numbers aren't known.
-		private const int LAND_TILES_PER_BARBARIAN_CAMP = 100;
-		private const double RESTLESS_BARBARIAN_CAMP_FACTOR = 1.25;
-		private const double RAGING_BARBARIAN_CAMP_FACTOR = 1.5;
-
-		/// <summary>
-		/// Apply barbarian activity level to barbarian camp spawn rate. Currently NOT based on Civ3 values.
-		/// TODO: Make configurable
-		/// TODO: Determine what these values are in Civ3 
-		/// </summary>
-		private static int DeriveTotalPossibleBarbCamps(WorldCharacteristics wc, int landTiles) {
-			var totalCampsBaseline = landTiles / LAND_TILES_PER_BARBARIAN_CAMP;
-			switch (wc.barbarianActivity) {
-				case BarbarianActivity.None:
-					return 0;
-				case BarbarianActivity.Sedentary:
-					return totalCampsBaseline;
-				case BarbarianActivity.Roaming:
-					return totalCampsBaseline;
-				case BarbarianActivity.Restless:
-					return (int)Math.Round(totalCampsBaseline * RESTLESS_BARBARIAN_CAMP_FACTOR);
-				case BarbarianActivity.Raging:
-					return (int)Math.Round(totalCampsBaseline * RAGING_BARBARIAN_CAMP_FACTOR);
-				default:
-					log.Warning("Unknown Barbarian Activity at barb camps derivation.");
-					return totalCampsBaseline;
-			}
-		}
-
-		// About one goody hut for every this many land tiles. A tuned guess,
-		// NOT taken from Civ3.
-		private const int LandTilesPerGoodyHut = 60;
+		// About one goody hut for every this many land tiles: Civ3's own
+		// standard maps have one for every 49 to 57 (see MapGenParityTest),
+		// and a few of ours don't find a place.
+		private const int LandTilesPerGoodyHut = 52;
 
 		private static void AddGoodyHuts(WorldCharacteristics wc, GameMap m) {
 			Random rand = new(wc.mapSeed + 0x900d7);
@@ -2283,20 +2294,8 @@ namespace C7Engine {
 			return true;
 		}
 
-		private static bool IsValidForBarbarianCamp(WorldCharacteristics wc, GameMap m, Tile t, Dictionary<int, int> continentSizes) {
-			if (!IsCampSiteSuitable(t, continent => continentSizes[continent], wc.maxRankOfBarbarianCampTiles)) {
-				return false;
-			}
-
-			// No barbarian camps less than 6 tiles away from a player
-			if (m.startingLocations.Any(x => t.DistanceTo(x) < 6)) return false;
-
-			return true;
-		}
-
-		// The terrain and spacing rules for a barbarian camp, shared by the
-		// camps placed with the map and those that appear during the game
-		// (see BarbarianInteractions.MaybeAddCamp).
+		// The terrain and spacing rules for a barbarian camp that appears
+		// during the game (see BarbarianInteractions.MaybeAddCamp).
 		public static bool IsCampSiteSuitable(Tile t, Func<int, int> continentSize, int maxRankOfCampTiles) {
 			// No barbarian camps on water, volcanos, or mountains.
 			if (!t.IsLand() || t == Tile.NONE || t.overlayTerrainType.Key == "volcano" || t.overlayTerrainType.Key == "mountains") {
@@ -2872,9 +2871,7 @@ namespace C7Engine {
 			const int RiverPoints = 35;
 			const int CoastPoints = 30;
 			const int LandTilePoints = 1;
-			// Barbarian camps aren't scored: starting locations are chosen
-			// before the camps are placed, and the camps keep away from them
-			// (see IsValidForBarbarianCamp).
+			// Barbarian camps aren't scored: there are none at the start.
 
 			// Calculate the score for tiles in the immediate area.
 			int score = 0;

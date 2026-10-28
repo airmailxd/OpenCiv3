@@ -14,9 +14,22 @@ public class BarbarianCampTest : IClassFixture<SaveGameFixture> {
 		this.fixture = fixture;
 	}
 
+	// A new map has no camps: Civ3's have none at the start (not one in
+	// hundreds of its maps, see MapGenParityTest), as camps only appear once
+	// every civ has settled and there are two cities per civ.
+	[Fact]
+	public void TheMapStartsWithoutCamps() {
+		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		Assert.Empty(gameData.map.barbarianCamps);
+		Assert.DoesNotContain(gameData.map.tiles, t => t.hasBarbarianCamp);
+	}
+
 	[Fact]
 	public void EveryCampStartsWithABasicBarbarianDefender() {
 		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		foreach (Tile site in BarbarianInteractions.PossibleNewCampSites(gameData).Take(3)) {
+			BarbarianInteractions.AddCamp(gameData, site);
+		}
 		Assert.NotEmpty(gameData.map.barbarianCamps);
 
 		foreach (Tile camp in gameData.map.barbarianCamps) {

@@ -23,9 +23,19 @@ public class BarbarianUprisingTest : IClassFixture<SaveGameFixture> {
 	private static int BarbarianUnits(C7GameData.GameData gameData) =>
 		gameData.players.Single(p => p.isBarbarians).units.Count;
 
+	// A game with a few camps. The map has none at the start, as in Civ3:
+	// they appear later in the game (see BarbarianInteractions.MaybeAddCamp).
+	private C7GameData.GameData GameWithCamps() {
+		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		foreach (Tile site in BarbarianInteractions.PossibleNewCampSites(gameData).Take(3)) {
+			BarbarianInteractions.AddCamp(gameData, site);
+		}
+		return gameData;
+	}
+
 	[Fact]
 	public void TheSecondCivReachingTheMiddleAgesSetsOffOneUprising() {
-		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		C7GameData.GameData gameData = GameWithCamps();
 		gameData.barbarianInfo.barbarianActivity = BarbarianActivity.Restless;
 		int camps = gameData.map.barbarianCamps.Count;
 		Assert.True(camps > 0);
@@ -55,7 +65,7 @@ public class BarbarianUprisingTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void TheIndustrialAgeSetsOffAnotherUprising() {
-		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		C7GameData.GameData gameData = GameWithCamps();
 		BarbarianInteractions.MaybeStartUprisings(gameData);
 		List<Player> civs = Civs(gameData);
 		civs[0].eraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;

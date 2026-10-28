@@ -25,7 +25,7 @@ namespace C7GameData {
 		// How far from the equator, as a share of the way to a pole, the
 		// noise starts being sunk toward POLAR_SINK_HEIGHT, all the way at
 		// the pole: the outer tenth of the map's height at each end.
-		private const double POLAR_SINK_START = .8;
+		private const double POLAR_SINK_START = .65;
 		// The bottom of the noise's range.
 		private const double POLAR_SINK_HEIGHT = -1;
 

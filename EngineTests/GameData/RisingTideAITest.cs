@@ -214,7 +214,7 @@ public class RisingTideAITest {
 	// Workers don't improve land the sea will soon take.
 	[Fact]
 	public async Task WorkersLeaveTheShoreAlone() {
-		C7GameData.GameData gameData = NewGame(18);
+		C7GameData.GameData gameData = NewGame(22);
 		Player civ = FirstCiv(gameData);
 		// A city of five on the shore, working the land about it.
 		Tile shore = RisingTide.Shore(gameData).First(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && t.OwningPlayer() == null

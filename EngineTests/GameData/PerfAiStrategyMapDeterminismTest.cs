@@ -100,9 +100,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "398DCF97ADBA2DFBD9A4C6B25172373B79B20D33C3EAF4547F5BF3F314D7137A")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "3D49E5084723F871C3B6B5A03C1662BB38E0298F5FD767F974F7DF7D20F9A7C1")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "123616CA4F12148A45D79470CBAE50893C10C9BC9BE770C46B5DA36A4046211F")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "6CF0E57A676BA1070BFF796EE1257F712A92E5626C1C794F0BF76EE27E7B3E3E")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "AE8004019D4F17D629BE8B869198310B788E64F14242982C53F6D0DEC0BE2B16")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "0E12373F10E341B2A12FDE1B6847DDF4FD8F4E1FB8BF2F9F1F56626E9EE36AB7")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

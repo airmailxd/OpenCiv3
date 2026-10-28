@@ -1,0 +1,389 @@
+"""Makes Civilization III maps in bulk, for comparing OpenCiv3's map
+generator with Civ3's (EngineTests/GameData/MapGenParityTest.cs): for each
+seed and setting it starts a new game in a running Civ3, set to that world,
+and keeps the 4000 BC autosave under a name that says what it is:
+
+    <rules>_<size>_<landform><water>_<climate>-<temperature>-<age>_s<seed>.SAV
+    e.g. STD_Standard_Pan70_Nrm-Tmp-4B_s000123.SAV
+
+    python tools/civ3_maps/generate.py --out=D:/civ3_maps/std --seeds=1-100
+    python tools/civ3_maps/generate.py --out=... --seeds=1-100 --landforms=Pan,Con,Arc --water=80,70,60
+
+or, faster, with Quick Start, which plays the last New Game's settings
+from a random seed: each map type starts with a New Game, then Quick
+Starts, until every type has --count maps (counting those made already):
+
+    python tools/civ3_maps/generate.py --out=... --count=300 --block=50
+
+Quick Start maps are saved as ..._t<time>.SAV; their seed is only in the
+save, so MapGenParityTest.RenameQuickStartMaps renames them to _s<seed>
+(and checks their settings are the ones in the name).
+
+It drives Civ3 with the mouse and keyboard (civ3win.py), so the PC can't be
+used while it runs. Civ3 must be running and at its main menu, windowed, with
+the standard rules (New Game, not a scenario). Maps already made are
+skipped, so a run can be stopped and started again. A screen it doesn't
+recognize is saved to <out>/_errors/ and it goes back to the main menu.
+
+Positions are fractions of Civ3's 1600x1200 screens (they scale with the
+window).
+"""
+import os
+import random
+import shutil
+import subprocess
+import sys
+import time
+
+import civ3win as c
+
+# How Civ3 is started again after it hangs: 'dxwnd' (DxWnd's first program,
+# which runs it in a window), 'steam', or 'exe' (CIV3_EXE itself, as in the
+# map-making VMs, tools/civ3_maps/vm). Each can be set in the environment.
+LAUNCH = os.environ.get('CIV3_LAUNCH', 'dxwnd')
+STEAM_URL = 'steam://rungameid/3910'
+CIV3_EXE = os.environ.get('CIV3_EXE', r"C:\Civ3\Conquests\Civ3Conquests.exe")
+# A game that hasn't started in this long has hung.
+HANG_SECONDS = 45
+# Civ3 wears out after a hundred or so games in one run (its text turns to
+# "-Nil-" and it hangs), so it is restarted after this many.
+GAMES_PER_RUN = 80
+
+CIV3_AUTOSAVES = os.environ.get('CIV3_AUTOSAVES', r"D:\Steam\steamapps\common\Sid Meier's Civilization III Complete\Conquests\Saves\Auto")
+
+
+def P(x, y):
+    return x / 1600, y / 1200
+
+
+MENU_NEW_GAME = P(330, 533)
+MENU_QUICK_START = P(322, 598)
+SEED_FIELD = P(1190, 53)
+OK = P(1515, 1157)
+SIZES = {'Tiny': P(360, 212), 'Small': P(360, 247), 'Standard': P(360, 281), 'Large': P(360, 315), 'Huge': P(360, 350)}
+# The landform thumbnails: Pangaea, Continents, Archipelago, each at 80, 70
+# and 60% water.
+LANDFORM_X = {'Pan': [292, 419, 545], 'Con': [672, 798, 925], 'Arc': [1051, 1178, 1305]}
+WATER_INDEX = {80: 0, 70: 1, 60: 2}
+LANDFORM_Y = 492
+CLIMATE = {'Ari': P(190, 970), 'Nrm': P(317, 970), 'Wet': P(444, 970)}
+TEMPERATURE = {'Wrm': P(669, 970), 'Tmp': P(796, 970), 'Col': P(922, 970)}
+AGE = {'3B': P(1147, 970), '4B': P(1273, 970), '5B': P(1400, 970)}
+CIV_ROME = P(344, 200)
+QUIT_YES = P(566, 350)
+QUIT_OK = P(1004, 394)
+
+# The screens are told apart by a few pixels (in 1600x1200), sampled from
+# each (tools/civ3_maps/_cal).
+def pixel(img, x, y):
+    w, h = img.size
+    return img.getpixel((int(x * w / 1600), int(y * h / 1200)))[:3]
+
+
+def near(a, b, tol=30):
+    return all(abs(p - q) <= tol for p, q in zip(a, b))
+
+
+def at_main_menu(img):
+    # The steel of the menu's frame.
+    return near(pixel(img, 500, 1000), (74, 82, 82)) and near(pixel(img, 800, 580), (115, 115, 115))
+
+
+def at_world_setup(img):
+    # The seed field, and the sea of the climate picture.
+    return near(pixel(img, 1250, 53), (255, 247, 222)) and near(pixel(img, 500, 1000), (41, 173, 189))
+
+
+def at_player_setup(img):
+    # The civilization list's parchment, and the leader portrait's dark.
+    return near(pixel(img, 160, 400), (255, 247, 206)) and near(pixel(img, 800, 60), (57, 33, 33), 45)
+
+
+def dawn_popup(img):
+    # The popup's parchment over the black of the unexplored map.
+    return near(pixel(img, 800, 60), (239, 239, 198)) and pixel(img, 160, 400) == (0, 0, 0)
+
+
+def wait_for(test, timeout, step=0.5):
+    end = time.time() + timeout
+    while time.time() < end:
+        img = c.screenshot()
+        if test(img):
+            return img
+        time.sleep(step)
+    return None
+
+
+def name_of(rules, size, landform, water, climate, temperature, age, seed):
+    return f'{rules}_{size}_{landform}{water}_{climate}-{temperature}-{age}_s{seed:06d}.SAV'
+
+
+def back_to_menu():
+    c.chord(c.VK_CONTROL, c.VK_SHIFT, ord('Q'))
+    time.sleep(0.8)
+    c.click(*QUIT_YES)
+    time.sleep(0.3)
+    c.click(*QUIT_OK)
+    return wait_for(at_main_menu, 20) is not None
+
+
+def latest_autosave(after):
+    best = None
+    for name in os.listdir(CIV3_AUTOSAVES):
+        path = os.path.join(CIV3_AUTOSAVES, name)
+        if name.upper().endswith('.SAV') and os.path.getmtime(path) >= after:
+            if best is None or os.path.getmtime(path) > os.path.getmtime(best):
+                best = path
+    return best
+
+
+def make_map(out, rules, size, landform, water, climate, temperature, age, seed):
+    """Makes one map; returns its path, or None if a screen wasn't as
+    expected (the screen is saved to <out>/_errors)."""
+    def fail(why):
+        os.makedirs(os.path.join(out, '_errors'), exist_ok=True)
+        c.screenshot().save(os.path.join(out, '_errors', f's{seed:06d}_{landform}{water}_{why}.png'))
+        print(f'  seed {seed} {landform}{water}: {why}', flush=True)
+        return None
+
+    if wait_for(at_main_menu, 15) is None:
+        return fail('no-menu')
+    # The first click only highlights the item, unless it already is.
+    c.click(*MENU_NEW_GAME)
+    time.sleep(0.3)
+    if at_main_menu(c.screenshot()):
+        c.click(*MENU_NEW_GAME)
+    if wait_for(at_world_setup, 15) is None:
+        return fail('no-world-setup')
+    c.click(*SIZES[size])
+    c.click(LANDFORM_X[landform][WATER_INDEX[water]] / 1600, LANDFORM_Y / 1200)
+    c.click(*CLIMATE[climate])
+    c.click(*TEMPERATURE[temperature])
+    c.click(*AGE[age])
+    c.click(*SEED_FIELD)
+    c.key(c.VK_END)
+    for _ in range(12):
+        c.key(c.VK_BACK)
+    c.type_text(str(seed))
+    c.click(*OK)
+    if wait_for(at_player_setup, 15) is None:
+        return fail('no-player-setup')
+    c.click(*CIV_ROME)
+    started = time.time()
+    c.click(*OK)
+    return keep_autosave(out, started, name_of(rules, size, landform, water, climate, temperature, age, seed), fail)
+
+
+def quick_map(out, rules, size, landform, water, climate, temperature, age):
+    """Makes one map with Quick Start, from the last New Game's settings."""
+    name = f'{rules}_{size}_{landform}{water}_{climate}-{temperature}-{age}_t{int(time.time() * 1000)}.SAV'
+
+    def fail(why):
+        os.makedirs(os.path.join(out, '_errors'), exist_ok=True)
+        c.screenshot().save(os.path.join(out, '_errors', f'quick_{landform}{water}_{why}_{int(time.time())}.png'))
+        print(f'  quick {landform}{water}: {why}', flush=True)
+        return None
+
+    if wait_for(at_main_menu, 15) is None:
+        return fail('no-menu')
+    started = time.time()
+    # The first click only highlights the item, unless it already is.
+    c.click(*MENU_QUICK_START)
+    time.sleep(0.3)
+    if at_main_menu(c.screenshot()):
+        c.click(*MENU_QUICK_START)
+    return keep_autosave(out, started, name, fail)
+
+
+def keep_autosave(out, started, name, fail):
+    """Once a game is started: dismisses the Dawn popup and keeps the
+    autosave written then under the name."""
+    # Civ3 sometimes hangs making a map (at 95%); see restart_civ3.
+    if wait_for(dawn_popup, HANG_SECONDS, step=0.3) is None:
+        return fail('no-dawn')
+    c.key(c.VK_RETURN)
+    path = None
+    end = time.time() + 60
+    while time.time() < end and path is None:
+        time.sleep(0.3)
+        path = latest_autosave(started)
+    if path is None:
+        return fail('no-autosave')
+    # Wait for the save to be written in full.
+    size0 = -1
+    while os.path.getsize(path) != size0:
+        size0 = os.path.getsize(path)
+        time.sleep(0.4)
+    dest = os.path.join(out, name)
+    shutil.copyfile(path, dest)
+    return dest
+
+
+def parse_range(text):
+    out = []
+    for part in text.split(','):
+        if '-' in part:
+            a, b = part.split('-')
+            out.extend(range(int(a), int(b) + 1))
+        else:
+            out.append(int(part))
+    return out
+
+
+def main(argv):
+    opts = dict(a[2:].split('=', 1) for a in argv if a.startswith('--') and '=' in a)
+    out = opts.get('out') or sys.exit('--out=<folder> needed')
+    rules = opts.get('rules', 'STD')
+    size = opts.get('size', 'Standard')
+    seeds = parse_range(opts.get('seeds', '1-10'))
+    landforms = opts.get('landforms', 'Pan,Con,Arc').split(',')
+    waters = [int(w) for w in opts.get('water', '80,70,60').split(',')]
+    climate, temperature, age = opts.get('climate', 'Nrm'), opts.get('temperature', 'Tmp'), opts.get('age', '4B')
+    os.makedirs(out, exist_ok=True)
+    if 'count' in opts:
+        quick_run(out, rules, size, landforms, waters, climate, temperature, age, int(opts['count']), int(opts.get('block', 50)))
+        return
+    jobs = [(lf, w, s) for s in seeds for lf in landforms for w in waters]
+    todo = [j for j in jobs if not os.path.exists(os.path.join(out, name_of(rules, size, j[0], j[1], climate, temperature, age, j[2])))]
+    print(f'{len(jobs)} maps, {len(jobs) - len(todo)} made already, {len(todo)} to make', flush=True)
+    c.focus()
+    t0 = time.time()
+    done = 0
+    for lf, w, s in todo:
+        t = time.time()
+        path = make_map(out, rules, size, lf, w, climate, temperature, age, s)
+        if path is not None:
+            done += 1
+            print(f'  {os.path.basename(path)} in {time.time() - t:.0f}s', flush=True)
+        if not back_to_menu():
+            # Try harder: dismiss whatever is up, then again.
+            c.key(c.VK_RETURN)
+            time.sleep(1)
+            if not back_to_menu():
+                os.makedirs(os.path.join(out, '_errors'), exist_ok=True)
+                c.screenshot().save(os.path.join(out, '_errors', f'stuck_s{s:06d}.png'))
+                sys.exit(f'stuck after seed {s}; see {out}/_errors')
+    print(f'made {done} in {time.time() - t0:.0f}s', flush=True)
+
+
+def restart_civ3(out, why):
+    """Kills Civ3 and starts it again, back to its main menu. Civ3 now
+    and then hangs for good making a map (the progress bar at 95%)."""
+    print(f'  restarting Civ3 ({why})', flush=True)
+    with open(os.path.join(out, 'restarts.txt'), 'a') as f:
+        f.write(f'{time.strftime("%Y-%m-%d %H:%M:%S")} {why}\n')
+    for attempt in range(3):
+        if c.is_open() and not c.close():
+            if LAUNCH == 'dxwnd':
+                c.dxwnd_kill()
+            if c.is_open():
+                subprocess.run(['taskkill', '/F', '/IM', 'Civ3Conquests.exe'], capture_output=True)
+                time.sleep(3)
+        time.sleep(2)
+        if LAUNCH == 'dxwnd':
+            c.dxwnd_run()
+        elif LAUNCH == 'exe':
+            subprocess.Popen([CIV3_EXE], cwd=os.path.dirname(CIV3_EXE))
+        else:
+            os.startfile(STEAM_URL)
+        end = time.time() + 120
+        while time.time() < end:
+            time.sleep(1)
+            try:
+                if at_main_menu(c.screenshot()):
+                    c.focus()
+                    return True
+            except Exception:
+                pass  # no window yet
+    sys.exit(f'Civ3 did not come back after {why}')
+
+
+def back_or_restart(out, what):
+    """Back to the main menu; restarts Civ3 if it can't get there.
+    Returns False if Civ3 was restarted (so its last settings are lost)."""
+    try:
+        if back_to_menu():
+            return True
+        # Try harder: dismiss whatever is up, then again.
+        c.key(c.VK_RETURN)
+        time.sleep(1)
+        if back_to_menu():
+            return True
+    except Exception:
+        pass  # Civ3's window has gone
+    os.makedirs(os.path.join(out, '_errors'), exist_ok=True)
+    try:
+        c.screenshot().save(os.path.join(out, '_errors', f'stuck_{int(time.time())}.png'))
+    except Exception:
+        pass
+    restart_civ3(out, f'stuck after {what}')
+    return False
+
+
+def wait_while_paused(out):
+    """Waits, between maps, while a file named PAUSE is in the output
+    folder, so someone can use the PC (or a VM's window) without the script
+    clicking under them."""
+    if not os.path.exists(os.path.join(out, 'PAUSE')):
+        return
+    print('  paused (delete PAUSE to go on)', flush=True)
+    while os.path.exists(os.path.join(out, 'PAUSE')):
+        time.sleep(2)
+    print('  going on', flush=True)
+    if c.is_open():
+        c.focus()
+
+
+def quick_run(out, rules, size, landforms, waters, climate, temperature, age, count, block):
+    """Until each map type has count maps: a New Game of the type from a
+    random seed, then up to block - 1 Quick Starts, type after type."""
+    def made(lf, w):
+        prefix = f'{rules}_{size}_{lf}{w}_{climate}-{temperature}-{age}_'
+        return sum(1 for n in os.listdir(out) if n.startswith(prefix) and n.upper().endswith('.SAV'))
+
+    types = [(lf, w) for lf in landforms for w in waters]
+    print(f'{len(types)} map types, {count} maps each; ' + ', '.join(f'{lf}{w} {made(lf, w)}' for lf, w in types), flush=True)
+    if c.is_open():
+        c.focus()
+    else:
+        restart_civ3(out, 'not running')
+    t0 = time.time()
+    done = 0
+    rng = random.Random()
+    games = 0
+    while True:
+        todo = [(lf, w) for lf, w in types if made(lf, w) < count]
+        if not todo:
+            break
+        for lf, w in todo:
+            n = min(block, count - made(lf, w))
+            t = time.time()
+            # A New Game sets the type, then Quick Starts repeat it. After
+            # a restart the type is set again with another New Game.
+            new_game = True
+            for _ in range(n):
+                wait_while_paused(out)
+                if new_game:
+                    seed = rng.randint(1, 2 ** 31 - 1)
+                    path = make_map(out, rules, size, lf, w, climate, temperature, age, seed)
+                    what = f'{lf}{w} seed {seed}'
+                else:
+                    path = quick_map(out, rules, size, lf, w, climate, temperature, age)
+                    what = f'{lf}{w} quick start'
+                if path is not None:
+                    done += 1
+                    new_game = False
+                games += 1
+                if not back_or_restart(out, what):
+                    new_game = True
+                    games = 0
+                elif games >= GAMES_PER_RUN:
+                    restart_civ3(out, f'{games} games in this run')
+                    new_game = True
+                    games = 0
+            print(f'  {lf}{w}: {made(lf, w)} maps ({n} in {time.time() - t:.0f}s); {done} made in {time.time() - t0:.0f}s', flush=True)
+    print(f'made {done} in {time.time() - t0:.0f}s', flush=True)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

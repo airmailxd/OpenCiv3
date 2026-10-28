@@ -26,3 +26,6 @@ C7/Text/c7-static-map-save.json binary
 C7/Text/c7-static-map-save.json -diff
 C7/Text/c7-static-map-save-standalone.json binary
 C7/Text/c7-static-map-save-standalone.json -diff
+
+# Windows batch files need CRLF for labels and goto
+*.cmd text eol=crlf
