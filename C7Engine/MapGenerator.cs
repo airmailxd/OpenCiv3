@@ -155,7 +155,7 @@ namespace C7Engine {
 				}
 			} else {
 				if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
-					problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit at least {wc.worldSize.distanceBetweenCivs} apart in map coordinates";
+					problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit on the land";
 				} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
 					problem = $"Fewer than {wc.coastalStartsNeeded} coastal starting locations for the seafaring civs";
 				}

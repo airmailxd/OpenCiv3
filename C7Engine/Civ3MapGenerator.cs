@@ -501,6 +501,9 @@ namespace C7Engine {
 
 		// --- Land and water, Civ3 0x5fc7e0 ---
 
+		// How many tries the land and water took (Civ3 keeps its tenth).
+		public int shapeAttempts;
+
 		private void Shape() {
 			int S = settings.seed;
 			(int pA, int pB) = settings.oceanCoverage switch {
@@ -564,6 +567,7 @@ namespace C7Engine {
 					}
 				}
 				FindBodies();
+				shapeAttempts = attempt;
 				if (ShapeAccepted() || attempt >= 10) {
 					return;
 				}

@@ -218,7 +218,7 @@ public partial class GameSetup {
 			SaveInvalidMap(save, map, problem);
 		}
 		throw new InvalidOperationException(
-			$"Couldn't generate a map with room for each of the {civs} civilizations to start far enough apart " +
+			$"Couldn't generate a map with room for each of the {civs} civilizations to start " +
 			$"in {MaxMapAttempts} tries ({problem}). " +
 			"Try a larger world, fewer civilizations, more land or another landform.");
 	}

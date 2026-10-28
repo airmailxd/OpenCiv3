@@ -214,27 +214,34 @@ public class RisingTideAITest {
 	// Workers don't improve land the sea will soon take.
 	[Fact]
 	public async Task WorkersLeaveTheShoreAlone() {
-		C7GameData.GameData gameData = NewGame(22);
-		Player civ = FirstCiv(gameData);
-		// A city of five on the shore, working the land about it.
-		Tile shore = RisingTide.Shore(gameData).First(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && t.OwningPlayer() == null
-			&& t.GetLandNeighbors().Count >= 4);
-		MapUnit settler = gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), shore);
-		City city = await settler.BuildCity("Ys");
-		MapUnit worker = gameData.SpawnUnit(civ, Prototype(gameData, "Worker"), shore);
-		gameData.turn = 18;
+		// A map where, without the tide, a worker by a city on the shore
+		// would improve the shore: the first of a few seeds that has one.
+		foreach (int seed in new[] { 22, 23, 24, 25, 26, 27, 28, 29, 30 }) {
+			C7GameData.GameData gameData = NewGame(seed);
+			Player civ = FirstCiv(gameData);
+			// A city of five on the shore, working the land about it.
+			Tile shore = RisingTide.Shore(gameData).First(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && t.OwningPlayer() == null
+				&& t.GetLandNeighbors().Count >= 4);
+			MapUnit settler = gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), shore);
+			await settler.BuildCity("Ys");
+			MapUnit worker = gameData.SpawnUnit(civ, Prototype(gameData, "Worker"), shore);
+			gameData.turn = 18;
 
-		// Without the tide the worker improves the land nearest it, on the
-		// shore.
-		gameData.rules.RisingTide = false;
-		WorkerAIData plan = WorkerAI.MakeAiData(worker, civ);
-		gameData.rules.RisingTide = true;
-		Assert.True(plan?.destination != null && TideAI.DrownsWithin(plan.destination, TideAI.MinImprovedTileTurns),
-			$"without the tide, the worker went to {plan?.destination} of {city.residents.Count} citizens' tiles");
+			// Without the tide the worker improves the land nearest it, on the
+			// shore.
+			gameData.rules.RisingTide = false;
+			WorkerAIData plan = WorkerAI.MakeAiData(worker, civ);
+			gameData.rules.RisingTide = true;
+			if (plan?.destination == null || !TideAI.DrownsWithin(plan.destination, TideAI.MinImprovedTileTurns)) {
+				continue;
+			}
 
-		// With it, land that lasts.
-		plan = WorkerAI.MakeAiData(worker, civ);
-		Assert.True(plan?.destination == null || !TideAI.DrownsWithin(plan.destination, TideAI.MinImprovedTileTurns), $"worker sent to {plan?.destination}");
+			// With it, land that lasts.
+			plan = WorkerAI.MakeAiData(worker, civ);
+			Assert.True(plan?.destination == null || !TideAI.DrownsWithin(plan.destination, TideAI.MinImprovedTileTurns), $"seed {seed}: worker sent to {plan?.destination}");
+			return;
+		}
+		Assert.Fail("No map where a worker without the tide would improve the shore");
 	}
 
 	// An improvement is only of use while a city of ours can work the tile:

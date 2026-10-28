@@ -30,7 +30,7 @@ public sealed class CivilianSafetyTest : IClassFixture<SaveGameFixture>, IDispos
 
 		// A city of ours in the middle of open flat land.
 		home = gameData.map.tiles.First(t => IsFlatEmptyLand(t) && t.IsAllowCities()
-			&& t.GetTilesWithinTileSquare(6).All(IsOpenLand));
+			&& HasRoom(t));
 		CityInteractions.BuildCity(home, ai, "Home");
 		foreach (Tile t in home.GetTilesWithinTileSquare(7)) {
 			ai.tileKnowledge.knownTiles.Add(t);
@@ -45,6 +45,19 @@ public sealed class CivilianSafetyTest : IClassFixture<SaveGameFixture>, IDispos
 		return t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0 && !t.hasBarbarianCamp
 			&& !t.IsImpassable() && t.OwningPlayer() == null
 			&& (t.overlayTerrainType.Key == "grassland" || t.overlayTerrainType.Key == "plains");
+	}
+
+	// Room for the tests: open land about home and along the row east of
+	// it, where they put the other civ's units and cities. (Civ3's maps
+	// have little land as open as a whole 13 by 13 square about a tile.)
+	private static bool HasRoom(Tile home) {
+		Tile t = home;
+		for (int i = 0; i <= 6; ++i, t = t.neighbors[TileDirection.EAST]) {
+			if (!t.GetTilesWithinTileSquare(i == 0 ? 3 : 2).All(IsOpenLand)) {
+				return false;
+			}
+		}
+		return IsOpenLand(home.neighbors[TileDirection.WEST]);
 	}
 
 	private static bool IsOpenLand(Tile t) {

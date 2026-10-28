@@ -28,7 +28,7 @@ public sealed class AIRulesTest : IClassFixture<SaveGameFixture>, IDisposable {
 		ai = civs[0];
 		enemy = civs[1];
 		ai.EnsureRelationshipExists(enemy);
-		home = gameData.map.tiles.First(t => t.IsAllowCities() && t.GetTilesWithinTileSquare(6).All(IsOpenLand));
+		home = gameData.map.tiles.First(t => t.IsAllowCities() && HasRoom(t));
 		foreach (Tile t in home.GetTilesWithinTileSquare(7)) {
 			ai.tileKnowledge.knownTiles.Add(t);
 		}
@@ -36,6 +36,19 @@ public sealed class AIRulesTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 	public void Dispose() {
 		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
+	}
+
+	// Room for the tests: open land about home and along the row east of
+	// it, where they put the other civ's units and cities. (Civ3's maps
+	// have little land as open as a whole 13 by 13 square about a tile.)
+	private static bool HasRoom(Tile home) {
+		Tile t = home;
+		for (int i = 0; i <= 6; ++i, t = t.neighbors[TileDirection.EAST]) {
+			if (!t.GetTilesWithinTileSquare(i == 0 ? 3 : 2).All(IsOpenLand)) {
+				return false;
+			}
+		}
+		return IsOpenLand(home.neighbors[TileDirection.WEST]);
 	}
 
 	private static bool IsOpenLand(Tile t) {

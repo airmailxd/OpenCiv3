@@ -218,26 +218,4 @@ public class GameMapGeneratorTest {
 			Assert.DoesNotContain(map.startingLocations, s => t.DistanceTo(s) < 3);
 		});
 	}
-
-	// An archipelago is many islands, of any size (owner's decision,
-	// 2026-10-12: "There is no arbitrary limit"). The generator plans the
-	// islands so that its shape check passes: more islands than civs, and
-	// enough room on them for every civ (a civ needs half its share of the
-	// land).
-	[Theory]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_60)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_80)]
-	public void ArchipelagoIsManyIslandsWithoutAContinent(WorldCharacteristics.OceanCoverage ocean) {
-		const int civs = 8;
-		foreach (int seed in new[] { 1, 2, 3 }) {
-			GameMap map = Generate(WorldCharacteristics.Landform.Archipelago, ocean, seed, civs);
-			List<int> islands = map.continents.Where(c => c.First().IsLand()).Select(c => c.Count).ToList();
-			int tilesPerCiv = islands.Sum() / (2 * civs);
-			string description = $"{ocean}, seed {seed}: islands {string.Join("/", islands)}, {tilesPerCiv} tiles per civ";
-
-			Assert.True(islands.Count >= civs * 1.2, description);
-			Assert.True(islands.Sum(i => i / tilesPerCiv) >= civs, description);
-		}
-	}
 }

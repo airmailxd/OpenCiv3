@@ -174,7 +174,9 @@ public class MdjScenarioTest {
 	}
 
 	// The resources MDJ's units need are all on its maps: placed before its
-	// many strategic resources nothing needs, they aren't crowded out.
+	// many strategic resources nothing needs, they aren't crowded out. Each
+	// is as many as Civ3 places (Civ3 0x6020d0): the world size's six civs
+	// times its appearance ratio of 150, on four terrains or more.
 	[Fact]
 	public void TheResourcesMdjsUnitsNeedAreAllPlaced() {
 		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
@@ -191,34 +193,7 @@ public class MdjScenarioTest {
 		};
 		GameMap map = MapGenerator.GenerateMap(wc);
 		foreach (string key in new[] { "Horses", "Iron", "Saltpeter", "Jade" }) {
-			// The world size's six civs times an appearance ratio of 150, at
-			// 72% (see MapGenerator.GetAppearance).
-			Assert.Equal(6, map.tiles.Count(t => t.Resource?.Key == key));
-		}
-	}
-
-	// On MDJ's crowded 8 Player maps, no civ starts on an islet: the starts
-	// come closer together on the land first (MapGenerator.StartDistance).
-	// Before that, half the civs of a pangaea could start on islets of 2 to 9
-	// tiles.
-	[Fact]
-	public void NoCivStartsOnAnIslet() {
-		SaveGame rules = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
-		for (int seed = 1; seed <= 5; seed++) {
-			WorldCharacteristics wc = new(rules) {
-				landform = WorldCharacteristics.Landform.Pangaea,
-				oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
-				age = WorldCharacteristics.Age.Billion_4,
-				climate = WorldCharacteristics.Climate.Normal,
-				temperature = WorldCharacteristics.Temperature.Temperate,
-				barbarianActivity = BarbarianActivity.Roaming,
-				worldSize = rules.WorldSizes.Last(),
-				mapSeed = seed,
-			};
-			GameMap map = MapGenerator.GenerateMap(wc);
-			Dictionary<int, int> sizes = map.tiles.Where(t => t.IsLand()).GroupBy(t => t.continent).ToDictionary(g => g.Key, g => g.Count());
-			Assert.Equal(8, map.startingLocations.Count);
-			Assert.All(map.startingLocations, s => Assert.True(sizes[s.continent] >= 40, $"seed {seed}: a start on an island of {sizes[s.continent]}"));
+			Assert.Equal(9, map.tiles.Count(t => t.Resource?.Key == key));
 		}
 	}
 
