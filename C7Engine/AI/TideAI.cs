@@ -272,8 +272,30 @@ namespace C7Engine.AI {
 				return false;
 			}
 			HashSet<int> continents = player.cities.Select(c => c.location.continent).ToHashSet();
+			int needed = HeartWarDepthNeeded(player);
 			return EngineStorage.gameData.players.Any(p => p != player && !p.IsIndependent && !p.defeated
-				&& p.cities.Any(c => continents.Contains(c.location.continent) && WavesUntilDrowned(c.location) >= ours + HeartWarDepth));
+				&& p.cities.Any(c => continents.Contains(c.location.continent) && WavesUntilDrowned(c.location) >= ours + needed));
+		}
+
+		// Once the deepest land left has EndgameWarTurns or fewer, a civ
+		// fights a rival whose cities last as long as its own, not only a
+		// deeper one. Before this, in AI trials, the last civs in the
+		// middle, with a hundred units each, sat at peace, though kills and
+		// cities taken score and the last civ standing outlives the rest.
+		// With it (Rising Tide under MDJ, 32 paired games of 8 civs, twice)
+		// civs scored 47 and 51 more (+- 17 and 16) and fell no sooner;
+		// with every civ doing it, wars went from 0.8 to 1.2 a civ, cities
+		// taken from 1.6 to 2.3 and kills from 42 to 62.
+		public const int EndgameWarTurns = 12;
+
+		public static bool InEndgame(Player player) {
+			return TurnsUntilWave(DeepestLand()) <= EndgameWarTurns;
+		}
+
+		// How many waves deeper than ours a rival's city must last for us to
+		// fight for it.
+		public static int HeartWarDepthNeeded(Player player) {
+			return InEndgame(player) ? 0 : HeartWarDepth;
 		}
 
 		// For a civ fighting for the heart, what a rival city is worth to
@@ -281,6 +303,9 @@ namespace C7Engine.AI {
 		// one no deeper next to nothing.
 		public static float HeartCityFactor(Player player, City city) {
 			int gain = WavesUntilDrowned(city.location) - DeepestCityWaves(player);
+			if (InEndgame(player)) {
+				return gain >= 0 ? gain + 1 : 0.1f;
+			}
 			return gain > 0 ? gain : 0.1f;
 		}
 

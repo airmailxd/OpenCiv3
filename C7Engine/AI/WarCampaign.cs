@@ -475,7 +475,7 @@ namespace C7Engine.AI {
 				Player rival = gameData.players.Where(p => CanDeclareWarOn(player, p) && p.cities.Count > 0)
 					.OrderByDescending(p => TideAI.DeepestRivalCityWaves(player, p))
 					.ThenByDescending(p => StockWarPlotting.TargetScore(gameData, player, p)).FirstOrDefault();
-				if (rival != null && TideAI.DeepestRivalCityWaves(player, rival) >= TideAI.DeepestCityWaves(player) + TideAI.HeartWarDepth) {
+				if (rival != null && TideAI.DeepestRivalCityWaves(player, rival) >= TideAI.DeepestCityWaves(player) + TideAI.HeartWarDepthNeeded(player)) {
 					target = PickTarget(player, rival);
 					if (target != null) {
 						return rival;

@@ -319,4 +319,41 @@ public class RisingTideAITest {
 		Assert.Equal(rival, target.owner);
 		Assert.True(TideAI.WavesUntilDrowned(target.location) >= TideAI.DeepestCityWaves(civ) + TideAI.HeartWarDepth);
 	}
+
+	// At the end, with little land left, a civ fights a rival whose land
+	// lasts no more than a wave longer than its own.
+	[Fact]
+	public async Task AtTheEndCivsFightForEvenGround() {
+		C7GameData.GameData gameData = NewGame(23);
+		Player civ = FirstCiv(gameData);
+		Player rival = gameData.players.First(p => !p.isBarbarians && p != civ);
+		civ.EnsureRelationshipExists(rival);
+		rival.EnsureRelationshipExists(civ);
+		List<City> starts = civ.cities.Concat(rival.cities).ToList();
+		List<Tile> deepest = gameData.map.tiles.Where(t => t.IsAllowCities() && t.unitsOnTile.Count == 0)
+			.OrderByDescending(TideAI.WavesUntilDrowned).ToList();
+		// Theirs a wave deeper than ours: short of the two waves that make
+		// a war for the heart before the end.
+		Tile theirs = deepest[0];
+		Tile ours = deepest.First(t => t.DistanceTo(theirs) > 3 && TideAI.WavesUntilDrowned(t) == TideAI.WavesUntilDrowned(theirs) - 1);
+		await gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), ours).BuildCity("Ours");
+		await gameData.SpawnUnit(rival, Prototype(gameData, "Settler"), theirs).BuildCity("Theirs");
+		// Their start cities go only now, so neither civ falls.
+		foreach (City c in starts) {
+			CityInteractions.DestroyCity(c);
+		}
+
+		// Early on, the wave between them isn't worth a war.
+		Assert.False(TideAI.InEndgame(civ));
+		Assert.Equal(TideAI.HeartWarDepth, TideAI.HeartWarDepthNeeded(civ));
+		Assert.False(TideAI.FightsForTheHeart(civ));
+		// Late, the waves every turn and the next due next turn, the deepest
+		// land has only as many turns left as waves.
+		gameData.risingTide.waves = RisingTide.Intervals.Length;
+		gameData.risingTide.nextWaveTurn = gameData.turn + 1;
+		Assert.True(TideAI.DeepestLand() <= TideAI.EndgameWarTurns);
+		Assert.True(TideAI.InEndgame(civ));
+		Assert.True(TideAI.FightsForTheHeart(civ));
+		Assert.Equal(rival, WarCampaign.PlotWar(civ, gameData, out _));
+	}
 }
