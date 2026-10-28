@@ -331,7 +331,9 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void AMapWithoutRoomIsGeneratedAgainFromAnotherSeed() {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
-		WorldSize worldSize = new() { name = "Test", width = 60, height = 60, numberOfCivs = 6, distanceBetweenCivs = 22 };
+		// Far enough apart that some maps have no room even with the
+		// distance bent (see MapGenerator.StartDistance).
+		WorldSize worldSize = new() { name = "Test", width = 60, height = 60, numberOfCivs = 6, distanceBetweenCivs = 36 };
 		// Find a seed whose map has no room, and check the game is set up on
 		// the next seed that has.
 		int seed = Enumerable.Range(1, 40).First(s => {

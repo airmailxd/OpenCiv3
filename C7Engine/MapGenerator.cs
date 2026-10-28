@@ -2584,7 +2584,7 @@ namespace C7Engine {
 								continue;
 							}
 
-							if (TileIsTooCloseToOtherStarts(candidate, startingLocations, wc.worldSize.distanceBetweenCivs)) {
+							if (TileIsTooCloseToOtherStarts(candidate, startingLocations, StartDistance(wc, attempt))) {
 								continue;
 							}
 
@@ -2770,8 +2770,9 @@ namespace C7Engine {
 		private const double START_QUALITY_FLOOR = 0.8;
 		private const int START_QUALITY_FLOOR_PASSES = 3;
 
-		// Starts on the same continent are always at least the world size's
-		// distance between civs (WSIZ) apart; that is never relaxed. The
+		// Starts on the same continent are at least the world size's
+		// distance between civs (WSIZ) apart, unless they can't be (see
+		// StartDistance). The
 		// distance is in map coordinates, the units Civ3's editor gives the
 		// world size's width and height in ("in tiles", though a 100 wide
 		// map has 50 tiles to a row), so 12 is 6 moves. UNVERIFIED (no Civ3
@@ -2784,6 +2785,18 @@ namespace C7Engine {
 		// coordinates). Its turn-one saves of huge maps (24) have starts on the
 		// same continent 20 to 22 apart in map coordinates, so it seems to bend
 		// even this a little when a map is crowded.
+		//
+		// Only when the starts can't all be placed that far apart do the later
+		// passes bend it, as Civ3 seems to, before a civ is put on a small
+		// island: MDJ's 8 Player maps (C7/Lua/mdj) ask for 22 on a 70x70 map,
+		// and with the distance held, half the civs started on islets of 2 to
+		// 9 tiles while the rest shared a 591-tile continent.
+		private static readonly double[] START_DISTANCE_SHARE = [1, 1, 1, 0.85, 0.7, 0.6, 0.5];
+
+		private static int StartDistance(WorldCharacteristics wc, int attempt) {
+			return (int)Math.Round(wc.worldSize.distanceBetweenCivs * START_DISTANCE_SHARE[Math.Min(attempt, START_DISTANCE_SHARE.Length - 1)]);
+		}
+
 		// The distance between two tiles in Civ3's map coordinates, in which
 		// a map's width and height are given: each step to a neighbouring
 		// tile is 2, as rows are offset by 1 and a tile's neighbours to the
