@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_SiegeDefault",
+    "RUN": "x_SiegeRun",
+    "ATTACK1": "x_SiegeAttack",
+    "DEATH": "x_SiegeDeath",
+    "FORTIFY": "x_SiegeFortify",
+    "FIDGET": "x_SiegeFidget",
+    "VICTORY": "x_SiegeVictory"
+  },
+  "flics": {
+    "x_SiegeAttack": {"size": [115, 75], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 72], "canvas": [240, 240]},
+    "x_SiegeDeath": {"size": [96, 122], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 20], "canvas": [240, 240]},
+    "x_SiegeDefault": {"size": [68, 56], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 81], "canvas": [240, 240]},
+    "x_SiegeFidget": {"size": [79, 57], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 81], "canvas": [240, 240]},
+    "x_SiegeFortify": {"size": [68, 56], "directions": 8, "frames": 10, "frameMs": 83, "offset": [84, 81], "canvas": [240, 240]},
+    "x_SiegeRun": {"size": [87, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 83], "canvas": [240, 240]},
+    "x_SiegeVictory": {"size": [68, 56], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 81], "canvas": [240, 240]}
+  }
+}

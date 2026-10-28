@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_Otomo default",
+    "RUN": "x_Otomo run",
+    "ATTACK1": "x_Otomo attack_a",
+    "DEATH": "x_Otomo death",
+    "FORTIFY": "x_Otomo fortify",
+    "FIDGET": "x_Otomo fidget",
+    "VICTORY": "x_Otomo victory"
+  },
+  "flics": {
+    "x_Otomo attack_a": {"size": [107, 86], "directions": 8, "frames": 15, "frameMs": 83, "offset": [60, 52], "canvas": [240, 240]},
+    "x_Otomo death": {"size": [111, 96], "directions": 8, "frames": 15, "frameMs": 66, "offset": [65, 55], "canvas": [240, 240]},
+    "x_Otomo default": {"size": [72, 61], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 73], "canvas": [240, 240]},
+    "x_Otomo fidget": {"size": [74, 62], "directions": 8, "frames": 14, "frameMs": 100, "offset": [80, 73], "canvas": [240, 240]},
+    "x_Otomo fortify": {"size": [88, 77], "directions": 8, "frames": 10, "frameMs": 83, "offset": [69, 56], "canvas": [240, 240]},
+    "x_Otomo run": {"size": [79, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 73], "canvas": [240, 240]},
+    "x_Otomo victory": {"size": [81, 80], "directions": 8, "frames": 14, "frameMs": 83, "offset": [72, 54], "canvas": [240, 240]}
+  }
+}

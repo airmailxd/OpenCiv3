@@ -1,0 +1,28 @@
+{
+  "actions": {
+    "DEFAULT": "x_Japanese Worker default",
+    "RUN": "x_Japanese Worker run",
+    "DEATH": "x_Japanese Worker death",
+    "ROAD": "x_Japanese Worker road",
+    "MINE": "x_Japanese Worker mine",
+    "IRRIGATE": "x_Japanese Worker irrigate",
+    "FORTRESS": "x_Japanese Worker fortress",
+    "CAPTURE": "x_Japanese Worker captured",
+    "JUNGLE": "x_Japanese Worker jungle",
+    "FOREST": "x_Japanese Worker forest",
+    "PLANT": "x_Japanese Worker plant"
+  },
+  "flics": {
+    "x_Japanese Worker captured": {"size": [63, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 77], "canvas": [240, 240]},
+    "x_Japanese Worker death": {"size": [86, 62], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 81], "canvas": [240, 240]},
+    "x_Japanese Worker default": {"size": [57, 50], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 80], "canvas": [240, 240]},
+    "x_Japanese Worker forest": {"size": [64, 61], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 70], "canvas": [240, 240]},
+    "x_Japanese Worker fortress": {"size": [56, 53], "directions": 8, "frames": 10, "frameMs": 83, "offset": [86, 78], "canvas": [240, 240]},
+    "x_Japanese Worker irrigate": {"size": [86, 63], "directions": 8, "frames": 10, "frameMs": 100, "offset": [72, 75], "canvas": [240, 240]},
+    "x_Japanese Worker jungle": {"size": [66, 61], "directions": 8, "frames": 10, "frameMs": 100, "offset": [81, 70], "canvas": [240, 240]},
+    "x_Japanese Worker mine": {"size": [77, 71], "directions": 8, "frames": 10, "frameMs": 100, "offset": [75, 64], "canvas": [240, 240]},
+    "x_Japanese Worker plant": {"size": [83, 56], "directions": 8, "frames": 10, "frameMs": 100, "offset": [79, 80], "canvas": [240, 240]},
+    "x_Japanese Worker road": {"size": [77, 59], "directions": 8, "frames": 10, "frameMs": 100, "offset": [77, 77], "canvas": [240, 240]},
+    "x_Japanese Worker run": {"size": [64, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 78], "canvas": [240, 240]}
+  }
+}

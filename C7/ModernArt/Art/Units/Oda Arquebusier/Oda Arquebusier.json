@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_Oda default",
+    "RUN": "x_Oda run",
+    "ATTACK1": "x_Oda attack_a",
+    "DEATH": "x_Oda death",
+    "FORTIFY": "x_Oda fortify",
+    "FIDGET": "x_Oda fidget",
+    "VICTORY": "x_Oda victory"
+  },
+  "flics": {
+    "x_Oda attack_a": {"size": [112, 84], "directions": 8, "frames": 15, "frameMs": 66, "offset": [65, 46], "canvas": [240, 240]},
+    "x_Oda death": {"size": [79, 59], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 81], "canvas": [240, 240]},
+    "x_Oda default": {"size": [48, 50], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 79], "canvas": [240, 240]},
+    "x_Oda fidget": {"size": [49, 52], "directions": 8, "frames": 14, "frameMs": 83, "offset": [92, 78], "canvas": [240, 240]},
+    "x_Oda fortify": {"size": [72, 62], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 71], "canvas": [240, 240]},
+    "x_Oda run": {"size": [55, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 71], "canvas": [240, 240]},
+    "x_Oda victory": {"size": [58, 60], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 71], "canvas": [240, 240]}
+  }
+}
