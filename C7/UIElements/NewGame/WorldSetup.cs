@@ -329,6 +329,11 @@ public partial class WorldSetup : Control {
 		}
 		mdjRulesLoaded = rules != null;
 		_saveGame = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
+		// The player setup screen shows the civs' leaders, whose art MDJ
+		// keeps in the scenario's folders (the Sengoku conquest's); the
+		// game sets the path again as it starts (see Game.InitializeGame).
+		Util.setModPath(_saveGame.ScenarioSearchPath);
+		Util.ClearCaches();
 		// The world size buttons stand for the sizes of the rules first
 		// loaded; the one chosen is matched by name to these (see
 		// CreateGame).
