@@ -107,6 +107,7 @@ def dawn_popup(img):
 def wait_for(test, timeout, step=0.5):
     end = time.time() + timeout
     while time.time() < end:
+        c.dismiss_steam_error()
         img = c.screenshot()
         if test(img):
             return img
@@ -273,12 +274,16 @@ def restart_civ3(out, why):
     with open(os.path.join(out, 'restarts.txt'), 'a') as f:
         f.write(f'{time.strftime("%Y-%m-%d %H:%M:%S")} {why}\n')
     for attempt in range(3):
-        if c.is_open() and not c.close():
-            if LAUNCH == 'dxwnd':
-                c.dxwnd_kill()
-            if c.is_open():
-                subprocess.run(['taskkill', '/F', '/IM', 'Civ3Conquests.exe'], capture_output=True)
-                time.sleep(3)
+        if c.is_open():
+            c.close()
+        # DxWnd's Kill after the close (the owner's request): DxWnd keeps
+        # tracking a Civ3 that hung, and can't start another until it lets
+        # the old one go.
+        if LAUNCH == 'dxwnd':
+            c.dxwnd_kill()
+        if c.is_open():
+            subprocess.run(['taskkill', '/F', '/IM', 'Civ3Conquests.exe'], capture_output=True)
+            time.sleep(3)
         time.sleep(2)
         if LAUNCH == 'dxwnd':
             c.dxwnd_run()
@@ -289,6 +294,7 @@ def restart_civ3(out, why):
         end = time.time() + 120
         while time.time() < end:
             time.sleep(1)
+            c.dismiss_steam_error()
             try:
                 if at_main_menu(c.screenshot()):
                     c.focus()

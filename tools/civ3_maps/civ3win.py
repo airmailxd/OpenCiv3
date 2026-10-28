@@ -187,7 +187,16 @@ def dxwnd_kill():
             time.sleep(0.3)
             key(ord('Y'))
             break
-    time.sleep(2)
+    # With nothing left to kill DxWnd may answer with a message of its own:
+    # dismiss whatever dialog is left.
+    time.sleep(1)
+    for title in ('Warning', 'DxWnd', 'DXWnd Warning', 'Error'):
+        dialog = user32.FindWindowW('#32770', title)
+        if dialog:
+            user32.SetForegroundWindow(dialog)
+            time.sleep(0.2)
+            key(0x0D)
+    time.sleep(1)
 
 
 def dxwnd_run():
@@ -215,3 +224,19 @@ def close():
 
 def is_open():
     return bool(user32.FindWindowW(None, TITLE))
+
+
+def dismiss_steam_error():
+    """Presses OK on Civ3's "Steam must be running to play this game
+    (SteamAPI_Init() failed)" box, which it shows when started without
+    Steam (always in the VMs); Civ3 then starts regardless. Returns whether
+    there was one."""
+    dialog = user32.FindWindowW('#32770', 'Fatal Error')
+    if not dialog:
+        return False
+    key(0x12)
+    user32.SetForegroundWindow(dialog)
+    time.sleep(0.2)
+    key(VK_RETURN)
+    time.sleep(0.5)
+    return True

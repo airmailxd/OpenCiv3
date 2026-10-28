@@ -161,7 +161,7 @@ public class MapGenParityTest {
 				("landform", Array.IndexOf(new[] { "Arc", "Con", "Pan" }, m.Groups["land"].Value), w.ActualLandform),
 				("water", Array.IndexOf(new[] { "80", "70", "60" }, m.Groups["water"].Value), w.ActualOceanCoverage),
 				("climate", Array.IndexOf(new[] { "Ari", "Nrm", "Wet" }, m.Groups["climate"].Value), w.ActualClimate),
-				("temperature", Array.IndexOf(new[] { "Wrm", "Tmp", "Col" }, m.Groups["temp"].Value), w.ActualTemperature),
+				("temperature", Array.IndexOf(new[] { "Col", "Tmp", "Wrm" }, m.Groups["temp"].Value), w.ActualTemperature),
 				("age", Array.IndexOf(new[] { "3B", "4B", "5B" }, m.Groups["age"].Value), w.ActualAge),
 			];
 			string mismatch = string.Join(", ", expected.Where(e => e.Item2 != e.Item3).Select(e => $"{e.Item1} {e.Item3}, not {e.Item2}"));
