@@ -2,15 +2,15 @@
 # Python and Pillow, copies Civ3, keeps the screen awake, and makes
 # run_vm.cmd start at every logon.
 $ErrorActionPreference = "Stop"
-$setup = "\\VBOXSVR\setup"
-
-# The shared folders appear a while after logon (and not at all until the
-# Guest Additions' reboot), so wait for them.
+# The shared folder as a drive: PowerShell doesn't see \\VBOXSVR\setup
+# itself (Test-Path is false), though net use maps it fine.
+$setup = "S:"
 for ($i = 0; -not (Test-Path "$setup\civ3") -and $i -lt 60; $i++) {
+	net use S: \\VBOXSVR\setup 2>&1 | Out-Null
 	Start-Sleep 5
 }
 if (-not (Test-Path "$setup\civ3")) {
-	throw "the shared folder $setup isn't there"
+	throw "the shared folder \\VBOXSVR\setup isn't there"
 }
 
 # Python for all users, with Pillow from the setup folder (no internet).
@@ -45,5 +45,5 @@ Set-ItemProperty "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" DisableNot
 # run_vm.cmd at every logon, in the user's session (it needs the desktop).
 # It is run from the host's folder, so changes to it reach every clone.
 $startup = [Environment]::GetFolderPath("Startup")
-Set-Content -Encoding ascii (Join-Path $startup "civ3gen.cmd") "@call \\VBOXSVR\tools\vm\run_vm.cmd"
+Set-Content -Encoding ascii (Join-Path $startup "civ3gen.cmd") "@net use T: \\VBOXSVR\tools >nul 2>&1`r`n@call T:\vm\run_vm.cmd"
 "guest setup done"

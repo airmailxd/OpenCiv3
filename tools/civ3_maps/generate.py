@@ -1,4 +1,4 @@
-"""Makes Civilization III maps in bulk, for comparing OpenCiv3's map
+﻿"""Makes Civilization III maps in bulk, for comparing OpenCiv3's map
 generator with Civ3's (EngineTests/GameData/MapGenParityTest.cs): for each
 seed and setting it starts a new game in a running Civ3, set to that world,
 and keeps the 4000 BC autosave under a name that says what it is:
@@ -43,8 +43,11 @@ import civ3win as c
 LAUNCH = os.environ.get('CIV3_LAUNCH', 'dxwnd')
 STEAM_URL = 'steam://rungameid/3910'
 CIV3_EXE = os.environ.get('CIV3_EXE', r"C:\Civ3\Conquests\Civ3Conquests.exe")
+# How long a screen may take to come up. Civ3 loads its rules before the
+# world setup, slowly when several VMs share the host.
+SCREEN_SECONDS = 60
 # A game that hasn't started in this long has hung.
-HANG_SECONDS = 45
+HANG_SECONDS = 120
 # Civ3 wears out after a hundred or so games in one run (its text turns to
 # "-Nil-" and it hangs), so it is restarted after this many.
 GAMES_PER_RUN = 80
@@ -90,13 +93,17 @@ def at_main_menu(img):
 
 
 def at_world_setup(img):
-    # The seed field, and the sea of the climate picture.
-    return near(pixel(img, 1250, 53), (255, 247, 222)) and near(pixel(img, 500, 1000), (41, 173, 189))
+    # The seed field, and the screen's plain parchment at the left and the
+    # bottom, the same at 1600x1200 and 1024x768. (Not the climate pictures:
+    # the one chosen lights up, which a pixel there took for another screen.)
+    return (near(pixel(img, 1250, 53), (255, 247, 222)) and near(pixel(img, 60, 400), (123, 123, 99), 20)
+            and near(pixel(img, 800, 1180), (231, 206, 165), 20))
 
 
 def at_player_setup(img):
-    # The civilization list's parchment, and the leader portrait's dark.
-    return near(pixel(img, 160, 400), (255, 247, 206)) and near(pixel(img, 800, 60), (57, 33, 33), 45)
+    # The civilization list's parchment, and the difficulty bar. (Not the
+    # leader portrait, which is whichever civ the screen opens on.)
+    return near(pixel(img, 160, 400), (255, 247, 206)) and near(pixel(img, 250, 1100), (173, 214, 214))
 
 
 def dawn_popup(img):
@@ -147,14 +154,14 @@ def make_map(out, rules, size, landform, water, climate, temperature, age, seed)
         print(f'  seed {seed} {landform}{water}: {why}', flush=True)
         return None
 
-    if wait_for(at_main_menu, 15) is None:
+    if wait_for(at_main_menu, SCREEN_SECONDS) is None:
         return fail('no-menu')
     # The first click only highlights the item, unless it already is.
     c.click(*MENU_NEW_GAME)
     time.sleep(0.3)
     if at_main_menu(c.screenshot()):
         c.click(*MENU_NEW_GAME)
-    if wait_for(at_world_setup, 15) is None:
+    if wait_for(at_world_setup, SCREEN_SECONDS) is None:
         return fail('no-world-setup')
     c.click(*SIZES[size])
     c.click(LANDFORM_X[landform][WATER_INDEX[water]] / 1600, LANDFORM_Y / 1200)
@@ -167,7 +174,7 @@ def make_map(out, rules, size, landform, water, climate, temperature, age, seed)
         c.key(c.VK_BACK)
     c.type_text(str(seed))
     c.click(*OK)
-    if wait_for(at_player_setup, 15) is None:
+    if wait_for(at_player_setup, SCREEN_SECONDS) is None:
         return fail('no-player-setup')
     c.click(*CIV_ROME)
     started = time.time()
@@ -185,7 +192,7 @@ def quick_map(out, rules, size, landform, water, climate, temperature, age):
         print(f'  quick {landform}{water}: {why}', flush=True)
         return None
 
-    if wait_for(at_main_menu, 15) is None:
+    if wait_for(at_main_menu, SCREEN_SECONDS) is None:
         return fail('no-menu')
     started = time.time()
     # The first click only highlights the item, unless it already is.
@@ -242,7 +249,13 @@ def main(argv):
     climate, temperature, age = opts.get('climate', 'Nrm'), opts.get('temperature', 'Tmp'), opts.get('age', '4B')
     os.makedirs(out, exist_ok=True)
     if 'count' in opts:
-        quick_run(out, rules, size, landforms, waters, climate, temperature, age, int(opts['count']), int(opts.get('block', 50)))
+        # Each of these may be a list (--sizes=Tiny,Small), and every mix of
+        # them is a map type.
+        def listed(plural, singular, default):
+            return opts.get(plural, opts.get(singular, default)).split(',')
+        quick_run(out, rules, listed('sizes', 'size', 'Standard'), landforms, waters,
+                  listed('climates', 'climate', 'Nrm'), listed('temperatures', 'temperature', 'Tmp'),
+                  listed('ages', 'age', '4B'), int(opts['count']), int(opts.get('block', 50)))
         return
     jobs = [(lf, w, s) for s in seeds for lf in landforms for w in waters]
     todo = [j for j in jobs if not os.path.exists(os.path.join(out, name_of(rules, size, j[0], j[1], climate, temperature, age, j[2])))]
@@ -281,7 +294,9 @@ def restart_civ3(out, why):
         # the old one go.
         if LAUNCH == 'dxwnd':
             c.dxwnd_kill()
-        if c.is_open():
+        # In a VM, also any Civ3 still waiting behind its Steam box (it has no
+        # main window yet), so only one is ever started.
+        if c.is_open() or LAUNCH == 'exe':
             subprocess.run(['taskkill', '/F', '/IM', 'Civ3Conquests.exe'], capture_output=True)
             time.sleep(3)
         time.sleep(2)
@@ -340,15 +355,22 @@ def wait_while_paused(out):
         c.focus()
 
 
-def quick_run(out, rules, size, landforms, waters, climate, temperature, age, count, block):
-    """Until each map type has count maps: a New Game of the type from a
-    random seed, then up to block - 1 Quick Starts, type after type."""
-    def made(lf, w):
-        prefix = f'{rules}_{size}_{lf}{w}_{climate}-{temperature}-{age}_'
-        return sum(1 for n in os.listdir(out) if n.startswith(prefix) and n.upper().endswith('.SAV'))
+def quick_run(out, rules, sizes, landforms, waters, climates, temperatures, ages, count, block):
+    """Until each map type (each mix of the sizes, landforms, waters,
+    climates, temperatures and ages given) has count maps: a New Game of
+    the type from a random seed, then up to block - 1 Quick Starts, type
+    after type."""
+    def prefix(t):
+        size, lf, w, cl, te, ag = t
+        return f'{rules}_{size}_{lf}{w}_{cl}-{te}-{ag}_'
 
-    types = [(lf, w) for lf in landforms for w in waters]
-    print(f'{len(types)} map types, {count} maps each; ' + ', '.join(f'{lf}{w} {made(lf, w)}' for lf, w in types), flush=True)
+    def made(t):
+        p = prefix(t)
+        return sum(1 for n in os.listdir(out) if n.startswith(p) and n.upper().endswith('.SAV'))
+
+    types = [(size, lf, w, cl, te, ag) for size in sizes for lf in landforms for w in waters
+             for cl in climates for te in temperatures for ag in ages]
+    print(f'{len(types)} map types, {count} maps each; {sum(min(count, made(t)) for t in types)} of {len(types) * count} made', flush=True)
     if c.is_open():
         c.focus()
     else:
@@ -358,12 +380,12 @@ def quick_run(out, rules, size, landforms, waters, climate, temperature, age, co
     rng = random.Random()
     games = 0
     while True:
-        todo = [(lf, w) for lf, w in types if made(lf, w) < count]
+        todo = [t for t in types if made(t) < count]
         if not todo:
             break
-        for lf, w in todo:
-            n = min(block, count - made(lf, w))
-            t = time.time()
+        for t in todo:
+            n = min(block, count - made(t))
+            started = time.time()
             # A New Game sets the type, then Quick Starts repeat it. After
             # a restart the type is set again with another New Game.
             new_game = True
@@ -371,11 +393,11 @@ def quick_run(out, rules, size, landforms, waters, climate, temperature, age, co
                 wait_while_paused(out)
                 if new_game:
                     seed = rng.randint(1, 2 ** 31 - 1)
-                    path = make_map(out, rules, size, lf, w, climate, temperature, age, seed)
-                    what = f'{lf}{w} seed {seed}'
+                    path = make_map(out, rules, *t, seed)
+                    what = f'{prefix(t)} seed {seed}'
                 else:
-                    path = quick_map(out, rules, size, lf, w, climate, temperature, age)
-                    what = f'{lf}{w} quick start'
+                    path = quick_map(out, rules, *t)
+                    what = f'{prefix(t)} quick start'
                 if path is not None:
                     done += 1
                     new_game = False
@@ -387,7 +409,7 @@ def quick_run(out, rules, size, landforms, waters, climate, temperature, age, co
                     restart_civ3(out, f'{games} games in this run')
                     new_game = True
                     games = 0
-            print(f'  {lf}{w}: {made(lf, w)} maps ({n} in {time.time() - t:.0f}s); {done} made in {time.time() - t0:.0f}s', flush=True)
+            print(f'  {prefix(t)}: {made(t)} maps ({n} in {time.time() - started:.0f}s); {done} made in {time.time() - t0:.0f}s', flush=True)
     print(f'made {done} in {time.time() - t0:.0f}s', flush=True)
 
 

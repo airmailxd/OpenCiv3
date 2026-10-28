@@ -23,6 +23,12 @@ starts them headless; `stop.ps1` shuts them down. Each VM's log is
 `run.log` in its corpus folder. `run_vm.cmd` and the scripts are read from
 the host, so changes to them reach the VMs at their next start.
 
+Don't change `run_vm.cmd` while VMs are running it: cmd reads a batch file
+as it goes, so an edit under it breaks the loop and the VM stops making
+maps. Stop the VMs (or reset them after the change). generate.py and
+civ3win.py can change any time; a VM picks them up when its Python next
+starts.
+
 Watching: `watch.ps1` shows every VM's screen at http://127.0.0.1:8770,
 read-only. To use a VM yourself, put a file named `PAUSE` in its corpus
 folder (the script stops between maps), open it with Show in VirtualBox

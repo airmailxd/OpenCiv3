@@ -231,12 +231,25 @@ def dismiss_steam_error():
     (SteamAPI_Init() failed)" box, which it shows when started without
     Steam (always in the VMs); Civ3 then starts regardless. Returns whether
     there was one."""
-    dialog = user32.FindWindowW('#32770', 'Fatal Error')
-    if not dialog:
-        return False
-    key(0x12)
-    user32.SetForegroundWindow(dialog)
-    time.sleep(0.2)
-    key(VK_RETURN)
-    time.sleep(0.5)
-    return True
+    found = False
+    # One box for each start of Civ3 that hasn't got past it.
+    for _ in range(10):
+        dialog = user32.FindWindowW('#32770', 'Fatal Error')
+        if not dialog:
+            break
+        found = True
+        # A click on its OK button, sent to the button, which needs no focus
+        # (a key press goes to whatever window has it, and Windows doesn't
+        # always hand that over); a box without one is closed, which for a
+        # box with only OK is the same.
+        BM_CLICK, WM_CLOSE = 0x00F5, 0x0010
+        button = user32.FindWindowExW(dialog, None, 'Button', None)
+        if button:
+            user32.SendMessageW(button, BM_CLICK, 0, 0)
+        else:
+            user32.SendMessageW(dialog, WM_CLOSE, 0, 0)
+        time.sleep(0.5)
+        if user32.FindWindowW('#32770', 'Fatal Error') == dialog:
+            user32.SendMessageW(dialog, WM_CLOSE, 0, 0)
+            time.sleep(0.5)
+    return found

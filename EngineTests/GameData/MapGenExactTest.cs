@@ -24,12 +24,18 @@ namespace EngineTests.GameData;
 //   C7_MAPGEN_EXACT=C:/Dev/civ3_map_corpus/std   the saves (required)
 //   C7_MAPGEN_OUT=<folder>        where the report goes (the corpus folder)
 //   C7_MAPGEN_LIMIT=<n>           at most n maps
+//   C7_MAPGEN_RECHECK=1           check every map, reviewed or not
 //
 // It checks two ways: Civ3MapGenerator itself with the rules of the save's
 // BIQ, against the save's own tile data and start slots; and the GameMap
 // MapGenerator makes with OpenCiv3's Civ3 rules, against the save as
 // ImportCiv3 imports it. It writes mapgen-exact.txt and fails if any map
 // differs anywhere.
+//
+// A map found exact is marked reviewed (reviewed.csv in the report folder),
+// with a fingerprint of the map generation code, and isn't checked again
+// until that code changes (the owner's request): only new maps, and maps
+// that differed, are checked.
 public class MapGenExactTest {
 	private static readonly Regex CorpusName = new(@"_(?<land>Pan|Con|Arc)(?<water>\d\d)_[A-Za-z]+-[A-Za-z]+-\dB_s\d+\.SAV$");
 
@@ -68,10 +74,25 @@ public class MapGenExactTest {
 		SaveGame rules = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		byte[] bic = QueryCiv3.Util.ReadFile(PathUtils.defaultBicPath);
 
+		Directory.CreateDirectory(outDir);
+		string fingerprint = GeneratorFingerprint();
+		bool recheck = Environment.GetEnvironmentVariable("C7_MAPGEN_RECHECK") == "1";
+		string ledgerPath = Path.Combine(outDir, "reviewed.csv");
+		Dictionary<string, string> reviewed = recheck ? new() : ReadLedger(ledgerPath, fingerprint);
+
 		Tally tally = new();
 		List<string> problems = new();
-		int maps = 0;
+		int maps = 0, skipped = 0;
+		using StreamWriter ledger = new(ledgerPath, append: File.Exists(ledgerPath) && !recheck && reviewed.Count > 0);
+		if (ledger.BaseStream.Length == 0) {
+			ledger.WriteLine("name,bytes,fingerprint,reviewed");
+		}
 		foreach (string path in Directory.GetFiles(corpus, "*.SAV", SearchOption.AllDirectories).Where(p => CorpusName.IsMatch(p)).OrderBy(p => p).Take(limit)) {
+			string key = LedgerKey(path);
+			if (reviewed.ContainsKey(key)) {
+				++skipped;
+				continue;
+			}
 			SavData sav;
 			try {
 				sav = new SavData(QueryCiv3.Util.ReadFile(path), bic);
@@ -85,11 +106,15 @@ public class MapGenExactTest {
 			List<string> differing = tally.EndMap();
 			if (differing.Count > 0) {
 				problems.Add($"{Path.GetFileName(path)} (seed {sav.Wrld.WorldSeed}): {string.Join(", ", differing)}");
+			} else {
+				reviewed[key] = fingerprint;
+				ledger.WriteLine($"{key},{fingerprint},{DateTime.Now:yyyy-MM-dd HH:mm}");
 			}
 		}
 
 		StringBuilder report = new();
-		report.AppendLine($"Map generation against Civ3's own maps, tile for tile, from {corpus}: {maps} maps");
+		report.AppendLine($"Map generation against Civ3's own maps, tile for tile, from {corpus}: {maps} maps checked, "
+			+ $"{skipped} already reviewed exact with this map generation code ({fingerprint})");
 		report.AppendLine("Each step: the share of tiles (or starts) that agree, and the maps that agree on every one.");
 		foreach (var (step, (agree, total, inMaps, exactMaps)) in tally.steps) {
 			report.AppendLine($"  {step,-32} {100.0 * agree / Math.Max(1, total),8:0.000}%  {exactMaps} of {inMaps} maps exact");
@@ -99,9 +124,47 @@ public class MapGenExactTest {
 			report.AppendLine($"Maps that differ ({problems.Count}):");
 			problems.ForEach(p => report.AppendLine("  " + p));
 		}
-		Directory.CreateDirectory(outDir);
 		File.WriteAllText(Path.Combine(outDir, "mapgen-exact.txt"), report.ToString());
 		Assert.True(problems.Count == 0, report.ToString());
+	}
+
+	// The map generation code a review stands for: a hash of the source files
+	// that make the maps. A change to any of them means a map reviewed before
+	// is checked again.
+	private static readonly string[] GeneratorSources = { "C7Engine/Civ3MapGenerator.cs", "C7Engine/MapGenerator.cs" };
+
+	private static string GeneratorFingerprint() {
+		string dir = AppContext.BaseDirectory;
+		while (dir != null && !File.Exists(Path.Combine(dir, GeneratorSources[0]))) {
+			dir = Path.GetDirectoryName(dir);
+		}
+		Assert.True(dir != null, "can't find the map generation sources above " + AppContext.BaseDirectory);
+		using var sha = System.Security.Cryptography.SHA256.Create();
+		foreach (string source in GeneratorSources) {
+			// Line endings aside, so a checkout on another machine agrees.
+			byte[] text = Encoding.UTF8.GetBytes(File.ReadAllText(Path.Combine(dir, source)).Replace("\r\n", "\n"));
+			sha.TransformBlock(text, 0, text.Length, null, 0);
+		}
+		sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+		return Convert.ToHexString(sha.Hash)[..12];
+	}
+
+	// A save as the ledger knows it: its name and size.
+	private static string LedgerKey(string path) => $"{Path.GetFileName(path)},{new FileInfo(path).Length}";
+
+	// The maps reviewed exact with this fingerprint.
+	private static Dictionary<string, string> ReadLedger(string path, string fingerprint) {
+		Dictionary<string, string> reviewed = new();
+		if (!File.Exists(path)) {
+			return reviewed;
+		}
+		foreach (string line in File.ReadLines(path).Skip(1)) {
+			string[] parts = line.Split(',');
+			if (parts.Length >= 3 && parts[2] == fingerprint) {
+				reviewed[$"{parts[0]},{parts[1]}"] = fingerprint;
+			}
+		}
+		return reviewed;
 	}
 
 	// What the Civ3 port takes from a BIQ.

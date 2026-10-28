@@ -132,7 +132,7 @@ public class MapGenParityTest {
 	// is the same map again (a seed and its settings make the same map), so
 	// the copy is deleted.
 	//   C7_MAPGEN_RENAME=C:/Dev/civ3_map_corpus   (and its subfolders)
-	private static readonly Regex QuickStartName = new(@"^(?<prefix>[A-Z]+_.+_(?<land>Pan|Con|Arc)(?<water>\d\d)_(?<climate>Ari|Nrm|Wet)-(?<temp>Wrm|Tmp|Col)-(?<age>\dB))_t\d+\.SAV$");
+	private static readonly Regex QuickStartName = new(@"^(?<prefix>[A-Z]+_(?<size>.+)_(?<land>Pan|Con|Arc)(?<water>\d\d)_(?<climate>Ari|Nrm|Wet)-(?<temp>Wrm|Tmp|Col)-(?<age>\dB))_t\d+\.SAV$");
 
 	[Fact]
 	public void RenameQuickStartMaps() {
@@ -158,6 +158,7 @@ public class MapGenParityTest {
 			var w = sav.Wrld;
 			// Civ3's settings in the order of its world setup screen.
 			(string, int, int)[] expected = [
+				("size", Array.IndexOf(new[] { "Tiny", "Small", "Standard", "Large", "Huge" }, m.Groups["size"].Value), w.WsizID),
 				("landform", Array.IndexOf(new[] { "Arc", "Con", "Pan" }, m.Groups["land"].Value), w.ActualLandform),
 				("water", Array.IndexOf(new[] { "80", "70", "60" }, m.Groups["water"].Value), w.ActualOceanCoverage),
 				("climate", Array.IndexOf(new[] { "Ari", "Nrm", "Wet" }, m.Groups["climate"].Value), w.ActualClimate),
