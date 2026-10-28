@@ -1732,6 +1732,25 @@ namespace C7Engine {
 				player.taxRate = Math.Min(player.maxRate, MAX_SLIDER_VALUE - player.luxuryRate);
 				player.luxuryRate = MAX_SLIDER_VALUE - player.taxRate;
 				player.ApplyGovernmentRateCap();
+				// Where gold can't hurry production either (forced labor, as
+				// under MDJ's Feudalism), only as much tax as keeps the
+				// treasury from shrinking, and the rest to luxuries: happy
+				// citizens score twice what content ones do. In AI trials
+				// (Rising Tide under MDJ, 32 paired games of 8 civs, twice)
+				// civs ended with 1,000 gold rather than 10,000, scored 65
+				// and 73 more (+- 25 and 37) and won a little more often.
+				if (player.government.hurryingType != Government.HurryProductionType.PaidLabor) {
+					int wanted = DevelopmentAI.WantedGoldPerTurn(player);
+					int fixedGoldPerTurn = player.CalculateGoldPerTurn() - CityTaxesAndWealth(player);
+					for (int tax = 0; tax <= player.maxRate; ++tax) {
+						player.taxRate = tax;
+						player.luxuryRate = MAX_SLIDER_VALUE - tax;
+						player.ApplyGovernmentRateCap();
+						if (fixedGoldPerTurn + CityTaxesAndWealth(player) >= Math.Max(0, wanted)) {
+							break;
+						}
+					}
+				}
 				log.Information($"{player} has nothing to research; slider values: Science: {player.scienceRate}, Luxury: {player.luxuryRate}, Tax: {player.taxRate}");
 				return;
 			}

@@ -182,8 +182,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"endTurn",
 			// Rising Tide (see RisingTide): the civ's cities the tide
 			// destroyed and its units it drowned, and the turn the civ was
-			// destroyed (the game's length if it never was).
-			"tideCities", "drowned", "deathTurn",
+			// destroyed (the game's length if it never was); its score as
+			// the game ended (a fallen civ's as it fell, see
+			// RisingTide.ScoreBonus) and whether it won.
+			"tideCities", "drowned", "deathTurn", "rtScore", "won",
 			// Kings & Nomads' trade with the city-states (see
 			// CityStateTrade): the city-states the civ's roads reach at the
 			// end and halfway through, and the gold the trade brought in
@@ -839,6 +841,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = tideCities[p];
 			m.values[i++] = drowned[p];
 			m.values[i++] = d.deathTurn;
+			m.values[i++] = HallOfFame.ScoreOf(gameData, p);
+			m.values[i++] = gameData.winner == p ? 1 : 0;
 			m.values[i++] = p.defeated ? 0 : gameData.GetTradeNetwork().ConnectedCityStates(p).Count;
 			m.values[i++] = d.midCityStates;
 			m.values[i++] = d.cityStateGold;
