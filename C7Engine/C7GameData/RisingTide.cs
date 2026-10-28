@@ -153,6 +153,10 @@ namespace C7Engine {
 				return;
 			}
 			List<Tile> shore = Shore(gameData);
+			// What the land gave stays given, under PersistentResources.
+			foreach (Player player in gameData.players) {
+				player.RecordObtainedResources(gameData);
+			}
 			log.Information("A Tidal Wave on turn {Turn} floods {Tiles} tiles", gameData.turn, shore.Count);
 			Dictionary<Player, List<string>> citiesLost = new();
 			foreach (Tile tile in shore) {

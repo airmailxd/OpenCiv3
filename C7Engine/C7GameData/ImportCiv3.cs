@@ -853,9 +853,17 @@ namespace C7GameData {
 
 		private void ImportCiv3Resources() {
 			GOOD[] Good = biq?.Good ?? defaultBiq.Good;
+			// A scenario may have two resources by one name (MPTournamentMDJ
+			// has two Whales, two Wheat, ...); the second's key gets a
+			// number, as everything refers to a resource by its key.
+			HashSet<string> keys = new();
 			foreach (GOOD good in Good) {
+				string key = good.Name;
+				for (int n = 2; !keys.Add(key); ++n) {
+					key = $"{good.Name} {n}";
+				}
 				Resource resource = new Resource {
-					Key = good.Name,
+					Key = key,
 					Name = good.Name,
 					Icon = good.Icon,
 					FoodBonus = good.FoodBonus,

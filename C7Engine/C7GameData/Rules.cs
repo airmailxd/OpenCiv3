@@ -115,6 +115,16 @@ namespace C7GameData {
 		// (Kings & Nomads: Monarchy).
 		public string OnlyGovernment = null;
 
+		// Every civ starts knowing every advance (MDJ; see GameSetup.Mdj.cs).
+		public bool AllTechsAtStart = false;
+		// A resource a civ has had once stays its own for the rest of the
+		// game, though the road to it be cut or its tile lost (MDJ; see
+		// Player.RecordObtainedResources).
+		public bool PersistentResources = false;
+		// War weariness can't overthrow the government either: everyone
+		// keeps the one they start with (MDJ).
+		public bool GovernmentLocked = false;
+
 		public bool AllowsGovernment(Government government) {
 			return OnlyGovernment == null || government?.name == OnlyGovernment;
 		}

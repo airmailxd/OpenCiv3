@@ -399,6 +399,26 @@ namespace C7GameData {
 		// The civ's victory points (see VictoryPoints).
 		public int victoryPoints = 0;
 
+		// Under PersistentResources (MDJ), the keys of the resources the civ
+		// has had, which stay its own (see RecordObtainedResources).
+		public HashSet<string> obtainedResources = new();
+
+		// Under PersistentResources, adds the resources the civ's cities have
+		// now to those it keeps. Done as each turn begins, and before a
+		// Tidal Wave takes land.
+		public void RecordObtainedResources(GameData gameData) {
+			if (gameData.rules?.PersistentResources != true || IsIndependent) {
+				return;
+			}
+			foreach (City city in cities) {
+				foreach (Resource r in city.GetCurrentResources(gameData).Keys) {
+					if (r.Key != null) {
+						obtainedResources.Add(r.Key);
+					}
+				}
+			}
+		}
+
 		// The enemy units this civ has defeated in combat, the cities it
 		// has taken, and, under Rising Tide, the turns it has lived through,
 		// for the Rising Tide score (see RisingTide.ScoreBonus).
@@ -2431,6 +2451,11 @@ namespace C7GameData {
 				++contacts;
 			}
 			bool revolt = total / Math.Max(1, contacts) > WarWearinessRevoltThreshold;
+			// Under a locked government (MDJ's Feudalism) no one leaves it,
+			// even for Anarchy.
+			if (rules?.GovernmentLocked == true) {
+				return false;
+			}
 			Government anarchy = gameData.governments.Find(g => g.transitionType);
 			if (!revolt || anarchy == null) {
 				return false;

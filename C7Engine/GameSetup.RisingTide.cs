@@ -54,7 +54,7 @@ public partial class GameSetup {
 			capital = true,
 			name = civ.cityNames.Count > 0 ? civ.cityNames[0] : civ.name,
 			size = save.Rules.NewCitySize,
-			producible = RisingTideArcher,
+			producible = RisingTideUnit(save, civ, RisingTideArcher),
 			producibleType = ProducibleType.UNIT,
 		};
 		city.perPlayerCulture.Add(player.id.ToString(), 0);
@@ -63,12 +63,31 @@ public partial class GameSetup {
 		}
 		save.Cities.Add(city);
 		player.citiesFounded = 1;
+		string worker = RisingTideUnit(save, civ, RisingTideWorker);
 		for (int i = 0; i < RisingTideWorkers; i++) {
-			AddUnit(save, player, RisingTideWorker, location);
+			AddUnit(save, player, worker, location);
 		}
+		string archer = RisingTideUnit(save, civ, RisingTideArcher);
 		for (int i = 0; i < RisingTideArchers; i++) {
-			AddUnit(save, player, RisingTideArcher, location);
+			AddUnit(save, player, archer, location);
 		}
+	}
+
+	// The unit by the name, or, in rules without it (like MDJ's, see
+	// GameSetup.Mdj.cs), the cheapest the civ can build that does the
+	// same: a worker, or a land unit that can both attack and defend.
+	private static string RisingTideUnit(SaveGame save, Civilization civ, string name) {
+		if (save.UnitPrototypes.Any(p => p.name == name)) {
+			return name;
+		}
+		bool worker = name == RisingTideWorker;
+		return save.UnitPrototypes
+			.Where(p => !p.unproducible && p.categories.Contains("Land") && (p.producibleBy.Count == 0 || p.producibleBy.Contains(civ.name))
+				&& !p.actions.Contains(UnitAction.BuildCity)
+				&& (worker ? p.terraformActions.Count > 0 : p.attack > 0 && p.defense > 0 && p.terraformActions.Count == 0))
+			.OrderBy(p => p.shieldCost).ThenByDescending(p => p.attack + p.defense)
+			.Select(p => p.name).FirstOrDefault()
+			?? throw new InvalidOperationException($"The rules have no {name} for {civ.name}");
 	}
 
 	// A start for each civ at the edge of the land: on land a city may

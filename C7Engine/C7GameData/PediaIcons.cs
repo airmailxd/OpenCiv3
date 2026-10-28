@@ -159,8 +159,14 @@ namespace C7GameData {
 			return icons.Count > 1 ? icons[1] : icons[0];
 		}
 
+		// A scenario's own tech with no icon of its own in the PediaIcons
+		// file (a BIQ that comes without its mod folder) has none.
 		public string GetTechIconPath(string civilopediaEntry) {
-			return techSmallIconMapping[civilopediaEntry];
+			if (!techSmallIconMapping.TryGetValue(civilopediaEntry, out string path)) {
+				log.Warning($"Could not find the icon of tech {civilopediaEntry} in PediaIcons file '{pediaIconsPath}'");
+				return "";
+			}
+			return path;
 		}
 
 		public MainArt GetUnitMainArt(string civilopediaEntry) {

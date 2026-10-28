@@ -2933,11 +2933,29 @@ namespace C7GameData {
 
 		// The resources this city can use: those on its own trade network
 		// segment, plus, for cities connected to the capital, those imported
-		// from other civs through deals, less those exported to them.
+		// from other civs through deals, less those exported to them. Under
+		// PersistentResources (MDJ), every resource its civ has had too (see
+		// Player.RecordObtainedResources).
 		//
 		// The returned dictionary may be shared with other cities, so it must
 		// not be modified.
 		public Dictionary<Resource, int> GetAvailableResources(GameData gameData) {
+			Dictionary<Resource, int> current = GetCurrentResources(gameData);
+			if (gameData.rules?.PersistentResources != true || owner.obtainedResources.Count == 0) {
+				return current;
+			}
+			Dictionary<Resource, int> result = null;
+			foreach (Resource r in gameData.Resources) {
+				if (owner.obtainedResources.Contains(r.Key) && !current.ContainsKey(r)) {
+					result ??= new(current);
+					result[r] = 1;
+				}
+			}
+			return result ?? current;
+		}
+
+		// The resources the city has now, whatever its civ has had before.
+		internal Dictionary<Resource, int> GetCurrentResources(GameData gameData) {
 			C7Engine.Pathing.TradeNetwork network = gameData.GetTradeNetwork();
 			Dictionary<Resource, int> local = network.GetResourcesAvailableToCity(owner, this);
 			if (!network.ConnectedToCapital(owner, this)) {

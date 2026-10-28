@@ -96,6 +96,8 @@ namespace C7GameData.Save {
 		// For Regicide and Elimination: the King units the civ has lost,
 		// and the cities enemies have taken from it.
 		public int kingsLost;
+		// Under PersistentResources, the keys of the resources the civ keeps.
+		public List<string> obtainedResources;
 		public int citiesLost;
 		// The civ's victory points.
 		public int victoryPoints;
@@ -187,6 +189,7 @@ namespace C7GameData.Save {
 				neverHadCityOrSettler = neverHadCityOrSettler,
 				receivedStartUnits = receivedStartUnits ?? false,
 				kingsLost = kingsLost,
+				obtainedResources = obtainedResources == null ? new() : new HashSet<string>(obtainedResources),
 				citiesLost = citiesLost,
 				victoryPoints = victoryPoints,
 				unitsKilled = unitsKilled,
@@ -327,6 +330,7 @@ namespace C7GameData.Save {
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			receivedStartUnits = player.receivedStartUnits;
 			kingsLost = player.kingsLost;
+			obtainedResources = player.obtainedResources.Count == 0 ? null : player.obtainedResources.Order().ToList();
 			citiesLost = player.citiesLost;
 			victoryPoints = player.victoryPoints;
 			unitsKilled = player.unitsKilled;

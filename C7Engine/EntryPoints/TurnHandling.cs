@@ -151,6 +151,7 @@ namespace C7Engine {
 				foreach (Player player in gameData.players) {
 					await EngineStorage.YieldIfFrameBudgetSpent();
 					player.MaybeSpawnBonusUnits(gameData);
+					player.RecordObtainedResources(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);
 					Espionage.DoPerTurnUpdates(player, gameData);
 					player.UpdateWarWeariness(gameData);

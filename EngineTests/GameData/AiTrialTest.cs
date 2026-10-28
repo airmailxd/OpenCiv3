@@ -39,6 +39,8 @@ namespace EngineTests.GameData;
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
 //   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
+//   C7_TRIAL_RULES        mdj to play under MPTournamentMDJ.biq's rules
+//                         (see GameSetup.Mdj.cs) rather than Civ3's
 //   C7_TRIAL_TIDE         1 to list, under Rising Tide, each civ's state
 //                         every few turns: its cities with the waves each
 //                         has left, its settlers and other units, and the
@@ -290,7 +292,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
 		GameScenario scenario = Enum.TryParse(Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO"), out GameScenario sc) ? sc : GameScenario.None;
-		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		// C7_TRIAL_RULES=mdj plays under MPTournamentMDJ.biq's rules (see
+		// GameSetup.Mdj.cs).
+		SaveGame save = Environment.GetEnvironmentVariable("C7_TRIAL_RULES") == "mdj"
+			? GameSetup.LoadMdjRules(QueryCiv3.Civ3Location.GetCiv3Path()) ?? throw new InvalidOperationException("No MPTournamentMDJ.biq")
+			: SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = landform,
 			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,

@@ -481,8 +481,11 @@ public partial class GameSetup {
 			knownTechs = new HashSet<ID>(civ.startingTechs),
 			eraCivilopediaName = save.Rules.FirstEraCivilopediaName,
 			gold = save.Rules.StartingTreasury,
-			governmentId = worldCharacteristics.defaultGovernment.id,
+			governmentId = StartingGovernment(save),
 		};
+		if (save.Rules.AllTechsAtStart) {
+			GiveAllTechs(save, player);
+		}
 		save.Players.Add(player);
 
 		if (civ.IsIndependent) {

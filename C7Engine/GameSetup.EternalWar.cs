@@ -12,6 +12,8 @@ public enum GameScenario {
 	EternalWar,
 	RisingTide,
 	KingsAndNomads,
+	// MPTournamentMDJ.biq's rules on a generated map (see GameSetup.Mdj.cs).
+	Mdj,
 }
 
 // Eternal War, a custom scenario (owner's design, 2026-10-21): on one
