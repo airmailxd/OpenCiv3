@@ -39,6 +39,10 @@ namespace EngineTests.GameData;
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
 //   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
+//   C7_TRIAL_TIDE         1 to list, under Rising Tide, each civ's state
+//                         every few turns: its cities with the waves each
+//                         has left, its settlers and other units, and the
+//                         deepest land left
 //   C7_TRIAL_WARS         1 to list every war between civs: who declared it
 //                         on whom and when, whether the target was overseas
 //                         (no city on a landmass where the aggressor had
@@ -57,6 +61,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private readonly ITestOutputHelper output;
 	// With C7_TRIAL_FLIPS, the culture flips of the game being played.
 	private readonly List<string> flipLines = new();
+	// With C7_TRIAL_TIDE, the civs' state through a Rising Tide game.
+	private readonly List<string> tideLines = new();
 	// With C7_TRIAL_WARS, the wars declared in the game being played.
 	private readonly List<string> warLines = new();
 
@@ -313,6 +319,21 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		return save;
 	}
 
+	// For C7_TRIAL_TIDE: each civ's cities (size/waves left), settlers,
+	// workers and other land units, and what it builds.
+	private void TraceTide(C7GameData.GameData gameData, List<Player> civs) {
+		tideLines.Add($"tide turn {gameData.turn}: wave {gameData.risingTide.waves}, next in {RisingTide.TurnsUntilNextWave(gameData)}, deepest {TideAI.DeepestLand()}");
+		foreach (Player p in civs.Where(p => !p.defeated)) {
+			string cities = string.Join(" ", p.cities.OrderByDescending(c => TideAI.WavesUntilDrowned(c.location))
+				.Select(c => $"{c.residents.Count}/{TideAI.WavesUntilDrowned(c.location)}:{(c.itemBeingProduced as UnitPrototype)?.name ?? (c.itemBeingProduced is Building b ? "B-" + b.name : "?")}"));
+			int settlers = p.units.Count(u => u.unitType.isSettler);
+			int workers = p.units.Count(u => u.unitType.isWorker && !u.unitType.isSettler);
+			int others = p.units.Count(u => u.IsLandUnit() && !u.unitType.isSettler && !u.unitType.isWorker);
+			int war = civs.Count(o => o != p && !o.defeated && p.playerRelationships.TryGetValue(o.id, out PlayerRelationship r) && r.AtWar());
+			tideLines.Add($"  {p.civilization.name}: cities [{cities}] settlers={settlers} workers={workers} units={others} wars={war} gold={p.gold}");
+		}
+	}
+
 	[Fact]
 	public async Task CompareAiWithAndWithoutExperiments() {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
@@ -390,6 +411,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 			lines.AddRange(flipLines);
 			flipLines.Clear();
+			lines.AddRange(tideLines);
+			tideLines.Clear();
 			lines.AddRange(warLines);
 			warLines.Clear();
 			differences.Add(difference);
@@ -610,6 +633,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> flipsIn = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> flipsOut = civs.ToDictionary(p => p, _ => 0);
 		bool listFlips = Setting("C7_TRIAL_FLIPS", 0) != 0;
+		bool listTide = Setting("C7_TRIAL_TIDE", 0) != 0;
 		AiExperiments.onCultureFlip = (city, from, c) => {
 			Add(flipsIn, city.owner);
 			Add(flipsOut, from);
@@ -691,6 +715,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				CountCaptures();
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
+				if (listTide && RisingTide.IsOn(gameData)) {
+					TraceTide(gameData, civs);
+				}
 				foreach (Player p in civs) {
 					if (p.defeated && fellTurn[p] == turns) {
 						fellTurn[p] = turn + 1;

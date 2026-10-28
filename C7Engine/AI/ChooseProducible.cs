@@ -358,13 +358,20 @@ namespace C7Engine {
 				// inland, the more so from a city the sea will soon take
 				// (see TideAI).
 				if (TideAI.IsOn()) {
-					score += TideAI.CityTurnsLeft(city) <= TideAI.DoomedCityTurns ? TideAI.DoomedSettlerBonus : TideAI.SettlerBonus;
+					bool doomed = TideAI.CityTurnsLeft(city) <= TideAI.DoomedCityTurns || !TideAI.HasRefuge(player);
+					score += doomed ? TideAI.DoomedSettlerBonus : TideAI.SettlerBonus;
 				}
 			}
 
 			// Under Rising Tide, a unit the city can't finish before the sea
-			// takes it would drown with the city.
-			if (TideAI.TooLateToBuild(city, unit)) {
+			// takes it would drown with the city. A land unit still comes
+			// before a building, as the city may hurry it (see
+			// TideAI.HurryEvacuation), a settler first. With no refuge, a
+			// settler keeps its worth: hurried, it is the civ's only way on.
+			if (TideAI.TooLateToBuild(city, unit) && !(isSettler && !TideAI.HasRefuge(player))) {
+				if (unit.IsLandUnit()) {
+					return isSettler ? -400f : -500f;
+				}
 				return -1000f;
 			}
 

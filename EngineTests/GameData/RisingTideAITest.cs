@@ -270,4 +270,23 @@ public class RisingTideAITest {
 		List<(Tile from, Tile to)> roads = TideAI.InlandRoads(civ);
 		Assert.Equal([(edge.location, heart.location)], roads);
 	}
+
+	// With no city that outlasts the next wave, the start city switches to
+	// a settler; and a building it can't finish in time to use gives way.
+	[Fact]
+	public void ADoomedCityBuildsSettlersNotBuildings() {
+		C7GameData.GameData gameData = NewGame(21);
+		Player civ = FirstCiv(gameData);
+		City city = civ.cities[0];
+		Assert.False(TideAI.HasRefuge(civ));
+		Assert.Equal("Archer", city.itemBeingProduced.name);
+		TideAI.ReconsiderProduction(civ);
+		Assert.True(city.itemBeingProduced is UnitPrototype { isSettler: true }, $"building {city.itemBeingProduced}");
+
+		gameData.turn = 19;
+		Building granary = gameData.Buildings.First(b => b.name == "Granary");
+		city.SetItemBeingProduced(granary);
+		TideAI.ReconsiderProduction(civ);
+		Assert.True(city.itemBeingProduced is UnitPrototype, $"building {city.itemBeingProduced}");
+	}
 }

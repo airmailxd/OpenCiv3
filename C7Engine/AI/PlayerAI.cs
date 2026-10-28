@@ -96,6 +96,7 @@ namespace C7Engine {
 			DevelopmentAI.HurryProduction(player);
 			// Under Rising Tide, a city about to drown hurries the unit that
 			// would carry its people out (see TideAI).
+			TideAI.ReconsiderProduction(player);
 			TideAI.HurryEvacuation(player);
 			UpgradeUnits(player);
 
