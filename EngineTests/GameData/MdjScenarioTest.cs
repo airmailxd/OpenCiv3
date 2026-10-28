@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7Engine.Lua;
@@ -126,6 +127,37 @@ public class MdjScenarioTest {
 		Assert.Equal(biq.Buildings.Select(b => b.name), bundled.Buildings.Select(b => b.name));
 		Assert.Equal(biq.Civilizations.Select(c => c.name), bundled.Civilizations.Select(c => c.name));
 		Assert.Equal(biq.Resources.Select(r => r.Key), bundled.Resources.Select(r => r.Key));
+	}
+
+	// Standalone mode's own Civilopedia (C7/Civilopedia) has a page, with its
+	// history, for every unit, advance (but the hidden ones), building,
+	// resource and clan of MDJ's, and its links lead to pages that are there.
+	[Fact]
+	public void TheCivilopediaHasEveryMdjEntry() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
+		CivilopediaText text = CivilopediaText.Load(PathUtils.getBasePath("../C7/Civilopedia/Text/Civilopedia.txt"));
+		IEnumerable<string> keys = save.UnitPrototypes.Select(u => u.civilopediaEntry)
+			.Concat(save.Techs.Where(t => t.EraCivilopediaName != "Hidden").Select(t => t.CivilopediaEntry))
+			.Concat(save.Buildings.Select(b => b.civilopediaEntry))
+			.Concat(save.Resources.Select(r => r.CivilopediaEntry))
+			.Concat(save.Civilizations.Where(c => !c.isBarbarian).Select(c => c.civilopediaEntry));
+		List<string> problems = [];
+		foreach (string key in keys.Distinct()) {
+			CivilopediaArticle article = text.Get(key);
+			if (article == null) {
+				problems.Add($"{key}: no page");
+				continue;
+			}
+			if (!article.HasDescription) {
+				problems.Add($"{key}: no history");
+			}
+			foreach (string link in CivilopediaMarkup.LinkedKeys(article.Lines)) {
+				if (!text.Has(link)) {
+					problems.Add($"{key}: links to {link}, which has no page");
+				}
+			}
+		}
+		Assert.True(problems.Count == 0, string.Join("\n", problems));
 	}
 
 	// Every worker job a unit has is one the rules define.

@@ -5319,3 +5319,377 @@ about AD 250 and 900. Cities such as Tikal and Copan had great stone pyramids an
 ^
 ^The Maya developed the most complete writing system of the ancient Americas, an advanced calendar and a mathematics
 that used zero. Many of their southern cities were abandoned in the ninth century, but the Maya people live on.
+
+; ---- MDJ (C7/Lua/mdj): Medieval Japan's entries that Civ3's rules haven't got.
+; Several of MDJ's units and advances share an entry, and so a page.
+
+#PRTO_Settler2
+^The [Settler] of Medieval Japan founds new cities. Under Rising Tide a city it founds starts with five
+citizens, so settlers carry a clan's people inland ahead of the sea.
+
+#DESC_PRTO_Settler2
+^In the Sengoku period lords moved whole villages of farmers to open new rice land and to hold the
+borders of their domains, granting them land in return for their labor and their levies.
+
+#PRTO_Peasant_Worker
+^The [Peasant Worker] builds roads, irrigates, mines and clears the land. The [Fast Worker], which needs
+$LINK<Super Fast Workers=TECH_Literature>, moves two tiles a turn whatever the ground.
+
+#DESC_PRTO_Peasant_Worker
+^Most of Japan's people were peasants who farmed the rice paddies of their lords, paid the rice tax and,
+in time of war, carried supplies or took up the spear themselves.
+
+#PRTO_Otomo_Spearman
+^The [Spearman] (attack 3, defense 3) is the steady foot soldier of every clan but the Otomo, whose own
+[Otomo Spearman] strikes harder (attack 4) and can start a golden age.
+
+#DESC_PRTO_Otomo_Spearman
+^The spear, the yari, was the most common weapon of Sengoku armies. Massed in disciplined ranks, long
+spears held off horsemen and pushed back enemy foot.
+
+#PRTO_Arquebusier
+^The [Arquebusier] (attack 8, defense 6) is the strongest foot soldier, but needs
+$LINK<Saltpeter=GOOD_Saltpeter> and $LINK<Jade=GOOD_Jade>. It can attack from a boat.
+
+#DESC_PRTO_Arquebusier
+^Matchlock guns came to Japan with Portuguese traders in 1543 and were copied within a few years as the
+tanegashima. Lords who armed whole companies of foot soldiers with them changed the way battles were won.
+
+#PRTO_Japanese_Catapult
+^The [Catapult] cannot attack, but bombards cities and units from a distance, wearing down their
+defenders before the assault.
+
+#DESC_PRTO_Japanese_Catapult
+^Stone-throwing engines and siege bows served in Japan's sieges of castles and fortified temples, though
+the hilly land and the castles' steep stone bases limited their use.
+
+#PRTO_Fire_Cannon
+^The [Fire Cannon] is a heavy gun on a timber carriage (attack 6, moves 4). It bombards and needs
+$LINK<Saltpeter=GOOD_Saltpeter>.
+
+#DESC_PRTO_Fire_Cannon
+^Late in the Sengoku period the great lords bought and cast cannon, using them against the walls and
+ships of their enemies.
+
+#PRTO_Samurai_Horse_Archer
+^The [Ichijo Cavalry] is the Ichijo's own horse archer (attack 8, defense 5, moves 3), which may attack
+more than once a turn. It needs $LINK<Horses=GOOD_Horses> and $LINK<Iron=GOOD_Iron>.
+
+#DESC_PRTO_Samurai_Horse_Archer
+^The first samurai fought from horseback with the bow. The way of the horse and bow, kyuba no michi, stayed
+the warrior's ideal long after battles came to be fought mostly on foot.
+
+#PRTO_Ronin
+^The [Ronin] (attack 6, defense 4) is a sword for hire, needing $LINK<Iron=GOOD_Iron>, that can attack from a
+boat. The Miyoshi have their own, which can start a golden age.
+
+#DESC_PRTO_Ronin
+^A ronin was a samurai without a master, his lord dead or fallen from power. Many sold their swords to
+whoever would pay, and the wars of the age gave them plenty of work.
+
+#PRTO_Ninja
+^The [Ninja] (attack 11, defense 2, moves 2) strikes hardest of all, picks its target out of a stack and can
+attack from a boat. The Mori have their own.
+
+#DESC_PRTO_Ninja
+^The shinobi of Iga and Koga were hired as spies, scouts and raiders, slipping into castles and camps by
+night. Their legend grew far beyond what they did.
+
+#PRTO_Samurai_Spearman
+^The [Bayonet] (attack 5, defense 5) is a well-armored spearman who holds the line, and needs
+$LINK<Saltpeter=GOOD_Saltpeter>.
+
+#DESC_PRTO_Samurai_Spearman
+^Ashigaru companies with long spears stood beside the gunners, guarding them while they reloaded and
+meeting the charge of enemy horse.
+
+#PRTO_Siege_Crossbow
+^The [Urakami Crossbow] is the Urakami's own siege bow on wheels (attack 4, moves 2), and can start a
+golden age.
+
+#DESC_PRTO_Siege_Crossbow
+^Great crossbows on carts hurled heavy bolts at castle gates and defenders on the walls.
+
+#PRTO_Mounted_Samurai
+^The [Mounted Ronin] (attack 7, defense 4, moves 2) is mounted shock cavalry, needing
+$LINK<Iron=GOOD_Iron> and $LINK<Horses=GOOD_Horses>.
+
+#DESC_PRTO_Mounted_Samurai
+^Mounted samurai with lance and sword charged to break enemy lines, and rode down those who fled.
+
+#PRTO_Stone_Crossbow
+^The [Crossbow] (attack 4, defense 2) is a cheap missile soldier that may be drafted.
+
+#DESC_PRTO_Stone_Crossbow
+^The crossbow came to Japan from China long before the age of the warring states; simple to use, it let
+ordinary soldiers strike from afar.
+
+#PRTO_Samurai_Archer
+^The [Longbow] (attack 6, defense 2) shoots the tall yumi, and needs $LINK<Jade=GOOD_Jade>. The Date have their
+own, which can attack from a boat and start a golden age.
+
+#DESC_PRTO_Samurai_Archer
+^The Japanese yumi is taller than a man, gripped below its middle. Archery was the samurai's first art,
+practised on foot and from the saddle.
+
+#PRTO_Samurai_Warrior
+^The [Myoshi Ronin] is the Miyoshi's own ronin (attack 6, defense 4), needing $LINK<Iron=GOOD_Iron>. It can
+attack from a boat and start a golden age.
+
+#DESC_PRTO_Samurai_Warrior
+^The Miyoshi ruled the capital region in the middle of the sixteenth century, and drew many masterless
+warriors to their banners.
+
+#PRTO_Rocket_Cart
+^The [Oda Rocketeer] is the Oda's own (attack 10, defense 7), needing $LINK<Saltpeter=GOOD_Saltpeter> and
+$LINK<Jade=GOOD_Jade>. It can attack from a boat and start a golden age.
+
+#DESC_PRTO_Rocket_Cart
+^Oda Nobunaga armed his troops with guns as no lord had before, and used them to win the battle of
+Nagashino in 1575.
+
+#PRTO_Footman
+^The [Ashigaru] (attack 2, defense 2) is the cheapest soldier, and the one every clan starts with.
+
+#DESC_PRTO_Footman
+^The ashigaru, "light feet", were foot soldiers raised from the peasantry. By the end of the Sengoku period
+they made up most of every army, as spearmen, archers and gunners.
+
+#PRTO_Warrior_Monk
+^The [Impi Monk] is the Imagawa's own warrior monk (attack 3, defense 4, moves 2), which may attack more than
+once a turn and can start a golden age.
+
+#DESC_PRTO_Warrior_Monk
+^The sohei, warrior monks of the great temples, fought with the naginata, and for centuries their
+monasteries were powers that lords and emperors had to reckon with.
+
+#PRTO_Swordsman2
+^The [Jaguar Samurai] is the Ainu's own (attack 2, defense 2, moves 2), which may attack more than once a
+turn and can start a golden age.
+
+#DESC_PRTO_Swordsman2
+^Swift bands of swordsmen raided along the coasts and the frontiers of the islands.
+
+#TECH_Diplomatic
+^[Metal Working] lets every clan arm its men with the $LINK<Crossbow=PRTO_Stone_Crossbow>.
+
+#DESC_TECH_Diplomatic
+^Japanese smiths were famed for their steel, folding and forging it into blades that were prized across
+Asia.
+
+#TECH_Suieijutsu
+^[Ronins] brings the $LINK<Ronin=PRTO_Ronin>; Ocean Trade shares this page.
+
+#DESC_TECH_Suieijutsu
+^Suieijutsu, the martial art of swimming in armor, was taught to samurai who might have to cross rivers or
+fight in the water.
+
+#TECH_Portuguese
+^[Ninjutsu] brings the $LINK<Ninja=PRTO_Ninja> and the Oda Rocketeer; contact with the Portuguese shares
+this page.
+
+#DESC_TECH_Portuguese
+^Portuguese ships reached Japan in 1543, bringing guns, Christianity and trade with the wider world.
+
+#TECH_Heihojutsu
+^[Rifling] brings the $LINK<Arquebusier=PRTO_Arquebusier>; Heihojutsu, the art of strategy, shares this
+page.
+
+#DESC_TECH_Heihojutsu
+^Heihojutsu was the study of strategy and tactics: the movement of armies, the choice of ground, and the
+command of men in battle.
+
+#TECH_Bujutsu
+^[Bujutsu], the martial arts, are the study of war that every warrior clan pursued.
+
+#DESC_TECH_Bujutsu
+^Bujutsu covered every art of the warrior: the sword, the spear, the bow, riding and fighting unarmed.
+
+#TECH_Kenjutsu
+^[Kenjutsu], the way of the sword.
+
+#DESC_TECH_Kenjutsu
+^Schools of swordsmanship flourished in the Sengoku period, each handing down its own techniques from
+master to student.
+
+#TECH_Kyujutsu
+^[Kyujutsu], the way of the bow.
+
+#DESC_TECH_Kyujutsu
+^Kyujutsu was the art of the bow in war, the samurai's oldest skill.
+
+#TECH_Bajutsu
+^[Bajutsu], the way of the horse.
+
+#DESC_TECH_Bajutsu
+^Bajutsu taught the samurai to ride and fight in armor, guiding the horse with his knees while his hands
+held the bow or the spear.
+
+#TECH_Naginatajutsu
+^[Naginatajutsu], the way of the naginata.
+
+#DESC_TECH_Naginatajutsu
+^The naginata, a curved blade on a long pole, was the weapon of warrior monks and, later, of samurai women.
+
+#TECH_Iajutsu
+^[Iajutsu], the art of drawing the sword.
+
+#DESC_TECH_Iajutsu
+^Iajutsu trained a swordsman to draw and cut in a single movement, ready for an attack that might come at
+any moment.
+
+#TECH_Hojutsu
+^[Hojutsu], the art of the gun.
+
+#DESC_TECH_Hojutsu
+^Hojutsu, gunnery, was taught in its own schools once matchlocks became common in Japanese armies.
+
+#TECH_Bushido
+^[Bushido], the way of the warrior.
+
+#DESC_TECH_Bushido
+^Bushido, the code of the samurai, prized loyalty to one's lord, courage, honor and self-control.
+
+#TECH_Ronin
+^[Contact: Ronin] brings the masterless warriors into the clans' service.
+
+#DESC_TECH_Ronin
+^Every fallen house left its warriors masterless, free to serve any lord who would take them.
+
+#TECH_Trade
+^[Akinai], commerce.
+
+#DESC_TECH_Trade
+^Markets and merchant towns grew in the Sengoku period, as lords freed trade from old tolls and guilds to
+enrich their domains.
+
+#BLDG_Geisha
+^The [Geisha House] makes 2 culture a turn and lessens war weariness.
+
+#DESC_BLDG_Geisha
+^Teahouses with their entertainers, skilled in music, dance and conversation, were the centers of a town's
+pleasures.
+
+#BLDG_Council
+^MDJ's [Statue of Zeus], a great council hall of the clans, makes 3 culture a turn.
+
+#DESC_BLDG_Council
+^The great lords met in council halls to settle alliances, divide lands and plan their wars.
+
+#BLDG_Fief
+^The [Fief Establishment] adds half again to the city's luxuries and makes 3 culture a turn.
+
+#DESC_BLDG_Fief
+^A lord's retainers were granted fiefs, lands whose rice paid for their service, governed from a small
+castle or fortified house.
+
+#BLDG_Shrine
+^The [Pirate Shrine], in a coastal city, adds food, shields and trade to each water tile the city works.
+
+#DESC_BLDG_Shrine
+^Seafarers and the pirates of the Inland Sea prayed at shrines to the kami of the sea for safe voyages and
+rich prizes.
+
+#BLDG_Decree
+^The [Imperial Decree] lessens corruption, and the city resists bribery.
+
+#DESC_BLDG_Decree
+^Though the emperors had little power, an imperial decree could lend a lord's rule the weight of the
+throne.
+
+#GOOD_Jade
+^[Jade] is a strategic resource, needed by the $LINK<Arquebusier=PRTO_Arquebusier>, the
+$LINK<Longbow=PRTO_Samurai_Archer> and the Oda Rocketeer. Its tile yields 2 more shields and 3 more trade.
+
+#DESC_GOOD_Jade
+^Jade was carved into ornaments and the beads of the magatama, among Japan's oldest treasures.
+
+#GOOD_Sake
+^[Sake] is a resource whose tile yields 3 more food and 1 more trade.
+
+#DESC_GOOD_Sake
+^Sake, brewed from rice, was offered to the gods, drunk at festivals and shared to seal agreements.
+
+#RACE_OTOMO
+^The [Otomo] (expansionist, religious, industrious), led by Otomo Yoshishige, have the
+$LINK<Otomo Spearman=PRTO_Otomo_Spearman>.
+
+#DESC_RACE_OTOMO
+^The Otomo ruled much of Kyushu, and their lord Sorin welcomed Portuguese traders and missionaries.
+
+#RACE_MORI
+^The [Mori] (militaristic, expansionist, religious), led by Mori Motonari, have the
+$LINK<Mori Ninja=PRTO_Ninja>.
+
+#DESC_RACE_MORI
+^Mori Motonari rose from a small lord to master of western Honshu by war and cunning alliances.
+
+#RACE_ICHIJO
+^The [Ichijo] (commercial, scientific, religious), led by Ichijo Kanesada, have the
+$LINK<Ichijo Cavalry=PRTO_Samurai_Horse_Archer>.
+
+#DESC_RACE_ICHIJO
+^A branch of the noble Fujiwara family, the Ichijo ruled the province of Tosa on Shikoku.
+
+#RACE_URAKAMI
+^The [Urakami] (commercial, expansionist, religious), led by Urakami Munekage, have the
+$LINK<Urakami Crossbow=PRTO_Siege_Crossbow>.
+
+#DESC_RACE_URAKAMI
+^The Urakami held the provinces of Bizen and Harima on the Inland Sea.
+
+#RACE_MIYOSHI
+^The [Miyoshi] (scientific, religious, industrious), led by Miyoshi Nagayoshi, have the
+$LINK<Myoshi Ronin=PRTO_Samurai_Warrior>.
+
+#DESC_RACE_MIYOSHI
+^Miyoshi Nagayoshi ruled the capital and the lands around it in the 1550s, the most powerful lord of his day.
+
+#RACE_ODA
+^The [Oda] (militaristic, religious, industrious), led by Oda Nobunaga, have the
+$LINK<Oda Rocketeer=PRTO_Rocket_Cart>.
+
+#DESC_RACE_ODA
+^Oda Nobunaga, the first of Japan's three great unifiers, brought half the country under his rule before his
+death in 1582.
+
+#RACE_IMAGAWA
+^The [Imagawa] (militaristic, scientific, religious), led by Imagawa Yoshimoto, have the
+$LINK<Impi Monk=PRTO_Warrior_Monk>.
+
+#DESC_RACE_IMAGAWA
+^Imagawa Yoshimoto ruled the Tokaido provinces until he fell to Oda Nobunaga at Okehazama in 1560.
+
+#RACE_TAKEDA
+^The [Ainu] (militaristic, religious, seafaring), led by Takeda Shingen, have the
+$LINK<Jaguar Samurai=PRTO_Swordsman2>.
+
+#DESC_RACE_TAKEDA
+^Takeda Shingen of Kai, whose cavalry was famed throughout Japan, fought his rival Uesugi Kenshin five times
+at Kawanakajima.
+
+#RACE_HOJO
+^The [Hojo] (religious, industrious, seafaring), led by Hojo Ujiyasu.
+
+#DESC_RACE_HOJO
+^The later Hojo ruled the Kanto plain from their great castle at Odawara for five generations.
+
+#RACE_UESUGI
+^The [Uesugi] (scientific, religious, agricultural), led by Uesugi Kenshin.
+
+#DESC_RACE_UESUGI
+^Uesugi Kenshin of Echigo, a devout Buddhist and a brilliant general, was called the Dragon of Echigo.
+
+#RACE_DATE
+^The [Date] (religious, agricultural, seafaring), led by Date Masamune, have the
+$LINK<Date Samurai Bow=PRTO_Samurai_Archer>.
+
+#DESC_RACE_DATE
+^Date Masamune, the One-Eyed Dragon, made his clan the masters of northern Japan.
+
+#RACE_TOKUGAWA
+^The [Tokugawa] (commercial, religious, agricultural), led by Tokugawa Ieyasu.
+
+#DESC_RACE_TOKUGAWA
+^Tokugawa Ieyasu, the last of the three unifiers, won the battle of Sekigahara in 1600 and founded the
+shogunate that ruled Japan for two and a half centuries.
