@@ -47,7 +47,7 @@ def _v(x):
 
 # ------------------------------------------------------------ headgear
 
-def g_jingasa(g, mat_name='hat', color='#3c3c3e', brim=0.25, height=0.20, finish='gloss', tint=False):
+def g_ashigaru_jingasa(g, mat_name='hat', color='#3c3c3e', brim=0.25, height=0.20, finish='gloss', tint=False):
     """An ashigaru's jingasa: a shallow pointed cone of lacquered iron over
     the head, its wide brim sloping down all round."""
     hm = g.m(mat_name, color, tint=tint, finish=finish)
@@ -88,7 +88,7 @@ def g_hair_tie(g, mat_name='hair_tie', color='#ffffff', tint=True):
     return [('head', _h(M.Mesh.concat(parts)), None)]
 
 
-def g_kabuto(g, mat_name='kabuto', color='#3a3c3e', crest='crest', tassels=True):
+def g_ashigaru_kabuto(g, mat_name='kabuto', color='#3a3c3e', crest='crest', tassels=True):
     """A samurai's kabuto: a ridged iron bowl, a broad flaring neck guard
     (shikoro) in lacquered lames, turned-back wings at the front and a tall
     V of civ-colored horns (kuwagata) with cords hanging from the crown."""
@@ -128,7 +128,7 @@ def g_kabuto(g, mat_name='kabuto', color='#3a3c3e', crest='crest', tassels=True)
 
 # ------------------------------------------------------------ armor and clothes
 
-def g_do(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, rows=4,
+def g_ashigaru_do(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, rows=4,
          finish='gloss'):
     """A lacquered cuirass (do) from the waist to the armpits, in horizontal
     lames laced together (the lacing civ-colored when the original's is)."""
@@ -154,7 +154,7 @@ def g_do(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffff
     return out
 
 
-def g_kusazuri(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, n=7,
+def g_ashigaru_kusazuri(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, n=7,
                length=0.24, width=0.13, finish='gloss', spread=1.0, splay=10):
     """The armored skirt: tassets of laced lames hanging from the waist."""
     dm = g.m(mat_name, color, finish=finish)
@@ -172,7 +172,7 @@ def g_kusazuri(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color=
     return out
 
 
-def g_sode(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, size=1.0,
+def g_ashigaru_sode(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ffffff', lacing_tint=True, size=1.0,
            finish='gloss'):
     """Big square shoulder guards (o-sode) hanging over the upper arms."""
     dm = g.m(mat_name, color, finish=finish)
@@ -191,7 +191,7 @@ def g_sode(g, mat_name='do', color='#2c2c2e', lacing='lacing', lacing_color='#ff
     return out
 
 
-def g_suneate(g, mat_name='suneate', color='#2a2a2c', finish='gloss', band=None):
+def g_ashigaru_suneate(g, mat_name='suneate', color='#2a2a2c', finish='gloss', band=None):
     """Lacquered shin guards from the ankle to below the knee."""
     sm = g.m(mat_name, color, finish=finish)
     lb = g.lb

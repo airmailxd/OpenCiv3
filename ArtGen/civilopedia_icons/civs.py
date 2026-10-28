@@ -534,3 +534,7 @@ def _():
     for y in range(86, 190, 8):
         d.rectangle((112, y, 128, y + 4), fill=255)
     return _mask(im)
+
+
+# MDJ's clans (registers their symbols).
+import civs_mdj  # noqa: E402,F401

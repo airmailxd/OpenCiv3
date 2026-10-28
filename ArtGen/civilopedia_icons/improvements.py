@@ -209,5 +209,6 @@ def space(key):
 import bld_improvements  # noqa: E402,F401
 import bld_wonders  # noqa: E402,F401
 import bld_space  # noqa: E402,F401
+import bld_mdj  # noqa: E402,F401
 
 

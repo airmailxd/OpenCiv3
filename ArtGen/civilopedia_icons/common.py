@@ -24,6 +24,7 @@ ICONS = os.path.join(PEDIA, *ICONS_REL.split('/'))
 MODERN = os.path.join(REPO, 'C7', 'ModernArt')
 PREVIEWS = os.path.join(ARTGEN, '_previews', 'civilopedia')
 RULESET = os.path.join(REPO, 'C7', 'Lua', 'civ3', 'ruleset.json')
+MDJ_RULESET = os.path.join(REPO, 'C7', 'Lua', 'mdj', 'ruleset.json')
 
 LARGE, SMALL = 128, 32
 
@@ -42,9 +43,28 @@ def hex_rgb(h):
 
 
 def load_ruleset():
+    """The bundled rules: Civ3's, and the entries of MDJ's (C7/Lua/mdj) Civ3's
+    haven't got (one icon per entry: MDJ's Masonry is Civ3's), with MDJ's
+    resources pictured as standalone mode pictures them (see
+    C7/Lua/standalone/ruleset.lua)."""
     import json
     with open(RULESET, encoding='utf-8') as f:
-        return json.load(f)
+        rules = json.load(f)
+    if os.path.exists(MDJ_RULESET):
+        with open(MDJ_RULESET, encoding='utf-8') as f:
+            mdj = json.load(f)
+        own_icons = {'GOOD_Jade': 26, 'GOOD_Sake': 27}
+        for r in mdj.get('resources', []):
+            if r.get('civilopediaEntry') in own_icons:
+                r['icon'] = own_icons[r['civilopediaEntry']]
+        for section in ('unitPrototypes', 'techs', 'buildings', 'governments', 'resources', 'civilizations'):
+            have = {e.get('civilopediaEntry') for e in rules.get(section, [])}
+            for e in mdj.get(section, []):
+                key = e.get('civilopediaEntry')
+                if key and key not in have and not (section == 'techs' and e.get('eraCivilopediaName') == 'Hidden'):
+                    have.add(key)
+                    rules[section].append(e)
+    return rules
 
 
 def file_stem(name):

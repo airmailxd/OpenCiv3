@@ -34,9 +34,9 @@ UNITS = {
         # and tassets over a civ-colored kimono and trousers, black shin guards,
         # a katana at the hip; the long tanegashima held muzzle down at his side
         'hair': 'short', 'top': 'long_sleeved', 'legs': 'trousers', 'feet': 'shoes',
-        'gear': [('jingasa', {'brim': 0.21, 'height': 0.23}), ('do', {'lacing_color': '#8a8a8c', 'lacing_tint': False}),
-                 ('kusazuri', {'lacing_color': '#8a8a8c', 'lacing_tint': False, 'n': 8, 'length': 0.2, 'spread': 1.05}),
-                 ('obi', {'color': '#e6e0d2', 'z': 0.10, 'h': 0.05}), 'suneate', 'katana_hip'],
+        'gear': [('ashigaru_jingasa', {'brim': 0.21, 'height': 0.23}), ('ashigaru_do', {'lacing_color': '#8a8a8c', 'lacing_tint': False}),
+                 ('ashigaru_kusazuri', {'lacing_color': '#8a8a8c', 'lacing_tint': False, 'n': 8, 'length': 0.2, 'spread': 1.05}),
+                 ('obi', {'color': '#e6e0d2', 'z': 0.10, 'h': 0.05}), 'ashigaru_suneate', 'katana_hip'],
         'gun': 'tanegashima', 'hold': 'low', 'aim': 'shoulder',
         'poses': {'carry': {'hand_r': (0.30, 0.10, 0.92), 'w_main': (159, 0, 164), 'support': 0.0,
                             'hand_l': (-0.36, 0.06, 0.86)}},
@@ -92,7 +92,7 @@ UNITS = {
         # horned kabuto, big square shoulder guards, pale hakama bound at the
         # shins; the tall asymmetric yumi, a box quiver of arrows on the back
         'hair': 'none', 'top': 'long_sleeved', 'bottom': 'skirt', 'wraps': 'boots',
-        'gear': ['kabuto', 'do', ('kusazuri', {'n': 9, 'width': 0.16, 'spread': 1.12, 'splay': 16}), ('sode', {'size': 0.78}),
+        'gear': ['ashigaru_kabuto', 'ashigaru_do', ('ashigaru_kusazuri', {'n': 9, 'width': 0.16, 'spread': 1.12, 'splay': 16}), ('ashigaru_sode', {'size': 0.78}),
                  ('trousers', {'baggy': 1.25, 'color': '#bca888'}), 'ebira'],
         'weapon': None, 'offhand': 'bow',
         'offhand_mesh': ('yumi', {}),

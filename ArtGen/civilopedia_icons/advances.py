@@ -129,3 +129,4 @@ import adv_ancient  # noqa: E402,F401
 import adv_middle  # noqa: E402,F401
 import adv_industrial  # noqa: E402,F401
 import adv_modern  # noqa: E402,F401
+import adv_mdj  # noqa: E402,F401
