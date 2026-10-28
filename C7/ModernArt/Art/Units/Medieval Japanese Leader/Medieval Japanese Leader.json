@@ -1,0 +1,14 @@
+{
+  "actions": {
+    "DEFAULT": "x_JapanLeader default",
+    "RUN": "x_JapanLeader run",
+    "DEATH": "x_JapanLeader death",
+    "FIDGET": "x_JapanLeader fidget"
+  },
+  "flics": {
+    "x_JapanLeader death": {"size": [87, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 72], "canvas": [240, 240]},
+    "x_JapanLeader default": {"size": [43, 53], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 74], "canvas": [240, 240]},
+    "x_JapanLeader fidget": {"size": [72, 61], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 70], "canvas": [240, 240]},
+    "x_JapanLeader run": {"size": [62, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 74], "canvas": [240, 240]}
+  }
+}

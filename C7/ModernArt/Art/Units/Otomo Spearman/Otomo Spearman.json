@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_Spear Otomo default",
+    "RUN": "x_Spear Otomo run",
+    "ATTACK1": "x_Spear Otomo attack_a",
+    "DEATH": "x_Spear Otomo death",
+    "FORTIFY": "x_Spear Otomo fortify",
+    "FIDGET": "x_Spear Otomo fidget",
+    "VICTORY": "x_Spear Otomo victory"
+  },
+  "flics": {
+    "x_Spear Otomo attack_a": {"size": [153, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [40, 67], "canvas": [240, 240]},
+    "x_Spear Otomo death": {"size": [163, 116], "directions": 8, "frames": 15, "frameMs": 66, "offset": [39, 46], "canvas": [240, 240]},
+    "x_Spear Otomo default": {"size": [76, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [73, 63], "canvas": [240, 240]},
+    "x_Spear Otomo fidget": {"size": [75, 65], "directions": 8, "frames": 15, "frameMs": 100, "offset": [74, 64], "canvas": [240, 240]},
+    "x_Spear Otomo fortify": {"size": [95, 73], "directions": 8, "frames": 10, "frameMs": 83, "offset": [67, 64], "canvas": [240, 240]},
+    "x_Spear Otomo run": {"size": [79, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 53], "canvas": [240, 240]},
+    "x_Spear Otomo victory": {"size": [101, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [62, 44], "canvas": [240, 240]}
+  }
+}

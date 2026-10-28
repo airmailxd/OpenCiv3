@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "x_Monk default",
+    "RUN": "x_Monk run",
+    "ATTACK1": "x_Monk attack_a",
+    "ATTACK2": "x_Monk attack_b",
+    "DEATH": "x_Monk death",
+    "FORTIFY": "x_Monk fortify",
+    "FIDGET": "x_Monk fidget",
+    "VICTORY": "x_Monk victory"
+  },
+  "flics": {
+    "x_Monk attack_a": {"size": [133, 104], "directions": 8, "frames": 15, "frameMs": 83, "offset": [48, 45], "canvas": [240, 240]},
+    "x_Monk attack_b": {"size": [89, 66], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 73], "canvas": [240, 240]},
+    "x_Monk death": {"size": [131, 89], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 65], "canvas": [240, 240]},
+    "x_Monk default": {"size": [69, 54], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 79], "canvas": [240, 240]},
+    "x_Monk fidget": {"size": [99, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [62, 56], "canvas": [240, 240]},
+    "x_Monk fortify": {"size": [94, 82], "directions": 8, "frames": 10, "frameMs": 83, "offset": [65, 55], "canvas": [240, 240]},
+    "x_Monk run": {"size": [65, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 75], "canvas": [240, 240]},
+    "x_Monk victory": {"size": [76, 57], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 79], "canvas": [240, 240]}
+  }
+}

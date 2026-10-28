@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "x_SamuraiDefault",
+    "RUN": "x_SamuraiRun",
+    "ATTACK1": "x_SamuraiAttackA",
+    "ATTACK2": "x_SamuraiAttackB",
+    "DEATH": "x_SamuraiDeath",
+    "FORTIFY": "x_SamuraiFortify",
+    "FIDGET": "x_SamuraiFidget",
+    "VICTORY": "x_SamuraiVictory"
+  },
+  "flics": {
+    "x_SamuraiAttackA": {"size": [138, 106], "directions": 8, "frames": 16, "frameMs": 66, "offset": [49, 47], "canvas": [240, 240]},
+    "x_SamuraiAttackB": {"size": [144, 94], "directions": 8, "frames": 16, "frameMs": 83, "offset": [48, 59], "canvas": [240, 240]},
+    "x_SamuraiDeath": {"size": [125, 86], "directions": 8, "frames": 16, "frameMs": 83, "offset": [56, 66], "canvas": [240, 240]},
+    "x_SamuraiDefault": {"size": [41, 53], "directions": 8, "frames": 16, "frameMs": 125, "offset": [96, 75], "canvas": [240, 240]},
+    "x_SamuraiFidget": {"size": [240, 240], "directions": 8, "frames": 16, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]},
+    "x_SamuraiFortify": {"size": [102, 81], "directions": 8, "frames": 11, "frameMs": 83, "offset": [64, 58], "canvas": [240, 240]},
+    "x_SamuraiRun": {"size": [48, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 73], "canvas": [240, 240]},
+    "x_SamuraiVictory": {"size": [104, 68], "directions": 8, "frames": 16, "frameMs": 66, "offset": [63, 71], "canvas": [240, 240]}
+  }
+}
