@@ -164,3 +164,10 @@ whole source with a grid and the crop to `ArtGen/_previews/leaderheads_sources/`
 for choosing crops. `C7/Lua/standalone/textures.lua` lists the civilizations
 that have one; there's one per leader, not one per era and mood. A contact
 sheet goes to `ArtGen/_previews/leaderheads.png`.
+
+MDJ's clans (`C7/Lua/mdj`) have banners instead, as MDJ's own leader heads
+are: each clan's mon on dark cloth. `python ArtGen/leaderheads/mdj_mon.py`
+remakes them from the originals (the Sengoku conquest's
+`Art/Advisors/<clan>_all.pcx`) like the rest of ArtGen, into
+`C7/ModernArt/Art/Leaderheads/<clan>.png`, named by Civilopedia entry
+(`RACE_ODA`: `Oda.png`); see its docstring.

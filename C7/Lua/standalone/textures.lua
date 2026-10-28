@@ -197,6 +197,15 @@ for _, name in ipairs({
   leader_head_civs[name] = true
 end
 
+-- MDJ's clans' banners, by Civilopedia entry (see leader_heads below).
+local mdj_leader_heads = {}
+for _, clan in ipairs({
+  "Otomo", "Mori", "Ichijo", "Urakami", "Miyoshi", "Oda", "Imagawa", "Takeda",
+  "Hojo", "Uesugi", "Date", "Tokugawa",
+}) do
+  mdj_leader_heads["RACE_" .. string.upper(clan)] = clan
+end
+
 -- Build lookup table from c7_texture_list without extensions
 local lookup = {}
 for _, path in ipairs(c7_texture_list) do
@@ -289,6 +298,13 @@ return function(civ3_textures)
     end
     if civ and leader_head_civs[civ.name] then
       return { path = "Art/Leaderheads/" .. civ.name .. ".png" }
+    end
+    -- MDJ's clans (C7/Lua/mdj), whose names have slashes in them, by
+    -- Civilopedia entry: RACE_ODA's banner is Oda.png (made by
+    -- ArtGen/leaderheads/mdj_mon.py).
+    local clan = civ and civ.civilopediaEntry and mdj_leader_heads[civ.civilopediaEntry]
+    if clan then
+      return { path = "Art/Leaderheads/" .. clan .. ".png" }
     end
     return {
       path = "Art/Advisors/placeholder_leaderhead.png",

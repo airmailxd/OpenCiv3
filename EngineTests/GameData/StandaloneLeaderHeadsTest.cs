@@ -44,6 +44,19 @@ public class StandaloneLeaderHeadsTest {
 	public void EveryCivilizationOfTheStandaloneRulesHasItsOwnLeaderHead() {
 		List<Civilization> civs = standalone.Value.GetSave().Civilizations.Where(c => !c.isBarbarian).ToList();
 		Assert.True(civs.Count >= 31, $"only {civs.Count} civilizations");
+		CheckLeaderHeads(civs);
+	}
+
+	// MDJ's clans (C7/Lua/mdj) have their banners (ArtGen/leaderheads/mdj_mon.py).
+	[Fact]
+	public void EveryClanOfMdjHasItsBanner() {
+		List<Civilization> civs = SaveGameFixture.LoadGameMode(C7Engine.GameSetup.MdjGameMode(new GameMode.Config("civ3", ["standalone"])))
+			.GetSave().Civilizations.Where(c => !c.isBarbarian).ToList();
+		Assert.Equal(12, civs.Count);
+		CheckLeaderHeads(civs);
+	}
+
+	private static void CheckLeaderHeads(List<Civilization> civs) {
 		List<string> problems = new();
 		HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
 		foreach (Civilization civ in civs) {
