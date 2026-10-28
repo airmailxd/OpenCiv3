@@ -25,6 +25,7 @@ public partial class ScenarioIntroPopup : Popup {
 			GameScenario.EternalWar => new ScenarioIntroPopup("Eternal War", EternalWarText),
 			GameScenario.RisingTide => new ScenarioIntroPopup("Rising Tide", RisingTideText),
 			GameScenario.KingsAndNomads => new ScenarioIntroPopup("Kings & Nomads", KingsAndNomadsText),
+			GameScenario.Mdj => new ScenarioIntroPopup("MDJ", MdjText),
 			_ => null,
 		};
 	}
@@ -43,6 +44,9 @@ public partial class ScenarioIntroPopup : Popup {
 		}
 		if (rules.StagingUnits && rules.PermanentWar) {
 			return ForScenario(GameScenario.EternalWar);
+		}
+		if (rules.AllTechsAtStart && rules.GovernmentLocked) {
+			return ForScenario(GameScenario.Mdj);
 		}
 		return null;
 	}
@@ -95,6 +99,18 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "Keep gold in hand for the market: a well-timed bid can buy the army your cities can't build. "
 		+ "Guard your workers, and strike the enemy cities nearest yours before they strike you.";
 
+	private const string MdjText =
+		"[b]The world[/b]\n"
+		+ "Medieval Japan's rules, from the MPTournamentMDJ scenario: its clans, its units (Ashigaru, Ronin, Ninja, Arquebusiers, "
+		+ "rocket carts and more), its advances and its resources, on a generated map.\n\n"
+		+ "[b]Rules[/b]\n"
+		+ "- Every civilization starts knowing every advance: nothing is left to research.\n"
+		+ "- Everyone is in Feudalism, for good: there is no revolution, and war weariness can't overthrow it.\n"
+		+ "- A resource you have once is yours for the rest of the game, even if the road to it is cut or its land lost.\n\n"
+		+ "[b]Tips[/b]\n"
+		+ "With every unit open from the start, the game is won by production and by striking first. "
+		+ "Grab the strategic resources early: you keep them even if you lose them.";
+
 	private const string RisingTideText =
 		"[b]The world[/b]\n"
 		+ "One continent, and the sea is rising. Every so often a [b]Tidal Wave[/b] turns all the land touching the sea into coast, "
@@ -107,7 +123,10 @@ public partial class ScenarioIntroPopup : Popup {
 		+ "each enemy unit you defeat adds 1 and each city you take 5, all times the difficulty's factor. "
 		+ "Outlasting your rivals counts most, but a strong civilization can pass one that held on a turn or two longer.\n\n"
 		+ "[b]Rules[/b]\n"
-		+ "- Everyone starts on the shore, in the Ancient Times, with a city of size 5, three Workers and two Archers "
+		+ "- With Civ3 Complete installed, the game is played under MDJ's rules (Medieval Japan's units, clans and resources): "
+		+ "everyone knows every advance, stays in Feudalism for good, and keeps a resource once had, though it be cut off. "
+		+ "Without it, under Civ3's own, from the Ancient Times.\n"
+		+ "- Everyone starts on the shore with a city of size 5, three Workers and two soldiers "
 		+ "(and a Scout, if expansionist). The first wave takes that city.\n"
 		+ "- Settlers found cities of size 5, so a city's people can move inland ahead of the tide.\n"
 		+ "- A city's own tile makes 4 food, enough for two citizens (agricultural civilizations get one more).\n"
