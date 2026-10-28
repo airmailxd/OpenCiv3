@@ -66,7 +66,6 @@ public partial class GameSetup {
 		string scenarios = Path.GetDirectoryName(biq);
 		string defaultBiq = Path.Join(civ3Path, "Conquests", "conquests.biq");
 		SaveGame save = ImportCiv3.ImportBiq(biq, defaultBiq, searchFolders => PediaIconsFor(civ3Path, scenarios, searchFolders));
-		save.ScenarioName = Path.GetFileNameWithoutExtension(biq);
 		SetUpMdjRules(save);
 		return save;
 	}
@@ -101,21 +100,33 @@ public partial class GameSetup {
 		return File.Exists(at) ? at : null;
 	}
 
-	// The rules MDJ adds to the BIQ's.
+	// The rules MDJ adds to the BIQ's. Every advance known from the start is
+	// Rising Tide's only (owner's choice, 2026-10-28; see
+	// SetUpMdjRisingTide): in MDJ itself advances are researched.
 	public static void SetUpMdjRules(SaveGame save) {
-		save.Rules.AllTechsAtStart = true;
+		save.ScenarioName = MdjScenarioName;
 		save.Rules.OnlyGovernment = MdjGovernment;
 		save.Rules.PersistentResources = true;
 		save.Rules.GovernmentLocked = true;
 		save.Rules.OwnTechTree = true;
-		// Every civ is in the Middle Ages, MDJ's feudal Japan, though it knows
-		// the advances of MDJ's later eras too: a civ's era decides how its
-		// cities and leader are drawn, and it never changes, as a civ only
-		// enters an era when it learns an advance (Player.CanAdvanceToNextEra).
+	}
+
+	// The name MDJ's rules go by (its BIQ's).
+	public const string MdjScenarioName = "MPTournamentMDJ";
+
+	public static bool IsMdj(SaveGame save) => save.ScenarioName == MdjScenarioName;
+
+	// Rising Tide under MDJ's rules: every civ knows every advance from the
+	// start, and is in the Middle Ages, MDJ's feudal Japan, though it knows
+	// the advances of MDJ's later eras too: a civ's era decides how its
+	// cities and leader are drawn, and it never changes, as a civ only
+	// enters an era when it learns an advance (Player.CanAdvanceToNextEra).
+	private static void SetUpMdjRisingTide(SaveGame save) {
+		save.Rules.AllTechsAtStart = true;
 		save.Rules.FirstEraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;
 	}
 
-	// Every advance (the era stays the rules' first, see SetUpMdjRules).
+	// Every advance (the era stays the rules' first, see SetUpMdjRisingTide).
 	private static void GiveAllTechs(SaveGame save, SavePlayer player) {
 		player.knownTechs.UnionWith(save.Techs.Select(t => t.id));
 	}

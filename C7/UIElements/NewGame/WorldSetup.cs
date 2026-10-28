@@ -305,8 +305,7 @@ public partial class WorldSetup : Control {
 			+ "Played on continents or a pangaea."),
 		(GameScenario.Mdj, "MDJ",
 			"MPTournamentMDJ's rules, Medieval Japan's: its units, advances, clans and resources, on a generated map. "
-			+ "Every civilization starts knowing every advance, under Feudalism, which no one can leave, and a resource once had "
-			+ "is kept for good, though it be cut off."),
+			+ "Everyone is under Feudalism, which no one can leave, and a resource once had is kept for good, though it be cut off."),
 	];
 
 	// The rules a new game is played under: MDJ's (bundled, see

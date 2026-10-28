@@ -43,6 +43,9 @@ public partial class GameSetup {
 		// The last civ standing wins.
 		save.VictoryConditions ??= new VictoryConditions();
 		save.VictoryConditions.AllowConquestVictory = true;
+		if (IsMdj(save)) {
+			SetUpMdjRisingTide(save);
+		}
 	}
 
 	// A Rising Tide civ's capital, on its start, and its starting units.

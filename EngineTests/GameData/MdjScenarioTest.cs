@@ -100,7 +100,9 @@ public class MdjScenarioTest {
 	public void StandaloneHasTheRulesWithItsOwnArt() {
 		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
 		Assert.Null(save.ScenarioSearchPath);
-		Assert.True(save.Rules.AllTechsAtStart && save.Rules.GovernmentLocked && save.Rules.PersistentResources);
+		Assert.True(save.Rules.GovernmentLocked && save.Rules.PersistentResources);
+		// Every advance at the start is Rising Tide's only.
+		Assert.False(save.Rules.AllTechsAtStart);
 		Assert.Equal(GameSetup.MdjGovernment, save.Rules.OnlyGovernment);
 		Assert.Contains(save.Civilizations, c => c.name.StartsWith("Oda"));
 		Assert.All(save.UnitPrototypes, u => Assert.StartsWith("Art/Civilopedia/Icons/Units/", u.art.pediaArt.large));

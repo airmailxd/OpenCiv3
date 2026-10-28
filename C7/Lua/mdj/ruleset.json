@@ -5358,9 +5358,10 @@
     "settlersOnlyInConqueredCities": false,
     "fallenCitiesGoIndependent": false,
     "onlyGovernment": "Feudalism",
-    "allTechsAtStart": true,
+    "allTechsAtStart": false,
     "persistentResources": true,
     "governmentLocked": true,
+    "ownTechTree": true,
     "teamVictory": false,
     "aiBuildingMaintenancePercent": 0,
     "aiExtraFreeUnitsPerCity": 0,
@@ -5380,7 +5381,7 @@
     "upgradeCostPerShield": 4,
     "startingTreasury": 10,
     "volcanoEruptionPeriod": 5000,
-    "firstEraCivilopediaName": "ERAS_Middle_Ages",
+    "firstEraCivilopediaName": "ERAS_Ancient_Times",
     "eraResearcherNames": {
       "ERAS_Ancient_Times": [
         "Mystics",
