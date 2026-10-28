@@ -482,7 +482,8 @@ public partial class PlayerSetup : Control {
 			optionButton.AddThemeStyleboxOverride("pressed", styleBox);
 
 			PopupMenu popup = optionButton.GetPopup();
-			popup.AddThemeStyleboxOverride("panel", styleBox);
+			// The menu is drawn with the theme's panel (C7Theme.tres), opaque and
+			// readable, not the button's see-through box.
 			popup.MaxSize = new Vector2I(popup.MaxSize.X, 300);
 			popup.SetTransparentBackground(false);
 			opponentSelectors.Add(optionButton);

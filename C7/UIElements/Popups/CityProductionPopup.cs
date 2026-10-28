@@ -91,7 +91,8 @@ public partial class CityProductionPopup : Popup {
 		optionButton.AddThemeStyleboxOverride("hover", styleBox);
 		optionButton.AddThemeStyleboxOverride("pressed", styleBox);
 		PopupMenu popup = optionButton.GetPopup();
-		popup.AddThemeStyleboxOverride("panel", styleBox);
+		// The menu is drawn with the theme's panel (C7Theme.tres), opaque and
+		// readable, not the button's see-through box.
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			foreach (IProducible option in city.ListProductionOptions(gameData)) {

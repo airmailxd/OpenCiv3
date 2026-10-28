@@ -93,7 +93,8 @@ public partial class ScienceSelection : Popup {
 		optionButton.AddThemeStyleboxOverride("hover", styleBox); ;
 		optionButton.AddThemeStyleboxOverride("pressed", styleBox);
 		PopupMenu popup = optionButton.GetPopup();
-		popup.AddThemeStyleboxOverride("panel", styleBox);
+		// The menu is drawn with the theme's panel (C7Theme.tres), opaque and
+		// readable, not the button's see-through box.
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			beakersPerTurn = ScienceEstimates.BeakersPerTurn(player);
