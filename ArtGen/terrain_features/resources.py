@@ -1373,6 +1373,66 @@ def crystal(cv, base, tip, w, col, seed):
         cv.atop(np.maximum(line, along - ln * neck), hexc('#ffffff') if edge_off > 0 else hexc('#40405a'), 0.35)
 
 
+def icon_jade():
+    """MDJ's Jade (the Sengoku conquest's resources.pcx, cell 7): a heap of
+    polished green stones."""
+    cv, sh = Canvas(), Shadow()
+    stones = [  # back to front: x, y, rx, ry, seed
+        (29.2, 19.0, 4.4, 3.8, 81), (21.8, 19.6, 4.8, 4.2, 82), (13.6, 24.2, 2.8, 2.4, 83),
+        (34.8, 26.6, 3.2, 2.8, 84), (24.4, 25.6, 3.8, 3.4, 85), (29.0, 29.8, 2.8, 2.4, 86),
+        (18.8, 30.6, 3.2, 2.8, 87),
+    ]
+    for x, y, rx, ry, s in stones:
+        sh.ellipse(x + 1.0, y + 1.4, rx, ry * 0.8, 0.8)
+    for i, (x, y, rx, ry, s) in enumerate(stones):
+        d = sd_ellipse(x, y, rx, ry, (s * 37) % 40 - 20)
+        depth = 0.82 + 0.18 * (i / len(stones))
+        base = mix(hexc('#1f7a3a'), hexc('#3aa856'), np.clip((Y - y + ry) / (2 * ry), 0, 1)) * depth
+        n = bulge(d, min(rx, ry) * 0.9)
+        col = shade(base, n, d, amb=0.5, dif=0.7, spec=0.6, shin=30, rim=0.3, edge=0.5, ew=0.4,
+                    spec_col=(0.9, 1.0, 0.9))
+        cv.put(d, col)
+        # the stone's milky light inside, as polished jade has
+        cv.atop(np.maximum(sd_ellipse(x - rx * 0.3, y - ry * 0.35, rx * 0.3, ry * 0.22), d), hexc('#dcf4dc'), 0.5, soft=0.4)
+    return finish([(cv, 0.5)], sh)
+
+
+def icon_sake():
+    """MDJ's Sake (the Sengoku conquest's resources.pcx, cell 8): a glazed
+    bottle with a blue band, and three little wooden cups before it."""
+    cv, sh = Canvas(), Shadow()
+    sh.ellipse(26.0, 33.6, 11.0, 2.6, 0.75)
+    glaze = hexc('#94a2bc')
+    body = union(sd_circle(25.2, 20.4, 7.0), sd_ellipse(25.2, 13.6, 1.5, 2.4), k=1.2)
+    n = bulge(body, 4.5)
+    col = shade(mix(glaze * 1.08, glaze * 0.82, np.clip((Y - 13) / 14, 0, 1)), n, body,
+                amb=0.5, dif=0.7, spec=0.75, shin=34, rim=0.3, edge=0.5, ew=0.4)
+    cv.put(body, col)
+    band = np.maximum(np.abs(Y - 21.2) - 1.5, body + 0.2)
+    cv.atop(band, hexc('#3a5a9a'), 0.9)
+    cv.atop(np.maximum(sd_ellipse(22.6, 17.0, 2.0, 1.4), body), hexc('#f4f6ff'), 0.7, soft=0.5)
+    wood, hoop = hexc('#7a644c'), hexc('#4a4e66')
+    for cx, cy in ((17.0, 29.4), (33.4, 29.4), (25.4, 32.6)):
+        cup = sd_poly([(cx - 3.0, cy - 2.8), (cx + 3.0, cy - 2.8), (cx + 2.5, cy + 2.8), (cx - 2.5, cy + 2.8)])
+        cup = union(cup, sd_ellipse(cx, cy + 2.8, 2.5, 0.9), k=0.6)
+        nc = bulge(cup, 2.0)
+        cv.put(cup, shade(wood, nc, cup, amb=0.55, dif=0.6, spec=0.15, rim=0.2, edge=0.5, ew=0.35))
+        for hy in (cy - 1.4, cy + 1.6):
+            cv.atop(np.maximum(np.abs(Y - hy) - 0.45, cup + 0.1), hoop, 0.8)
+        rim = sd_ellipse(cx, cy - 2.8, 3.0, 1.0)
+        cv.put(rim, shade(wood * 1.1, bulge(rim, 0.6), rim, amb=0.6, dif=0.5, edge=0.4, ew=0.3))
+        cv.put(sd_ellipse(cx, cy - 2.7, 2.3, 0.6), hexc('#3a2a20'))
+    return finish([(cv, 0.6)], sh)
+
+
+# The icons MDJ (C7/Lua/mdj) adds, past the original's 26 in cells of the
+# sheet the original leaves empty; standalone mode shows its Jade and Sake
+# with them (C7/Lua/standalone/ruleset.lua). Each is muted against its own
+# original in the Sengoku conquest's resources.pcx.
+EXTRA_ICONS = {26: (icon_jade, 7), 27: (icon_sake, 8)}
+SENGOKU_REL = 'Conquests/Sengoku/Art/resources.pcx'
+
+
 ICONS = [icon_horse, icon_iron, icon_saltpeter, icon_coal, icon_oil, icon_rubber,
          icon_aluminum, icon_uranium, icon_wine, icon_furs, icon_dyes, icon_incense,
          icon_spices, icon_ivory, icon_silks, icon_gems, icon_whales, icon_game,
@@ -1383,7 +1443,9 @@ ICONS = [icon_horse, icon_iron, icon_saltpeter, icon_coal, icon_oil, icon_rubber
 def render(only=None):
     o = civ3art.SCALE * CELL
     sheet = np.zeros((6 * o, 6 * o, 4))
-    for i, fn in enumerate(ICONS):
+    icons = dict(enumerate(ICONS))
+    icons.update({i: fn for i, (fn, _) in EXTRA_ICONS.items()})
+    for i, fn in icons.items():
         if only is not None and i not in only:
             continue
         r, c = divmod(i, 6)
@@ -1391,12 +1453,17 @@ def render(only=None):
     P, A = sheet[..., :3], sheet[..., 3]
     rgb = np.where(A[..., None] > 1e-4, P / np.maximum(A, 1e-4)[..., None], 0)
     orig = civ3art.load_original(REL, shadows=True)
-    for i in range(len(ICONS)):
+    sengoku = civ3art.load_original(SENGOKU_REL, shadows=True)
+    for i in icons:
         if only is not None and i not in only:
             continue
         r, c = divmod(i, 6)
         sl = (slice(r * o, (r + 1) * o), slice(c * o, (c + 1) * o))
-        oc = orig[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL]
+        if i in EXTRA_ICONS:
+            sr, sc = divmod(EXTRA_ICONS[i][1], 6)
+            oc = sengoku[sr * CELL:(sr + 1) * CELL, sc * CELL:(sc + 1) * CELL]
+        else:
+            oc = orig[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL]
         rgb[sl] = mute(rgb[sl], A[sl], MUTE * mean_saturation(oc[..., :3] / 255.0, oc[..., 3] / 255.0))
     out = np.concatenate([np.clip(rgb, 0, 1), A[..., None]], -1)
     return np.round(out * 255).astype(np.uint8)

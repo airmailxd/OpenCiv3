@@ -30,5 +30,19 @@ return function(civ3_game_mode)
     unit_prototype.art.pediaArt.small = "Art/Civilopedia/Icons/Units/" .. stem .. "_small.png"
   end
 
+  -- A scenario's resources whose pictures Civ3's resources.pcx hasn't got
+  -- (a scenario has its own sheet), by Civilopedia entry: our sheet
+  -- (C7/ModernArt/Art/resources.png, ArtGen/terrain_features/resources.py)
+  -- has them past Civ3's own, in cells it leaves empty. MDJ's (C7/Lua/mdj)
+  -- Jade and Sake are in cells 7 and 8 of the Sengoku conquest's sheet,
+  -- where Civ3's has Uranium and Wine.
+  local own_icons = { GOOD_Jade = 26, GOOD_Sake = 27 }
+  for _, resource in ipairs(civ3_game_mode.resources or {}) do
+    local icon = own_icons[resource.civilopediaEntry]
+    if icon then
+      resource.icon = icon
+    end
+  end
+
   return civ3_game_mode
 end

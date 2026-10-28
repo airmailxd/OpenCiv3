@@ -104,6 +104,12 @@ public class MdjScenarioTest {
 		Assert.All(save.UnitPrototypes, u => Assert.StartsWith("Art/Civilopedia/Icons/Units/", u.art.pediaArt.large));
 		SaveGame withCiv3Art = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: false));
 		Assert.False(string.IsNullOrEmpty(withCiv3Art.ScenarioSearchPath));
+		// Jade and Sake are pictured in our own resource sheet's extra cells;
+		// with Civ3's art, in the Sengoku conquest's sheet's.
+		Assert.Equal(26, save.Resources.First(r => r.Key == "Jade").Icon);
+		Assert.Equal(27, save.Resources.First(r => r.Key == "Sake").Icon);
+		Assert.Equal(7, withCiv3Art.Resources.First(r => r.Key == "Jade").Icon);
+		Assert.Equal(4, save.Resources.First(r => r.Key == "Olive Oil").Icon);
 	}
 
 	// The bundled rules are what RegenerateRuleset --mdj makes of the BIQ
