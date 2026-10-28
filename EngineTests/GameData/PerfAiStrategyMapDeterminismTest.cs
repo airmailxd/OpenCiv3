@@ -38,6 +38,8 @@ namespace EngineTests.GameData;
 // archipelago got an even chance of the coast.
 // And again when the poles came to be sunk to deep water, so no land
 // runs along the map's top or bottom edge.
+// And again when the generator became a port of Civ3's own (Civ3MapGenerator),
+// making Civ3's maps from the same seeds.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -100,9 +102,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "6CF0E57A676BA1070BFF796EE1257F712A92E5626C1C794F0BF76EE27E7B3E3E")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "AE8004019D4F17D629BE8B869198310B788E64F14242982C53F6D0DEC0BE2B16")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "0E12373F10E341B2A12FDE1B6847DDF4FD8F4E1FB8BF2F9F1F56626E9EE36AB7")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "29C2E358E387D0E492A617683B86BFE8E0595BF96D56C68EF080DADCE5019220")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "6BEB408A6415E1FAF90AFBEB7DA9A11BDC14111E2804FF916DFE1EF7B562AAD2")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "3BE086B0FA59510F61D0A3C861A54B9BC5C78941924A7805A00414210F936378")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

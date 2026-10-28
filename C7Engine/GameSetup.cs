@@ -218,7 +218,7 @@ public partial class GameSetup {
 			SaveInvalidMap(save, map, problem);
 		}
 		throw new InvalidOperationException(
-			$"Couldn't generate a map with room for each of the {civs} civilizations to start far enough apart " +
+			$"Couldn't generate a map with room for each of the {civs} civilizations to start " +
 			$"in {MaxMapAttempts} tries ({problem}). " +
 			"Try a larger world, fewer civilizations, more land or another landform.");
 	}
@@ -392,17 +392,23 @@ public partial class GameSetup {
 			--seafaring;
 		}
 
+		// As Civ3's game setup does (Civ3 0x5aec10): each seafaring civ in
+		// turn keeps its coastal start, or else takes the first coastal start
+		// no seafaring civ has kept or taken yet.
+		HashSet<SaveTile> free = new(coastal);
 		for (int i = 0; i < starts.Count; ++i) {
-			if (!IsSeafaring(planned[i].civ) || coastal.Contains(starts[i])) {
+			if (!IsSeafaring(planned[i].civ)) {
 				continue;
 			}
-			List<int> swaps = Enumerable.Range(0, starts.Count)
-				.Where(j => coastal.Contains(starts[j]) && !IsSeafaring(planned[j].civ)).ToList();
-			if (swaps.Count == 0) {
+			if (free.Remove(starts[i])) {
+				continue;
+			}
+			int j = starts.FindIndex(free.Contains);
+			if (j < 0) {
 				log.Warning($"No coastal start left for seafaring {planned[i].civ.name}");
 				continue;
 			}
-			int j = swaps[rand.Next(swaps.Count)];
+			free.Remove(starts[j]);
 			(starts[i], starts[j]) = (starts[j], starts[i]);
 		}
 		return starts;

@@ -277,8 +277,12 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 		};
 	}
 
+	// Civ3 keeps starts on one landmass the world size's distance between
+	// civs apart, in its own measure of distance, and half that once the
+	// first three of its eight passes over the land have been made (Civ3
+	// 0x5fe9c0), so on a map with room for every civ no two are closer.
 	[Fact]
-	public void StartsOnAContinentAreTheDistanceBetweenCivsApart() {
+	public void StartsOnALandmassAreHalfTheDistanceBetweenCivsApart() {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldSize worldSize = new() { name = "Test", width = 80, height = 80, numberOfCivs = 6, distanceBetweenCivs = 14 };
 		SetupFor(save, worldSize, 5, 21, null).Populate(save);
@@ -293,8 +297,9 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 				if (ta.continent != tb.continent) {
 					continue;
 				}
-				int distance = Math.Abs(gameData.map.CalculateXDelta(a.X, b.X)) + Math.Abs(gameData.map.CalculateYDelta(a.Y, b.Y));
-				Assert.True(distance >= 14, $"starts at {a.X},{a.Y} and {b.X},{b.Y} are {distance} apart");
+				int dx = Math.Abs(gameData.map.CalculateXDelta(a.X, b.X)), dy = Math.Abs(gameData.map.CalculateYDelta(a.Y, b.Y));
+				int distance = Math.Max(dx, dy) - ((dx + dy) / 2 - Math.Min(dx, dy) + 1) / 2;
+				Assert.True(distance > 14 / 2, $"starts at {a.X},{a.Y} and {b.X},{b.Y} are {distance} apart");
 			}
 		}
 	}
@@ -302,12 +307,14 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void ImpossibleSettingsFailClearlyAndSaveTheMapsTurnedDown() {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
-		// Eight civs can't start 60 apart on a 30 by 30 map.
-		WorldSize worldSize = new() { name = "Test", width = 30, height = 30, numberOfCivs = 8, distanceBetweenCivs = 60 };
+		// A 6 by 6 map hasn't land enough for eight civs: Civ3 brings
+		// starts closer together until they fit (Civ3 0x5fe9c0), but each
+		// needs a tile of land.
+		WorldSize worldSize = new() { name = "Test", width = 6, height = 6, numberOfCivs = 8, distanceBetweenCivs = 60 };
 		string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"c7-invalid-maps-{Guid.NewGuid():N}");
 		try {
 			InvalidOperationException e = Assert.Throws<InvalidOperationException>(() => SetupFor(save, worldSize, 7, 3, folder).Populate(save));
-			Assert.Contains("start far enough apart", e.Message);
+			Assert.Contains("room for each of the 8 civilizations to start", e.Message);
 			Assert.Empty(save.Players);
 
 			string[] maps = System.IO.Directory.GetFiles(folder, "*.json");
@@ -316,11 +323,10 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 			string reason = System.IO.File.ReadAllText(System.IO.Path.ChangeExtension(maps[0], ".txt"));
 			Assert.Contains("starting locations fit", reason);
 
-			// Each can be loaded as a game, with every civ somewhere.
+			// Each can be loaded to look at. (Too little land for every civ
+			// to stand on, it has no players.)
 			SaveGame invalid = SaveGame.FromJSON(System.IO.File.ReadAllBytes(maps[0]));
 			Assert.NotEmpty(invalid.Map.tiles);
-			Assert.Equal(8, invalid.Players.Count(p => !invalid.Civilizations.Find(c => c.name == p.civilization).isBarbarian));
-			NewGame(invalid);
 		} finally {
 			if (System.IO.Directory.Exists(folder)) {
 				System.IO.Directory.Delete(folder, recursive: true);
@@ -331,9 +337,8 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void AMapWithoutRoomIsGeneratedAgainFromAnotherSeed() {
 		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
-		// Far enough apart that some maps have no room even with the
-		// distance bent (see MapGenerator.StartDistance).
-		WorldSize worldSize = new() { name = "Test", width = 60, height = 60, numberOfCivs = 6, distanceBetweenCivs = 36 };
+		// So small that some maps haven't land for six starts.
+		WorldSize worldSize = new() { name = "Test", width = 6, height = 6, numberOfCivs = 6, distanceBetweenCivs = 36 };
 		// Find a seed whose map has no room, and check the game is set up on
 		// the next seed that has.
 		int seed = Enumerable.Range(1, 40).First(s => {
