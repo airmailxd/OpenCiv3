@@ -238,6 +238,58 @@ namespace C7Engine.AI {
 		// games of 8 civs on a 100x100 map) civs reached five cities 29 turns
 		// sooner and fell 8.4 turns later (+- 2.8).
 
+		////////////////////////////////////////////////////////////////////
+		// War for the heart
+
+		// A civ the others have shut out of the deep land fights for it.
+		// Before this, in AI trials, civs boxed in by their neighbours
+		// stopped building settlers, for want of sites, and drowned waves
+		// before the civs in the middle, with armies of 15 or 20 idle units
+		// and no war declared. With it (32 paired games of 8 civs on a
+		// 100x100 map, twice), wars went from 0.1 to 0.4 a civ and cities
+		// taken from 0.1 to 0.3, and civs fell 1.5 turns later (+- 0.9);
+		// with every civ doing it, the world's civs fell when they had.
+
+		// HEURISTIC: a civ goes to war for the heart once its deepest city
+		// has this many turns left, if a rival on its landmass holds a city
+		// lasting at least HeartWarDepth waves longer: time to gather and
+		// march before its last land goes under.
+		public const int HeartWarTurns = 20;
+		public const int HeartWarDepth = 2;
+
+		// The waves the civ's deepest city lasts (0 with no city).
+		public static int DeepestCityWaves(Player player) {
+			return player.cities.Count == 0 ? 0 : player.cities.Max(c => WavesUntilDrowned(c.location));
+		}
+
+		// Whether the civ fights for the heart now.
+		public static bool FightsForTheHeart(Player player) {
+			if (!IsOn() || player.isHuman || player.IsIndependent || player.cities.Count == 0) {
+				return false;
+			}
+			int ours = DeepestCityWaves(player);
+			if (ours == Never || TurnsUntilWave(ours) > HeartWarTurns) {
+				return false;
+			}
+			HashSet<int> continents = player.cities.Select(c => c.location.continent).ToHashSet();
+			return EngineStorage.gameData.players.Any(p => p != player && !p.IsIndependent && !p.defeated
+				&& p.cities.Any(c => continents.Contains(c.location.continent) && WavesUntilDrowned(c.location) >= ours + HeartWarDepth));
+		}
+
+		// For a civ fighting for the heart, what a rival city is worth to
+		// take: one deeper than our own lasts the waves more it lasts, and
+		// one no deeper next to nothing.
+		public static float HeartCityFactor(Player player, City city) {
+			int gain = WavesUntilDrowned(city.location) - DeepestCityWaves(player);
+			return gain > 0 ? gain : 0.1f;
+		}
+
+		// The waves the rival's deepest city on our landmasses lasts.
+		public static int DeepestRivalCityWaves(Player player, Player rival) {
+			HashSet<int> continents = player.cities.Select(c => c.location.continent).ToHashSet();
+			return rival.cities.Where(c => continents.Contains(c.location.continent)).Select(c => WavesUntilDrowned(c.location)).DefaultIfEmpty(0).Max();
+		}
+
 		// Whether the civ has a city that outlasts the next wave.
 		public static bool HasRefuge(Player player) {
 			return player.cities.Any(c => WavesUntilDrowned(c.location) > 1);

@@ -289,4 +289,34 @@ public class RisingTideAITest {
 		TideAI.ReconsiderProduction(civ);
 		Assert.True(city.itemBeingProduced is UnitPrototype, $"building {city.itemBeingProduced}");
 	}
+
+	// A civ whose deepest city will soon drown, beside a rival holding
+	// deeper land, goes to war for it, after a city deeper than its own.
+	[Fact]
+	public async Task ACivShutOutOfTheHeartFightsForIt() {
+		C7GameData.GameData gameData = NewGame(22);
+		Player civ = FirstCiv(gameData);
+		Player rival = gameData.players.First(p => !p.isBarbarians && p != civ);
+		foreach (Tile t in gameData.map.tiles) {
+			rival.tileKnowledge.knownTiles.Add(t);
+		}
+		civ.EnsureRelationshipExists(rival);
+		rival.EnsureRelationshipExists(civ);
+		Tile shore = civ.cities[0].location;
+		Tile deep = gameData.map.tiles.Where(t => t.IsAllowCities() && t.continent == shore.continent && t.unitsOnTile.Count == 0
+			&& t.GetTilesWithinRankDistance(1).All(n => n == Tile.NONE || !n.HasCity())).MaxBy(TideAI.WavesUntilDrowned);
+		Tile middling = gameData.map.tiles.Where(t => t.IsAllowCities() && t.continent == shore.continent && t.unitsOnTile.Count == 0
+			&& TideAI.WavesUntilDrowned(t) == TideAI.WavesUntilDrowned(deep) - 1 && t.DistanceTo(deep) > 2).MinBy(t => t.DistanceTo(deep));
+		await gameData.SpawnUnit(rival, Prototype(gameData, "Settler"), deep).BuildCity("Heart");
+		await gameData.SpawnUnit(rival, Prototype(gameData, "Settler"), middling).BuildCity("Middling");
+
+		// Long before the start city drowns, no war.
+		gameData.turn = 0;
+		Assert.False(TideAI.FightsForTheHeart(civ));
+		gameData.turn = 10;
+		Assert.True(TideAI.FightsForTheHeart(civ));
+		Assert.Equal(rival, WarCampaign.PlotWar(civ, gameData, out City target));
+		Assert.Equal(rival, target.owner);
+		Assert.True(TideAI.WavesUntilDrowned(target.location) >= TideAI.DeepestCityWaves(civ) + TideAI.HeartWarDepth);
+	}
 }

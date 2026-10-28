@@ -96,6 +96,9 @@ namespace C7Engine.AI {
 		private const int CooldownTurns = 20;
 		// HEURISTIC: how long to wait for the attackers to gather.
 		private const int MaxGatherTurns = 25;
+		// HEURISTIC: under Rising Tide, the turns a civ fighting for the
+		// heart waits for its attackers before going with most of them.
+		private const int HeartGatherTurns = 3;
 		// HEURISTIC: how long to sit outside a city without taking it.
 		private const int MaxSiegeTurns = 12;
 		// HEURISTIC: in an all-out assault, the attacks not worth making.
@@ -404,7 +407,8 @@ namespace C7Engine.AI {
 			// their own for a while (see CombatAI). It no longer holds off
 			// plotting a new war (owner's decision, 2026-10-20: "Defer to
 			// Civ3's logic on AI war starting").
-			bool coolingDown = nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value;
+			bool coolingDown = nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value
+				&& !TideAI.FightsForTheHeart(player);
 			foreach (Player p in gameData.players) {
 				if (coolingDown || p == player || p.IsIndependent || p.defeated || !AtWarWith(player, p)) {
 					continue;
@@ -464,6 +468,20 @@ namespace C7Engine.AI {
 		// trials (8 games of 200 turns, every civ AI).
 		internal static Player PlotWar(Player player, GameData gameData, out City target) {
 			target = null;
+			// Under Rising Tide, a civ shut out of the deep land doesn't
+			// wait on the rolls: it goes for the rival holding the deepest
+			// city it can march on (see TideAI.FightsForTheHeart).
+			if (TideAI.FightsForTheHeart(player)) {
+				Player rival = gameData.players.Where(p => CanDeclareWarOn(player, p) && p.cities.Count > 0)
+					.OrderByDescending(p => TideAI.DeepestRivalCityWaves(player, p))
+					.ThenByDescending(p => StockWarPlotting.TargetScore(gameData, player, p)).FirstOrDefault();
+				if (rival != null && TideAI.DeepestRivalCityWaves(player, rival) >= TideAI.DeepestCityWaves(player) + TideAI.HeartWarDepth) {
+					target = PickTarget(player, rival);
+					if (target != null) {
+						return rival;
+					}
+				}
+			}
 			if (!StockWarPlotting.RollsToPlot(gameData, player)) {
 				return null;
 			}
@@ -493,6 +511,7 @@ namespace C7Engine.AI {
 		private static City PickTarget(Player player, Player enemy, out float bestScore) {
 			bestScore = float.MinValue;
 			City best = null;
+			bool heart = TideAI.FightsForTheHeart(player);
 			foreach (City city in enemy.cities) {
 				if (!AIFogOfWar.KnowsTile(player, city.location)) {
 					continue;
@@ -513,6 +532,9 @@ namespace C7Engine.AI {
 				float value = 2 + city.residents.Count;
 				float cost = 1 + EstimateDefenders(player, city);
 				float score = value / cost / (1 + distance / 4f);
+				if (heart) {
+					score *= TideAI.HeartCityFactor(player, city);
+				}
 				if (score > bestScore) {
 					bestScore = score;
 					best = city;
@@ -767,6 +789,11 @@ namespace C7Engine.AI {
 			// fewer are needed.
 			int enough = Math.Max(3, needed * 2 / 3);
 			bool go = readyAttackers >= needed || (atWar && waited >= MaxGatherTurns / 2 && readyAttackers >= enough);
+			// Fighting for the heart of a drowning land, there is no time to
+			// wait for more (see TideAI.FightsForTheHeart).
+			if (TideAI.FightsForTheHeart(player) && waited >= HeartGatherTurns && readyAttackers >= enough) {
+				go = true;
+			}
 			if (!go) {
 				foreach (MapUnit u in c.units) {
 					if (u.location == staging.location && !u.isFortified) {
