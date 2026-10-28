@@ -210,6 +210,8 @@ img{flex:1;min-height:0;width:100%;object-fit:contain;background:#000;display:bl
 async function tick(){
   let s=await (await fetch('/status')).json();
   let g=document.getElementById('g');
+  // Two rows, as many across as it takes, all on one screen.
+  g.style.gridTemplateColumns='repeat('+Math.max(1,Math.ceil(s.length/2))+',1fr)';
   for (let v of s) {
     let d=document.getElementById(v.name);
     if (!d) {

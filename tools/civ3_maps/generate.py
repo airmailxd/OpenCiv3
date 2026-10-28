@@ -64,6 +64,8 @@ MENU_QUICK_START = P(322, 598)
 SEED_FIELD = P(1190, 53)
 OK = P(1515, 1157)
 SIZES = {'Tiny': P(360, 212), 'Small': P(360, 247), 'Standard': P(360, 281), 'Large': P(360, 315), 'Huge': P(360, 350)}
+# MDJ's world sizes (1v1, 4/6/7/8 Player), in the same places.
+SIZES.update({'1v1': SIZES['Tiny'], '4P': SIZES['Small'], '6P': SIZES['Standard'], '7P': SIZES['Large'], '8P': SIZES['Huge']})
 # The landform thumbnails: Pangaea, Continents, Archipelago, each at 80, 70
 # and 60% water.
 LANDFORM_X = {'Pan': [292, 419, 545], 'Con': [672, 798, 925], 'Arc': [1051, 1178, 1305]}
@@ -73,6 +75,14 @@ CLIMATE = {'Ari': P(190, 970), 'Nrm': P(317, 970), 'Wet': P(444, 970)}
 TEMPERATURE = {'Wrm': P(669, 970), 'Tmp': P(796, 970), 'Col': P(922, 970)}
 AGE = {'3B': P(1147, 970), '4B': P(1273, 970), '5B': P(1400, 970)}
 CIV_ROME = P(344, 200)
+# MDJ (--rules=MDJ) is started as a scenario, from Civ-Content's Load
+# Scenario list, where it is; and always with a random civ: MDJ's own notes
+# say "the game may crash if you pick a civ. Choose random civ instead."
+# (Picking one gives the player a civ the scenario has no record for: Civ3
+# 0x574080 crashes looking up its free advances.)
+MENU_CIV_CONTENT = P(322, 795)
+SCENARIO_MDJ = P(304, 856)
+CIV_RANDOM = P(403, 698)
 QUIT_YES = P(566, 350)
 QUIT_OK = P(1004, 394)
 
@@ -109,6 +119,24 @@ def at_player_setup(img):
 def dawn_popup(img):
     # The popup's parchment over the black of the unexplored map.
     return near(pixel(img, 800, 60), (239, 239, 198)) and pixel(img, 160, 400) == (0, 0, 0)
+
+
+def at_load_scenario(img):
+    # The dark list of scenarios, and the parchment below the notes.
+    return (near(pixel(img, 160, 400), (115, 107, 90), 20) and near(pixel(img, 1300, 940), (239, 222, 181), 20)
+            and near(pixel(img, 1200, 1000), (239, 222, 181), 20))
+
+
+def scenario_intro(img):
+    # A scenario's introduction (MDJ's "Medieval Japan"), lower than the
+    # Dawn popup: its parchment, with the unexplored map's black above and
+    # to the left.
+    return (near(pixel(img, 1100, 700), (247, 231, 198), 20) and near(pixel(img, 900, 60), (0, 0, 0), 15)
+            and near(pixel(img, 160, 400), (0, 0, 0), 15))
+
+
+def game_started(img):
+    return dawn_popup(img) or scenario_intro(img)
 
 
 def wait_for(test, timeout, step=0.5):
@@ -157,10 +185,17 @@ def make_map(out, rules, size, landform, water, climate, temperature, age, seed)
     if wait_for(at_main_menu, SCREEN_SECONDS) is None:
         return fail('no-menu')
     # The first click only highlights the item, unless it already is.
-    c.click(*MENU_NEW_GAME)
+    item = MENU_CIV_CONTENT if rules == 'MDJ' else MENU_NEW_GAME
+    c.click(*item)
     time.sleep(0.3)
     if at_main_menu(c.screenshot()):
-        c.click(*MENU_NEW_GAME)
+        c.click(*item)
+    if rules == 'MDJ':
+        if wait_for(at_load_scenario, SCREEN_SECONDS) is None:
+            return fail('no-load-scenario')
+        c.click(*SCENARIO_MDJ)
+        time.sleep(0.5)
+        c.click(*OK)
     if wait_for(at_world_setup, SCREEN_SECONDS) is None:
         return fail('no-world-setup')
     c.click(*SIZES[size])
@@ -176,7 +211,7 @@ def make_map(out, rules, size, landform, water, climate, temperature, age, seed)
     c.click(*OK)
     if wait_for(at_player_setup, SCREEN_SECONDS) is None:
         return fail('no-player-setup')
-    c.click(*CIV_ROME)
+    c.click(*(CIV_RANDOM if rules == 'MDJ' else CIV_ROME))
     started = time.time()
     c.click(*OK)
     return keep_autosave(out, started, name_of(rules, size, landform, water, climate, temperature, age, seed), fail)
@@ -207,7 +242,7 @@ def keep_autosave(out, started, name, fail):
     """Once a game is started: dismisses the Dawn popup and keeps the
     autosave written then under the name."""
     # Civ3 sometimes hangs making a map (at 95%); see restart_civ3.
-    if wait_for(dawn_popup, HANG_SECONDS, step=0.3) is None:
+    if wait_for(game_started, HANG_SECONDS, step=0.3) is None:
         return fail('no-dawn')
     c.key(c.VK_RETURN)
     path = None
@@ -248,6 +283,9 @@ def main(argv):
     waters = [int(w) for w in opts.get('water', '80,70,60').split(',')]
     climate, temperature, age = opts.get('climate', 'Nrm'), opts.get('temperature', 'Tmp'), opts.get('age', '4B')
     os.makedirs(out, exist_ok=True)
+    if opts.get('remote') == '1':
+        remote(out)
+        return
     if 'count' in opts:
         # Each of these may be a list (--sizes=Tiny,Small), and every mix of
         # them is a map type.
@@ -341,6 +379,61 @@ def back_or_restart(out, what):
     return False
 
 
+def remote(out):
+    """Remote control of a VM's Civ3, for working out new screens without
+    the host's mouse (--remote=1): runs the commands in <out>/cmd.txt, one
+    a line, then renames it cmd.done.txt and writes what happened to
+    cmd.log. Positions are fractions of Civ3's window (or of the screen):
+
+        launch | close | shot <name> | click <fx> <fy> | key <vk> | type <text>
+        chord <vk> <vk>... | sleep <seconds> | ini <key>=<value>
+
+    A shot is saved as <out>/<name>.png (the whole screen)."""
+    from PIL import ImageGrab
+    cmd, log = os.path.join(out, 'cmd.txt'), os.path.join(out, 'cmd.log')
+    ini_path = os.path.join(os.path.dirname(CIV3_EXE), 'conquests.ini')
+    print('remote control: waiting for cmd.txt', flush=True)
+    while True:
+        time.sleep(1)
+        c.dismiss_steam_error()
+        if not os.path.exists(cmd):
+            continue
+        with open(cmd) as f:
+            lines = [line.strip() for line in f if line.strip()]
+        os.replace(cmd, os.path.join(out, 'cmd.done.txt'))
+        with open(log, 'a') as f:
+            for line in lines:
+                word, *args = line.split()
+                try:
+                    if word == 'launch':
+                        restart_civ3(out, 'remote')
+                    elif word == 'close':
+                        c.close()
+                    elif word == 'shot':
+                        ImageGrab.grab(all_screens=True).save(os.path.join(out, args[0] + '.png'))
+                    elif word == 'click':
+                        c.click(float(args[0]), float(args[1]))
+                    elif word == 'key':
+                        c.key(int(args[0], 0))
+                    elif word == 'type':
+                        c.type_text(' '.join(args))
+                    elif word == 'chord':
+                        c.chord(*[int(a, 0) for a in args])
+                    elif word == 'sleep':
+                        time.sleep(float(args[0]))
+                    elif word == 'ini':
+                        k, v = ' '.join(args).split('=', 1)
+                        with open(ini_path, encoding='latin-1') as g:
+                            text = g.read().splitlines()
+                        text = [f'{k}={v}' if t.split('=', 1)[0] == k else t for t in text]
+                        with open(ini_path, 'w', encoding='latin-1') as g:
+                            g.write('\n'.join(text) + '\n')
+                    f.write(f'{time.strftime("%H:%M:%S")} ok {line}\n')
+                except Exception as e:
+                    f.write(f'{time.strftime("%H:%M:%S")} failed {line}: {e}\n')
+            f.write(f'{time.strftime("%H:%M:%S")} done\n')
+
+
 def wait_while_paused(out):
     """Waits, between maps, while a file named PAUSE is in the output
     folder, so someone can use the PC (or a VM's window) without the script
@@ -400,7 +493,9 @@ def quick_run(out, rules, sizes, landforms, waters, climates, temperatures, ages
                     what = f'{prefix(t)} quick start'
                 if path is not None:
                     done += 1
-                    new_game = False
+                    # Quick Start goes back to Civ3's own rules, so a
+                    # scenario's maps are all new games.
+                    new_game = rules == 'MDJ'
                 games += 1
                 if not back_or_restart(out, what):
                     new_game = True

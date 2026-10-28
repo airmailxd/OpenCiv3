@@ -83,6 +83,7 @@ public class MapGenExactTest {
 		Tally tally = new();
 		List<string> problems = new();
 		int maps = 0, skipped = 0;
+		SaveGame mdjRules = null;
 		using StreamWriter ledger = new(ledgerPath, append: File.Exists(ledgerPath) && !recheck && reviewed.Count > 0);
 		if (ledger.BaseStream.Length == 0) {
 			ledger.WriteLine("name,bytes,fingerprint,reviewed");
@@ -102,7 +103,10 @@ public class MapGenExactTest {
 			}
 			++maps;
 			CompareCiv3Generator(sav, tally);
-			CompareGameMap(path, sav, rules, tally);
+			// MDJ's maps (generate.py --rules=MDJ) with OpenCiv3's MDJ rules.
+			bool mdj = Path.GetFileName(path).StartsWith("MDJ_", StringComparison.Ordinal);
+			mdjRules ??= mdj ? GameSetup.LoadMdjRules(PathUtils.GameModesDir, new GameMode.Config("civ3")) : null;
+			CompareGameMap(path, sav, mdj ? mdjRules : rules, tally);
 			List<string> differing = tally.EndMap();
 			if (differing.Count > 0) {
 				problems.Add($"{Path.GetFileName(path)} (seed {sav.Wrld.WorldSeed}): {string.Join(", ", differing)}");
@@ -264,8 +268,20 @@ public class MapGenExactTest {
 		}
 	}
 
-	// The same map through MapGenerator, with OpenCiv3's Civ3 rules,
-	// against ImportCiv3's import of the save.
+	// A scenario's PediaIcons.txt (MDJ's is in Conquests\Conquests\Sengoku),
+	// or Civ3's own.
+	private static string ScenarioPediaIcons(string searchFolders) {
+		foreach (string folder in (searchFolders ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
+			string path = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Conquests", folder, "Text", "PediaIcons.txt");
+			if (File.Exists(path)) {
+				return path;
+			}
+		}
+		return PathUtils.defaultPediaIconsPath;
+	}
+
+	// The same map through MapGenerator, with OpenCiv3's Civ3 rules (or its
+	// MDJ rules, for a map of MDJ's), against ImportCiv3's import of the save.
 	private static void CompareGameMap(string path, SavData sav, SaveGame rules, Tally tally) {
 		var w = sav.Wrld;
 		WorldCharacteristics wc = new(rules) {
@@ -287,7 +303,7 @@ public class MapGenExactTest {
 		wc.worldSize.numberOfCivs = w.NumberOfCivs;
 		wc.worldSize.distanceBetweenCivs = w.CivDistance;
 		SaveMap ours = new(MapGenerator.GenerateMap(wc, out _));
-		SaveMap civ3 = ImportCiv3.ImportSav(path, PathUtils.defaultBicPath, _ => PathUtils.defaultPediaIconsPath).Map;
+		SaveMap civ3 = ImportCiv3.ImportSav(path, PathUtils.defaultBicPath, ScenarioPediaIcons).Map;
 		Dictionary<(int, int), SaveTile> theirs = civ3.tiles.ToDictionary(t => (t.X, t.Y));
 		foreach (SaveTile t in ours.tiles) {
 			SaveTile c = theirs[(t.X, t.Y)];
