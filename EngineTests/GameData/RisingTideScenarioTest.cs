@@ -45,7 +45,8 @@ public class RisingTideScenarioTest {
 		Assert.Equal(GameSetup.RisingTideCitySize, gameData.rules.NewCitySize);
 		Assert.Equal(GameSetup.RisingTideCityCenterFood, gameData.rules.CityCenterFood);
 		Assert.Equal(21, RisingTide.TurnsUntilNextWave(gameData));
-		Assert.Contains(gameData.victories, v => v is ConquestVictory);
+		Assert.Contains(gameData.victories, v => v is RisingTideVictory);
+		Assert.DoesNotContain(gameData.victories, v => v is ConquestVictory);
 		gameData.map.recomputeContinents();
 		Assert.Single(gameData.map.continents, c => c.First().IsLand());
 
@@ -118,6 +119,92 @@ public class RisingTideScenarioTest {
 		Assert.Equal(land - shoreTiles, gameData.map.tiles.Count(t => t.IsLand()));
 		Assert.Equal(13, RisingTide.TurnsUntilNextWave(gameData));
 		Assert.Equal(1, gameData.risingTide.waves);
+	}
+
+	// A wave washes away the barbarian camps and goody huts on the shore,
+	// and drowns the barbarians there.
+	[Fact]
+	public void AWaveWashesAwayCampsAndHuts() {
+		(_, C7GameData.GameData gameData) = NewGame(2);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		Player barbarians = gameData.players.First(p => p.isBarbarians);
+		List<Tile> shore = RisingTide.Shore(gameData).Where(t => t.unitsOnTile.Count == 0 && !t.HasCity()).ToList();
+		Tile camp = shore[0], hut = shore[1];
+		camp.hasBarbarianCamp = true;
+		gameData.map.barbarianCamps.Add(camp);
+		MapUnit barbarian = gameData.SpawnUnit(barbarians, gameData.unitPrototypes.First(p => p.name == "Warrior"), camp);
+		hut.hasGoodyHut = true;
+
+		gameData.turn = 21;
+		RisingTide.BeginTurn(gameData);
+		Assert.False(camp.hasBarbarianCamp);
+		Assert.DoesNotContain(camp, gameData.map.barbarianCamps);
+		Assert.DoesNotContain(barbarian, gameData.mapUnits);
+		Assert.False(hut.hasGoodyHut);
+	}
+
+	// The score: each turn survived is worth 10 points, each enemy unit
+	// defeated 1 and each city taken 5, times the difficulty's factor (3
+	// for Regent), on top of the usual score. A fallen civ's score stands.
+	[Fact]
+	public void SurvivingCountsMostInTheScore() {
+		(_, C7GameData.GameData gameData) = NewGame(6);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		civ.unitsKilled = 4;
+		civ.citiesCaptured = 1;
+		civ.UpdateHistory(gameData);
+		civ.UpdateHistory(gameData);
+		Assert.Equal(2, civ.turnsSurvived);
+		Assert.Equal(3 * (2 * 10 + 4 * 1 + 1 * 5), RisingTide.ScoreBonus(civ, gameData));
+		int usual = (int)System.Math.Round(ScoreVictory.ComputeTurnScore(civ, gameData), System.MidpointRounding.AwayFromZero);
+		int score = HallOfFame.ScoreOf(gameData, civ);
+		Assert.Equal(usual + RisingTide.ScoreBonus(civ, gameData), score);
+
+		civ.defeated = true;
+		civ.UpdateHistory(gameData);
+		Assert.Equal(2, civ.turnsSurvived);
+		Assert.Equal(score, HallOfFame.ScoreOf(gameData, civ));
+	}
+
+	// The game ends when one civ is left, and the best score wins, though
+	// that civ has fallen.
+	[Fact]
+	public void TheBestScoreWinsWhenOneCivIsLeft() {
+		(_, C7GameData.GameData gameData) = NewGame(7);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		foreach (Player civ in civs) {
+			gameData.history[civ.id.ToString()].Add(new HistTurnRecord { Score = civ == civs[1] ? 500 : 100 });
+		}
+		foreach (Player civ in civs.Skip(2)) {
+			civ.defeated = true;
+		}
+		TurnHandling.CheckVictory(gameData);
+		Assert.False(gameData.gameOver);
+
+		civs[1].defeated = true;
+		TurnHandling.CheckVictory(gameData);
+		Assert.True(gameData.gameOver);
+		Assert.Equal(civs[1], gameData.winner);
+		Assert.Equal(0, gameData.victoryBonus);
+	}
+
+	// The game also ends, and is scored, when the tide takes everyone at
+	// once.
+	[Fact]
+	public void TheBestScoreWinsWhenNoCivIsLeft() {
+		(_, C7GameData.GameData gameData) = NewGame(8);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		foreach (Player civ in civs) {
+			gameData.history[civ.id.ToString()].Add(new HistTurnRecord { Score = civ == civs[2] ? 500 : 100 });
+			civ.defeated = true;
+		}
+		TurnHandling.CheckVictory(gameData);
+		Assert.True(gameData.gameOver);
+		Assert.Equal(civs[2], gameData.winner);
 	}
 
 	// The sea is no refuge: no ships can be built, and a ship that sails
@@ -195,5 +282,18 @@ public class RisingTideScenarioTest {
 		SaveGame loaded = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON());
 		Assert.Equal(4, loaded.RisingTide.waves);
 		Assert.Equal(50, loaded.RisingTide.nextWaveTurn);
+	}
+
+	// So do what the score counts.
+	[Fact]
+	public void TheScoreSurvivesASave() {
+		(_, C7GameData.GameData gameData) = NewGame(3);
+		Player civ = gameData.players.First(p => !p.isBarbarians);
+		civ.turnsSurvived = 30;
+		civ.unitsKilled = 7;
+		civ.citiesCaptured = 2;
+		SaveGame loaded = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON());
+		SavePlayer saved = loaded.Players.First(p => p.id == civ.id);
+		Assert.Equal((30, 7, 2), (saved.turnsSurvived, saved.unitsKilled, saved.citiesCaptured));
 	}
 }

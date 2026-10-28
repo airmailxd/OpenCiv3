@@ -98,6 +98,14 @@ namespace C7Engine {
 				// against each other forever with nothing for the UI to do.
 				if (!gameData.players.Any(p => !p.defeated && (p.isHuman || p.id == EngineStorage.activePlayerID))) {
 					log.Information("No human players remain, ending the game");
+					// Under Rising Tide the game ends with the last human, and
+					// the best score so far wins.
+					if (RisingTide.IsOn(gameData) && !gameData.gameOver) {
+						EndRisingTide(gameData);
+						if (gameData.gameOver) {
+							return;
+						}
+					}
 					gameData.gameOver = true;
 					new MsgNoHumansRemain().send();
 					return;
@@ -372,6 +380,13 @@ namespace C7Engine {
 			if (gameData.gameOver)
 				return; // Game is already over
 
+			// Rising Tide ends with one civ standing or none, and the best
+			// score wins, fallen or not.
+			if (RisingTide.IsOn(gameData) && RisingTide.IsOver(gameData)) {
+				EndRisingTide(gameData);
+				return;
+			}
+
 			List<Tuple<Player, IVictory>> winners = [];
 
 			foreach (Player player in gameData.players) {
@@ -408,13 +423,24 @@ namespace C7Engine {
 			}
 		}
 
+		// Ends a Rising Tide game, the highest score winning.
+		internal static void EndRisingTide(GameData gameData) {
+			Player winner = RisingTide.Winner(gameData);
+			IVictory victory = gameData.victories.OfType<RisingTideVictory>().FirstOrDefault();
+			if (winner == null || victory == null) {
+				return;
+			}
+			DeclareVictory(winner, victory, gameData);
+		}
+
 		private static void DeclareVictory(Player winner, IVictory victory, GameData gameData) {
 			Log.Information("Player {Winner} has wone a {Victory} victory!",
 				winner, victory.Header());
 
 			gameData.winner = winner;
 			gameData.gameOver = true;
-			gameData.victoryBonus = ScoreVictory.EarlyWinBonus(gameData);
+			// The tide sets when the game ends, so there's no winning early.
+			gameData.victoryBonus = RisingTide.IsOn(gameData) ? 0 : ScoreVictory.EarlyWinBonus(gameData);
 
 			int finalScore = (int)new ScoreVictory().Evaluate(winner, gameData).Score;
 			new MsgVictory(winner, victory, finalScore, gameData.victoryBonus).send();

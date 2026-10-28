@@ -281,6 +281,7 @@ namespace C7Engine {
 			}
 			InstantElimination.OnCityLost(oldOwner, captor);
 			VictoryPoints.OnCityConquered(captor, city, gameData.victoryConditions);
+			captor.citiesCaptured++;
 
 			if (!SurvivesCapture(city)) {
 				DestroyCity(city);

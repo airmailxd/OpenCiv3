@@ -214,7 +214,11 @@ namespace C7GameData.Save {
 			// we can render the current score alongside the state of other conditions
 			data.victories.Add(new ScoreVictory());
 
-			if (conditions?.AllowConquestVictory == true) {
+			// Under Rising Tide, outlasting the rest takes the place of
+			// conquering them.
+			if (data.rules?.RisingTide == true) {
+				data.victories.Add(new RisingTideVictory());
+			} else if (conditions?.AllowConquestVictory == true) {
 				data.victories.Add(new ConquestVictory());
 			}
 			if (conditions?.AllowEmpireVictory == true) {

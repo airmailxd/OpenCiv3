@@ -45,6 +45,47 @@ namespace C7Engine {
 			return gameData.rules?.RisingTide == true;
 		}
 
+		// The Rising Tide score (owner's design, 2026-10-27): the usual
+		// score, and on top of it, for each turn a civ lives through, for
+		// each enemy unit it defeats and for each city it takes, these
+		// points, times the difficulty's factor, as the usual score is.
+		// Surviving outweighs the rest: a civ that outlasts another by a
+		// few turns is ahead, unless the other has built and fought far
+		// better.
+		public const int PointsPerTurnSurvived = 10;
+		public const int PointsPerUnitKilled = 1;
+		public const int PointsPerCityCaptured = 5;
+
+		// What Rising Tide adds to the civ's score (see Player.UpdateHistory).
+		public static int ScoreBonus(Player player, GameData gameData) {
+			int points = PointsPerTurnSurvived * player.turnsSurvived
+				+ PointsPerUnitKilled * player.unitsKilled
+				+ PointsPerCityCaptured * player.citiesCaptured;
+			return (int)(points * ScoreVictory.GetDifficultyScoreFactor(gameData));
+		}
+
+		// The civs that played the game, fallen or not.
+		private static IEnumerable<Player> Civs(GameData gameData) {
+			return gameData.players.Where(p => !p.IsIndependent && p.isIncludedInGame);
+		}
+
+		// The game is over once the tide has left one civ standing, or one
+		// team, or none (owner's ruling, 2026-10-27).
+		public static bool IsOver(GameData gameData) {
+			List<Player> alive = Civs(gameData).Where(p => !p.defeated).ToList();
+			return alive.All(p => p == alive[0] || gameData.AreTeammates(p, alive[0]));
+		}
+
+		// The civ with the highest score wins, fallen or not; then the one
+		// that lasted longest.
+		public static Player Winner(GameData gameData) {
+			return Civs(gameData)
+				.OrderByDescending(p => HallOfFame.ScoreOf(gameData, p))
+				.ThenByDescending(p => p.turnsSurvived)
+				.ThenBy(p => p.defeated)
+				.FirstOrDefault();
+		}
+
 		// The turns until the next wave, or -1 without Rising Tide.
 		public static int TurnsUntilNextWave(GameData gameData) {
 			if (!IsOn(gameData) || gameData.risingTide.nextWaveTurn < 0) {
@@ -129,7 +170,7 @@ namespace C7Engine {
 					onUnitDrowned?.Invoke(unit);
 					unit.RemoveFromPlay();
 				}
-				Flood(tile, coast);
+				Flood(gameData, tile, coast);
 			}
 			if (shore.Count > 0) {
 				RedrawFlooded(gameData, shore);
@@ -174,7 +215,7 @@ namespace C7Engine {
 		}
 
 		// Makes the tile Coast, with nothing left of what was on it.
-		private static void Flood(Tile tile, TerrainType coast) {
+		private static void Flood(GameData gameData, Tile tile, TerrainType coast) {
 			tile.baseTerrainType = coast;
 			tile.overlayTerrainType = coast;
 			tile.Resource = Resource.NONE;
@@ -185,6 +226,14 @@ namespace C7Engine {
 			tile.riverNorth = tile.riverNortheast = tile.riverEast = tile.riverSoutheast = false;
 			tile.riverSouth = tile.riverSouthwest = tile.riverWest = tile.riverNorthwest = false;
 			tile.overlays.Clear();
+			// The wave washes away barbarian camps and huts (owner's ruling,
+			// 2026-10-27); the barbarians in a camp drown with every other
+			// land unit there.
+			if (tile.hasBarbarianCamp) {
+				gameData.map.barbarianCamps.Remove(tile);
+				tile.hasBarbarianCamp = false;
+			}
+			tile.hasGoodyHut = false;
 			TileChangeJournal.RecordTerrainChange(tile);
 		}
 	}

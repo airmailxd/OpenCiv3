@@ -1032,6 +1032,9 @@ public partial class MapUnit {
 		if ((result == CombatResult.AttackerKilled) || (result == CombatResult.DefenderKilled)) {
 			var (dead, alive) = (result == CombatResult.AttackerKilled) ? (attacker, defender) : (defender, attacker);
 			VictoryPoints.OnUnitDefeated(alive.owner, dead, EngineStorage.gameData.victoryConditions);
+			if (alive.owner != dead.owner) {
+				alive.owner.unitsKilled++;
+			}
 
 			// In an army, the member that won the last round gets the chance
 			// to be promoted, and the army plays the victory animation.

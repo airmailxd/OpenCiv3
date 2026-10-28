@@ -128,7 +128,7 @@ public class ScoreVictory : IVictory {
 	}
 
 	// 1 for Chieftain, 2 for Warlord, 3 for Regent, etc.
-	private static float GetDifficultyScoreFactor(GameData gameData) {
+	public static float GetDifficultyScoreFactor(GameData gameData) {
 		int idx = 0;
 		for (int i = 0; i < gameData.difficulties.Count; ++i) {
 			if (gameData.difficulties[i] == gameData.gameDifficulty) {

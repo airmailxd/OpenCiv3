@@ -399,6 +399,13 @@ namespace C7GameData {
 		// The civ's victory points (see VictoryPoints).
 		public int victoryPoints = 0;
 
+		// The enemy units this civ has defeated in combat, the cities it
+		// has taken, and, under Rising Tide, the turns it has lived through,
+		// for the Rising Tide score (see RisingTide.ScoreBonus).
+		public int unitsKilled = 0;
+		public int citiesCaptured = 0;
+		public int turnsSurvived = 0;
+
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		// The turns left of an Age of Science (see StartScienceAge).
@@ -3120,8 +3127,20 @@ namespace C7GameData {
 				previousSum = lastTurn.TurnScoreSum ?? (double)lastTurn.Score * n;
 			}
 			float turnScore = ScoreVictory.ComputeTurnScore(this, gameData);
+			// Under Rising Tide a fallen civ's score stands as it was when
+			// it fell, for the end of the game to weigh against the rest
+			// (see RisingTide.Winner); the turns it adds keep its average.
+			bool risingTide = RisingTide.IsOn(gameData);
+			if (risingTide && defeated && n > 0) {
+				turnScore = (float)(previousSum / n);
+			} else if (risingTide) {
+				turnsSurvived++;
+			}
 			double turnScoreSum = previousSum + turnScore;
 			int score = (int)Math.Round(turnScoreSum / (n + 1), MidpointRounding.AwayFromZero);
+			if (risingTide) {
+				score += RisingTide.ScoreBonus(this, gameData);
+			}
 
 			// Culture is "the sum of the cultural value of all your cities"
 			int totalCulture = 0;

@@ -99,6 +99,11 @@ namespace C7GameData.Save {
 		public int citiesLost;
 		// The civ's victory points.
 		public int victoryPoints;
+		// For the Rising Tide score: enemy units defeated, cities taken
+		// and turns survived.
+		public int unitsKilled;
+		public int citiesCaptured;
+		public int turnsSurvived;
 
 		// The number of "beakers" (gold) spent on the currently researched
 		// tech.
@@ -184,6 +189,9 @@ namespace C7GameData.Save {
 				kingsLost = kingsLost,
 				citiesLost = citiesLost,
 				victoryPoints = victoryPoints,
+				unitsKilled = unitsKilled,
+				citiesCaptured = citiesCaptured,
+				turnsSurvived = turnsSurvived,
 				// The AI's strategic priorities aren't saved; PlayerAI works
 				// them out again quietly on the AI's first turn after a load.
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
@@ -321,6 +329,9 @@ namespace C7GameData.Save {
 			kingsLost = player.kingsLost;
 			citiesLost = player.citiesLost;
 			victoryPoints = player.victoryPoints;
+			unitsKilled = player.unitsKilled;
+			citiesCaptured = player.citiesCaptured;
+			turnsSurvived = player.turnsSurvived;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;
