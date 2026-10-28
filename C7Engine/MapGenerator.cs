@@ -62,6 +62,10 @@ namespace C7Engine {
 		public int citiesPerCiv = 1;
 		public List<TerrainType> terrainTypes;
 		public List<Resource> resources = new();
+		// The keys of the resources a unit or building needs, which are
+		// placed before the strategic resources nothing needs (see
+		// AddResources).
+		public HashSet<string> requiredResources = new();
 		public Government defaultGovernment = new();
 
 		public int maxRankOfWorkableTiles;
@@ -75,6 +79,8 @@ namespace C7Engine {
 		public WorldCharacteristics(SaveGame save) {
 			terrainTypes = save.TerrainTypes;
 			resources = save.Resources;
+			requiredResources = save.UnitPrototypes.SelectMany(u => u.requiredResources)
+				.Concat(save.Buildings.SelectMany(b => b.requiredResources ?? [])).ToHashSet();
 			defaultGovernment = save.Governments.Find(g => g.defaultType);
 
 			maxRankOfWorkableTiles = save.Rules.MaxRankOfWorkableTiles;
@@ -1829,6 +1835,7 @@ namespace C7Engine {
 			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
 
 			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
+			bool requiredFirst(Resource r) => wc.requiredResources.Contains(r.Key);
 
 			// Luxury resources.
 			//
@@ -1843,8 +1850,14 @@ namespace C7Engine {
 				PlaceLuxuryResourceType(rand, wc, m, r, tileIndicies, resourceToContinentPlacement, continentSizes);
 			}
 
-			// Strategic resources.
-			foreach (Resource r in resourcesToPlace) {
+			// Strategic resources: first those a unit or building needs, then
+			// any others. MDJ's rules (C7/Lua/mdj) make nearly every resource
+			// strategic, many of them common (Fish, Wheat, Olive Oil...), and
+			// placed among them in any order they filled the land before
+			// the Iron and Horses its units need (over four maps, a third of
+			// the Iron and half the Horses there was to be). In Civ3's rules a
+			// unit needs every strategic resource, so its maps are as before.
+			foreach (Resource r in resourcesToPlace.Where(r => requiredFirst(r)).Concat(resourcesToPlace.Where(r => !requiredFirst(r)))) {
 				if (r.Category != ResourceCategory.STRATEGIC) {
 					continue;
 				}

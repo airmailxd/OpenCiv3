@@ -5380,7 +5380,7 @@
     "upgradeCostPerShield": 4,
     "startingTreasury": 10,
     "volcanoEruptionPeriod": 5000,
-    "firstEraCivilopediaName": "ERAS_Ancient_Times",
+    "firstEraCivilopediaName": "ERAS_Middle_Ages",
     "eraResearcherNames": {
       "ERAS_Ancient_Times": [
         "Mystics",
@@ -6734,55 +6734,54 @@
   ],
   "worldSizes": [
     {
-      "name": "Tiny",
-      "length": 80,
-      "height": 60,
-      "width": 60,
-      "optimalNumberOfCities": 14,
-      "techRate": 160,
-      "distanceBetweenCivs": 11,
-      "numberOfCivs": 4
-    },
-    {
-      "name": "Small",
-      "length": 80,
-      "height": 80,
-      "width": 80,
-      "optimalNumberOfCities": 17,
-      "techRate": 200,
-      "distanceBetweenCivs": 11,
-      "numberOfCivs": 6
-    },
-    {
-      "name": "Standard",
-      "length": 80,
-      "height": 100,
-      "width": 100,
-      "optimalNumberOfCities": 20,
+      "name": "1v1",
+      "width": 44,
+      "height": 44,
+      "optimalNumberOfCities": 7,
       "techRate": 240,
-      "distanceBetweenCivs": 12,
-      "numberOfCivs": 8,
+      "distanceBetweenCivs": 9,
+      "numberOfCivs": 2,
+      "isDefault": false
+    },
+    {
+      "name": "4 Player",
+      "width": 46,
+      "height": 46,
+      "optimalNumberOfCities": 9,
+      "techRate": 240,
+      "distanceBetweenCivs": 14,
+      "numberOfCivs": 4,
+      "isDefault": false
+    },
+    {
+      "name": "6 Player",
+      "width": 60,
+      "height": 60,
+      "optimalNumberOfCities": 9,
+      "techRate": 240,
+      "distanceBetweenCivs": 20,
+      "numberOfCivs": 6,
       "isDefault": true
     },
     {
-      "name": "Large",
-      "length": 80,
-      "height": 130,
-      "width": 130,
-      "optimalNumberOfCities": 28,
-      "techRate": 320,
-      "distanceBetweenCivs": 18,
-      "numberOfCivs": 12
+      "name": "7 Player",
+      "width": 64,
+      "height": 66,
+      "optimalNumberOfCities": 9,
+      "techRate": 240,
+      "distanceBetweenCivs": 20,
+      "numberOfCivs": 7,
+      "isDefault": false
     },
     {
-      "name": "Huge",
-      "length": 80,
-      "height": 160,
-      "width": 160,
-      "optimalNumberOfCities": 36,
-      "techRate": 400,
-      "distanceBetweenCivs": 24,
-      "numberOfCivs": 16
+      "name": "8 Player",
+      "width": 70,
+      "height": 70,
+      "optimalNumberOfCities": 9,
+      "techRate": 240,
+      "distanceBetweenCivs": 22,
+      "numberOfCivs": 8,
+      "isDefault": false
     }
   ],
   "victoryConditions": {

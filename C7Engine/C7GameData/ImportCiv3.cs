@@ -115,6 +115,7 @@ namespace C7GameData {
 			ImportUnitUpgrades();
 			ImportBuildings();
 			ImportCiv3TerrainTypes();
+			ImportWorldSizes();
 			ImportCiv3ExperienceLevels();
 			ImportCiv3DefensiveBonuses();
 			save.HealRates["friendly_field"] = 1;
@@ -2960,6 +2961,27 @@ namespace C7GameData {
 			if (civ3Save?.Wrld is not null) {
 				save.BarbarianInfo.barbarianActivity = (BarbarianActivity)civ3Save.Wrld.ActualBarbarians;
 			}
+		}
+
+		// A scenario's own world sizes (its WSIZ section), as MDJ's player
+		// counts: 1v1 to 8 Player. The middle one is chosen at first, as
+		// Civ3's world size screen chooses Standard. Without its own, the
+		// sizes are left for the rules to give (Civ3's are kept in the
+		// bundled ruleset, see RegenerateRuleset).
+		private void ImportWorldSizes() {
+			if (biq?.Wsiz is not WSIZ[] sizes || sizes.Length == 0) {
+				return;
+			}
+			save.WorldSizes = sizes.Select((w, i) => new WorldSize {
+				name = w.Name,
+				width = w.Width,
+				height = w.Height,
+				optimalNumberOfCities = w.OptimalNumberOfCities,
+				techRate = w.TechRate,
+				distanceBetweenCivs = w.DistanceBetweenCivs,
+				numberOfCivs = w.NumberOfCivs,
+				isDefault = i == sizes.Length / 2,
+			}).ToList();
 		}
 
 		private static void SetWorldWrap(BiqData biq, SaveGame save) {

@@ -336,9 +336,15 @@ public partial class WorldSetup : Control {
 		// path again as it starts (see Game.InitializeGame).
 		Util.setModPath(_saveGame.ScenarioSearchPath);
 		Util.ClearCaches();
-		// The world size buttons stand for the sizes of the rules first
-		// loaded; the one chosen is matched by name to these (see
-		// CreateGame).
+		// The world sizes are the rules' own (MDJ's are by player count, 1v1
+		// to 8 Player), so their buttons are made again.
+		if (worldSizeButtonsContainer != null && worldSizeButtonsContainer.GetChildCount() > 0) {
+			foreach (Node button in worldSizeButtonsContainer.GetChildren()) {
+				worldSizeButtonsContainer.RemoveChild(button);
+				button.QueueFree();
+			}
+			InitMapSizes();
+		}
 	}
 
 	// The first choice for a new game: a normal game, or a scenario, which

@@ -165,8 +165,9 @@ namespace RegenerateRuleset {
 		}
 
 		// The sections of Civ3's bundled ruleset that MDJ's takes from the
-		// MDJ import as well: its own civilizations (Medieval Japan's clans).
-		static readonly string[] MdjAlsoFromBiq = { "civilizations" };
+		// MDJ import as well: its own civilizations (Medieval Japan's clans)
+		// and world sizes (by player count, 1v1 to 8 Player).
+		static readonly string[] MdjAlsoFromBiq = { "civilizations", "worldSizes" };
 
 		// MDJ's ruleset: Civ3's bundled ruleset's sections, in its order,
 		// those from the BIQ (and the civilizations) from MPTournamentMDJ.biq

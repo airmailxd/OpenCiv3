@@ -161,6 +161,40 @@ public class MdjScenarioTest {
 		Assert.True(problems.Count == 0, string.Join("\n", problems));
 	}
 
+	// MDJ's world sizes are its own, by player count, the middle one first.
+	[Fact]
+	public void MdjHasItsOwnWorldSizes() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
+		Assert.Equal(["1v1", "4 Player", "6 Player", "7 Player", "8 Player"], save.WorldSizes.Select(w => w.name));
+		Assert.Equal("6 Player", Assert.Single(save.WorldSizes, w => w.isDefault).name);
+		WorldSize eight = save.WorldSizes[4];
+		Assert.Equal((70, 70, 8, 22, 9), (eight.width, eight.height, eight.numberOfCivs, eight.distanceBetweenCivs, eight.optimalNumberOfCities));
+	}
+
+	// The resources MDJ's units need are all on its maps: placed before its
+	// many strategic resources nothing needs, they aren't crowded out.
+	[Fact]
+	public void TheResourcesMdjsUnitsNeedAreAllPlaced() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
+		WorldSize size = save.WorldSizes.First(w => w.isDefault);
+		WorldCharacteristics wc = new(save) {
+			landform = WorldCharacteristics.Landform.Continents,
+			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			age = WorldCharacteristics.Age.Billion_4,
+			climate = WorldCharacteristics.Climate.Normal,
+			temperature = WorldCharacteristics.Temperature.Temperate,
+			barbarianActivity = BarbarianActivity.Roaming,
+			worldSize = size,
+			mapSeed = 1,
+		};
+		GameMap map = MapGenerator.GenerateMap(wc);
+		foreach (string key in new[] { "Horses", "Iron", "Saltpeter", "Jade" }) {
+			// The world size's six civs times an appearance ratio of 150, at
+			// 72% (see MapGenerator.GetAppearance).
+			Assert.Equal(6, map.tiles.Count(t => t.Resource?.Key == key));
+		}
+	}
+
 	// Every worker job a unit has is one the rules define.
 	[Fact]
 	public void EveryUnitsWorkerJobsAreDefined() {
