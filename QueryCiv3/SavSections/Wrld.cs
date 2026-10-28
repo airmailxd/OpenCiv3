@@ -16,7 +16,10 @@ namespace QueryCiv3.Sav {
 		public int PercentWater; // is this int or float?
 		private fixed byte UnknownBuffer1[4];
 		public int Width;
+		// The starting location of each player slot: a tile index, or -1
+		// (map +0x16c, set by Civ3 0x5fe9c0).
 		private fixed int PlayerData[32];
+		public int StartLocation(int player) => PlayerData[player];
 		public int WorldSeed;
 
 		private fixed byte Flags[4];

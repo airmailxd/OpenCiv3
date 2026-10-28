@@ -41,12 +41,25 @@ namespace C7Engine {
 			public int numberOfCivs;
 			// The world size's distance between civs (WSIZ).
 			public int civDistance;
+			// How many of the starts must be by the sea (> 20 tiles of it):
+			// in Civ3 the number of seafaring civs in the game (Civ3
+			// 0x5590c0 counts them for 0x5fe9c0).
+			public int coastalStarts;
+			// Single player: the civs' order is shuffled once the starts are
+			// found, the human (slot 1) taking the start two thirds of the
+			// way down the ranking, and civs on one landmass put together.
+			public bool shuffleStarts = true;
 		}
 
 		// What the generator takes from the rules (the BIQ's TERR and GOOD),
 		// by Civ3's terrain numbers.
 		public class Rules {
-			public int[] irrigation = new int[14], food = new int[14], shields = new int[14], commerce = new int[14];
+			public int[] irrigation = new int[14], mining = new int[14], road = new int[14];
+			public int[] food = new int[14], shields = new int[14], commerce = new int[14];
+			// TERR +0x78, and whether TERR +0x70 (the worker job) is set: a
+			// city site looks at the base terrain of a tile a worker can
+			// clear.
+			public bool[] allowCities = new bool[14], workerJob = new bool[14];
 			public List<Good> goods = new();
 		}
 
@@ -56,6 +69,8 @@ namespace C7Engine {
 			public int type;
 			public int appearanceRatio;
 			public int food, shields, commerce;
+			// Whether it needs an advance to be seen (GOOD +0x4c).
+			public bool needsAdvance;
 			// The terrains (Civ3 numbers) it may be on (TERR +8).
 			public bool[] allowedOn = new bool[14];
 		}
@@ -71,6 +86,10 @@ namespace C7Engine {
 		public readonly uint[] flags;
 		public readonly byte[] river;
 		public readonly short[] body;
+		// The resource on each tile (an index into rules.goods, or -1), and
+		// whether it has a goody hut.
+		public readonly int[] resource;
+		public readonly bool[] hut;
 
 		// The bodies of land and water, land first and largest first
 		// (Civ3 0x5fb490).
@@ -87,6 +106,9 @@ namespace C7Engine {
 			flags = new uint[tileCount];
 			river = new byte[tileCount];
 			body = new short[tileCount];
+			resource = new int[tileCount];
+			Array.Fill(resource, -1);
+			hut = new bool[tileCount];
 		}
 
 		// Map::generate, Civ3 0x5fadd0, as far as it is ported.
@@ -114,6 +136,10 @@ namespace C7Engine {
 			}
 			FixTundraAndShallows();
 			FixVertices();
+			AddResources();
+			AddGoodyHuts();
+			AddBonusGrassland();
+			FindStartingLocations();
 		}
 
 		// --- Tiles and neighbors ---
@@ -1616,6 +1642,581 @@ namespace C7Engine {
 			if (changedWater) {
 				FindBodies();
 			}
+		}
+
+		// --- Resources, Civ3 0x6020d0 ---
+
+		// The landmass each luxury was put on, by good (-1 if none).
+		public int[] luxuryLandmass;
+
+		// How many of a good a map has: the number of civs times its
+		// appearance ratio (random 50..100 if 0), less if few terrains may
+		// have it; a water terrain counts as five.
+		private int GoodTarget(ref Rng rng, int g) {
+			Good good = rules.goods[g];
+			int ratio = good.appearanceRatio;
+			if (ratio == 0) {
+				int a = rng.Rand(26);
+				ratio = a + rng.Rand(26) + 50;
+			}
+			int target = settings.numberOfCivs * ratio / 100;
+			int w = TerrainWeight(g);
+			if (w == 0) {
+				return 0;
+			}
+			int least = 1;
+			if (w < 2) {
+				target = (int)(target * 0.5f);
+			} else if (w < 4) {
+				target = (int)(target * 0.75f);
+			} else {
+				least = 2;
+			}
+			return Math.Max(least, target);
+		}
+
+		private int TerrainWeight(int g) {
+			int w = 0;
+			for (int t = 0; t < 14; ++t) {
+				if (rules.goods[g].allowedOn[t]) {
+					w += t >= Coast ? 5 : 1;
+				}
+			}
+			return w;
+		}
+
+		private void AddResources() {
+			int n = rules.goods.Count;
+			luxuryLandmass = new int[n];
+			Array.Fill(luxuryLandmass, -1);
+			Rng rng = new(settings.seed + 0x180E3);
+			int[] order = Shuffle(ref rng, tileCount);
+			int early = 2 * tileCount / 3;
+
+			// Luxuries, each on one landmass, in clusters.
+			for (int g = 0; g < n; ++g) {
+				if (rules.goods[g].type != 1) {
+					continue;
+				}
+				int target = GoodTarget(ref rng, g);
+				for (int copies = 0; copies < target; ++copies) {
+					int c = 0;
+					while (c < tileCount) {
+						int t = order[c++];
+						if (luxuryLandmass[g] != -1 && body[t] != luxuryLandmass[g]) {
+							continue;
+						}
+						if (!CanPlaceResource(X(t), Y(t), g, c < early)) {
+							continue;
+						}
+						luxuryLandmass[g] = body[t];
+						resource[t] = g;
+						int x0 = X(t), y0 = Y(t);
+						while (copies < target && rng.Rand(2) == 0) {
+							for (int k = 1; k < 9; ++k) {
+								if (!Neighbor(x0, y0, k, out int nx, out int ny)) {
+									continue;
+								}
+								int same = 0;
+								for (int k2 = 1; k2 < 9; ++k2) {
+									if (Neighbor(nx, ny, k2, out int mx, out int my) && resource[Index(mx, my)] == g) {
+										++same;
+									}
+								}
+								if (same < 3 && CanPlaceResource(nx, ny, g, c < early)) {
+									resource[Index(nx, ny)] = g;
+									++copies;
+									break;
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+
+			// Strategic resources, each copy on the first tile that takes it.
+			int placed = 0;
+			for (int g = 0; g < n; ++g) {
+				if (rules.goods[g].type != 2) {
+					continue;
+				}
+				int target = GoodTarget(ref rng, g);
+				for (int copies = 0; copies < target; ++copies) {
+					if (PlaceOnFirst(order, g)) {
+						++placed;
+					}
+				}
+			}
+
+			// Bonus resources, a round at a time: each has a chance in each
+			// round, the better the more terrains may have it, until a round
+			// places none or there are a resource for every 32 tiles.
+			while (n > 0) {
+				int before = placed;
+				for (int g = 0; g < n; ++g) {
+					if (rules.goods[g].type == 1 || rules.goods[g].type == 2) {
+						continue;
+					}
+					int w = TerrainWeight(g);
+					if (w == 0) {
+						continue;
+					}
+					if (rng.Rand(w < 2 ? 6 : w < 4 ? 4 : 2) <= 1 && PlaceOnFirst(order, g)) {
+						++placed;
+					}
+				}
+				if (placed == before || placed >= tileCount >> 5) {
+					break;
+				}
+			}
+		}
+
+		private bool PlaceOnFirst(int[] order, int g) {
+			foreach (int t in order) {
+				if (CanPlaceResource(X(t), Y(t), g, true)) {
+					resource[t] = g;
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Map vt+0x44, Civ3 0x6031b0: whether good g may go on (x, y). A
+		// luxury needs a landmass of 75 tiles (37 late in the search). The
+		// terrain must allow it, the tile be free and not bonus grassland,
+		// and on the same body: next to it no other resource (nor the same
+		// strategic one); further out, to r+2 rings, no other luxury near a
+		// luxury and no copy of a strategic one. A water tile needs land
+		// within two tiles.
+		public bool CanPlaceResource(int x, int y, int g, bool early) {
+			int i = Index(x, y);
+			Good good = rules.goods[g];
+			if (good.type == 1 && bodies[body[i]].size < (early ? 75 : 37)) {
+				return false;
+			}
+			if (!good.allowedOn[terrain[i]] || resource[i] != -1 || (flags[i] & BonusGrasslandFlag) != 0) {
+				return false;
+			}
+			int K = 9;
+			if (good.type == 1 || good.type == 2) {
+				int r = Math.Min(4, (width + height) / 2 / 50);
+				K = (2 * r + 5) * (2 * r + 5);
+			}
+			for (int k = 1; k < K; ++k) {
+				if (!Neighbor(x, y, k, out int nx, out int ny)) {
+					continue;
+				}
+				int m = Index(nx, ny);
+				int other = resource[m];
+				if (body[m] != body[i] || other == -1) {
+					continue;
+				}
+				bool blocks;
+				if (k < 9) {
+					blocks = other != g || good.type == 2;
+				} else if (good.type == 2) {
+					blocks = other == g;
+				} else {
+					blocks = other != g && rules.goods[other].type == 1;
+				}
+				if (blocks) {
+					return false;
+				}
+			}
+			if (!IsWaterAt(i)) {
+				return true;
+			}
+			for (int k = 1; k < 21; ++k) {
+				if (Neighbor(x, y, k, out int nx, out int ny) && !IsWaterAt(Index(nx, ny))) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// --- Goody huts, Civ3 0x601fd0 ---
+
+		// One try for every 32 tiles at a random tile, which gets a hut if it
+		// is land with no resource and no hut within three tiles (Civ3
+		// 0x602b30). None without barbarians.
+		private void AddGoodyHuts() {
+			if (settings.barbarians == -1) {
+				return;
+			}
+			Rng rng = new(settings.seed + 0x8ACE);
+			for (int c = 0; c < tileCount >> 5; ++c) {
+				int t = rng.Rand(tileCount);
+				if (CanPlaceHut(X(t), Y(t))) {
+					hut[t] = true;
+				}
+			}
+		}
+
+		public bool CanPlaceHut(int x, int y) {
+			int i = Index(x, y);
+			if (IsWaterAt(i) || (flags[i] & StartFlag) != 0 || resource[i] != -1) {
+				return false;
+			}
+			for (int k = 0; k < 49; ++k) {
+				if (Neighbor(x, y, k, out int nx, out int ny) && hut[Index(nx, ny)]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// --- Bonus grassland, Civ3 0x601ea0 ---
+
+		// A third of the grassland (by base, so under forests and hills too)
+		// with no resource gets a bonus shield.
+		private void AddBonusGrassland() {
+			Rng rng = new(settings.seed + 0x8CF78);
+			int[] order = Shuffle(ref rng, tileCount);
+			foreach (int t in order) {
+				if (baseTerrain[t] == Grassland && resource[t] == -1 && rng.Rand(3) == 0) {
+					flags[t] |= BonusGrasslandFlag;
+				}
+			}
+		}
+
+		// --- Starting locations, Civ3 0x5fe9c0 ---
+
+		// Each player slot's start (a tile index, or -1); slot 0 is the
+		// barbarians' (map +0x16c).
+		public readonly int[] startSlots = new int[32];
+
+		// The number of starts found.
+		public int startCount;
+
+		private void FindStartingLocations() {
+			int civs = settings.numberOfCivs;
+			int[] luxuries = new int[bodies.Count], starts = new int[bodies.Count];
+			int luxuryTypes = 0;
+			for (int g = 0; g < rules.goods.Count; ++g) {
+				if (rules.goods[g].type != 1) {
+					continue;
+				}
+				for (int i = 0; i < tileCount; ++i) {
+					if (resource[i] == g) {
+						++luxuries[body[i]];
+						++luxuryTypes;
+						break;
+					}
+				}
+			}
+			Rng rng = new(settings.seed + 0x16062);
+			for (int s = 0; s < 32; ++s) {
+				startSlots[s] = -1;
+				rng.Next();
+			}
+			int[] order = Shuffle(ref rng, tileCount);
+			int[] score = new int[tileCount];
+			for (int k = 0; k < tileCount; ++k) {
+				score[k] = CitySiteScore(X(order[k]), Y(order[k]));
+			}
+			SortByScore(order, score);
+
+			int next = 1, slot = 1, placed = 0;
+			for (int pass = 0; pass < 8; ++pass) {
+				for (int k = 0; next <= civs && k < tileCount; ++k) {
+					int t = order[k];
+					int x = X(t), y = Y(t);
+					if (pass < 4 && placed < settings.coastalStarts) {
+						int sea = LargestWaterBeside(x, y);
+						if (sea == -1 || bodies[sea].size <= 20) {
+							continue;
+						}
+					}
+					if (y == 0 || y >= height - 1) {
+						continue;
+					}
+					if ((flags[t] & StartFlag) != 0 || IsWaterAt(t) || hut[t]) {
+						continue;
+					}
+					int b = body[t];
+					if (pass < 1 && next <= luxuryTypes && luxuries[b] <= starts[b]) {
+						continue;
+					}
+					int size = bodies[b].size;
+					if (size < 75 && !(pass >= 2 && size >= 37) && pass < 5) {
+						continue;
+					}
+					if (pass < 7 && score[k] <= 0) {
+						continue;
+					}
+					bool apart = true;
+					int distance = pass < 3 ? settings.civDistance : settings.civDistance / 2;
+					for (int s = 1; s <= civs && apart; ++s) {
+						int o = startSlots[s];
+						if (o == -1 || body[o] != b) {
+							continue;
+						}
+						int dx = Math.Abs(x - X(o));
+						if (settings.wrapX && dx > width / 2) {
+							dx = width - dx;
+						}
+						int dy = Math.Abs(y - Y(o));
+						if (settings.wrapY && dy > height / 2) {
+							dy = height - dy;
+						}
+						int far = Math.Max(dx, dy) - ((dx + dy) / 2 - Math.Min(dx, dy) + 1) / 2;
+						apart = far > distance;
+					}
+					if (pass < 6 && !apart) {
+						continue;
+					}
+					startSlots[slot] = t;
+					flags[t] |= StartFlag;
+					++starts[b];
+					++next;
+					++placed;
+					while (slot <= civs && startSlots[slot] != -1) {
+						++slot;
+					}
+				}
+			}
+			startCount = next - 1;
+
+			if (settings.shuffleStarts && next > 1) {
+				// The human player (slot 1) gets a start two thirds of the way
+				// down the ranking; the others are shuffled.
+				for (int i = 1; i < next; ++i) {
+					int j = i == 1 ? (2 * next - 2) / 3 + 1 : rng.Rand(next - i) + i;
+					(startSlots[i], startSlots[j]) = (startSlots[j], startSlots[i]);
+				}
+				// Civs on one landmass come one after another.
+				for (int a = 2; a - 1 < next; ++a) {
+					int reference = body[startSlots[a - 1]];
+					for (int b = a; b < next; ++b) {
+						if (body[startSlots[b]] == reference) {
+							continue;
+						}
+						for (int c = b + 1; c < next; ++c) {
+							if (body[startSlots[c]] == reference) {
+								(startSlots[b], startSlots[c]) = (startSlots[c], startSlots[b]);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// What Civ3's single-player setup does next (Civ3 0x5aec10, in the
+		// game start): each seafaring civ, in slot order, whose start is not
+		// by a sea of more than 20 tiles takes the first slot's start that is
+		// and that no seafaring civ has taken yet.
+		public void GiveSeafaringCivsCoastalStarts(Func<int, bool> seafaring, int players) {
+			bool[] coastal = new bool[32];
+			for (int s = 1; s < 32; ++s) {
+				int t = startSlots[s];
+				if (t >= 0) {
+					int sea = LargestWaterBeside(X(t), Y(t));
+					coastal[s] = sea != -1 && bodies[sea].size > 20;
+				}
+			}
+			for (int s = 1; s <= players; ++s) {
+				if (!seafaring(s) || startSlots[s] < 0) {
+					continue;
+				}
+				if (coastal[s]) {
+					coastal[s] = false;
+					continue;
+				}
+				for (int q = 1; q <= players; ++q) {
+					if (coastal[q]) {
+						(startSlots[s], startSlots[q]) = (startSlots[q], startSlots[s]);
+						coastal[q] = false;
+						break;
+					}
+				}
+			}
+		}
+
+		// Civ3 0x5fe8a0: the largest body of water beside a tile, or -1.
+		public int LargestWaterBeside(int x, int y) {
+			int best = -1;
+			for (int k = 1; k < 9; ++k) {
+				if (!Neighbor(x, y, k, out int nx, out int ny)) {
+					continue;
+				}
+				int n = Index(nx, ny);
+				if (!IsWaterAt(n) || body[n] == best) {
+					continue;
+				}
+				if (best == -1 || bodies[body[n]].size > bodies[best].size) {
+					best = body[n];
+				}
+			}
+			return best;
+		}
+
+		// Civ3 0x5dcda0: sorts the tiles by score, highest first, the way Civ3
+		// does: for each score from the lowest up, its tiles are swapped to
+		// the end of what is left.
+		private static void SortByScore(int[] keys, int[] values) {
+			SortedSet<int> distinct = new(values);
+			int last = keys.Length - 1;
+			foreach (int v in distinct) {
+				int i = 0;
+				while (i <= last) {
+					if (values[i] == v) {
+						if (i != last) {
+							(values[i], values[last]) = (values[last], values[i]);
+							(keys[i], keys[last]) = (keys[last], keys[i]);
+						}
+						--last;
+					} else {
+						++i;
+					}
+				}
+			}
+		}
+
+		// Map vt+0x58, Civ3 0x603680: a river within the first k tiles of the
+		// spiral.
+		public bool RiverWithin(int x, int y, int k) {
+			for (int j = 0; j < k; ++j) {
+				if (Neighbor(x, y, j, out int nx, out int ny) && river[Index(nx, ny)] != 0) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Civ3 0x444250 (the AI's city site value) as the map generator asks
+		// it, for a start (Map vt+8, 0x5e2bd0): with no cities, borders or
+		// players yet. 0 where a city can't be; otherwise a million plus the
+		// tiles and resources of the 21 tiles around, divided down for a
+		// start by the sea, without a luxury, among jungle, without two good
+		// tiles beside it, without fresh water, and on jungle, desert or
+		// tundra.
+		public int CitySiteScore(int x, int y) {
+			int center = Index(x, y);
+			if (!rules.allowCities[terrain[center]]) {
+				return 0;
+			}
+			int freshWater = HasFreshWater(x, y) ? 4 : 0;
+			int resources = 0, luxuries = 0, rivers = 0;
+			int best = 0, foodAndTrade = 0, good = 0, fair = 0, barren = 0;
+			for (int k = 0; k < 21; ++k) {
+				if (!Neighbor(x, y, k, out int nx, out int ny)) {
+					continue;
+				}
+				int n = Index(nx, ny);
+				int r = resource[n];
+				Good goodHere = r == -1 ? null : rules.goods[r];
+				if (goodHere != null) {
+					if (goodHere.type == 0) {
+						resources += 1;
+					} else {
+						resources += k < 9 ? 4 : 2;
+						if (goodHere.type == 1) {
+							++luxuries;
+						}
+					}
+				}
+				if (river[n] != 0) {
+					++rivers;
+				}
+				int t = k == 0 && rules.workerJob[terrain[n]] ? baseTerrain[n] : terrain[n];
+				int food;
+				if (k < 1) {
+					food = 2;
+				} else {
+					food = rules.food[t] + (goodHere?.food ?? 0) + rules.irrigation[t] + (IsWaterAt(n) ? 1 : 0);
+				}
+				int shields = rules.shields[t] + (goodHere?.shields ?? 0) + rules.mining[t];
+				if (IsWaterAt(n) && bodies[body[n]].size > 20) {
+					++shields;
+				}
+				if (terrain[n] == Grassland && (flags[n] & BonusGrasslandFlag) != 0) {
+					++shields;
+				}
+				int trade = rules.commerce[t] + (goodHere?.commerce ?? 0) + rules.road[t];
+				if (food > 2 && shields > 0) {
+					++best;
+				} else if (food > 2 && trade > 0) {
+					++foodAndTrade;
+				} else if (food > 1 && (shields > 0 || trade > 0)) {
+					++good;
+				} else if (food > 0 && (shields > 0 || trade > 0)) {
+					++fair;
+				} else if (food == 0) {
+					++barren;
+				}
+			}
+			int score = fair / 3 + 1000000 + best * 2 + good / 2 - barren + foodAndTrade + luxuries + resources + freshWater + rivers;
+
+			if (rules.irrigation[terrain[center]] == 0) {
+				return 0;
+			}
+			int land = 0;
+			for (int k = 1; k < 9; ++k) {
+				if (Neighbor(x, y, k, out int nx, out int ny) && !IsWaterAt(Index(nx, ny))) {
+					++land;
+				}
+			}
+			score /= 9 - land;
+			bool luxuryNear = false;
+			for (int k = 0; k < 45 && !luxuryNear; ++k) {
+				if (Neighbor(x, y, k, out int nx, out int ny)) {
+					int r = resource[Index(nx, ny)];
+					luxuryNear = r != -1 && rules.goods[r].type == 1;
+				}
+			}
+			if (!luxuryNear) {
+				score /= 16;
+			}
+			int jungles = 0;
+			for (int k = 1; k < 21; ++k) {
+				if (Neighbor(x, y, k, out int nx, out int ny) && terrain[Index(nx, ny)] == Jungle) {
+					++jungles;
+				}
+			}
+			score /= jungles * 32 / 20 + 1;
+			int fed = 0, worked = 0;
+			for (int k = 1; k < 9; ++k) {
+				if (!Neighbor(x, y, k, out int nx, out int ny)) {
+					continue;
+				}
+				int n = Index(nx, ny);
+				int r = resource[n];
+				Good known = r != -1 && !rules.goods[r].needsAdvance ? rules.goods[r] : null;
+				int food = rules.food[terrain[n]] + (IsWaterAt(n) && bodies[body[n]].size <= 20 ? 1 : 0) + (known?.food ?? 0);
+				if (food <= 1) {
+					continue;
+				}
+				++fed;
+				if (rules.shields[terrain[n]] > 0 || (terrain[n] == Grassland && (flags[n] & BonusGrasslandFlag) != 0) || (known != null && known.shields > 0)) {
+					++worked;
+				}
+			}
+			if (fed == 0) {
+				return 0;
+			}
+			if (fed == 1) {
+				score /= 64;
+			}
+			if (worked < 2) {
+				score /= 128;
+			}
+			if (!HasFreshWater(x, y)) {
+				score /= RiverWithin(x, y, 45) || NearSmallWater(x, y, 77) ? 256 : 512;
+			}
+			switch (terrain[center]) {
+				case Jungle:
+					score /= 1024;
+					break;
+				case Desert:
+					score /= 2048;
+					break;
+				case Tundra:
+					score /= 4096;
+					break;
+			}
+			return Math.Max(1, score);
 		}
 
 		// --- Coast, sea and ocean, Civ3 0x5fe5d0 ---

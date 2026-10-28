@@ -26,6 +26,8 @@ namespace QueryCiv3.Biq {
 		public int Commerce;
 		// Which worker job (TFRM) can be performed on this terrain type
 		private int WorkerJobAllowed;
+		// The worker job index, or -1 for none.
+		public readonly int WorkerJob { get => WorkerJobAllowed; }
 		public readonly bool CanPlantForest { get => WorkerJobAllowed == 5; }
 		public readonly bool CanChopForest { get => WorkerJobAllowed == 6; }
 		public readonly bool CanClearWetlands { get => WorkerJobAllowed == 7; }
