@@ -8,7 +8,9 @@ namespace C7Engine {
 	// world settings give the same map as in Civ3, tile for tile. It works
 	// in Civ3's own terms: tiles by index (y * width/2 + x/2, in the doubled
 	// x coordinates OpenCiv3 also uses), Civ3's terrain numbers, and Civ3's
-	// tile flags. MapGenerator turns the result into a GameMap.
+	// tile flags. MapGenerator turns the result into a GameMap. Over all
+	// 1184 maps of a corpus of Civ3's saves it makes the same map, tile for
+	// tile and start for start (MapGenExactTest).
 	//
 	// The notes this follows, with every function's address:
 	// rea_civ3/notes/mapgen.md.
@@ -85,7 +87,6 @@ namespace C7Engine {
 
 		public readonly Settings settings;
 		public readonly Rules rules;
-		public Action<string> Debug;
 		public readonly int width, height, tileCount;
 
 		// Per tile: Civ3's terrain type, base terrain, flags (+0x30), river
@@ -119,7 +120,8 @@ namespace C7Engine {
 			hut = new bool[tileCount];
 		}
 
-		// Map::generate, Civ3 0x5fadd0, as far as it is ported.
+		// Map::generate, Civ3 0x5fadd0: every step in Civ3's order. (Its settings
+		// come resolved: a random landform and so on are left to the caller.)
 		public void Generate() {
 			// Every tile starts as ocean (Civ3 0x5fac90).
 			for (int i = 0; i < tileCount; ++i) {
@@ -1268,7 +1270,6 @@ namespace C7Engine {
 					}
 					near = (dx + dy) / 2 <= 3;
 				}
-				Debug?.Invoke($"mouth ({x0},{y0}) body {b} score {s} slot {j} range {start}-{end} near {near}");
 				if (near) {
 					continue;
 				}
@@ -1304,7 +1305,6 @@ namespace C7Engine {
 					}
 				}
 				int dir = topWet ? (leftWet ? 1 : 2) : (leftWet ? 0 : 3);
-				Debug?.Invoke($"trace slot {slot} ({x0},{y0}) v ({vx},{vy}) dir {dir}");
 				TraceRiver(vx, vy, dir, 0, 0, 0, 0);
 			}
 
@@ -1360,7 +1360,6 @@ namespace C7Engine {
 		// returns whether it went on. Where it can't, a long enough river
 		// starts on a mountain; a short one is taken back.
 		private bool TraceRiver(int vx, int vy, int dir, int length, int sinceFork, int turns, int straight) {
-			Debug?.Invoke($"  edge ({vx},{vy}) dir {dir} len {length} fork {sinceFork} turns {turns} straight {straight}");
 			if (length > 20) {
 				RiverSource(vx, vy, dir);
 				return true;
@@ -1382,7 +1381,6 @@ namespace C7Engine {
 				int d = (dir + 1) & 3;
 				scores[2] = RiverOption(ex + RiverDx[d], ey + RiverDy[d], d, length, turns <= 0 ? 0 : 2);
 			}
-			Debug?.Invoke($"    scores {scores[0]} {scores[1]} {scores[2]}");
 			if (scores[0] >= 0 || scores[1] >= 0 || scores[2] >= 0) {
 				if (BranchRiver(ex, ey, dir, length, sinceFork, turns, straight, scores)) {
 					return true;
