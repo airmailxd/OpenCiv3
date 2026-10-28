@@ -132,12 +132,15 @@ namespace C7Engine.AI {
 		}
 
 		// HEURISTIC: what the tide does to a site's score: the share of the
-		// longest life any site could have, in waves, squared. A city's
-		// worth is its yield for as long as it stands, but under the tide
-		// the waves matter more than the turns: the waves come ever faster,
-		// so lasting a wave longer counts for more as the game goes on, and
-		// the civ with the last city wins. Squared, a site twice as deep is
-		// worth as much as one with four times its yield.
+		// longest life any site could have, in waves. A city's worth is its
+		// yield for as long as it stands, but under the tide the waves
+		// matter more than the turns: the waves come ever faster, so
+		// lasting a wave longer counts for more as the game goes on. The
+		// civ works its way inland a ring or two at a time, its cities on
+		// the edge making units while they stand, rather than making for
+		// the middle at once (owner's suggestion, 2026-10-27). With the
+		// share squared, in AI trials (32 paired games of 8 civs on a
+		// 100x100 map), civs fell 5.5 turns sooner (+- 2.7).
 		public static float SiteSurvivalFactor(Tile t) {
 			int w = WavesUntilDrowned(t);
 			int deepest = DeepestLand();
@@ -145,7 +148,7 @@ namespace C7Engine.AI {
 				return 1;
 			}
 			float share = Math.Min(w, deepest) / (float)deepest;
-			return share * share;
+			return share;
 		}
 
 		// HEURISTIC: for a settler choosing where to go, the share of the
@@ -273,6 +276,64 @@ namespace C7Engine.AI {
 		// send a unit to, or to improve.
 		public const int DoomedTileTurns = 4;
 		public const int MinImprovedTileTurns = 10;
+
+		// An improvement is only of use while a city of ours can work the
+		// tile, so a tile around a city the sea will soon take, like the
+		// start city, isn't worth improving even if the tile outlasts it
+		// (owner's suggestion, 2026-10-27). HEURISTIC: it must be of use for
+		// this many turns. (In AI trials it made no clear difference to
+		// when civs fell, +1.3 turns +- 2.0, and kept workers at home more.)
+		public const int MinImprovementUseTurnsForWorkers = 15;
+
+		// The turns an improvement on each tile our cities could work would
+		// be of use: until the tile drowns, or the last of those cities
+		// does, whichever is sooner.
+		public static Dictionary<Tile, int> TileUseTurns(Player player) {
+			Dictionary<Tile, int> result = new();
+			foreach (City c in player.cities) {
+				int life = CityTurnsLeft(c);
+				foreach (Tile t in c.GetWorkableTiles()) {
+					int use = Math.Min(life, TurnsUntilDrowned(t));
+					if (!result.TryGetValue(t, out int u) || use > u) {
+						result[t] = use;
+					}
+				}
+			}
+			return result;
+		}
+
+		// Half the workers build roads leading inland, rather than a
+		// quarter of them joining the cities to a capital the sea will soon
+		// take: from each city to the nearest of ours that lasts longer, and
+		// to the sites our settlers are bound for, so units and settlers can
+		// move inland ahead of the tide (owner's suggestion, 2026-10-27).
+		// Roads go on any tile that lasts more than DoomedTileTurns. (In AI
+		// trials it made no clear difference to when civs fell, +0.8 turns
+		// +- 1.2.)
+
+		public static List<(Tile from, Tile to)> InlandRoads(Player player) {
+			List<(Tile, Tile)> roads = new();
+			foreach (City c in player.cities) {
+				int waves = WavesUntilDrowned(c.location);
+				City deeper = player.cities
+					.Where(o => o != c && o.location.continent == c.location.continent && WavesUntilDrowned(o.location) > waves)
+					.MinBy(o => o.location.DistanceTo(c.location));
+				if (deeper != null) {
+					roads.Add((c.location, deeper.location));
+				}
+			}
+			foreach (MapUnit unit in player.units) {
+				if (unit.currentAI is not SettlerAI settler || settler.data.goal != C7GameData.AIData.SettlerAIData.SettlerGoal.BUILD_CITY
+						|| settler.data.destination is not Tile site || site == Tile.NONE || site.HasCity()) {
+					continue;
+				}
+				City from = player.cities.Where(c => c.location.continent == site.continent).MinBy(c => c.location.DistanceTo(site));
+				if (from != null) {
+					roads.Add((from.location, site));
+				}
+			}
+			return roads;
+		}
 
 		// Whether the tile drowns within `turns` turns.
 		public static bool DrownsWithin(Tile t, int turns) {

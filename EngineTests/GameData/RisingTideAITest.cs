@@ -236,4 +236,38 @@ public class RisingTideAITest {
 		plan = WorkerAI.MakeAiData(worker, civ);
 		Assert.True(plan?.destination == null || !TideAI.DrownsWithin(plan.destination, TideAI.MinImprovedTileTurns), $"worker sent to {plan?.destination}");
 	}
+
+	// An improvement is only of use while a city of ours can work the tile:
+	// land around a city the sea takes at the next wave isn't worth it,
+	// though the land lasts longer than the city.
+	[Fact]
+	public async Task LandIsOnlyOfUseWhileACityCanWorkIt() {
+		C7GameData.GameData gameData = NewGame(19);
+		Player civ = FirstCiv(gameData);
+		Tile shore = RisingTide.Shore(gameData).First(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && t.OwningPlayer() == null
+			&& t.GetLandNeighbors().Any(n => TideAI.WavesUntilDrowned(n) >= 2));
+		City city = await gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), shore).BuildCity("Ys");
+		Dictionary<Tile, int> use = TideAI.TileUseTurns(civ);
+		Tile deeper = city.GetWorkableTiles().First(t => TideAI.WavesUntilDrowned(t) >= 2);
+		Assert.True(TideAI.TurnsUntilDrowned(deeper) > TideAI.CityTurnsLeft(city));
+		Assert.Equal(TideAI.CityTurnsLeft(city), use[deeper]);
+	}
+
+	// The roads lead inland: from each city to the nearest of ours that
+	// lasts longer, and to where a settler is bound.
+	[Fact]
+	public async Task TheRoadsLeadInland() {
+		C7GameData.GameData gameData = NewGame(20);
+		Player civ = FirstCiv(gameData);
+		foreach (City c in civ.cities.ToList()) {
+			CityInteractions.DestroyCity(c);
+		}
+		Tile shore = RisingTide.Shore(gameData).First(t => t.IsAllowCities() && t.unitsOnTile.Count == 0 && t.OwningPlayer() == null);
+		Tile inland = gameData.map.tiles.Where(t => t.IsAllowCities() && t.continent == shore.continent && t.unitsOnTile.Count == 0
+			&& TideAI.WavesUntilDrowned(t) >= 3 && t.DistanceTo(shore) >= 4).MinBy(t => t.DistanceTo(shore));
+		City edge = await gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), shore).BuildCity("Ys");
+		City heart = await gameData.SpawnUnit(civ, Prototype(gameData, "Settler"), inland).BuildCity("Is");
+		List<(Tile from, Tile to)> roads = TideAI.InlandRoads(civ);
+		Assert.Equal([(edge.location, heart.location)], roads);
+	}
 }

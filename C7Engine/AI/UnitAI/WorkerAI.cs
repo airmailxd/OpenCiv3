@@ -228,9 +228,13 @@ namespace C7Engine {
 
 			// Under Rising Tide, nor tiles the sea will take before the
 			// work pays off (see TideAI).
+			bool tideRoads = TideAI.IsOn();
+			HashSet<Tile> reservedBeforeTide = tideRoads ? new(reservedTiles) : null;
 			if (TideAI.IsOn()) {
+				Dictionary<Tile, int> useTurns = TideAI.TileUseTurns(player);
 				foreach (Tile t in highPriorityTiles.Concat(lowPriorityTiles)) {
-					if (TideAI.DrownsWithin(t, TideAI.MinImprovedTileTurns)) {
+					int use = useTurns.TryGetValue(t, out int u) ? u : TideAI.TurnsUntilDrowned(t);
+					if (use != TideAI.Never && use < TideAI.MinImprovementUseTurnsForWorkers) {
 						reservedTiles.Add(t);
 					}
 				}
@@ -295,10 +299,11 @@ namespace C7Engine {
 						++roadWorkers;
 					}
 				});
-				int share = (workers + 1) / 4;
+				int share = tideRoads ? (workers + 2) / 2 : (workers + 1) / 4;
 				if (roadWorkers < share) {
-					List<Tile> open = connectionTiles.Where(t => !reservedTiles.Contains(t) && RoadTerraform(unit, t) != null
-							&& t.OwningPlayer() == player && (within == null || within.Contains(t)))
+					List<Tile> open = connectionTiles.Where(t => (tideRoads ? !reservedBeforeTide.Contains(t) && !TideAI.DrownsWithin(t, TideAI.DoomedTileTurns)
+								: !reservedTiles.Contains(t)) && RoadTerraform(unit, t) != null
+							&& (t.OwningPlayer() == player || (tideRoads && t.OwningPlayer() == null)) && (within == null || within.Contains(t)))
 						.OrderBy(t => t.DistanceTo(unit.location)).ToList();
 					if (open.Count > 0) {
 						algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
@@ -600,6 +605,15 @@ namespace C7Engine {
 						result.Add(t);
 					}
 				}
+			}
+
+			// Under Rising Tide the roads lead inland instead (see
+			// TideAI.InlandRoads).
+			if (TideAI.IsOn()) {
+				foreach ((Tile from, Tile to) in TideAI.InlandRoads(player)) {
+					AddRoadless(algorithm.PathFrom(from, to, unit));
+				}
+				return result;
 			}
 
 			int continent = capital.location.continent;
