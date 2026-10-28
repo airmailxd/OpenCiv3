@@ -50,6 +50,7 @@ public class MdjScenarioTest {
 		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
 			Assert.Equal(gameData.techs.Count, civ.knownTechs.Count);
 			Assert.Equal(GameSetup.MdjGovernment, civ.government.name);
+			Assert.Equal(EraUtils.MIDDLE_AGES_CVLPD, civ.eraCivilopediaName);
 			Assert.False(civ.CanStartRevolution(gameData));
 			Assert.Single(civ.cities);
 			Assert.True(civ.units.Count(u => u.unitType.isWorker) >= 3);

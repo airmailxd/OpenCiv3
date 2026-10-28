@@ -317,7 +317,15 @@ public partial class AnimationManager {
 	public IniData getINIData(string pathKey) {
 		if (!iniDatas.TryGetValue(pathKey, out IniData tr)) {
 			string fullPath = Util.Civ3MediaPath(pathKey);
-			tr = C7Engine.Util.GetFileIniDataParser().ReadFile(fullPath);
+			// Some INIs have junk before their first section, which Civ3
+			// ignores: PTW's Medieval Japan Leader's starts with a time stamp,
+			// "11:27 AM 5/10/2002[Speed]".
+			string text = System.IO.File.ReadAllText(fullPath);
+			int firstSection = text.IndexOf('[');
+			if (firstSection > 0) {
+				text = text[firstSection..];
+			}
+			tr = C7Engine.Util.GetFileIniDataParser().Parser.Parse(text);
 			iniDatas.Add(pathKey, tr);
 		}
 		return tr;

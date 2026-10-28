@@ -86,10 +86,11 @@ public static class ModernGraphics {
 	// Whether the remade art is used for a media path: with the overhaul on,
 	// or in standalone mode for unit art and for any art the standalone asset
 	// pack doesn't have (such as flood plains), which have nothing else to
-	// fall back on.
+	// fall back on. Not, with Civ3's art, for a file a scenario has its own
+	// of (Util.ScenarioReplacesStockArt): the remade art is of the game's.
 	private static bool UsedFor(string mediaPath) {
 		if (Enabled) {
-			return true;
+			return C7Settings.UseStandaloneMode() || !Util.ScenarioReplacesStockArt(mediaPath);
 		}
 		if (!C7Settings.UseStandaloneMode()) {
 			return false;

@@ -107,15 +107,16 @@ public partial class GameSetup {
 		save.Rules.OnlyGovernment = MdjGovernment;
 		save.Rules.PersistentResources = true;
 		save.Rules.GovernmentLocked = true;
+		// Every civ is in the Middle Ages, MDJ's feudal Japan, though it knows
+		// the advances of MDJ's later eras too: a civ's era decides how its
+		// cities and leader are drawn, and it never changes, as a civ only
+		// enters an era when it learns an advance (Player.CanAdvanceToNextEra).
+		save.Rules.FirstEraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;
 	}
 
-	// Every advance, and the era of the latest of them.
+	// Every advance (the era stays the rules' first, see SetUpMdjRules).
 	private static void GiveAllTechs(SaveGame save, SavePlayer player) {
 		player.knownTechs.UnionWith(save.Techs.Select(t => t.id));
-		int era = save.Techs.Max(t => EraUtils.GetEraIndex(t.EraCivilopediaName));
-		if (era > EraUtils.GetEraIndex(player.eraCivilopediaName)) {
-			player.eraCivilopediaName = EraUtils.EraIndexToEra(era);
-		}
 	}
 
 	// The government everyone starts in: the only one the rules allow, if

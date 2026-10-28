@@ -158,6 +158,7 @@ public partial class Util {
 
 	private static void ClearMediaPathCache() {
 		mediaPathCache.Clear();
+		scenarioReplacesStock.Clear();
 		directoryListings.Clear();
 	}
 
@@ -241,6 +242,31 @@ public partial class Util {
 		// if we can't find the path in civ3 graphics. This allows us to toggle
 		// to c7 art when we aren't in standalone mode.
 		return c7Path;
+	}
+
+	// Whether the scenario being played has its own file for the media in
+	// place of one of the game's (as MDJ has its own resources.pcx, from the
+	// Sengoku conquest). The remade art of the Graphics Overhaul remakes the
+	// game's files, so it mustn't stand in for a scenario's (see
+	// ModernGraphics.UsedFor). Art only a scenario has, like its own units,
+	// may have been remade from it, and isn't replacing anything.
+	private static readonly Dictionary<string, bool> scenarioReplacesStock = new();
+
+	public static bool ScenarioReplacesStockArt(string mediaPath) {
+		if (string.IsNullOrEmpty(modPath)) {
+			return false;
+		}
+		if (!scenarioReplacesStock.TryGetValue(mediaPath, out bool result)) {
+			bool inScenario = false;
+			foreach (string path in modPath.Split(";")) {
+				foreach (string tryPath in new[] { path, "Conquests/Conquests/" + path, "Conquests/Scenarios/" + path, "civ3PTW/Scenarios/" + path }) {
+					inScenario |= CheckForCiv3Media(mediaPath, tryPath) != null;
+				}
+			}
+			result = inScenario && new[] { "Conquests", "civ3PTW", "" }.Any(b => CheckForCiv3Media(mediaPath, b) != null);
+			scenarioReplacesStock[mediaPath] = result;
+		}
+		return result;
 	}
 
 	private static string CheckForCiv3Media(string relPath, string rootPath) {
