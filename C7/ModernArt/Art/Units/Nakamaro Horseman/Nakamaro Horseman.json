@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_Horse Samuri default",
+    "RUN": "x_Horse Samuri run",
+    "ATTACK1": "x_Horse Samuri attack_a",
+    "DEATH": "x_Horse Samuri death",
+    "FORTIFY": "x_Horse Samuri fortify",
+    "FIDGET": "x_Horse Samuri fidget",
+    "VICTORY": "x_Horse Samuri victory"
+  },
+  "flics": {
+    "x_Horse Samuri attack_a": {"size": [83, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [71, 59], "canvas": [240, 240]},
+    "x_Horse Samuri death": {"size": [128, 86], "directions": 8, "frames": 15, "frameMs": 66, "offset": [57, 67], "canvas": [240, 240]},
+    "x_Horse Samuri default": {"size": [77, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [75, 68], "canvas": [240, 240]},
+    "x_Horse Samuri fidget": {"size": [78, 70], "directions": 8, "frames": 14, "frameMs": 83, "offset": [74, 64], "canvas": [240, 240]},
+    "x_Horse Samuri fortify": {"size": [78, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 65], "canvas": [240, 240]},
+    "x_Horse Samuri run": {"size": [85, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [71, 65], "canvas": [240, 240]},
+    "x_Horse Samuri victory": {"size": [76, 87], "directions": 8, "frames": 14, "frameMs": 83, "offset": [75, 46], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_Shoni no Kagesuke default",
+    "RUN": "x_Shoni no Kagesuke run",
+    "ATTACK1": "x_Shoni no Kagesuke attack_A",
+    "DEATH": "x_Shoni no Kagesuke death",
+    "FORTIFY": "x_Shoni no Kagesuke fortify",
+    "FIDGET": "x_Shoni no Kagesuke fidget",
+    "VICTORY": "x_Shoni no Kagesuke victory"
+  },
+  "flics": {
+    "x_Shoni no Kagesuke attack_A": {"size": [132, 89], "directions": 8, "frames": 15, "frameMs": 83, "offset": [46, 54], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke death": {"size": [116, 99], "directions": 8, "frames": 15, "frameMs": 83, "offset": [62, 54], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke default": {"size": [77, 74], "directions": 8, "frames": 15, "frameMs": 125, "offset": [75, 58], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke fidget": {"size": [79, 76], "directions": 8, "frames": 14, "frameMs": 100, "offset": [73, 56], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke fortify": {"size": [76, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 55], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke run": {"size": [75, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 57], "canvas": [240, 240]},
+    "x_Shoni no Kagesuke victory": {"size": [86, 84], "directions": 8, "frames": 14, "frameMs": 83, "offset": [68, 51], "canvas": [240, 240]}
+  }
+}
