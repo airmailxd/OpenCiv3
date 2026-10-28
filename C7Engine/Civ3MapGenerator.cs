@@ -1,6 +1,7 @@
 namespace C7Engine {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	// Civilization III's own random map generator (Civ3Conquests.exe 1.22,
 	// Map::generate, Civ3 0x5fadd0), step by step, so that a seed and the
@@ -49,6 +50,9 @@ namespace C7Engine {
 			// found, the human (slot 1) taking the start two thirds of the
 			// way down the ranking, and civs on one landmass put together.
 			public bool shuffleStarts = true;
+			// OpenCiv3's own: every landmass but the largest is sunk, leaving
+			// one landmass and no islands (Rising Tide, Eternal War).
+			public bool singleLandmass;
 		}
 
 		// What the generator takes from the rules (the BIQ's TERR and GOOD),
@@ -71,6 +75,10 @@ namespace C7Engine {
 			public int food, shields, commerce;
 			// Whether it needs an advance to be seen (GOOD +0x4c).
 			public bool needsAdvance;
+			// OpenCiv3's own: a strategic resource a unit or building needs
+			// is placed before those nothing needs (MDJ's rules make nearly
+			// every resource strategic; in Civ3's rules a unit needs each).
+			public bool placedFirst;
 			// The terrains (Civ3 numbers) it may be on (TERR +8).
 			public bool[] allowedOn = new bool[14];
 		}
@@ -120,6 +128,9 @@ namespace C7Engine {
 			Shape();
 			if (settings.landform == 1) {
 				CutContinentsChannel();
+			}
+			if (settings.singleLandmass) {
+				SinkAllButLargestLandmass();
 			}
 			SetWaterDepth();
 			AddHillsAndMountains();
@@ -720,6 +731,18 @@ namespace C7Engine {
 				(a[max], a[hi]) = (a[hi], a[max]);
 				--hi;
 			}
+		}
+
+		// OpenCiv3's own (settings.singleLandmass): the land of every body but
+		// the largest landmass becomes sea, so the coast step rings what is
+		// left.
+		private void SinkAllButLargestLandmass() {
+			for (int i = 0; i < tileCount; ++i) {
+				if (!IsWaterAt(i) && body[i] != 0) {
+					SetTerrain(i, Sea);
+				}
+			}
+			FindBodies();
 		}
 
 		// --- Continents' channel, Civ3 0x5fcd90 ---
@@ -1737,10 +1760,8 @@ namespace C7Engine {
 
 			// Strategic resources, each copy on the first tile that takes it.
 			int placed = 0;
-			for (int g = 0; g < n; ++g) {
-				if (rules.goods[g].type != 2) {
-					continue;
-				}
+			IEnumerable<int> strategic = Enumerable.Range(0, n).Where(g => rules.goods[g].type == 2);
+			foreach (int g in strategic.Where(g => rules.goods[g].placedFirst).Concat(strategic.Where(g => !rules.goods[g].placedFirst))) {
 				int target = GoodTarget(ref rng, g);
 				for (int copies = 0; copies < target; ++copies) {
 					if (PlaceOnFirst(order, g)) {
