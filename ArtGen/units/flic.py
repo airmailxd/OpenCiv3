@@ -309,7 +309,7 @@ def load_unit_flic(unit, name):
 def all_unit_folders():
     root = civ3art.civ3_root()
     seen = {}
-    for base in ('Art', 'civ3PTW/Art', 'Conquests/Art'):
+    for base in ('Art', 'civ3PTW/Art', 'Conquests/Art') + tuple(f + '/Art' for f in civ3art.SCENARIO_FOLDERS):
         d = os.path.join(root, base, 'Units')
         if not os.path.isdir(d):
             continue

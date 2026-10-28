@@ -46,11 +46,19 @@ def _find_ignoring_case(root, rel):
     return path
 
 
+# The folders of the scenarios whose art is remade too, looked in after the
+# game's own: MDJ's (C7/Lua/mdj, from Conquests/Scenarios/MPTournamentMDJ.biq),
+# whose units and leaders come from the Sengoku conquest and PTW's Medieval
+# Japan extras.
+SCENARIO_FOLDERS = ('Conquests/Conquests/Sengoku', 'civ3PTW/Extras/Medieval Japan')
+
+
 def media_path(rel):
     """The original file the game uses for a media path such as 'Art/Terrain/xtgc.pcx'
-    (Conquests first, then Play the World, then the base game, like the game does)."""
+    (Conquests first, then Play the World, then the base game, like the game does,
+    and then the scenario folders whose art is remade too)."""
     root = civ3_root()
-    for base in ('Conquests', 'civ3PTW', ''):
+    for base in ('Conquests', 'civ3PTW', '') + SCENARIO_FOLDERS:
         found = _find_ignoring_case(root, f'{base}/{rel}' if base else rel)
         if found:
             return found

@@ -788,6 +788,31 @@ def g_fur_cape(g, mat='pelt', color='#c8ac80'):
 
 GEAR = {name[2:]: fn for name, fn in globals().items() if name.startswith('g_') and callable(fn)}
 
+# Gear and props kept in modules of their own (as for a scenario's units,
+# like MDJ's), so units can be added without editing this file: a module in
+# models/ calls register_extra(sys.modules[__name__]) as it's imported (every
+# module there is, see models.load_all). Its g_<name> functions become gear,
+# and its other functions props, looked up after props_foot_ancient's.
+EXTRA_PROPS = []
+
+
+def register_extra(module):
+    for name, fn in vars(module).items():
+        if name.startswith('g_') and callable(fn):
+            if name[2:] in GEAR and GEAR[name[2:]] is not fn:
+                raise ValueError(f'gear {name[2:]!r} is defined twice')
+            GEAR[name[2:]] = fn
+    if module not in EXTRA_PROPS:
+        EXTRA_PROPS.append(module)
+
+
+def _extra_prop(pname):
+    for module in EXTRA_PROPS:
+        fn = getattr(module, pname, None)
+        if callable(fn):
+            return fn
+    return None
+
 
 # ------------------------------------------------------------ extra animations
 
@@ -876,7 +901,7 @@ class Footman(H.Humanoid):
             pname, pkw = self.prop_over[name] if not isinstance(self.prop_over[name], str) else (self.prop_over[name], {})
             key = ('over', name, tuple(sorted(kw.items())))
             if key not in self._props:
-                fn = getattr(PF, pname, None) or getattr(P, pname)
+                fn = getattr(PF, pname, None) or _extra_prop(pname) or getattr(P, pname)
                 self._props[key] = fn(self.mats, **dict(pkw, **kw))
             return self._props[key]
         return super().prop(name, **kw)
