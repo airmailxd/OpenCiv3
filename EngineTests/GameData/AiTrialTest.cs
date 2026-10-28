@@ -297,7 +297,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		// C7_TRIAL_RULES=mdj plays under MPTournamentMDJ.biq's rules (see
 		// GameSetup.Mdj.cs).
 		SaveGame save = Environment.GetEnvironmentVariable("C7_TRIAL_RULES") == "mdj"
-			? GameSetup.LoadMdjRules(QueryCiv3.Civ3Location.GetCiv3Path()) ?? throw new InvalidOperationException("No MPTournamentMDJ.biq")
+			? GameSetup.LoadMdjRules(PathUtils.GameModesDir, new GameMode.Config("civ3"))
 			: SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = landform,

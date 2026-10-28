@@ -1,0 +1,6819 @@
+{
+  "version": "0.0.0",
+  "terrainTypes": [
+    {
+      "key": "desert",
+      "displayName": "Desert",
+      "baseFoodProduction": 0,
+      "baseShieldProduction": 1,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Desert",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Saltpeter",
+        "Jade",
+        "Incense",
+        "Precious Stones",
+        "Wheat 2",
+        "Precious Stones 2"
+      ],
+      "height": 0,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "plains",
+      "displayName": "Plains",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 1,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "desert",
+      "defenseBonus": {
+        "description": "Plains",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Horses",
+        "Iron",
+        "Jade",
+        "Cattle",
+        "Wheat"
+      ],
+      "height": 0,
+      "allowedFoliageAction": "plantForest"
+    },
+    {
+      "key": "grassland",
+      "displayName": "Grassland",
+      "baseFoodProduction": 2,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "plains",
+      "defenseBonus": {
+        "description": "Grassland",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Horses",
+        "Saltpeter",
+        "Jade",
+        "Precious Stones",
+        "Olive Oil",
+        "Precious Stones 2"
+      ],
+      "height": 0,
+      "allowedFoliageAction": "plantForest"
+    },
+    {
+      "key": "tundra",
+      "displayName": "Tundra",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Tundra",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Horses",
+        "Jade",
+        "Furs",
+        "Game",
+        "Olive Oil",
+        "Precious Stones 2"
+      ],
+      "height": 0,
+      "allowedFoliageAction": "plantForest"
+    },
+    {
+      "key": "flood plain",
+      "displayName": "Floodplain",
+      "baseFoodProduction": 3,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Floodplain",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Horses",
+        "Saltpeter"
+      ],
+      "height": 0,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "hills",
+      "displayName": "Hills",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 1,
+      "baseCommerceProduction": 0,
+      "movementCost": 2,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Hills",
+        "amount": 0.5
+      },
+      "allowedResources": [
+        "Horses",
+        "Iron",
+        "Saltpeter",
+        "Jade",
+        "Sake",
+        "Incense"
+      ],
+      "height": 2,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "mountains",
+      "displayName": "Mountains",
+      "baseFoodProduction": 0,
+      "baseShieldProduction": 1,
+      "baseCommerceProduction": 0,
+      "movementCost": 3,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": true,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Mountains",
+        "amount": 1
+      },
+      "allowedResources": [
+        "Iron",
+        "Saltpeter",
+        "Jade",
+        "Gems",
+        "Precious Stones",
+        "Precious Stones 2",
+        "Sake 2"
+      ],
+      "height": 4,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "forest",
+      "displayName": "Forest",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 2,
+      "baseCommerceProduction": 0,
+      "movementCost": 2,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "base terrain",
+      "defenseBonus": {
+        "description": "Forest",
+        "amount": 0.25
+      },
+      "allowedResources": [
+        "Horses",
+        "Saltpeter",
+        "Jade",
+        "Furs",
+        "Dyes",
+        "Spices",
+        "Silks",
+        "Olive Oil"
+      ],
+      "height": 1,
+      "allowedFoliageAction": "clearForest"
+    },
+    {
+      "key": "jungle",
+      "displayName": "Jungle",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 3,
+      "allowCities": true,
+      "impassable": false,
+      "impassableByWheeled": true,
+      "allowForts": true,
+      "allowAirfields": true,
+      "allowRadarTowers": true,
+      "allowOutposts": true,
+      "allowColonies": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "base terrain",
+      "defenseBonus": {
+        "description": "Jungle",
+        "amount": 0.25
+      },
+      "allowedResources": [
+        "Iron",
+        "Jade",
+        "Sake",
+        "Dyes",
+        "Spices",
+        "Silks",
+        "Gems",
+        "Game",
+        "Precious Stones",
+        "Precious Stones 2",
+        "Sake 2"
+      ],
+      "height": 1,
+      "allowedFoliageAction": "clearWetlands"
+    },
+    {
+      "key": "marsh",
+      "displayName": "Marsh",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 2,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": true,
+      "allowForts": true,
+      "allowAirfields": false,
+      "allowRadarTowers": false,
+      "allowOutposts": true,
+      "allowColonies": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Marsh",
+        "amount": 0
+      },
+      "allowedResources": [
+        "Saltpeter",
+        "Jade",
+        "Sake",
+        "Game",
+        "Precious Stones",
+        "Precious Stones 2",
+        "Sake 2"
+      ],
+      "height": -2,
+      "allowedFoliageAction": "clearWetlands"
+    },
+    {
+      "key": "volcano",
+      "displayName": "Volcano",
+      "baseFoodProduction": 0,
+      "baseShieldProduction": 3,
+      "baseCommerceProduction": 0,
+      "movementCost": 9,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": true,
+      "allowForts": false,
+      "allowAirfields": false,
+      "allowRadarTowers": false,
+      "allowOutposts": false,
+      "allowColonies": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Volcano",
+        "amount": 0
+      },
+      "allowedResources": [
+        "Precious Stones"
+      ],
+      "height": 4,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "coast",
+      "displayName": "Coast",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 2,
+      "movementCost": 1,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": false,
+      "allowAirfields": false,
+      "allowRadarTowers": false,
+      "allowOutposts": false,
+      "allowColonies": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Coast",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Fish",
+        "Pearls",
+        "Sandbar",
+        "Pearls 2"
+      ],
+      "height": -2,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "sea",
+      "displayName": "Sea",
+      "baseFoodProduction": 1,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 1,
+      "movementCost": 1,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": false,
+      "allowAirfields": false,
+      "allowRadarTowers": false,
+      "allowOutposts": false,
+      "allowColonies": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Sea",
+        "amount": 0.1
+      },
+      "allowedResources": [
+        "Whales",
+        "Whales 2"
+      ],
+      "height": -2,
+      "allowedFoliageAction": "none"
+    },
+    {
+      "key": "ocean",
+      "displayName": "Ocean",
+      "baseFoodProduction": 0,
+      "baseShieldProduction": 0,
+      "baseCommerceProduction": 0,
+      "movementCost": 1,
+      "allowCities": false,
+      "impassable": false,
+      "impassableByWheeled": false,
+      "allowForts": false,
+      "allowAirfields": false,
+      "allowRadarTowers": false,
+      "allowOutposts": false,
+      "allowColonies": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
+      "pollutionEffect": "none",
+      "defenseBonus": {
+        "description": "Ocean",
+        "amount": 0.1
+      },
+      "height": -2,
+      "allowedFoliageAction": "none"
+    }
+  ],
+  "terrainImprovements": [
+    {
+      "key": "irrigation",
+      "layer": "resourceDevelopment",
+      "zIndex": 0,
+      "movementCost": -1,
+      "bonusYields": {
+        "desert": {
+          "food": 1
+        },
+        "plains": {
+          "food": 1
+        },
+        "grassland": {
+          "food": 1
+        },
+        "flood plain": {
+          "food": 1
+        }
+      }
+    },
+    {
+      "key": "road",
+      "layer": "roads",
+      "zIndex": 1,
+      "movementCost": 0.33333334,
+      "bonusYields": {
+        "desert": {
+          "commerce": 1
+        },
+        "plains": {
+          "commerce": 1
+        },
+        "grassland": {
+          "commerce": 1
+        },
+        "tundra": {
+          "commerce": 1
+        },
+        "flood plain": {
+          "commerce": 1
+        },
+        "hills": {
+          "commerce": 1
+        },
+        "mountains": {
+          "commerce": 1
+        },
+        "forest": {
+          "commerce": 1
+        },
+        "jungle": {
+          "commerce": 1
+        },
+        "marsh": {
+          "commerce": 1
+        }
+      }
+    },
+    {
+      "key": "railroad",
+      "layer": "roads",
+      "zIndex": 1,
+      "movementCost": 0,
+      "upgradesFrom": "road",
+      "bonusYields": {
+        "desert": {
+          "commerce": 1
+        },
+        "plains": {
+          "commerce": 1
+        },
+        "grassland": {
+          "commerce": 1
+        },
+        "tundra": {
+          "commerce": 1
+        },
+        "flood plain": {
+          "commerce": 1
+        },
+        "hills": {
+          "commerce": 1
+        },
+        "mountains": {
+          "commerce": 1
+        },
+        "forest": {
+          "commerce": 1
+        },
+        "jungle": {
+          "commerce": 1
+        },
+        "marsh": {
+          "commerce": 1
+        }
+      },
+      "tileModifier": "terrain_improvements.railroad.tile_modifier"
+    },
+    {
+      "key": "mine",
+      "layer": "resourceDevelopment",
+      "zIndex": 2,
+      "movementCost": -1,
+      "bonusYields": {
+        "desert": {
+          "production": 1
+        },
+        "plains": {
+          "production": 1
+        },
+        "grassland": {
+          "production": 1
+        },
+        "tundra": {
+          "production": 1
+        },
+        "hills": {
+          "production": 2
+        },
+        "mountains": {
+          "production": 2
+        }
+      }
+    },
+    {
+      "key": "fortress",
+      "layer": "holdings",
+      "defenseBonus": {
+        "description": "fortress",
+        "amount": 0.5
+      },
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "barricade",
+      "layer": "holdings",
+      "defenseBonus": {
+        "description": "barricade",
+        "amount": 1
+      },
+      "zIndex": 6,
+      "movementCost": -1,
+      "upgradesFrom": "fortress"
+    },
+    {
+      "key": "outpost",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "colony",
+      "layer": "colonies",
+      "zIndex": 4,
+      "movementCost": -1
+    },
+    {
+      "key": "airfield",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "radarTower",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "ruins",
+      "layer": "ruins",
+      "zIndex": 2,
+      "movementCost": -1
+    },
+    {
+      "key": "pollution",
+      "layer": "pollution",
+      "zIndex": 10,
+      "movementCost": -1
+    },
+    {
+      "key": "craters",
+      "layer": "craters",
+      "zIndex": 5,
+      "movementCost": -1
+    },
+    {
+      "key": "fallout",
+      "layer": "fallout",
+      "zIndex": 11,
+      "movementCost": -1
+    }
+  ],
+  "resources": [
+    {
+      "key": "Horses",
+      "icon": 0,
+      "foodBonus": 1,
+      "shieldsBonus": 1,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 150,
+      "disappearanceRatio": 0,
+      "name": "Horses",
+      "civilopediaEntry": "GOOD_Horses"
+    },
+    {
+      "key": "Iron",
+      "icon": 1,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 0,
+      "category": "strategic",
+      "appearanceRatio": 150,
+      "disappearanceRatio": 0,
+      "name": "Iron",
+      "civilopediaEntry": "GOOD_Iron"
+    },
+    {
+      "key": "Saltpeter",
+      "icon": 2,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 2,
+      "category": "strategic",
+      "appearanceRatio": 150,
+      "disappearanceRatio": 0,
+      "name": "Saltpeter",
+      "civilopediaEntry": "GOOD_Saltpeter"
+    },
+    {
+      "key": "Jade",
+      "icon": 7,
+      "foodBonus": 0,
+      "shieldsBonus": 2,
+      "commerceBonus": 3,
+      "category": "strategic",
+      "appearanceRatio": 150,
+      "disappearanceRatio": 0,
+      "name": "Jade",
+      "civilopediaEntry": "GOOD_Jade"
+    },
+    {
+      "key": "Sake",
+      "icon": 8,
+      "foodBonus": 3,
+      "shieldsBonus": 0,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Sake",
+      "civilopediaEntry": "GOOD_Sake"
+    },
+    {
+      "key": "Furs",
+      "icon": 9,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 1,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Furs",
+      "civilopediaEntry": "GOOD_Furs"
+    },
+    {
+      "key": "Dyes",
+      "icon": 10,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 1,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Dyes",
+      "civilopediaEntry": "GOOD_Dye"
+    },
+    {
+      "key": "Incense",
+      "icon": 11,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 1,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Incense",
+      "civilopediaEntry": "GOOD_Incense"
+    },
+    {
+      "key": "Spices",
+      "icon": 12,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 2,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Spices",
+      "civilopediaEntry": "GOOD_Spice"
+    },
+    {
+      "key": "Silks",
+      "icon": 14,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 3,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Silks",
+      "civilopediaEntry": "GOOD_Silk"
+    },
+    {
+      "key": "Gems",
+      "icon": 15,
+      "foodBonus": 0,
+      "shieldsBonus": 0,
+      "commerceBonus": 4,
+      "category": "luxury",
+      "appearanceRatio": 100,
+      "disappearanceRatio": 0,
+      "name": "Gems",
+      "civilopediaEntry": "GOOD_Diamonds"
+    },
+    {
+      "key": "Whales",
+      "icon": 16,
+      "foodBonus": 2,
+      "shieldsBonus": 1,
+      "commerceBonus": 2,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Whales",
+      "civilopediaEntry": "GOOD_Whales"
+    },
+    {
+      "key": "Game",
+      "icon": 17,
+      "foodBonus": 4,
+      "shieldsBonus": 0,
+      "commerceBonus": 0,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Game",
+      "civilopediaEntry": "GOOD_Game"
+    },
+    {
+      "key": "Fish",
+      "icon": 18,
+      "foodBonus": 2,
+      "shieldsBonus": 0,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Fish",
+      "civilopediaEntry": "GOOD_Fish"
+    },
+    {
+      "key": "Cattle",
+      "icon": 19,
+      "foodBonus": 2,
+      "shieldsBonus": 1,
+      "commerceBonus": 0,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Cattle",
+      "civilopediaEntry": "GOOD_Cattle"
+    },
+    {
+      "key": "Wheat",
+      "icon": 20,
+      "foodBonus": 2,
+      "shieldsBonus": 0,
+      "commerceBonus": 0,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Wheat",
+      "civilopediaEntry": "GOOD_Wheat"
+    },
+    {
+      "key": "Precious Stones",
+      "icon": 21,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 3,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Precious Stones",
+      "civilopediaEntry": "GOOD_Gold"
+    },
+    {
+      "key": "Pearls",
+      "icon": 15,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 4,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Pearls",
+      "civilopediaEntry": "GOOD_Diamonds"
+    },
+    {
+      "key": "Sandbar",
+      "icon": 12,
+      "foodBonus": 1,
+      "shieldsBonus": 2,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Sandbar",
+      "civilopediaEntry": "GOOD_Spice"
+    },
+    {
+      "key": "Whales 2",
+      "icon": 16,
+      "foodBonus": 2,
+      "shieldsBonus": 1,
+      "commerceBonus": 2,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Whales",
+      "civilopediaEntry": "GOOD_Whales"
+    },
+    {
+      "key": "Wheat 2",
+      "icon": 20,
+      "foodBonus": 2,
+      "shieldsBonus": 0,
+      "commerceBonus": 0,
+      "category": "strategic",
+      "appearanceRatio": 300,
+      "disappearanceRatio": 0,
+      "name": "Wheat",
+      "civilopediaEntry": "GOOD_Wheat"
+    },
+    {
+      "key": "Pearls 2",
+      "icon": 15,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 4,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Pearls",
+      "civilopediaEntry": "GOOD_Diamonds"
+    },
+    {
+      "key": "Olive Oil",
+      "icon": 4,
+      "foodBonus": 1,
+      "shieldsBonus": 1,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Olive Oil",
+      "civilopediaEntry": "GOOD_Oil"
+    },
+    {
+      "key": "Precious Stones 2",
+      "icon": 21,
+      "foodBonus": 0,
+      "shieldsBonus": 1,
+      "commerceBonus": 3,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Precious Stones",
+      "civilopediaEntry": "GOOD_Gold"
+    },
+    {
+      "key": "Sake 2",
+      "icon": 8,
+      "foodBonus": 3,
+      "shieldsBonus": 0,
+      "commerceBonus": 1,
+      "category": "strategic",
+      "appearanceRatio": 320,
+      "disappearanceRatio": 0,
+      "name": "Sake",
+      "civilopediaEntry": "GOOD_Sake"
+    }
+  ],
+  "unitPrototypes": [
+    {
+      "name": "Settler",
+      "civilopediaEntry": "PRTO_Settler2",
+      "art": {
+        "mainArt": {
+          "defaultName": "Medieval Japanese Settler"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 127
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_JapSettler_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_JapSettler_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 30,
+      "populationCost": 2,
+      "attack": 0,
+      "defense": 0,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiSettle"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "buildCity",
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "sentry",
+        "airlift",
+        "joinCity"
+      ]
+    },
+    {
+      "name": "Peasant Worker",
+      "civilopediaEntry": "PRTO_Peasant_Worker",
+      "art": {
+        "mainArt": {
+          "defaultName": "Medieval Japanese Worker"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 128
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_PeasantWorker_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_PeasantWorker_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 10,
+      "populationCost": 1,
+      "attack": 0,
+      "defense": 0,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Fast Worker (Ignores Move Cost)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiTerraform"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "automate",
+        "load",
+        "upgrade",
+        "sentry",
+        "buildColony",
+        "airlift",
+        "joinCity"
+      ],
+      "terraformActions": [
+        "Terraform-4",
+        "Terraform-5",
+        "Terraform-1",
+        "Terraform-2",
+        "Terraform-8",
+        "Terraform-7",
+        "Terraform-6",
+        "Terraform-9",
+        "Terraform-13",
+        "Terraform-3",
+        "Terraform-12",
+        "Terraform-10",
+        "Terraform-11"
+      ]
+    },
+    {
+      "name": "Spearman",
+      "civilopediaEntry": "PRTO_Otomo_Spearman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Otomo Spearman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 134
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Spearman_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Spearman_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-3",
+      "attack": 3,
+      "defense": 3,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Bayonet",
+        "Hojo General (Amphib)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "footSoldier",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Horseman",
+      "civilopediaEntry": "PRTO_Horseman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Horseman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 11
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\11Horsemansmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\11horsemanlarge.pcx"
+        }
+      },
+      "shieldCost": 30,
+      "populationCost": 0,
+      "requiredTech": "tech-11",
+      "attack": 4,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Ronin",
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Ichijo Cavalry (Blitz)",
+        "Mounted Ronin"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Horses"
+      ]
+    },
+    {
+      "name": "Arquebusier (Amphib)",
+      "civilopediaEntry": "PRTO_Arquebusier",
+      "art": {
+        "mainArt": {
+          "defaultName": "Oda Arquebusier"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 132
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_arquebrusier_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_arquebrusier_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-18",
+      "attack": 8,
+      "defense": 6,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Saltpeter",
+        "Jade"
+      ]
+    },
+    {
+      "name": "Catapult",
+      "civilopediaEntry": "PRTO_Japanese_Catapult",
+      "art": {
+        "mainArt": {
+          "defaultName": "Medieval Japanese Catapult"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 125
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_catapult_civpedia_sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_catapult_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-7",
+      "attack": 0,
+      "defense": 0,
+      "bombard": 5,
+      "bombardRange": 1,
+      "rateOfFire": 2,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "wheeled",
+        "aiArtillery"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "bombard",
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Fire Cannon Boat",
+      "civilopediaEntry": "PRTO_Fire_Cannon",
+      "art": {
+        "mainArt": {
+          "defaultName": "Fire Cannon"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 196
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_firecannon_civpedia_sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_firecannon_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-6",
+      "attack": 6,
+      "defense": 1,
+      "bombard": 2,
+      "bombardRange": 1,
+      "rateOfFire": 2,
+      "movement": 4,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "sinksInSea",
+        "sinksInOcean",
+        "aiNavalPower"
+      ],
+      "categories": [
+        "Sea"
+      ],
+      "actions": [
+        "bombard",
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "sentry"
+      ],
+      "requiredResources": [
+        "Saltpeter"
+      ]
+    },
+    {
+      "name": "Ichijo Cavalry (Blitz)",
+      "civilopediaEntry": "PRTO_Samurai_Horse_Archer",
+      "art": {
+        "mainArt": {
+          "defaultName": "Shoni no Kagesuke"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 135
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_horsearcher_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_horsearcher_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 70,
+      "populationCost": 0,
+      "requiredTech": "tech-17",
+      "attack": 8,
+      "defense": 5,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 3,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Ichijo (Sci/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "blitz",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Horses",
+        "Iron"
+      ]
+    },
+    {
+      "name": "Scout",
+      "civilopediaEntry": "PRTO_Leader",
+      "art": {
+        "mainArt": {
+          "defaultName": "Medieval Japanese Leader",
+          "variations": {
+            "ERAS_Ancient_Times": "Medieval Japanese Leader",
+            "ERAS_Middle_Ages": "Medieval Japanese Leader",
+            "ERAS_Industrial_Age": "Medieval Japanese Leader",
+            "ERAS_Modern_Era": "Medieval Japanese Leader",
+            "SCI": "SciLeader"
+          }
+        },
+        "thumbnailArt": {
+          "defaultIndex": 126,
+          "variations": {
+            "ERAS_Middle_Ages": 66,
+            "ERAS_Industrial_Age": 67,
+            "ERAS_Modern_Era": 68
+          }
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\47leadersmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\47leaderlarge.pcx"
+        }
+      },
+      "shieldCost": 12,
+      "populationCost": 0,
+      "attack": 0,
+      "defense": 0,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Urakami (Com/Exp)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Tokugawa Shogun (Amphib)",
+      "civilopediaEntry": "PRTO_Tokugawa",
+      "art": {
+        "mainArt": {
+          "defaultName": "Shogun"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 166
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\x2_shogun_civpedia_sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\x2_shogun_civpedia_lg.pcx"
+        }
+      },
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-13",
+      "attack": 6,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Iron"
+      ]
+    },
+    {
+      "name": "Ronin (Amphib)",
+      "civilopediaEntry": "PRTO_Ronin",
+      "art": {
+        "mainArt": {
+          "defaultName": "Minamoto Samurai"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 129
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Ronin_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Ronin_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-13",
+      "attack": 6,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "footSoldier",
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Iron"
+      ]
+    },
+    {
+      "name": "Ninja (Amphib)",
+      "civilopediaEntry": "PRTO_Ninja",
+      "art": {
+        "mainArt": {
+          "defaultName": "Ninja"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 131
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-14",
+      "attack": 11,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": -1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "footSoldier",
+        "stealthAttack",
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Bayonet",
+      "civilopediaEntry": "PRTO_Samurai_Spearman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Ashigaru Spearman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 122
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Sam_Spearman_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Sam_Spearman_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-16",
+      "attack": 5,
+      "defense": 5,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Arquebusier (Amphib)",
+        "Oda Rocketeer (Amphib)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "footSoldier",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Saltpeter"
+      ]
+    },
+    {
+      "name": "Urakami Crossbow",
+      "civilopediaEntry": "PRTO_Siege_Crossbow",
+      "art": {
+        "mainArt": {
+          "defaultName": "Siege Crossbow"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 136
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Siegecrossbow_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Siegecrossbow_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 24,
+      "populationCost": 0,
+      "requiredTech": "tech-11",
+      "attack": 4,
+      "defense": 1,
+      "bombard": 1,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Urakami (Com/Exp)"
+      ],
+      "upgradesTo": [
+        "Mounted Ronin"
+      ],
+      "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Mounted Ronin",
+      "civilopediaEntry": "PRTO_Mounted_Samurai",
+      "art": {
+        "mainArt": {
+          "defaultName": "Nakamaro Horseman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 130
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Mtnd_Samurai_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Mtnd_Samurai_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-17",
+      "attack": 7,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Iron",
+        "Horses"
+      ]
+    },
+    {
+      "name": "Crossbow",
+      "civilopediaEntry": "PRTO_Stone_Crossbow",
+      "art": {
+        "mainArt": {
+          "defaultName": "Stone Crossbow"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 137
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Stonecrossbow_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Stonecrossbow_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-1",
+      "attack": 4,
+      "defense": 2,
+      "bombard": 1,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Date Samurai Bow (Amphib)",
+        "Longbow"
+      ],
+      "unproducible": false,
+      "flags": [
+        "footSoldier",
+        "draftable",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Longbow",
+      "civilopediaEntry": "PRTO_Samurai_Archer",
+      "art": {
+        "mainArt": {
+          "defaultName": "Otomo no Makuta"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 133
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Samurai_Archer_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Samurai_Archer_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-36",
+      "attack": 6,
+      "defense": 2,
+      "bombard": 3,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "footSoldier",
+        "draftable",
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Jade"
+      ]
+    },
+    {
+      "name": "Myoshi Ronin (Amphib)",
+      "civilopediaEntry": "PRTO_Samurai_Warrior",
+      "art": {
+        "mainArt": {
+          "defaultName": "Minamoto Samurai"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 129
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Samurai_Warrior_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Samurai_Warrior_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-13",
+      "attack": 6,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Miyoshi (Ind/Sci)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Iron"
+      ]
+    },
+    {
+      "name": "Oda Rocketeer (Amphib)",
+      "civilopediaEntry": "PRTO_Rocket_Cart",
+      "art": {
+        "mainArt": {
+          "defaultName": "Hwacha"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 79
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\x_Hwacha civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\x_Hwacha civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-14",
+      "attack": 10,
+      "defense": 7,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Oda (Mil/Ind)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Saltpeter",
+        "Jade"
+      ]
+    },
+    {
+      "name": "Ashigaru",
+      "civilopediaEntry": "PRTO_Footman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Swordsman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 9
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\09swordsmansmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\09swordsmanlarge.pcx"
+        }
+      },
+      "shieldCost": 12,
+      "populationCost": 0,
+      "attack": 2,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Impi Monk (Blitz)",
+      "civilopediaEntry": "PRTO_Warrior_Monk",
+      "art": {
+        "mainArt": {
+          "defaultName": "Warrior Monk"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 138
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Yamabushi_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Yamabushi_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 30,
+      "populationCost": 0,
+      "requiredTech": "tech-3",
+      "attack": 3,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Imagawa (Mil/Sci)"
+      ],
+      "upgradesTo": [
+        "Bayonet"
+      ],
+      "unproducible": false,
+      "flags": [
+        "blitz",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense",
+        "aiExplore"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Warship (1 Capacity)",
+      "civilopediaEntry": "PRTO_Galley",
+      "art": {
+        "mainArt": {
+          "defaultName": "Galley"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 29
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\29galley(trireme)small.pcx",
+          "large": "art\\civilopedia\\icons\\units\\29galley(trireme)large.pcx"
+        }
+      },
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-9",
+      "attack": 4,
+      "defense": 4,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 4,
+      "capacity": 1,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "rotateBeforeAttack",
+        "sinksInSea",
+        "sinksInOcean",
+        "aiNavalPower",
+        "aiNavalTransport"
+      ],
+      "categories": [
+        "Sea"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "unload",
+        "sentry"
+      ]
+    },
+    {
+      "name": "Caravel",
+      "civilopediaEntry": "PRTO_Caravel",
+      "art": {
+        "mainArt": {
+          "defaultName": "Caravel"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 30
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\30caravelsmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\30caravellarge.pcx"
+        }
+      },
+      "shieldCost": 30,
+      "populationCost": 0,
+      "requiredTech": "tech-6",
+      "attack": 2,
+      "defense": 3,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 4,
+      "capacity": 4,
+      "hpBonus": -2,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Galleon"
+      ],
+      "unproducible": false,
+      "flags": [
+        "rotateBeforeAttack",
+        "sinksInOcean",
+        "aiNavalTransport"
+      ],
+      "categories": [
+        "Sea"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "unload",
+        "upgrade",
+        "sentry"
+      ]
+    },
+    {
+      "name": "Fast Worker (Ignores Move Cost)",
+      "civilopediaEntry": "PRTO_Peasant_Worker",
+      "art": {
+        "mainArt": {
+          "defaultName": "Medieval Japanese Worker"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 128
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_PeasantWorker_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_PeasantWorker_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 1,
+      "requiredTech": "tech-12",
+      "attack": 0,
+      "defense": 0,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "aiTerraform"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "automate",
+        "load",
+        "sentry",
+        "buildColony",
+        "airlift",
+        "joinCity"
+      ],
+      "terraformActions": [
+        "Terraform-4",
+        "Terraform-5",
+        "Terraform-1",
+        "Terraform-2",
+        "Terraform-8",
+        "Terraform-7",
+        "Terraform-6",
+        "Terraform-9",
+        "Terraform-13",
+        "Terraform-3",
+        "Terraform-12",
+        "Terraform-10",
+        "Terraform-11"
+      ]
+    },
+    {
+      "name": "Jaguar Samurai (Blitz)",
+      "civilopediaEntry": "PRTO_Swordsman2",
+      "art": {
+        "mainArt": {
+          "defaultName": "Samurai"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 59
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_bushi_civpedia_sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_bushi_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-3",
+      "attack": 2,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Ainu (Mil/Sea)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "blitz",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Hojo General (Amphib)",
+      "civilopediaEntry": "PRTO_Army",
+      "art": {
+        "mainArt": {
+          "defaultName": "Army Ancient Times",
+          "variations": {
+            "ERAS_Ancient_Times": "Army Ancient Times",
+            "ERAS_Middle_Ages": "Army Middle Ages",
+            "ERAS_Industrial_Age": "Army Middle Ages",
+            "ERAS_Modern_Era": "Army Middle Ages"
+          }
+        },
+        "thumbnailArt": {
+          "defaultIndex": 124,
+          "variations": {
+            "ERAS_Middle_Ages": 69,
+            "ERAS_Industrial_Age": 70,
+            "ERAS_Modern_Era": 71
+          }
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\48armysmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\48armylarge.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-16",
+      "attack": 6,
+      "defense": 5,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Hojo (Ind/Sea)"
+      ],
+      "upgradesTo": [
+        "Arquebusier (Amphib)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge",
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Saltpeter"
+      ]
+    },
+    {
+      "name": "Uesugi Horseman",
+      "civilopediaEntry": "PRTO_Horseman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Horseman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 11
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\11Horsemansmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\11horsemanlarge.pcx"
+        }
+      },
+      "shieldCost": 30,
+      "populationCost": 0,
+      "requiredTech": "tech-11",
+      "attack": 4,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Uesugi (Sci/Ag)"
+      ],
+      "upgradesTo": [
+        "Mounted Ronin"
+      ],
+      "unproducible": false,
+      "flags": [
+        "blitz",
+        "startsGoldenAge",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Horses"
+      ]
+    },
+    {
+      "name": "Otomo Spearman",
+      "civilopediaEntry": "PRTO_Otomo_Spearman",
+      "art": {
+        "mainArt": {
+          "defaultName": "Otomo Spearman"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 134
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Spearman_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Spearman_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-3",
+      "attack": 4,
+      "defense": 3,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)"
+      ],
+      "upgradesTo": [
+        "Bayonet"
+      ],
+      "unproducible": false,
+      "flags": [
+        "startsGoldenAge",
+        "footSoldier",
+        "aiDefense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Mori Ninja (Amphib)",
+      "civilopediaEntry": "PRTO_Ninja",
+      "art": {
+        "mainArt": {
+          "defaultName": "Ninja"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 131
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-14",
+      "attack": 10,
+      "defense": 2,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 0,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Mori (Mil/Exp)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge",
+        "footSoldier",
+        "stealthAttack",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ]
+    },
+    {
+      "name": "Date Samurai Bow (Amphib)",
+      "civilopediaEntry": "PRTO_Samurai_Archer",
+      "art": {
+        "mainArt": {
+          "defaultName": "Otomo no Makuta"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 133
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\X2_Samurai_Archer_civpedia sm.pcx",
+          "large": "art\\civilopedia\\icons\\units\\X2_Samurai_Archer_civpedia lg.pcx"
+        }
+      },
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-36",
+      "attack": 6,
+      "defense": 2,
+      "bombard": 3,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 1,
+      "capacity": 0,
+      "hpBonus": 1,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Date (Ag/Sea)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge",
+        "footSoldier",
+        "draftable",
+        "aiOffense"
+      ],
+      "categories": [
+        "Land"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "load",
+        "pillage",
+        "sentry",
+        "airlift"
+      ],
+      "requiredResources": [
+        "Jade"
+      ]
+    },
+    {
+      "name": "Curragh (1 Capacity)",
+      "civilopediaEntry": "PRTO_Galley",
+      "art": {
+        "mainArt": {
+          "defaultName": "Galley"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 195
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\29galley(trireme)small.pcx",
+          "large": "art\\civilopedia\\icons\\units\\29galley(trireme)large.pcx"
+        }
+      },
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-8",
+      "attack": 4,
+      "defense": 3,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 2,
+      "capacity": 1,
+      "hpBonus": -2,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Ronin",
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "rotateBeforeAttack",
+        "sinksInSea",
+        "sinksInOcean",
+        "aiNavalPower",
+        "aiNavalTransport"
+      ],
+      "categories": [
+        "Sea"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "unload",
+        "upgrade",
+        "sentry"
+      ]
+    },
+    {
+      "name": "Galleon",
+      "civilopediaEntry": "PRTO_Caravel",
+      "art": {
+        "mainArt": {
+          "defaultName": "Caravel"
+        },
+        "thumbnailArt": {
+          "defaultIndex": 30
+        },
+        "pediaArt": {
+          "small": "art\\civilopedia\\icons\\units\\30caravelsmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\30caravellarge.pcx"
+        }
+      },
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-26",
+      "attack": 2,
+      "defense": 3,
+      "bombard": 0,
+      "bombardRange": 0,
+      "rateOfFire": 0,
+      "movement": 5,
+      "capacity": 6,
+      "hpBonus": 0,
+      "operationalRange": 0,
+      "airDefense": 0,
+      "workerStrength": 1,
+      "producibleBy": [
+        "Otomo (Ind/Exp)",
+        "Mori (Mil/Exp)",
+        "Ichijo (Sci/Com)",
+        "Urakami (Com/Exp)",
+        "Miyoshi (Ind/Sci)",
+        "Oda (Mil/Ind)",
+        "Imagawa (Mil/Sci)",
+        "Ainu (Mil/Sea)",
+        "Hojo (Ind/Sea)",
+        "Uesugi (Sci/Ag)",
+        "Date (Ag/Sea)",
+        "Tokugawa (Ag/Com)"
+      ],
+      "unproducible": false,
+      "flags": [
+        "rotateBeforeAttack"
+      ],
+      "categories": [
+        "Sea"
+      ],
+      "actions": [
+        "hold",
+        "wait",
+        "fortify",
+        "disband",
+        "goto",
+        "explore",
+        "unload",
+        "sentry"
+      ]
+    }
+  ],
+  "buildings": [
+    {
+      "name": "Palace",
+      "civilopediaEntry": "BLDG_Palace",
+      "shieldCost": 100,
+      "populationCost": 0,
+      "requiredTech": "tech-33",
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 0,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "isCenterOfEmpire",
+        "allowsCitySize2"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.allows_city_size_2"
+      ]
+    },
+    {
+      "name": "Barracks",
+      "civilopediaEntry": "BLDG_Barracks",
+      "shieldCost": 40,
+      "populationCost": 0,
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 1,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "veteranGroundUnits"
+      ],
+      "traits": [
+        "militaristic"
+      ],
+      "onFinishedUnitProduction": [
+        "buildings.unit_production_effects.veteran_ground_units"
+      ]
+    },
+    {
+      "name": "Granary",
+      "civilopediaEntry": "BLDG_Granary",
+      "shieldCost": 60,
+      "populationCost": 0,
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 2,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "requiredGovernment": "Government-1",
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "doublesCityGrowthRate"
+      ]
+    },
+    {
+      "name": "Temple",
+      "civilopediaEntry": "BLDG_Temple",
+      "shieldCost": 60,
+      "populationCost": 0,
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 1,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 3,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "traits": [
+        "religious"
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "civilopediaEntry": "BLDG_Marketplace",
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-8",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 4,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "increasesLuxuryTrade",
+        "plus50PercentCommerce"
+      ],
+      "traits": [
+        "commercial"
+      ]
+    },
+    {
+      "name": "Library",
+      "civilopediaEntry": "BLDG_Library",
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-4",
+      "isSmallWonder": false,
+      "culturePerTurn": 3,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 5,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "plus50PercentResearch"
+      ],
+      "traits": [
+        "scientific"
+      ]
+    },
+    {
+      "name": "Local Magistrate",
+      "civilopediaEntry": "BLDG_Courthouse",
+      "shieldCost": 100,
+      "populationCost": 0,
+      "requiredTech": "tech-31",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 6,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "reducesCorruption",
+        "resistantToBribery"
+      ],
+      "traits": [
+        "militaristic",
+        "industrious"
+      ]
+    },
+    {
+      "name": "Walls",
+      "civilopediaEntry": "BLDG_Walls",
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-11",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0.5,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 7,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 8,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "providesWalls",
+        "canOnlyBeBuiltInTowns"
+      ],
+      "traits": [
+        "militaristic"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.can_only_be_built_in_towns"
+      ]
+    },
+    {
+      "name": "Aqueduct",
+      "civilopediaEntry": "BLDG_Aqueduct",
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-7",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 8,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "allowsCitySize2"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.allows_city_size_2"
+      ]
+    },
+    {
+      "name": "Treasury",
+      "civilopediaEntry": "BLDG_Bank",
+      "shieldCost": 150,
+      "populationCost": 0,
+      "requiredTech": "tech-31",
+      "requiredBuilding": "Marketplace",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 9,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "plus50PercentCommerce"
+      ],
+      "traits": [
+        "commercial"
+      ]
+    },
+    {
+      "name": "Jesuit Cathedral",
+      "civilopediaEntry": "BLDG_Cathedral",
+      "shieldCost": 150,
+      "populationCost": 0,
+      "requiredTech": "tech-31",
+      "requiredBuilding": "Temple",
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 3,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 10,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "traits": [
+        "religious"
+      ]
+    },
+    {
+      "name": "University",
+      "civilopediaEntry": "BLDG_University",
+      "shieldCost": 200,
+      "populationCost": 0,
+      "requiredTech": "tech-10",
+      "requiredBuilding": "Library",
+      "isSmallWonder": false,
+      "culturePerTurn": 3,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 11,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "plus50PercentResearch"
+      ],
+      "traits": [
+        "scientific"
+      ]
+    },
+    {
+      "name": "Noh-Kyogen Theatre",
+      "civilopediaEntry": "BLDG_Colosseum",
+      "shieldCost": 100,
+      "populationCost": 0,
+      "requiredTech": "tech-34",
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 2,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 12,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0
+    },
+    {
+      "name": "Harbor",
+      "civilopediaEntry": "BLDG_Harbor",
+      "shieldCost": 40,
+      "populationCost": 0,
+      "requiredTech": "tech-8",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 25,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "requiredGovernment": "Government-1",
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "mustBeCoastal",
+        "veteranSeaUnits",
+        "increasesFoodInWater",
+        "allowsWaterTrade"
+      ],
+      "traits": [
+        "militaristic",
+        "seafaring"
+      ],
+      "onFinishedUnitProduction": [
+        "buildings.unit_production_effects.veteran_sea_units"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.must_be_coastal"
+      ],
+      "tileModifiers": [
+        "buildings.tile_modifiers.increases_food_in_water"
+      ]
+    },
+    {
+      "name": "Foundry (+50% Prod)",
+      "civilopediaEntry": "BLDG_Police_Station",
+      "shieldCost": 140,
+      "populationCost": 0,
+      "requiredTech": "tech-2",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 50,
+      "iconRowIndex": 28,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0
+    },
+    {
+      "name": "Great Library (GA)",
+      "civilopediaEntry": "BLDG_Great_Library",
+      "shieldCost": 240,
+      "populationCost": 0,
+      "requiredTech": "tech-2",
+      "greatWonderProperties": {},
+      "isSmallWonder": false,
+      "culturePerTurn": 6,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 34,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "gainAnyTechKnownByTwoCivs"
+      ],
+      "traits": [
+        "militaristic",
+        "commercial",
+        "expansionist",
+        "scientific",
+        "religious",
+        "industrious",
+        "agricultural",
+        "seafaring"
+      ]
+    },
+    {
+      "name": "The Great Wall",
+      "civilopediaEntry": "BLDG_Great_Wall",
+      "shieldCost": 200,
+      "populationCost": 0,
+      "requiredTech": "tech-34",
+      "greatWonderProperties": {
+        "buildingGainedInEveryCityOnContinent": "Walls"
+      },
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 36,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "doubleCombatVsBarbarians",
+        "doubleCityDefenses"
+      ],
+      "traits": [
+        "militaristic",
+        "industrious"
+      ]
+    },
+    {
+      "name": "Sun Tzu's (GA)",
+      "civilopediaEntry": "BLDG_Art_of_War",
+      "shieldCost": 180,
+      "populationCost": 0,
+      "requiredTech": "tech-15",
+      "greatWonderProperties": {
+        "buildingGainedInEveryCityOnContinent": "Barracks"
+      },
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 37,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "increasesLeaderChance"
+      ],
+      "traits": [
+        "militaristic",
+        "commercial",
+        "expansionist",
+        "scientific",
+        "religious",
+        "industrious",
+        "agricultural",
+        "seafaring"
+      ]
+    },
+    {
+      "name": "Mausoleum (GA)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 100,
+      "populationCost": 0,
+      "requiredTech": "tech-2",
+      "greatWonderProperties": {},
+      "isSmallWonder": false,
+      "culturePerTurn": 6,
+      "contentFacesInCity": 3,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "traits": [
+        "militaristic",
+        "commercial",
+        "expansionist",
+        "scientific",
+        "religious",
+        "industrious",
+        "agricultural",
+        "seafaring"
+      ]
+    },
+    {
+      "name": "Trading Port",
+      "civilopediaEntry": "BLDG_Trading_Company",
+      "shieldCost": 50,
+      "populationCost": 0,
+      "requiredTech": "tech-15",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 45,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "mustBeCoastal",
+        "veteranAirUnits",
+        "allowsAirTrade"
+      ],
+      "traits": [
+        "seafaring"
+      ],
+      "onFinishedUnitProduction": [
+        "buildings.unit_production_effects.veteran_air_units"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.must_be_coastal"
+      ]
+    },
+    {
+      "name": "Heroic Epic",
+      "civilopediaEntry": "BLDG_Epic",
+      "shieldCost": 200,
+      "populationCost": 0,
+      "isSmallWonder": true,
+      "culturePerTurn": 4,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 46,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "requiresVictoriousArmy",
+        "increasesLeaderChance"
+      ],
+      "traits": [
+        "religious"
+      ]
+    },
+    {
+      "name": "Geisha House",
+      "civilopediaEntry": "BLDG_Geisha",
+      "shieldCost": 200,
+      "populationCost": 0,
+      "requiredTech": "tech-31",
+      "isSmallWonder": false,
+      "culturePerTurn": 2,
+      "contentFacesInCity": 4,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 50,
+      "iconRowIndex": 42,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "reducesWarWeariness"
+      ],
+      "traits": [
+        "commercial",
+        "religious"
+      ]
+    },
+    {
+      "name": "Military Academy",
+      "civilopediaEntry": "BLDG_Military_Academy",
+      "shieldCost": 400,
+      "populationCost": 0,
+      "requiredTech": "tech-30",
+      "isSmallWonder": true,
+      "culturePerTurn": 1,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 57,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "allowsBuildArmy",
+        "allowsLargerArmies",
+        "requiresVictoriousArmy",
+        "increasesLeaderChance"
+      ],
+      "traits": [
+        "militaristic"
+      ]
+    },
+    {
+      "name": "Civil Defense",
+      "civilopediaEntry": "BLDG_Civil_Defense",
+      "shieldCost": 150,
+      "populationCost": 0,
+      "requiredTech": "tech-10",
+      "requiredBuilding": "Barracks",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0.5,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 75,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "traits": [
+        "militaristic"
+      ]
+    },
+    {
+      "name": "Statue Of Zeus (GA)",
+      "civilopediaEntry": "BLDG_Council",
+      "shieldCost": 200,
+      "populationCost": 0,
+      "requiredTech": "tech-36",
+      "greatWonderProperties": {},
+      "isSmallWonder": false,
+      "culturePerTurn": 3,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 54,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitProduced": "Mounted Ronin",
+      "unitFrequency": 4,
+      "traits": [
+        "militaristic",
+        "commercial",
+        "expansionist",
+        "scientific",
+        "religious",
+        "industrious",
+        "agricultural",
+        "seafaring"
+      ]
+    },
+    {
+      "name": "Fief Establishment",
+      "civilopediaEntry": "BLDG_Fief",
+      "shieldCost": 100,
+      "populationCost": 0,
+      "requiredTech": "tech-20",
+      "isSmallWonder": false,
+      "culturePerTurn": 3,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 53,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "plus50PercentLuxury"
+      ],
+      "traits": [
+        "commercial"
+      ]
+    },
+    {
+      "name": "Pirate Shrine",
+      "civilopediaEntry": "BLDG_Shrine",
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-31",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 24,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "mustBeCoastal",
+        "increasesShieldsInWater",
+        "increasesFoodInWater",
+        "increasesTradeInWater"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.must_be_coastal"
+      ],
+      "tileModifiers": [
+        "buildings.tile_modifiers.increases_food_in_water",
+        "buildings.tile_modifiers.increases_shields_in_water",
+        "buildings.tile_modifiers.increases_trade_in_water"
+      ]
+    },
+    {
+      "name": "Imperial Decree",
+      "civilopediaEntry": "BLDG_Decree",
+      "shieldCost": 300,
+      "populationCost": 0,
+      "requiredTech": "tech-32",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 74,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "reducesCorruption",
+        "resistantToBribery"
+      ],
+      "traits": [
+        "religious",
+        "industrious"
+      ]
+    },
+    {
+      "name": "Battlefield Medicine",
+      "civilopediaEntry": "BLDG_Battlefield_Medicine",
+      "shieldCost": 10,
+      "populationCost": 0,
+      "requiredTech": "tech-23",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 63,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "allowsEnemyTerritoryHealing"
+      ],
+      "traits": [
+        "militaristic"
+      ]
+    },
+    {
+      "name": "Urakami Wonder (Worker/7t)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-39",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitProduced": "Peasant Worker",
+      "unitFrequency": 7
+    },
+    {
+      "name": "Hospital",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 20,
+      "populationCost": 0,
+      "requiredTech": "tech-47",
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "allowsCitySize3"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.allows_city_size_3"
+      ]
+    },
+    {
+      "name": "10 Culture + Battlefield Med",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-43",
+      "isSmallWonder": true,
+      "culturePerTurn": 10,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "allowsEnemyTerritoryHealing"
+      ]
+    },
+    {
+      "name": "Otomo Wonder (+25% Prod)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-37",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 25,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0
+    },
+    {
+      "name": "Hojo Wonder (+2 Ship Move)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-41",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "plusTwoShipMovement"
+      ]
+    },
+    {
+      "name": "Mori Wonder (Settler/13)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-44",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitProduced": "Settler",
+      "unitFrequency": 13
+    },
+    {
+      "name": "Oda Wonder (+100% Sci)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-38",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "doublesResearchOutput"
+      ]
+    },
+    {
+      "name": "Tokugawa (Aqueduct Everywhere)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-45",
+      "greatWonderProperties": {
+        "buildingGainedInEveryCity": "Aqueduct"
+      },
+      "isSmallWonder": false,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0
+    },
+    {
+      "name": "Uesugi (1/2 Upgrade Cost)",
+      "civilopediaEntry": "BLDG_Great_Playhouse",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-42",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "cheaperUpgrades"
+      ]
+    },
+    {
+      "name": "Ainu Wonder (+12 GPT)",
+      "civilopediaEntry": "BLDG_Epic",
+      "shieldCost": 0,
+      "populationCost": 0,
+      "requiredTech": "tech-40",
+      "isSmallWonder": true,
+      "culturePerTurn": 0,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": -12,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 46,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0
+    },
+    {
+      "name": "+1 Ship Move",
+      "civilopediaEntry": "BLDG_Military_Academy",
+      "shieldCost": 60,
+      "populationCost": 0,
+      "requiredTech": "tech-15",
+      "isSmallWonder": true,
+      "culturePerTurn": 1,
+      "contentFacesInCity": 0,
+      "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
+      "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
+      "productionBonusPercent": 0,
+      "iconRowIndex": 57,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "requiredGovernment": "Government-1",
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "airPower": 0,
+      "navalPower": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "increasedShipMovement"
+      ]
+    }
+  ],
+  "barbarianInfo": {
+    "basicBarbarianUnit": "Ashigaru",
+    "advancedBarbarianUnit": "Spearman",
+    "barbarianSeaUnit": "Curragh (1 Capacity)",
+    "defaultHitpoints": 2,
+    "maxHitpoints": 2,
+    "barbarianActivity": "roaming"
+  },
+  "experienceLevels": [
+    {
+      "key": "Conscript",
+      "displayName": "Conscript",
+      "baseHitPoints": 2,
+      "retreatChance": 0.34,
+      "promotionChance": 0.5
+    },
+    {
+      "key": "Regular",
+      "displayName": "Regular",
+      "baseHitPoints": 3,
+      "retreatChance": 0.5,
+      "promotionChance": 0.25
+    },
+    {
+      "key": "Veteran",
+      "displayName": "Veteran",
+      "baseHitPoints": 4,
+      "retreatChance": 0.58,
+      "promotionChance": 0.125
+    },
+    {
+      "key": "Grandmaster",
+      "displayName": "Grandmaster",
+      "baseHitPoints": 5,
+      "retreatChance": 0.66,
+      "promotionChance": 0
+    }
+  ],
+  "defaultExperienceLevel": "Regular",
+  "inflows": [
+    {
+      "name": "Wealth",
+      "localYield": [
+        {
+          "yieldType": "commerce",
+          "yieldCalculation": "inflows.result.wealth.commerce"
+        }
+      ],
+      "iconRowIndex": 29
+    }
+  ],
+  "civilizations": [
+    {
+      "name": "Ronin",
+      "noun": "Ronin",
+      "adjective": "Ronin",
+      "primaryColorIndex": 0,
+      "secondaryColorIndex": 0,
+      "leaderGender": "male",
+      "cultureGroupKey": "None",
+      "civilopediaEntry": "RACE_BARBARIANS",
+      "cityNames": [
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian",
+        "Barbarian"
+      ],
+      "isBarbarian": true,
+      "isCityStates": false,
+      "aggressionLevel": 0,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Otomo (Ind/Exp)",
+      "noun": "Otomo",
+      "adjective": "Otomo",
+      "leader": "Otomo Yoshishige",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 5,
+      "secondaryColorIndex": 5,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\otomo_all.pcx",
+      "civilopediaEntry": "RACE_OTOMO",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Beppu",
+        "Saiki",
+        "Nobeoka",
+        "Taketa",
+        "Tsukumi",
+        "Usuki",
+        "Oita",
+        "Kitsuki",
+        "Bungotakada",
+        "Hyuga",
+        "Yamaga",
+        "Tsurusaki",
+        "Aso",
+        "Usa",
+        "Gokase",
+        "Saitobaru",
+        "Udo",
+        "Sata",
+        "Makuruzaki",
+        "Oketo",
+        "Ashoro",
+        "Otaru",
+        "Bekkai"
+      ],
+      "startingTechs": [
+        "tech-4",
+        "tech-37"
+      ],
+      "traits": [
+        "expansionist",
+        "religious",
+        "industrious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Mori (Mil/Exp)",
+      "noun": "Mori",
+      "adjective": "Mori",
+      "leader": "Mori Motonari",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 24,
+      "secondaryColorIndex": 24,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\mori_all.pcx",
+      "civilopediaEntry": "RACE_MORI",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Hiroshima",
+        "Okayama",
+        "Tokuyama",
+        "Ube",
+        "Shimonoseki",
+        "Matsue",
+        "Yonago",
+        "Iwakuni",
+        "Onomichi",
+        "Tamashima",
+        "Nimi",
+        "Hirata",
+        "Fucho",
+        "Masuda",
+        "Hagi",
+        "Nagato",
+        "Mine",
+        "Yanai",
+        "Hikari",
+        "Kudamatsu",
+        "Mihara",
+        "Takahashi",
+        "Kibitsu",
+        "Sakaiminato"
+      ],
+      "startingTechs": [
+        "tech-1",
+        "tech-44"
+      ],
+      "traits": [
+        "militaristic",
+        "expansionist",
+        "religious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Ichijo (Sci/Com)",
+      "noun": "Ichijo",
+      "adjective": "Ichijo",
+      "leader": "Ichijo Kanesada",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 12,
+      "secondaryColorIndex": 12,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\ichijo_all.pcx",
+      "civilopediaEntry": "RACE_ICHIJO",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Matsuyama",
+        "Kochi",
+        "Saijo",
+        "Susaki",
+        "Imabari",
+        "Ozu",
+        "Yawatahama",
+        "Uwajima",
+        "Sukumo",
+        "Ashizuri",
+        "Kubokawa",
+        "Tosa",
+        "Kodera",
+        "Iyo",
+        "Niihama",
+        "Takehara",
+        "Onoda",
+        "Tojo",
+        "Yubari",
+        "Shari",
+        "Takikawa",
+        "Mukawa",
+        "Biei"
+      ],
+      "startingTechs": [
+        "tech-4",
+        "tech-3"
+      ],
+      "traits": [
+        "commercial",
+        "scientific",
+        "religious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 1,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Urakami (Com/Exp)",
+      "noun": "Urakami",
+      "adjective": "Urakami",
+      "leader": "Urakami Munekage",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 14,
+      "secondaryColorIndex": 14,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\urakami_all.pcx",
+      "civilopediaEntry": "RACE_URAKAMI",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Kobe",
+        "Kakogawa",
+        "Ako",
+        "Kurayoshi",
+        "Toyooka",
+        "Fukuchiyama",
+        "Miyazu",
+        "Nishiwaki",
+        "Himeji",
+        "Aioi",
+        "Chizu",
+        "Yoshii",
+        "Hamasaka",
+        "Shodoshima",
+        "Daisenoki",
+        "Ayabe",
+        "Harima",
+        "Kyoga",
+        "Misaki",
+        "Amanohasidate",
+        "Kaigan",
+        "Nishigawa",
+        "Chizugoki"
+      ],
+      "startingTechs": [
+        "tech-8",
+        "tech-39"
+      ],
+      "traits": [
+        "commercial",
+        "expansionist",
+        "religious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 1,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Miyoshi (Ind/Sci)",
+      "noun": "Miyoshi",
+      "adjective": "Miyoshi",
+      "leader": "Miyoshi Nagayoshi",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 10,
+      "secondaryColorIndex": 10,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\miyoshi_all.pcx",
+      "civilopediaEntry": "RACE_MIYOSHI",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Kyoto",
+        "Maizuru",
+        "Nara",
+        "Tottori",
+        "Kasuga",
+        "Otsu",
+        "Obama",
+        "Takatsuki",
+        "Yokkaichi",
+        "Suzuka",
+        "Tsu",
+        "Matsusaka",
+        "Shugakuin",
+        "Omihachiman",
+        "Hikone",
+        "Nagahama",
+        "Ueno",
+        "Toba",
+        "Ise",
+        "Miya",
+        "Yodo",
+        "Wakasa",
+        "Samani",
+        "Tomakomai"
+      ],
+      "startingTechs": [
+        "tech-1",
+        "tech-46"
+      ],
+      "traits": [
+        "scientific",
+        "religious",
+        "industrious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Oda (Mil/Ind)",
+      "noun": "Oda",
+      "adjective": "Oda",
+      "leader": "Oda Nobunaga",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 15,
+      "secondaryColorIndex": 15,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\oda_all.pcx",
+      "civilopediaEntry": "RACE_ODA",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Nagoya",
+        "Seto",
+        "Ogaki",
+        "Ichinomiya",
+        "Gifu",
+        "Kariya",
+        "Toki",
+        "Tajimi",
+        "Takefu",
+        "Tsuruga",
+        "Handa",
+        "Tokai",
+        "Okazaki",
+        "Kiso",
+        "Gero",
+        "Minokama",
+        "Inuyama",
+        "Sekigahara",
+        "Ena",
+        "Hanto",
+        "Sekajima",
+        "Ono",
+        "Eiheiji",
+        "Abashiri"
+      ],
+      "startingTechs": [
+        "tech-3",
+        "tech-38"
+      ],
+      "traits": [
+        "militaristic",
+        "religious",
+        "industrious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Imagawa (Mil/Sci)",
+      "noun": "Imagawa",
+      "adjective": "Imagawa",
+      "leader": "Imagawa Yoshimoto",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 16,
+      "secondaryColorIndex": 16,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\imagawa_all.pcx",
+      "civilopediaEntry": "RACE_IMAGAWA",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Fuji",
+        "Odawara",
+        "Yokahama",
+        "Kawasaki",
+        "Tachikawa",
+        "Kofu",
+        "Numazu",
+        "Ito",
+        "Fujiyoshida",
+        "Chichibu",
+        "Yokosuka",
+        "Fujisawa",
+        "Atami",
+        "Izu",
+        "Iro Zaki",
+        "Hakone",
+        "Uraga",
+        "Kurihama",
+        "Miura",
+        "Mitsumine",
+        "Kozu Shima",
+        "Suttsu",
+        "Otobe",
+        "Setana",
+        "Utashinai"
+      ],
+      "startingTechs": [
+        "tech-1",
+        "tech-43"
+      ],
+      "traits": [
+        "militaristic",
+        "scientific",
+        "religious"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Ainu (Mil/Sea)",
+      "noun": "Ainu",
+      "adjective": "Ainu",
+      "leader": "Takeda Shingen",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 4,
+      "secondaryColorIndex": 4,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\takeda_all.pcx",
+      "civilopediaEntry": "RACE_TAKEDA",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Nagaoka",
+        "Ojiya",
+        "Niigata",
+        "Joetsu",
+        "Arai",
+        "Maebashi",
+        "Sanjo",
+        "Mitsuke",
+        "Shibata",
+        "Gosen",
+        "Shirone",
+        "Kamo",
+        "Tsubame",
+        "Niitsu",
+        "Murakami",
+        "Atsumi",
+        "Yuzawa",
+        "Aizuwakamatsu",
+        "Aikawa",
+        "Tokamachi",
+        "Shibukawa",
+        "Takasaki",
+        "Numata",
+        "Awa Shima"
+      ],
+      "startingTechs": [
+        "tech-8",
+        "tech-40"
+      ],
+      "traits": [
+        "militaristic",
+        "religious",
+        "seafaring"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Hojo (Ind/Sea)",
+      "noun": "Hojo",
+      "adjective": "Hojo",
+      "leader": "Hojo Ujiyasu",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 9,
+      "secondaryColorIndex": 9,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\hojo_all.pcx",
+      "civilopediaEntry": "RACE_HOJO",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Tsuchiuru",
+        "Ashikaga",
+        "Chiba",
+        "Togane",
+        "Katsuura",
+        "Kiryu",
+        "Ota",
+        "Otawara",
+        "Kuroiso",
+        "Shirakawa",
+        "Yaita",
+        "Mito",
+        "Hitachi",
+        "Takahagi",
+        "Hokota",
+        "Choshi",
+        "Tateyama",
+        "Urawa",
+        "Funabashi",
+        "Kumagaya",
+        "Kanuma",
+        "Nikko",
+        "Imaichi",
+        "Tajima",
+        "Nakoso"
+      ],
+      "startingTechs": [
+        "tech-8",
+        "tech-41"
+      ],
+      "traits": [
+        "religious",
+        "industrious",
+        "seafaring"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 1,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Uesugi (Sci/Ag)",
+      "noun": "Uesugi",
+      "adjective": "Uesugi",
+      "leader": "Uesugi Kenshin",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 20,
+      "secondaryColorIndex": 20,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\uesugi_all.pcx",
+      "civilopediaEntry": "RACE_UESUGI",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Sendai",
+        "Kakuda",
+        "Fukushima",
+        "Koriyama",
+        "Ishinomaki",
+        "Soma",
+        "Sukagawa",
+        "Tsuyama",
+        "Nihonmatsu",
+        "Tomoika",
+        "Haranomachi",
+        "Shiroishi",
+        "Naruko",
+        "Tsukidate",
+        "Ojika",
+        "Shiogama",
+        "Iwanuma",
+        "Iwaki",
+        "Namie",
+        "Matsushima",
+        "Murayama",
+        "Sunagawa",
+        "Rumoi",
+        "Haboro"
+      ],
+      "startingTechs": [
+        "tech-4",
+        "tech-42"
+      ],
+      "traits": [
+        "scientific",
+        "religious",
+        "agricultural"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Date (Ag/Sea)",
+      "noun": "Date",
+      "adjective": "Date",
+      "leader": "Date Masamune",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 2,
+      "secondaryColorIndex": 2,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\date_all.pcx",
+      "civilopediaEntry": "RACE_DATE",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Miyako",
+        "Morioka",
+        "Hirosaki",
+        "Hachinohi",
+        "Ichinoseki",
+        "Mutsu",
+        "Ajigasawa",
+        "Kitakami",
+        "Mizusawa",
+        "Rikuzentakata",
+        "Taro",
+        "Fudai",
+        "Kuji",
+        "Motoyoshi",
+        "Kesennuma",
+        "Hanamaki",
+        "Towada",
+        "Imabetsu",
+        "Iwate",
+        "Hanawa",
+        "Oma",
+        "Todoga Saki",
+        "Tazawa Ko",
+        "Okushira"
+      ],
+      "startingTechs": [
+        "tech-3",
+        "tech-47"
+      ],
+      "traits": [
+        "religious",
+        "agricultural",
+        "seafaring"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    },
+    {
+      "name": "Tokugawa (Ag/Com)",
+      "noun": "Tokugawa",
+      "adjective": "Tokugawa",
+      "leader": "Tokugawa Ieyasu",
+      "leaderTitle": "Daimyo",
+      "primaryColorIndex": 25,
+      "secondaryColorIndex": 25,
+      "leaderGender": "male",
+      "cultureGroupKey": "Asian",
+      "leaderArtFile": "art\\advisors\\tokugawa_all.pcx",
+      "civilopediaEntry": "RACE_TOKUGAWA",
+      "kingUnit": "Tokugawa Shogun (Amphib)",
+      "cityNames": [
+        "Hamamatsu",
+        "Nakatsugawa",
+        "Komagane",
+        "Shimada",
+        "Shizuoka",
+        "Yaizu",
+        "Kakegawa",
+        "Iwata",
+        "Toro",
+        "Fujieda",
+        "Ina",
+        "Tenryu",
+        "Agematsu",
+        "Shimizu",
+        "Suruga",
+        "Omai Zaki",
+        "Iida",
+        "Komamatsu",
+        "Isawa",
+        "Ikegawa",
+        "Nakajima",
+        "Iwanai",
+        "Oshamambe"
+      ],
+      "startingTechs": [
+        "tech-4",
+        "tech-45"
+      ],
+      "traits": [
+        "commercial",
+        "religious",
+        "agricultural"
+      ],
+      "isBarbarian": false,
+      "isCityStates": false,
+      "aggressionLevel": 2,
+      "adjustments": {
+        "distancePenaltyRadius": 4,
+        "rivalCityRadius": 4,
+        "rivalCityPenalty": -25,
+        "commerceYieldBonus": 2,
+        "distancePenalty": -2,
+        "foodYieldBonus": 5,
+        "productionYieldBonus": 3,
+        "hillsBonus": 10,
+        "luxuryResourceBonus": 15,
+        "strategicResourceBonus": 20,
+        "waterBonus": 10
+      }
+    }
+  ],
+  "cultureGroups": [
+    {
+      "index": -1,
+      "name": "None"
+    },
+    {
+      "index": 4,
+      "name": "Asian"
+    }
+  ],
+  "strengthBonuses": [
+    {
+      "description": "Fortified",
+      "amount": 0.25
+    },
+    {
+      "description": "Behind river",
+      "amount": 0.25
+    },
+    {
+      "description": "Town",
+      "amount": 0
+    },
+    {
+      "description": "City",
+      "amount": 0.45
+    },
+    {
+      "description": "Metropolis",
+      "amount": 0.6
+    }
+  ],
+  "healRates": {
+    "friendly_field": 1,
+    "neutral_field": 1,
+    "hostile_field": 0,
+    "city": 2
+  },
+  "rules": {
+    "maximumResearchTime": 30,
+    "minimumResearchTime": 1,
+    "shieldValueInGold": 4,
+    "forestValueInShields": 10,
+    "citizenValueInShields": 20,
+    "turnPenaltyForEachHurrySacrifice": 20,
+    "maximumLevel1CitySize": 6,
+    "maximumLevel2CitySize": 12,
+    "foodNeededToGrowForLevel1Cities": 20,
+    "foodNeededToGrowForLevel2Cities": 40,
+    "foodNeededToGrowForLevel3Cities": 60,
+    "buildingDiscountForCivTraits": 0.5,
+    "startUnitType1": "Peasant Worker",
+    "startUnitType2": "Settler",
+    "scoutUnitType": "Scout",
+    "maxRankOfWorkableTiles": 2,
+    "maxRankOfBarbarianCampTiles": 2,
+    "defaultDealDuration": 20,
+    "treasuryInterestRate": 0.05,
+    "maxInterest": 50,
+    "shieldCostPerGold": 5,
+    "shieldRateForDisbanding": 0.25,
+    "allowLesserUnitProduction": false,
+    "radarTileVisibility": 2,
+    "allowUnloadFromArmy": false,
+    "showScoreboard": true,
+    "coreCitiesFreeOfCorruption": false,
+    "citiesFreeOfCorruption": 5,
+    "corruptionRate": 0.9,
+    "noCorruption": false,
+    "permanentWar": false,
+    "bornUnhappyPercent": 100,
+    "sizeWithoutAqueduct": 0,
+    "sizeWithoutHospital": 0,
+    "tileCommerceBonus": 0,
+    "tundraForestFoodBonus": 0,
+    "desertShieldBonus": 0,
+    "defeatedWorkersBecomeSlaves": false,
+    "coastalBuildingRange": 1,
+    "stagingUnits": false,
+    "marketOffersPerTurn": 3,
+    "risingTide": false,
+    "newCitySize": 1,
+    "cityCenterFood": 2,
+    "settlersOnlyInConqueredCities": false,
+    "fallenCitiesGoIndependent": false,
+    "onlyGovernment": "Feudalism",
+    "allTechsAtStart": true,
+    "persistentResources": true,
+    "governmentLocked": true,
+    "teamVictory": false,
+    "aiBuildingMaintenancePercent": 0,
+    "aiExtraFreeUnitsPerCity": 0,
+    "aiCorruptionPercent": 100,
+    "aiExtraContentCitizens": 0,
+    "aiCostPercent": 100,
+    "aiUnitsStartVeteran": false,
+    "acceleratedProduction": true,
+    "allowCultureFlips": false,
+    "scientificLeaders": false,
+    "citiesNeededToSupportAnArmy": 4,
+    "spaceshipPartsRequired": [
+      0
+    ],
+    "minimumPopulationForWeLoveTheKing": 6,
+    "goldenAgeDuration": 12,
+    "upgradeCostPerShield": 4,
+    "startingTreasury": 10,
+    "volcanoEruptionPeriod": 5000,
+    "firstEraCivilopediaName": "ERAS_Ancient_Times",
+    "eraResearcherNames": {
+      "ERAS_Ancient_Times": [
+        "Mystics",
+        "Sages",
+        "Prophets"
+      ],
+      "ERAS_Middle_Ages": [
+        "Wise-Men",
+        "Alchemists",
+        "Sooth Sayers"
+      ],
+      "ERAS_Industrial_Age": [
+        "Scientists",
+        "Scholars",
+        "Inventors"
+      ],
+      "ERAS_Modern_Era": [
+        "Engineers",
+        "Committees",
+        "Think-Tanks",
+        "Researchers",
+        "Contractors"
+      ]
+    },
+    "foodConsumptionPerCitizen": 2,
+    "movementAlongRoads": 3,
+    "fortressDefensiveBonus": 50,
+    "chanceToInterceptAirMissions": 50,
+    "chanceToInterceptStealthMissions": 5,
+    "borderExpansionMultiplier": 1000,
+    "borderFactor": 10,
+    "futureTechCost": 400,
+    "chanceOfRioting": 20,
+    "citizensAffectedByEachHappyFace": 1,
+    "buildingDefensiveBonus": 16,
+    "citizenDefensiveBonus": 16,
+    "turnPenaltyForEachDraftedCitizen": 18,
+    "slaveUnitType": "Peasant Worker",
+    "cultureLevelNames": [
+      "Fledgling",
+      "Weak",
+      "Fragile",
+      "Solid",
+      "Strong",
+      "Glorious"
+    ],
+    "cultureOpinions": [
+      {
+        "name": "in awe of",
+        "numerator": 3,
+        "denominator": 1
+      },
+      {
+        "name": "admirers of",
+        "numerator": 2,
+        "denominator": 1
+      },
+      {
+        "name": "impressed with",
+        "numerator": 1,
+        "denominator": 1
+      },
+      {
+        "name": "unimpressed by",
+        "numerator": 3,
+        "denominator": 4
+      },
+      {
+        "name": "dismissive of",
+        "numerator": 1,
+        "denominator": 2
+      },
+      {
+        "name": "disdainful of",
+        "numerator": 1,
+        "denominator": 3
+      }
+    ]
+  },
+  "timeOptions": {
+    "baseUnit": "years",
+    "negativeLabel": "BC",
+    "positiveLabel": "AD",
+    "startYear": -4000,
+    "startMonth": 1,
+    "startWeek": 1,
+    "startDay": 1,
+    "startHour": 12,
+    "timeScale": [
+      [
+        25,
+        25,
+        40,
+        50,
+        100,
+        100,
+        100,
+        10000
+      ],
+      [
+        50,
+        40,
+        25,
+        20,
+        10,
+        5,
+        2,
+        1
+      ]
+    ],
+    "turnLimit": 540
+  },
+  "techs": [
+    {
+      "name": "Metal Working",
+      "civilopediaEntry": "TECH_Diplomatic",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-1",
+      "cost": 4,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\36-literature-small.pcx",
+      "x": 100,
+      "y": 140,
+      "flags": [
+        "enablesIrrigationEverywhere",
+        "enablesRightOfPassage",
+        "enablesDiplomats",
+        "enablesMilitaryAlliances",
+        "enablesMapTrading",
+        "enablesCommunicationTrading",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Masonry",
+      "civilopediaEntry": "TECH_Masonry",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-2",
+      "cost": 13,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\40-Masonry-small.pcx",
+      "x": 255,
+      "y": 240,
+      "prerequisites": [
+        "tech-4"
+      ],
+      "flags": [
+        "enablesRightOfPassage",
+        "enablesMilitaryAlliances",
+        "enablesMapTrading",
+        "enablesCommunicationTrading",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Warrior Code",
+      "civilopediaEntry": "TECH_Alphabet",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-3",
+      "cost": 5,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\01-alphabet-small.pcx",
+      "x": 100,
+      "y": 390,
+      "flags": [
+        "enablesIrrigationEverywhere",
+        "enablesRightOfPassage",
+        "enablesMilitaryAlliances",
+        "enablesMapTrading",
+        "enablesCommunicationTrading",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Literature",
+      "civilopediaEntry": "TECH_Pottery",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-4",
+      "cost": 4,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\57-Pottery-small.pcx",
+      "x": 100,
+      "y": 240,
+      "flags": [
+        "enablesIrrigationEverywhere",
+        "enablesRightOfPassage",
+        "enablesMilitaryAlliances",
+        "enablesMapTrading",
+        "enablesCommunicationTrading",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Double Worker Speed",
+      "civilopediaEntry": "TECH_The_Wheel",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-5",
+      "cost": 17,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\78-TheWheel-small.pcx",
+      "x": 430,
+      "y": 240,
+      "prerequisites": [
+        "tech-2",
+        "tech-36"
+      ],
+      "flags": [
+        "doublesWorkerRate",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Sea Travel",
+      "civilopediaEntry": "TECH_Gunpowder",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-6",
+      "cost": 7,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\43-metallurgy-small.pcx",
+      "x": 265,
+      "y": 540,
+      "prerequisites": [
+        "tech-8"
+      ],
+      "flags": [
+        "enablesTradeOverSea",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "civilopediaEntry": "TECH_Bronze_Working",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-7",
+      "cost": 8,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\06-bronzeWorking-small.pcx",
+      "x": 240,
+      "y": 140,
+      "prerequisites": [
+        "tech-1"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Harbors",
+      "civilopediaEntry": "TECH_Mysticism",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-8",
+      "cost": 4,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\79-theology-small.pcx",
+      "x": 90,
+      "y": 540,
+      "flags": [
+        "enablesIrrigationEverywhere",
+        "enablesRightOfPassage",
+        "enablesMilitaryAlliances",
+        "enablesMapTrading",
+        "enablesCommunicationTrading",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Warships",
+      "civilopediaEntry": "TECH_Mathematics",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-9",
+      "cost": 7,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\41-mathematics-small.pcx",
+      "x": 265,
+      "y": 340,
+      "prerequisites": [
+        "tech-3"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Barrier Tech 2",
+      "civilopediaEntry": "TECH_Philosophy",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-10",
+      "cost": 999,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\54-Philosophy-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-12"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Banditry",
+      "civilopediaEntry": "TECH_Code_of_Laws",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-11",
+      "cost": 8,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\10-CodeOfLaws-small.pcx",
+      "x": 265,
+      "y": 430,
+      "prerequisites": [
+        "tech-3"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Super Fast Workers",
+      "civilopediaEntry": "TECH_Literature",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-12",
+      "cost": 30,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\36-literature-small.pcx",
+      "x": 255,
+      "y": 380,
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Ronins",
+      "civilopediaEntry": "TECH_Suieijutsu",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-13",
+      "cost": 11,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Suieijutsu-small.pcx",
+      "x": 430,
+      "y": 340,
+      "prerequisites": [
+        "tech-9"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Ninjutsu",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-14",
+      "cost": 24,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\CounterReformation-small.pcx",
+      "x": 615,
+      "y": 390,
+      "prerequisites": [
+        "tech-13",
+        "tech-16"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Philosophy",
+      "civilopediaEntry": "TECH_Philosophy",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-15",
+      "cost": 13,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\54-Philosophy-small.pcx",
+      "x": 430,
+      "y": 540,
+      "prerequisites": [
+        "tech-6",
+        "tech-8"
+      ],
+      "flags": [
+        "bonusTechToFirstCivThatResearches",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Line Infantry",
+      "civilopediaEntry": "TECH_Currency",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-16",
+      "cost": 10,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\15-Currency-small.pcx",
+      "x": 430,
+      "y": 430,
+      "prerequisites": [
+        "tech-9",
+        "tech-11"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Mortal Combat",
+      "civilopediaEntry": "TECH_Construction",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-17",
+      "cost": 29,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\14-Construction-small.pcx",
+      "x": 560,
+      "y": 240,
+      "prerequisites": [
+        "tech-5"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Rifling",
+      "civilopediaEntry": "TECH_Heihojutsu",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-18",
+      "cost": 7,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Heihoujutsu-small.pcx",
+      "x": 780,
+      "y": 390,
+      "prerequisites": [
+        "tech-14",
+        "tech-17",
+        "tech-15"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Late Era Tech",
+      "civilopediaEntry": "TECH_Gunpowder",
+      "eraCivilopediaName": "ERAS_Industrial_Age",
+      "id": "tech-19",
+      "cost": 90,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\43-metallurgy-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-31"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Bujutsu",
+      "civilopediaEntry": "TECH_Bujutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-20",
+      "cost": 77,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Bujutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-34"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Kenjutsu",
+      "civilopediaEntry": "TECH_Kenjutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-21",
+      "cost": 30,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Kenjutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-20"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Kyujutsu",
+      "civilopediaEntry": "TECH_Kyujutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-22",
+      "cost": 30,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Kyujutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-20"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Bajutsu",
+      "civilopediaEntry": "TECH_Bajutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-23",
+      "cost": 60,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Bajutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-30"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Bridge Building",
+      "civilopediaEntry": "TECH_Construction",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-24",
+      "cost": 12,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\14-Construction-small.pcx",
+      "x": 610,
+      "y": 140,
+      "prerequisites": [
+        "tech-36"
+      ],
+      "flags": [
+        "enablesBridges",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Naginatajutsu",
+      "civilopediaEntry": "TECH_Naginatajutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-25",
+      "cost": 40,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Naginatajutsu_small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-28"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Ocean Trade",
+      "civilopediaEntry": "TECH_Suieijutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-26",
+      "cost": 27,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Suieijutsu-small.pcx",
+      "x": 255,
+      "y": 290,
+      "flags": [
+        "enablesTradeOverOcean",
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Iajutsu",
+      "civilopediaEntry": "TECH_Iajutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-27",
+      "cost": 40,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Iajutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-21"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Heihojutsu",
+      "civilopediaEntry": "TECH_Heihojutsu",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-28",
+      "cost": 30,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Heihoujutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-20"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Hojutsu",
+      "civilopediaEntry": "TECH_Hojutsu",
+      "eraCivilopediaName": "ERAS_Industrial_Age",
+      "id": "tech-29",
+      "cost": 100,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Hojutsu-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-19"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Bushido",
+      "civilopediaEntry": "TECH_Bushido",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-30",
+      "cost": 50,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\Bushido-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-22",
+        "tech-27",
+        "tech-25"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Contact  : Portuguese",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "ERAS_Industrial_Age",
+      "id": "tech-31",
+      "cost": 80,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\CounterReformation-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-35"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Contact : Ronin",
+      "civilopediaEntry": "TECH_Ronin",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-32",
+      "cost": 40,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\ContactRonin-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-34"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Place-Holder Tech",
+      "civilopediaEntry": "TECH_Place_Holder",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-33",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Barrier Tech 3",
+      "civilopediaEntry": "TECH_Diplomatic",
+      "eraCivilopediaName": "ERAS_Middle_Ages",
+      "id": "tech-34",
+      "cost": 999,
+      "requiredForEraAdvancement": false,
+      "smallIconPath": "Art\\tech chooser\\Icons\\36-literature-small.pcx",
+      "x": 999,
+      "y": 999,
+      "prerequisites": [
+        "tech-10"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Akinai",
+      "civilopediaEntry": "TECH_Trade",
+      "eraCivilopediaName": "ERAS_Industrial_Age",
+      "id": "tech-35",
+      "cost": 70,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\36-literature-small.pcx",
+      "x": 999,
+      "y": 999,
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Longbows",
+      "civilopediaEntry": "TECH_Invention",
+      "eraCivilopediaName": "ERAS_Ancient_Times",
+      "id": "tech-36",
+      "cost": 15,
+      "requiredForEraAdvancement": true,
+      "smallIconPath": "Art\\tech chooser\\Icons\\34-Invention-bolt-small.pcx",
+      "x": 420,
+      "y": 140,
+      "prerequisites": [
+        "tech-7"
+      ],
+      "flags": [
+        "cannotBeTraded"
+      ]
+    },
+    {
+      "name": "Otomo Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-37",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Oda Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-38",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Urakami Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-39",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Ainu Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-40",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Hojo Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-41",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Uesugi Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-42",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Imagawa Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-43",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Mori Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-44",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Tokugawa Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-45",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    },
+    {
+      "name": "Myoshi Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-46",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats",
+        "enablesConscription"
+      ]
+    },
+    {
+      "name": "Date Tech",
+      "civilopediaEntry": "TECH_Portuguese",
+      "eraCivilopediaName": "Hidden",
+      "id": "tech-47",
+      "cost": 0,
+      "requiredForEraAdvancement": true,
+      "x": 0,
+      "y": 0,
+      "flags": [
+        "enablesDiplomats"
+      ]
+    }
+  ],
+  "citizenTypes": [
+    {
+      "id": "CitizenType-1",
+      "isDefaultCitizen": true,
+      "specialistIndex": 0,
+      "singularName": "Peasant",
+      "civilopediaEntry": "CTZN_Laborer",
+      "pluralName": "Peasants",
+      "luxuries": 0,
+      "research": 0,
+      "taxes": 0,
+      "corruption": 0,
+      "construction": 0
+    },
+    {
+      "id": "CitizenType-2",
+      "isDefaultCitizen": false,
+      "specialistIndex": 1,
+      "singularName": "Geisha",
+      "civilopediaEntry": "CTZN_Entertainer",
+      "pluralName": "Entertainers",
+      "luxuries": 1,
+      "research": 0,
+      "taxes": 0,
+      "corruption": 0,
+      "construction": 0
+    },
+    {
+      "id": "CitizenType-3",
+      "isDefaultCitizen": false,
+      "specialistIndex": 2,
+      "singularName": "Magistrate",
+      "civilopediaEntry": "CTZN_Tax_Collector",
+      "pluralName": "Tax Collectors",
+      "luxuries": 0,
+      "research": 0,
+      "taxes": 2,
+      "corruption": 0,
+      "construction": 0
+    },
+    {
+      "id": "CitizenType-4",
+      "isDefaultCitizen": false,
+      "specialistIndex": 3,
+      "singularName": "Philosopher",
+      "civilopediaEntry": "CTZN_Scientist",
+      "pluralName": "Elders",
+      "luxuries": 0,
+      "research": 3,
+      "taxes": 0,
+      "corruption": 0,
+      "construction": 0
+    }
+  ],
+  "terraForms": [
+    {
+      "id": "Terraform-1",
+      "name": "Mine",
+      "civilopediaEntry": "TFRM_Mine",
+      "turnsToComplete": 12,
+      "improvement": "mine",
+      "validators": [
+        "terraforms.validators.mine"
+      ],
+      "aiScore": "terraforms.ai_score.yield_improvement",
+      "animation": "mine",
+      "uiAction": "unit_build_mine",
+      "buttonTexture": "ui.unit_control.unit_build_mine"
+    },
+    {
+      "id": "Terraform-2",
+      "name": "Irrigation",
+      "civilopediaEntry": "TFRM_Irrigation",
+      "turnsToComplete": 8,
+      "improvement": "irrigation",
+      "validators": [
+        "terraforms.validators.irrigate"
+      ],
+      "aiScore": "terraforms.ai_score.yield_improvement",
+      "animation": "irrigate",
+      "uiAction": "unit_irrigate",
+      "buttonTexture": "ui.unit_control.unit_irrigate"
+    },
+    {
+      "id": "Terraform-3",
+      "name": "Fortress",
+      "civilopediaEntry": "TFRM_Fortress",
+      "turnsToComplete": 16,
+      "requiredTech": "tech-21",
+      "improvement": "fortress",
+      "aiScore": "terraforms.ai_score.default",
+      "animation": "fortress",
+      "uiAction": "unit_build_fortress",
+      "buttonTexture": "ui.unit_control.unit_build_fortress"
+    },
+    {
+      "id": "Terraform-4",
+      "name": "Road",
+      "civilopediaEntry": "TFRM_Road",
+      "turnsToComplete": 6,
+      "improvement": "road",
+      "aiScore": "terraforms.ai_score.road",
+      "animation": "road",
+      "uiAction": "unit_build_road",
+      "buttonTexture": "ui.unit_control.unit_build_road"
+    },
+    {
+      "id": "Terraform-5",
+      "name": "Railroad",
+      "civilopediaEntry": "TFRM_Railroad",
+      "turnsToComplete": 12,
+      "requiredTech": "tech-45",
+      "requiredResources": [
+        "Iron",
+        "Coal"
+      ],
+      "improvement": "railroad",
+      "aiScore": "terraforms.ai_score.railroad",
+      "animation": "road",
+      "uiAction": "unit_build_railroad",
+      "buttonTexture": "ui.unit_control.unit_build_railroad"
+    },
+    {
+      "id": "Terraform-6",
+      "name": "Plant Forest",
+      "civilopediaEntry": "TFRM_Plant_Forest",
+      "turnsToComplete": 18,
+      "requiredTech": "tech-24",
+      "validators": [
+        "terraforms.validators.plant_forest"
+      ],
+      "effects": [
+        "terraforms.effects.plant_forest"
+      ],
+      "aiScore": "terraforms.ai_score.default",
+      "animation": "plant",
+      "uiAction": "unit_plant_forest",
+      "buttonTexture": "ui.unit_control.unit_plant_forest"
+    },
+    {
+      "id": "Terraform-7",
+      "name": "Clear Forest",
+      "civilopediaEntry": "TFRM_Clear_Forest",
+      "turnsToComplete": 4,
+      "validators": [
+        "terraforms.validators.clear_forest"
+      ],
+      "effects": [
+        "terraforms.effects.clear_forest"
+      ],
+      "aiScore": "terraforms.ai_score.clear_forest",
+      "animation": "forest",
+      "uiAction": "unit_clear_forest",
+      "buttonTexture": "ui.unit_control.unit_clear_forest"
+    },
+    {
+      "id": "Terraform-8",
+      "name": "Clear Wetlands",
+      "civilopediaEntry": "TFRM_Clear_Wetlands",
+      "turnsToComplete": 16,
+      "validators": [
+        "terraforms.validators.clear_wetlands"
+      ],
+      "effects": [
+        "terraforms.effects.clear_wetlands"
+      ],
+      "aiScore": "terraforms.ai_score.clear_wetlands",
+      "animation": "jungle",
+      "uiAction": "unit_clear_wetlands",
+      "buttonTexture": "ui.unit_control.unit_clear_wetlands"
+    },
+    {
+      "id": "Terraform-9",
+      "name": "Clear Damage",
+      "civilopediaEntry": "TFRM_Clear_Damage",
+      "turnsToComplete": 24,
+      "validators": [
+        "terraforms.validators.clear_damage"
+      ],
+      "effects": [
+        "terraforms.effects.clear_damage"
+      ],
+      "aiScore": "terraforms.ai_score.clear_damage",
+      "uiAction": "unit_clear_damage",
+      "buttonTexture": "ui.unit_control.unit_clear_damage"
+    },
+    {
+      "id": "Terraform-10",
+      "name": "Airfield",
+      "civilopediaEntry": "TFRM_Airfield",
+      "turnsToComplete": 1,
+      "requiredTech": "tech-59",
+      "improvement": "airfield",
+      "validators": [
+        "terraforms.validators.airfield"
+      ],
+      "aiScore": "terraforms.ai_score.default",
+      "uiAction": "unit_build_airfield",
+      "buttonTexture": "ui.unit_control.unit_build_airfield",
+      "consumesWorker": true
+    },
+    {
+      "id": "Terraform-11",
+      "name": "Radar Tower",
+      "civilopediaEntry": "TFRM_Radar_Tower",
+      "turnsToComplete": 1,
+      "requiredTech": "tech-64",
+      "improvement": "radarTower",
+      "validators": [
+        "terraforms.validators.radar_tower"
+      ],
+      "aiScore": "terraforms.ai_score.default",
+      "uiAction": "unit_build_radar_tower",
+      "buttonTexture": "ui.unit_control.unit_build_radar_tower",
+      "consumesWorker": true
+    },
+    {
+      "id": "Terraform-12",
+      "name": "Outpost",
+      "civilopediaEntry": "TFRM_Outpost",
+      "turnsToComplete": 1,
+      "requiredTech": "tech-2",
+      "improvement": "outpost",
+      "validators": [
+        "terraforms.validators.outpost"
+      ],
+      "aiScore": "terraforms.ai_score.default",
+      "uiAction": "unit_build_outpost",
+      "buttonTexture": "ui.unit_control.unit_build_outpost",
+      "consumesWorker": true
+    },
+    {
+      "id": "Terraform-13",
+      "name": "Barricade",
+      "civilopediaEntry": "TFRM_Barricades",
+      "turnsToComplete": 16,
+      "requiredTech": "tech-21",
+      "improvement": "barricade",
+      "aiScore": "terraforms.ai_score.default",
+      "animation": "fortress",
+      "uiAction": "unit_build_barricade",
+      "buttonTexture": "ui.unit_control.unit_build_barricade"
+    }
+  ],
+  "governments": [
+    {
+      "hasTilePenalty": false,
+      "hasTradeBonus": true,
+      "id": "Government-1",
+      "name": "Feudalism",
+      "civilopediaEntry": "GOVT_Despotism",
+      "defaultType": true,
+      "transitionType": false,
+      "requiresMaintenance": true,
+      "corruptionType": "problematic",
+      "hurryingType": "forcedLabor",
+      "rateCap": 10,
+      "warWeariness": 0,
+      "draftLimit": 2,
+      "militaryPoliceLimit": 2,
+      "workerRate": 3,
+      "allUnitsFree": false,
+      "xenophobic": false,
+      "forcedResettlement": false,
+      "freeUnitsPerTown": 2,
+      "freeUnitsPerCity": 4,
+      "freeUnitsPerMetropolis": 6,
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Sir",
+        "Supreme Lord",
+        "Master",
+        "Great One"
+      ],
+      "femaleRulerTitles": [
+        "Madame",
+        "Supreme Lady",
+        "",
+        ""
+      ]
+    },
+    {
+      "hasTilePenalty": true,
+      "hasTradeBonus": false,
+      "id": "Government-2",
+      "name": "Anarchy",
+      "civilopediaEntry": "GOVT_Anarchy",
+      "defaultType": false,
+      "transitionType": true,
+      "requiresMaintenance": false,
+      "corruptionType": "catastrophic",
+      "hurryingType": "cannotHurry",
+      "rateCap": 10,
+      "warWeariness": 0,
+      "draftLimit": 0,
+      "militaryPoliceLimit": 0,
+      "workerRate": 2,
+      "allUnitsFree": true,
+      "xenophobic": false,
+      "forcedResettlement": false,
+      "freeUnitsPerTown": 0,
+      "freeUnitsPerCity": 0,
+      "freeUnitsPerMetropolis": 0,
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Revolutionary",
+        "Leader"
+      ],
+      "femaleRulerTitles": [
+        "",
+        ""
+      ]
+    }
+  ],
+  "difficulties": [
+    {
+      "id": "Difficulty-1",
+      "name": "Chieftain",
+      "numberOfCitizensBornContent": 4,
+      "maxAiGovernmentTransitionTime": 0,
+      "numberOfAIDefensiveStartingUnits": 0,
+      "numberOfAIOffensiveStartingUnits": 0,
+      "extraStartUnit1": 0,
+      "extraStartUnit2": 0,
+      "additionalFreeUnitSupport": 0,
+      "unitSupportBonusForEachSettlement": 0,
+      "attackBonusAgainstBarbarians": 800,
+      "aiCostFactor": 20,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 100,
+      "aiToAITradeRate": 110,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-2",
+      "name": "Warlord",
+      "numberOfCitizensBornContent": 3,
+      "maxAiGovernmentTransitionTime": 0,
+      "numberOfAIDefensiveStartingUnits": 0,
+      "numberOfAIOffensiveStartingUnits": 0,
+      "extraStartUnit1": 0,
+      "extraStartUnit2": 0,
+      "additionalFreeUnitSupport": 0,
+      "unitSupportBonusForEachSettlement": 0,
+      "attackBonusAgainstBarbarians": 400,
+      "aiCostFactor": 12,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 95,
+      "aiToAITradeRate": 120,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-3",
+      "name": "Regent",
+      "numberOfCitizensBornContent": 2,
+      "maxAiGovernmentTransitionTime": 0,
+      "numberOfAIDefensiveStartingUnits": 0,
+      "numberOfAIOffensiveStartingUnits": 0,
+      "extraStartUnit1": 0,
+      "extraStartUnit2": 0,
+      "additionalFreeUnitSupport": 0,
+      "unitSupportBonusForEachSettlement": 0,
+      "attackBonusAgainstBarbarians": 200,
+      "aiCostFactor": 10,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 90,
+      "aiToAITradeRate": 130,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-4",
+      "name": "Monarch",
+      "numberOfCitizensBornContent": 2,
+      "maxAiGovernmentTransitionTime": 4,
+      "numberOfAIDefensiveStartingUnits": 2,
+      "numberOfAIOffensiveStartingUnits": 1,
+      "extraStartUnit1": 0,
+      "extraStartUnit2": 0,
+      "additionalFreeUnitSupport": 4,
+      "unitSupportBonusForEachSettlement": 1,
+      "attackBonusAgainstBarbarians": 100,
+      "aiCostFactor": 9,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 85,
+      "aiToAITradeRate": 140,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-5",
+      "name": "Emperor",
+      "numberOfCitizensBornContent": 1,
+      "maxAiGovernmentTransitionTime": 3,
+      "numberOfAIDefensiveStartingUnits": 4,
+      "numberOfAIOffensiveStartingUnits": 2,
+      "extraStartUnit1": 0,
+      "extraStartUnit2": 1,
+      "additionalFreeUnitSupport": 8,
+      "unitSupportBonusForEachSettlement": 2,
+      "attackBonusAgainstBarbarians": 50,
+      "aiCostFactor": 8,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 80,
+      "aiToAITradeRate": 150,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-6",
+      "name": "Demigod",
+      "numberOfCitizensBornContent": 1,
+      "maxAiGovernmentTransitionTime": 2,
+      "numberOfAIDefensiveStartingUnits": 6,
+      "numberOfAIOffensiveStartingUnits": 3,
+      "extraStartUnit1": 1,
+      "extraStartUnit2": 2,
+      "additionalFreeUnitSupport": 12,
+      "unitSupportBonusForEachSettlement": 3,
+      "attackBonusAgainstBarbarians": 25,
+      "aiCostFactor": 7,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 70,
+      "aiToAITradeRate": 160,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-7",
+      "name": "Deity",
+      "numberOfCitizensBornContent": 1,
+      "maxAiGovernmentTransitionTime": 2,
+      "numberOfAIDefensiveStartingUnits": 8,
+      "numberOfAIOffensiveStartingUnits": 4,
+      "extraStartUnit1": 1,
+      "extraStartUnit2": 2,
+      "additionalFreeUnitSupport": 16,
+      "unitSupportBonusForEachSettlement": 4,
+      "attackBonusAgainstBarbarians": 0,
+      "aiCostFactor": 6,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 60,
+      "aiToAITradeRate": 170,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    },
+    {
+      "id": "Difficulty-8",
+      "name": "Creator",
+      "numberOfCitizensBornContent": 1,
+      "maxAiGovernmentTransitionTime": 1,
+      "numberOfAIDefensiveStartingUnits": 12,
+      "numberOfAIOffensiveStartingUnits": 6,
+      "extraStartUnit1": 2,
+      "extraStartUnit2": 4,
+      "additionalFreeUnitSupport": 24,
+      "unitSupportBonusForEachSettlement": 8,
+      "attackBonusAgainstBarbarians": 0,
+      "aiCostFactor": 4,
+      "humanCostFactor": 10,
+      "percentageOfOptimalCities": 50,
+      "aiToAITradeRate": 200,
+      "corruptionPercentage": 100,
+      "militaryLaw": 1
+    }
+  ],
+  "worldSizes": [
+    {
+      "name": "Tiny",
+      "length": 80,
+      "height": 60,
+      "width": 60,
+      "optimalNumberOfCities": 14,
+      "techRate": 160,
+      "distanceBetweenCivs": 11,
+      "numberOfCivs": 4
+    },
+    {
+      "name": "Small",
+      "length": 80,
+      "height": 80,
+      "width": 80,
+      "optimalNumberOfCities": 17,
+      "techRate": 200,
+      "distanceBetweenCivs": 11,
+      "numberOfCivs": 6
+    },
+    {
+      "name": "Standard",
+      "length": 80,
+      "height": 100,
+      "width": 100,
+      "optimalNumberOfCities": 20,
+      "techRate": 240,
+      "distanceBetweenCivs": 12,
+      "numberOfCivs": 8,
+      "isDefault": true
+    },
+    {
+      "name": "Large",
+      "length": 80,
+      "height": 130,
+      "width": 130,
+      "optimalNumberOfCities": 28,
+      "techRate": 320,
+      "distanceBetweenCivs": 18,
+      "numberOfCivs": 12
+    },
+    {
+      "name": "Huge",
+      "length": 80,
+      "height": 160,
+      "width": 160,
+      "optimalNumberOfCities": 36,
+      "techRate": 400,
+      "distanceBetweenCivs": 24,
+      "numberOfCivs": 16
+    }
+  ],
+  "victoryConditions": {
+    "allowDominationVictory": true,
+    "allowSpaceRaceVictory": true,
+    "allowDiplomaticVictory": true,
+    "allowConquestVictory": true,
+    "allowCulturalVictory": true,
+    "allowWonderVictory": false,
+    "allowEmpireVictory": false,
+    "cityElimination": false,
+    "regicide": false,
+    "massRegicide": false,
+    "victoryLocations": false,
+    "captureTheFlag": false,
+    "reverseCaptureTheFlag": false,
+    "autoPlaceKings": true,
+    "cityEliminationCount": 1,
+    "victoryPointLimit": 50000,
+    "wonderVictoryPoints": 10,
+    "defeatVictoryPoints": 5,
+    "advanceVictoryPoints": 5,
+    "cityConquestVictoryPoints": 100,
+    "autoPlaceVictoryLocations": true,
+    "victoryLocationPoints": 25,
+    "useTurnLimit": false,
+    "dominationTerritoryPercent": 66,
+    "dominationPopulationPercent": 66,
+    "cultureOneCityWin": 20000,
+    "cultureAllCitiesWin": 100000
+  },
+  "scenarioSearchPath": "..\\conquests\\Sengoku;..\\..\\civ3ptw\\extras\\Medieval Japan\\",
+  "scenarioName": "MPTournamentMDJ"
+}

@@ -34,3 +34,11 @@ From C7's own defaults: `victoryConditions`, the victory conditions a new game s
 turn limit off.
 
 The program stops if `ruleset.json` has a section in none of these lists; add it to one of the lists in `Program.cs`.
+
+## MDJ
+`dotnet run -- --mdj [Civ3 install path] [ruleset.json path]` writes MDJ's rules (see `C7Engine/GameSetup.Mdj.cs`) from
+`Conquests/Scenarios/MPTournamentMDJ.biq` into `C7/Lua/mdj/ruleset.json`, so they need no Civ3 install. It has the
+sections of `C7/Lua/civ3/ruleset.json`, in its order: those from the BIQ, and the civilizations (Medieval Japan's
+clans), from MPTournamentMDJ.biq as `GameSetup.ImportMdjBiq` imports it; the others as in Civ3's ruleset. It also keeps
+the scenario's search folders, where Civ3's own art for it is, for playing with Civ3's art (standalone mode ignores
+them). `MdjScenarioTest.TheBundledRulesAreTheBiqs` checks the file is up to date.

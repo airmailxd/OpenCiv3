@@ -9,12 +9,13 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-// MDJ's rules (see GameSetup.Mdj.cs), from MPTournamentMDJ.biq, which ships
-// with Civ3 Complete.
+// MDJ's rules (see GameSetup.Mdj.cs), bundled from MPTournamentMDJ.biq,
+// which ships with Civ3 Complete.
 public class MdjScenarioTest {
-	private static C7GameData.GameData NewGame(GameScenario scenario, int seed) {
-		SaveGame save = GameSetup.LoadMdjRules(Civ3Location.GetCiv3Path());
-		Skip.If(save == null, "No MPTournamentMDJ.biq");
+	private static GameMode.Config Mode(bool standalone) => new("civ3", standalone ? ["standalone"] : []);
+
+	private static C7GameData.GameData NewGame(GameScenario scenario, int seed, bool standalone = true) {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone));
 		WorldCharacteristics wc = new(save) {
 			landform = WorldCharacteristics.Landform.Pangaea,
 			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_60,
@@ -41,9 +42,8 @@ public class MdjScenarioTest {
 
 	// Every civ knows every advance and is in Feudalism, for good; the
 	// units are Medieval Japan's.
-	[SkippableFact]
+	[Fact]
 	public void EveryCivKnowsEverythingUnderFeudalism() {
-		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 		C7GameData.GameData gameData = NewGame(GameScenario.RisingTide, 1);
 		Assert.Contains(gameData.unitPrototypes, p => p.name == "Ashigaru");
 		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
@@ -57,9 +57,8 @@ public class MdjScenarioTest {
 	}
 
 	// With nothing to research, the AI puts nothing into science.
-	[SkippableFact]
+	[Fact]
 	public void TheAiSpendsNothingOnScience() {
-		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 		C7GameData.GameData gameData = NewGame(GameScenario.RisingTide, 3);
 		Player civ = gameData.players.First(p => !p.IsIndependent);
 		civ.isHuman = false;
@@ -69,9 +68,8 @@ public class MdjScenarioTest {
 	}
 
 	// A resource a civ has had stays its own once it is cut off.
-	[SkippableFact]
+	[Fact]
 	public void AResourceOnceHadIsKept() {
-		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 		C7GameData.GameData gameData = NewGame(GameScenario.None, 2);
 		Player civ = gameData.players.First(p => !p.IsIndependent);
 		City city = civ.cities.FirstOrDefault() ?? CityInteractions.BuildCity(civ.units.First().location, civ, "Edo");
@@ -91,5 +89,44 @@ public class MdjScenarioTest {
 
 		SaveGame loaded = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON());
 		Assert.Contains(horses.Key, loaded.Players.First(p => p.id == civ.id).obtainedResources);
+	}
+
+	// The rules need no Civ3 install, and standalone mode draws them with
+	// its own art: no scenario folders to look in, and the units'
+	// Civilopedia icons its own.
+	[Fact]
+	public void StandaloneHasTheRulesWithItsOwnArt() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
+		Assert.Null(save.ScenarioSearchPath);
+		Assert.True(save.Rules.AllTechsAtStart && save.Rules.GovernmentLocked && save.Rules.PersistentResources);
+		Assert.Equal(GameSetup.MdjGovernment, save.Rules.OnlyGovernment);
+		Assert.Contains(save.Civilizations, c => c.name.StartsWith("Oda"));
+		Assert.All(save.UnitPrototypes, u => Assert.StartsWith("Art/Civilopedia/Icons/Units/", u.art.pediaArt.large));
+		SaveGame withCiv3Art = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: false));
+		Assert.False(string.IsNullOrEmpty(withCiv3Art.ScenarioSearchPath));
+	}
+
+	// The bundled rules are what RegenerateRuleset --mdj makes of the BIQ
+	// today: its units, advances, buildings, clans and resources.
+	[SkippableFact]
+	public void TheBundledRulesAreTheBiqs() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+		SaveGame biq = GameSetup.ImportMdjBiq(Civ3Location.GetCiv3Path());
+		Skip.If(biq == null, "No MPTournamentMDJ.biq");
+		SaveGame bundled = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: false));
+		Assert.Equal(biq.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost)),
+			bundled.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost)));
+		Assert.Equal(biq.Techs.Select(t => t.Name), bundled.Techs.Select(t => t.Name));
+		Assert.Equal(biq.Buildings.Select(b => b.name), bundled.Buildings.Select(b => b.name));
+		Assert.Equal(biq.Civilizations.Select(c => c.name), bundled.Civilizations.Select(c => c.name));
+		Assert.Equal(biq.Resources.Select(r => r.Key), bundled.Resources.Select(r => r.Key));
+	}
+
+	// Every worker job a unit has is one the rules define.
+	[Fact]
+	public void EveryUnitsWorkerJobsAreDefined() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
+		var terraforms = save.TerraForms.Select(t => t.Id).ToHashSet();
+		Assert.All(save.UnitPrototypes, u => Assert.All(u.terraformActions, id => Assert.Contains(id, terraforms)));
 	}
 }

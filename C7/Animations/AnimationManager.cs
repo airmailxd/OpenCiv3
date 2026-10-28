@@ -76,9 +76,31 @@ public partial class AnimationManager {
 			return name;
 		}
 		string defaultName = unitType.art.mainArt.defaultName;
-		string result = HasUnitArt(defaultName) ? defaultName : name;
+		string result = HasUnitArt(defaultName) ? defaultName : FallbackArtFor(unitType) ?? name;
 		artNames[key] = result;
 		return result;
+	}
+
+	// The art of a stock unit like it, for a unit whose own art isn't there
+	// (as a scenario's units can be in standalone mode, which has only its
+	// own art), so the unit is drawn rather than failing to: a settler as a
+	// Settler, a worker as a Worker, a ship as a Galley, a mounted unit as a
+	// Horseman, a gun as a Catapult, anything else on foot as a Spearman.
+	// Null if none of those is there either.
+	private static string FallbackArtFor(UnitPrototype unitType) {
+		string[] candidates = unitType.isSettler ? ["Settler"]
+			: unitType.isWorker ? ["Worker"]
+			: unitType.IsSeaUnit() ? ["Galley", "Caravel"]
+			: unitType.movement > 1 && unitType.IsLandUnit() ? ["Horseman"]
+			: unitType.bombard > 0 && unitType.defense <= 1 ? ["Catapult"]
+			: [];
+		foreach (string candidate in candidates.Append("Spearman").Append("Warrior")) {
+			if (HasUnitArt(candidate)) {
+				log.Warning($"Drawing {unitType.name} with the art of {candidate}");
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	// Whether the art a unit is drawn with may change while the unit, its

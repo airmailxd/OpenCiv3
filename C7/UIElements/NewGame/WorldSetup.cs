@@ -306,40 +306,40 @@ public partial class WorldSetup : Control {
 		(GameScenario.Mdj, "MDJ",
 			"MPTournamentMDJ's rules, Medieval Japan's: its units, advances, clans and resources, on a generated map. "
 			+ "Every civilization starts knowing every advance, under Feudalism, which no one can leave, and a resource once had "
-			+ "is kept for good, though it be cut off. Needs Civ3 Complete."),
+			+ "is kept for good, though it be cut off."),
 	];
 
-	// The rules a new game is played under: MPTournamentMDJ.biq's for MDJ
-	// and Rising Tide (owner's choice, 2026-10-28) when Civ3 has it, or
-	// else the usual ones. Loaded again only when that changes.
+	// The rules a new game is played under: MDJ's (bundled, see
+	// GameSetup.Mdj.cs) for MDJ and Rising Tide (owner's choice,
+	// 2026-10-28), or else the usual ones. Loaded again only when that
+	// changes.
 	private bool mdjRulesLoaded;
 
 	private void LoadRules(GameScenario scenario) {
-		bool mdj = scenario is GameScenario.Mdj or GameScenario.RisingTide && MdjAvailable;
+		bool mdj = scenario is GameScenario.Mdj or GameScenario.RisingTide;
 		if (_saveGame != null && mdj == mdjRulesLoaded) {
 			return;
 		}
 		SaveGame rules = null;
 		if (mdj) {
 			try {
-				rules = GameSetup.LoadMdjRules(Util.GetCiv3Path());
+				rules = GameSetup.LoadMdjRules(GamePaths.GameModesDir, GamePaths.GameMode);
 			} catch (Exception e) {
 				log.Error(e, "Could not load MPTournamentMDJ's rules; playing under the usual ones");
 			}
 		}
 		mdjRulesLoaded = rules != null;
 		_saveGame = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
-		// The player setup screen shows the civs' leaders, whose art MDJ
-		// keeps in the scenario's folders (the Sengoku conquest's); the
-		// game sets the path again as it starts (see Game.InitializeGame).
+		// The player setup screen shows the civs' leaders, whose Civ3 art
+		// MDJ keeps in the scenario's folders (the Sengoku conquest's; none
+		// in standalone mode, see GameSetup.LoadMdjRules); the game sets the
+		// path again as it starts (see Game.InitializeGame).
 		Util.setModPath(_saveGame.ScenarioSearchPath);
 		Util.ClearCaches();
 		// The world size buttons stand for the sizes of the rules first
 		// loaded; the one chosen is matched by name to these (see
 		// CreateGame).
 	}
-
-	private static bool MdjAvailable => GamePaths.Civ3Available() && GameSetup.MdjBiqPath(Util.GetCiv3Path()) != null;
 
 	// The first choice for a new game: a normal game, or a scenario, which
 	// may limit the choices below. A normal game unless one was picked
@@ -374,15 +374,8 @@ public partial class WorldSetup : Control {
 		for (int i = 0; i < GameTypes.Length; ++i) {
 			selector.AddItem(GameTypes[i].name, i);
 			selector.SetItemTooltip(i, GameTypes[i].description);
-			// MDJ needs Civ3's MPTournamentMDJ.biq.
-			if (GameTypes[i].scenario == GameScenario.Mdj && !MdjAvailable) {
-				selector.SetItemDisabled(i, true);
-			}
 		}
 		int chosen = Math.Max(0, Array.FindIndex(GameTypes, g => g.scenario == (global?.Scenario ?? GameScenario.None)));
-		if (selector.IsItemDisabled(chosen)) {
-			chosen = 0;
-		}
 		selector.Select(chosen);
 		selector.ItemSelected += index => ChooseGameType(global, GameTypes[index].scenario);
 		background.AddChild(selector);

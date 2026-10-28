@@ -19,9 +19,16 @@ public class GameMode {
 		// Directories with addon definitions.
 		public List<string> addonPaths = [];
 
-		public Config(string baseModeDir, List<string> addonPaths = null) {
+		// A directory whose ruleset.json is the rules in place of the base
+		// mode's, which still gives the textures, behaviors and audio (and
+		// the addons still apply): a game played under another scenario's
+		// rules, like MDJ's (see GameSetup.Mdj.cs). Null for the base's.
+		public string rulesetDir;
+
+		public Config(string baseModeDir, List<string> addonPaths = null, string rulesetDir = null) {
 			this.baseModeDir = baseModeDir;
 			this.addonPaths = addonPaths ?? [];
+			this.rulesetDir = rulesetDir;
 		}
 	}
 
@@ -93,7 +100,10 @@ internal class GameModeLoader {
 		// Special case: we allow to store the base ruleset both as Lua and JSON
 		DynValue ruleset;
 
-		string jsonPath = Path.Combine(gameModesDir, config.baseModeDir, "ruleset.json");
+		string jsonPath = Path.Combine(gameModesDir, config.rulesetDir ?? config.baseModeDir, "ruleset.json");
+		if (config.rulesetDir != null && !File.Exists(jsonPath)) {
+			throw new FileNotFoundException($"No ruleset at {jsonPath}");
+		}
 		if (File.Exists(jsonPath)) {
 			ruleset = converter.Decode(File.ReadAllText(jsonPath));
 		} else {

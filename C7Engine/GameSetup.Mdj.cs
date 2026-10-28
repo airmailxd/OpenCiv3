@@ -15,7 +15,7 @@ namespace C7Engine;
 // only government but Anarchy), which no one can leave, and a resource a
 // civ has once had stays its own for the rest of the game, though it be cut
 // off (see PersistentResources). Rising Tide is played under these rules
-// when Civ3 is installed (owner's choice, 2026-10-28).
+// (owner's choice, 2026-10-28), with Civ3 installed or not.
 public partial class GameSetup {
 	public const string MdjBiqName = "MPTournamentMDJ.biq";
 	public const string MdjGovernment = "Feudalism";
@@ -30,12 +30,35 @@ public partial class GameSetup {
 		return File.Exists(path) ? path : null;
 	}
 
-	// The MDJ rules, ready for Populate to make a map and players for, or
-	// null without the BIQ. The scenario names its art folders (its search
-	// folders: the Sengoku conquest's, and PTW's Medieval Japan extras)
-	// relative to the Scenarios folder; its PediaIcons are the first of
-	// them that has one.
-	public static SaveGame LoadMdjRules(string civ3Path) {
+	// MDJ's rules are bundled, in C7/Lua/mdj/ruleset.json, made from the BIQ
+	// by _Console/RegenerateRuleset (--mdj), so they need no Civ3 install;
+	// the base mode's textures, behaviors and audio go with them, and its
+	// addons (standalone's art) apply as to Civ3's rules.
+	public const string MdjRulesetDir = "mdj";
+
+	// The game mode of MDJ's rules over the given one.
+	public static C7Engine.Lua.GameMode.Config MdjGameMode(C7Engine.Lua.GameMode.Config over) {
+		return new(over.baseModeDir, [.. over.addonPaths], MdjRulesetDir);
+	}
+
+	// The MDJ rules, ready for Populate to make a map and players for.
+	public static SaveGame LoadMdjRules(string gameModesDir, C7Engine.Lua.GameMode.Config over) {
+		SaveGame save = C7Engine.Lua.GameMode.Load(gameModesDir, MdjGameMode(over)).GetSave();
+		// Standalone mode draws with C7's own art only; the search folders
+		// would have it look in a Civ3 install first (see Util.Civ3MediaPath).
+		if (over.addonPaths.Contains("standalone")) {
+			save.ScenarioSearchPath = null;
+		}
+		SetUpMdjRules(save);
+		return save;
+	}
+
+	// The MDJ rules imported from the BIQ in the Civ3 install, or null if it
+	// isn't there: what RegenerateRuleset bundles. The scenario names its
+	// art folders (its search folders: the Sengoku conquest's, and PTW's
+	// Medieval Japan extras) relative to the Scenarios folder; its
+	// PediaIcons are the first of them that has one.
+	public static SaveGame ImportMdjBiq(string civ3Path) {
 		string biq = MdjBiqPath(civ3Path);
 		if (biq == null) {
 			return null;

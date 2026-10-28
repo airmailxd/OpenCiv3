@@ -87,10 +87,20 @@ namespace RegenerateRuleset {
 		}
 
 		static int Main(string[] args) {
+			// --mdj: MDJ's rules (see C7Engine/GameSetup.Mdj.cs), from
+			// Conquests/Scenarios/MPTournamentMDJ.biq, into
+			// C7/Lua/mdj/ruleset.json.
+			bool mdj = args.Contains("--mdj");
+			args = args.Where(a => a != "--mdj").ToArray();
 			if (args.Length > 2 || args.Any(a => a == "-h" || a == "--help")) {
-				Console.WriteLine("usage: RegenerateRuleset [Civ3 install path] [ruleset.json path]");
+				Console.WriteLine("usage: RegenerateRuleset [--mdj] [Civ3 install path] [ruleset.json path]");
 				Console.WriteLine("the Civ3 install path defaults to the one Civ3Location finds, and the ruleset to C7/Lua/civ3/ruleset.json in the repository");
+				Console.WriteLine("(with --mdj, MPTournamentMDJ.biq's rules into C7/Lua/mdj/ruleset.json, laid out as C7/Lua/civ3/ruleset.json)");
 				return args.Length > 2 ? 1 : 0;
+			}
+			if (mdj) {
+				return RegenerateMdj(args.Length > 0 ? args[0] : Civ3Location.GetCiv3Path(),
+					Path.GetFullPath(args.Length > 1 ? args[1] : Path.Combine(RepositoryRoot, "C7", "Lua", C7Engine.GameSetup.MdjRulesetDir, "ruleset.json")));
 			}
 			string civ3Path = args.Length > 0 ? args[0] : Civ3Location.GetCiv3Path();
 			string conquests = Path.Combine(civ3Path, "Conquests");
@@ -144,9 +154,63 @@ namespace RegenerateRuleset {
 
 			File.WriteAllText(rulesetPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: hasBom));
 			Console.WriteLine($"wrote {rulesetPath} from {biqPath}");
-			Console.WriteLine($"\tfrom the BIQ: {string.Join(", ", FromBiq)}");
-			Console.WriteLine($"\tfrom C7's defaults: {string.Join(", ", defaults.Keys)}");
-			Console.WriteLine($"\tkept: {string.Join(", ", Kept)}");
+			PrintSections(defaults.Keys);
+			return 0;
+		}
+
+		static void PrintSections(IEnumerable<string> defaults, IEnumerable<string> fromBiq = null, IEnumerable<string> kept = null) {
+			Console.WriteLine($"\tfrom the BIQ: {string.Join(", ", fromBiq ?? FromBiq)}");
+			Console.WriteLine($"\tfrom C7's defaults: {string.Join(", ", defaults)}");
+			Console.WriteLine($"\tkept: {string.Join(", ", kept ?? Kept)}");
+		}
+
+		// The sections of Civ3's bundled ruleset that MDJ's takes from the
+		// MDJ import as well: its own civilizations (Medieval Japan's clans).
+		static readonly string[] MdjAlsoFromBiq = { "civilizations" };
+
+		// MDJ's ruleset: Civ3's bundled ruleset's sections, in its order,
+		// those from the BIQ (and the civilizations) from MPTournamentMDJ.biq
+		// as GameSetup.ImportMdjBiq imports it, and the rest as Civ3's. Also
+		// the scenario's search folders, where Civ3's own art for it is
+		// (used when playing with Civ3's art, not in standalone mode).
+		static int RegenerateMdj(string civ3Path, string outPath) {
+			SaveGame imported = C7Engine.GameSetup.ImportMdjBiq(civ3Path);
+			if (imported == null) {
+				Console.Error.WriteLine($"No {C7Engine.GameSetup.MdjBiqName} in {civ3Path}/Conquests/Scenarios; pass the Civ3 install path as the first argument.");
+				return 1;
+			}
+			JsonObject biq = JsonNode.Parse(imported.ToCompactJSON()).AsObject();
+			string templatePath = Path.Combine(RepositoryRoot, "C7", "Lua", "civ3", "ruleset.json");
+			JsonObject template = JsonNode.Parse(File.ReadAllText(templatePath)).AsObject();
+			Dictionary<string, JsonNode> defaults = FromC7Defaults();
+			string[] fromBiq = FromBiq.Concat(MdjAlsoFromBiq).ToArray();
+			string[] kept = Kept.Except(MdjAlsoFromBiq).ToArray();
+			JsonObject merged = new();
+			foreach ((string key, JsonNode value) in template.ToList()) {
+				if (defaults.TryGetValue(key, out JsonNode fromDefaults)) {
+					merged[key] = fromDefaults.DeepClone();
+				} else if (fromBiq.Contains(key)) {
+					merged[key] = (biq[key] ?? throw new InvalidDataException($"The import of the MDJ BIQ has no {key}")).DeepClone();
+				} else if (kept.Contains(key)) {
+					merged[key] = value.DeepClone();
+				} else {
+					Console.Error.WriteLine($"ruleset.json has a section {key} that is neither taken from the BIQ, nor from C7's defaults, nor kept; add it to one of the lists in Program.cs.");
+					return 1;
+				}
+			}
+			foreach (string key in new[] { "scenarioSearchPath", "scenarioName" }) {
+				if (biq[key] is JsonNode node) {
+					merged[key] = node.DeepClone();
+				}
+			}
+			string json = merged.ToJsonString(new JsonSerializerOptions {
+				WriteIndented = true,
+				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+			}).Replace("\r\n", "\n") + "\n";
+			Directory.CreateDirectory(Path.GetDirectoryName(outPath));
+			File.WriteAllText(outPath, json, new UTF8Encoding(false));
+			Console.WriteLine($"wrote {outPath} from {C7Engine.GameSetup.MdjBiqName}");
+			PrintSections(defaults.Keys, fromBiq, kept);
 			return 0;
 		}
 	}
