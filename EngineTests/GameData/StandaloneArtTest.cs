@@ -96,6 +96,33 @@ public class StandaloneArtTest {
 		Assert.True(problems.Count == 0, string.Join("\n", problems));
 	}
 
+	// So do MDJ's (C7/Lua/mdj), but for its hidden advances (each clan's own,
+	// which no screen shows). Several of its advances share a Civilopedia
+	// entry, and so an icon.
+	[Fact]
+	public void EveryAdvanceAndBuildingOfMdjHasAnIcon() {
+		GameMode mdj = SaveGameFixture.LoadGameMode(C7Engine.GameSetup.MdjGameMode(new GameMode.Config("civ3", ["standalone"])));
+		SaveGame rules = mdj.GetSave();
+		List<(string name, string configKey, object obj)> icons = [];
+		foreach (SaveTech tech in rules.Techs.Where(t => t.EraCivilopediaName != "Hidden")) {
+			icons.Add((tech.Name, "tech_icons.small", tech.ToTechWithoutPrereqs()));
+		}
+		foreach (SaveBuilding b in rules.Buildings) {
+			Building building = NewBuilding(b.name, b.civilopediaEntry, b.iconRowIndex);
+			icons.Add((b.name, "building_icons.small", building));
+			icons.Add((b.name, "building_icons.large", building));
+		}
+		string modernArt = PathUtils.getBasePath("../C7/ModernArt");
+		List<string> problems = [];
+		foreach ((string name, string configKey, object obj) in icons) {
+			(string path, Table crop) = Sprite(configKey, obj);
+			if (FindIgnoringCase(modernArt, path) == null || crop != null) {
+				problems.Add($"{name} ({configKey}): shows {path}");
+			}
+		}
+		Assert.True(problems.Count == 0, string.Join("\n", problems));
+	}
+
 	// Every building of the standalone rules shows an icon wherever buildings
 	// are drawn: the production menus and the tech tree (checked above), the
 	// Civilopedia, which reads our own C7/Civilopedia, and for barracks,
