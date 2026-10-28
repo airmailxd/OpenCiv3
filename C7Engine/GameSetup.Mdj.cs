@@ -107,6 +107,7 @@ public partial class GameSetup {
 		save.Rules.OnlyGovernment = MdjGovernment;
 		save.Rules.PersistentResources = true;
 		save.Rules.GovernmentLocked = true;
+		save.Rules.OwnTechTree = true;
 		// Every civ is in the Middle Ages, MDJ's feudal Japan, though it knows
 		// the advances of MDJ's later eras too: a civ's era decides how its
 		// cities and leader are drawn, and it never changes, as a civ only

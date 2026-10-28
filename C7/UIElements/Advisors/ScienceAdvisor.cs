@@ -40,6 +40,8 @@ public partial class ScienceAdvisor : Control {
 	private GameData drawnGameData;
 	private Player drawnPlayer;
 	private readonly Dictionary<Tech, TechBox> techBoxByTech = new();
+	// For rules with a tech tree of their own (see OwnTechTree).
+	private TechTreeArrows arrows;
 
 	public ScienceAdvisor() {
 		MouseFilter = MouseFilterEnum.Stop;
@@ -56,6 +58,11 @@ public partial class ScienceAdvisor : Control {
 		MiddleBackground = TextureLoader.Load("advisors.science.background.middle");
 		IndustrialBackground = TextureLoader.Load("advisors.science.background.industrial");
 		ModernBackground = TextureLoader.Load("advisors.science.background.modern");
+
+		// Under the boxes, which are added after it.
+		arrows = new TechTreeArrows();
+		arrows.SetAnchorsPreset(LayoutPreset.FullRect);
+		background.AddChild(arrows);
 
 		_advisorHead = AdvisorUtils.CreateAdvisorHead(background, AdvisorHead.Advisor.Science);
 		_close = AdvisorUtils.CreateExitButton(background);
@@ -156,6 +163,19 @@ public partial class ScienceAdvisor : Control {
 		}
 		_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Science, AdvisorHead.Mood.Happy, player.EraIndex());
 
+		// A tree that isn't Civ3's has its own arrows and, where its advances
+		// are placed off the page, its own layout (see OwnTechTree).
+		bool ownTree = gameData.rules?.OwnTechTree == true;
+		Dictionary<Tech, Vector2> layout = null;
+		if (ownTree) {
+			background.Texture = OwnTechTree.WithoutArrows((ImageTexture)background.Texture);
+			List<Tech> page = allTechs.Where(t => t.EraCivilopediaName == eraName).ToList();
+			Vector2 size = background.Texture.GetSize();
+			if (OwnTechTree.NeedsLayout(page, size)) {
+				layout = OwnTechTree.Layout(page, size, new Vector2(140, 80));
+			}
+		}
+
 		// Work out what every box needs once, rather than per box: the
 		// beakers made per turn, each tech's place in the queue, and what
 		// each tech enables.
@@ -201,7 +221,7 @@ public partial class ScienceAdvisor : Control {
 			}
 
 			TechBox techButton = new(tech, techState, queueNumber, estimatedTurns, effects);
-			techButton.SetPosition(new Vector2(tech.X, tech.Y));
+			techButton.SetPosition(layout != null && layout.TryGetValue(tech, out Vector2 at) ? at : new Vector2(tech.X, tech.Y));
 			techButton.Pressed += () => {
 				SelectionMode selection = Input.IsKeyPressed(Key.Shift) ? SelectionMode.Multi : SelectionMode.Single;
 				new MsgChooseResearch(tech, AdvisorState.Show, selection).send();
@@ -217,6 +237,11 @@ public partial class ScienceAdvisor : Control {
 			techBoxes.Add(techButton);
 			techBoxByTech[tech] = techButton;
 		}
+		if (ownTree) {
+			arrows.Show(techBoxByTech);
+		} else {
+			arrows.Clear();
+		}
 	}
 
 	private void ClearTechBoxes() {
@@ -226,6 +251,7 @@ public partial class ScienceAdvisor : Control {
 		}
 		techBoxes.Clear();
 		techBoxByTech.Clear();
+		arrows?.Clear();
 		drawnEra = null;
 		drawnGameData = null;
 		drawnPlayer = null;

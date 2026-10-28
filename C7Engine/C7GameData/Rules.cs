@@ -124,6 +124,10 @@ namespace C7GameData {
 		// War weariness can't overthrow the government either: everyone
 		// keeps the one they start with (MDJ).
 		public bool GovernmentLocked = false;
+		// The tech tree isn't Civ3's (MDJ's): the science advisor draws its
+		// arrows itself, over backgrounds without Civ3's, and lays out a page
+		// with advances placed off it (see ScienceAdvisor).
+		public bool OwnTechTree = false;
 
 		public bool AllowsGovernment(Government government) {
 			return OnlyGovernment == null || government?.name == OnlyGovernment;
