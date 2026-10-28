@@ -1689,6 +1689,12 @@ namespace C7Engine {
 
 		internal const string NoAiLuxury = "no-ai-luxury";
 
+		// Whether the player knows every advance there is.
+		internal static bool NothingToResearch(Player player) {
+			List<Tech> techs = EngineStorage.gameData?.techs;
+			return techs != null && techs.Count > 0 && techs.All(t => player.knownTechs.Contains(t.id));
+		}
+
 		internal static void AdjustSliders(Player player) {
 			const int MAX_SLIDER_VALUE = 10;
 			const int MAX_AI_LUXURY_SLIDER = 5;
@@ -1718,6 +1724,17 @@ namespace C7Engine {
 
 			// Fix up any remaining unhappy cities.
 			FixRemainingUnhappyCities(player);
+
+			// With every advance known (as in MDJ, see GameSetup.Mdj.cs)
+			// research buys nothing, so what science would take goes to
+			// taxes, and past the government's cap to luxuries.
+			if (NothingToResearch(player)) {
+				player.taxRate = Math.Min(player.maxRate, MAX_SLIDER_VALUE - player.luxuryRate);
+				player.luxuryRate = MAX_SLIDER_VALUE - player.taxRate;
+				player.ApplyGovernmentRateCap();
+				log.Information($"{player} has nothing to research; slider values: Science: {player.scienceRate}, Luxury: {player.luxuryRate}, Tax: {player.taxRate}");
+				return;
+			}
 
 			// Now max out the science slider and then decrease it (increasing
 			// the tax rate) until we're not losing money.

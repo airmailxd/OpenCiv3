@@ -56,6 +56,18 @@ public class MdjScenarioTest {
 		}
 	}
 
+	// With nothing to research, the AI puts nothing into science.
+	[SkippableFact]
+	public void TheAiSpendsNothingOnScience() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+		C7GameData.GameData gameData = NewGame(GameScenario.RisingTide, 3);
+		Player civ = gameData.players.First(p => !p.IsIndependent);
+		civ.isHuman = false;
+		PlayerAI.AdjustSliders(civ);
+		Assert.Equal(0, civ.scienceRate);
+		Assert.Equal(10, civ.taxRate + civ.luxuryRate);
+	}
+
 	// A resource a civ has had stays its own once it is cut off.
 	[SkippableFact]
 	public void AResourceOnceHadIsKept() {
