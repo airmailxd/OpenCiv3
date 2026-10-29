@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=10 format=3 uid="uid://c1jpmssnhvodi"]
+[gd_resource type="Theme" load_steps=15 format=3 uid="uid://c1jpmssnhvodi"]
 
 [ext_resource type="FontFile" uid="uid://c1qd602n7xu3h" path="res://Fonts/NotoSans-Regular.ttf" id="1_6qeon"]
 
@@ -49,6 +49,61 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.470588, 0.388235, 0.270588, 1)
 
+[sub_resource type="StyleBoxFlat" id="11"]
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+bg_color = Color(0.968627, 0.937255, 0.85098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.470588, 0.388235, 0.270588, 1)
+
+[sub_resource type="StyleBoxFlat" id="12"]
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+bg_color = Color(0.92549, 0.87451, 0.737255, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.470588, 0.388235, 0.270588, 1)
+
+[sub_resource type="StyleBoxFlat" id="13"]
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+bg_color = Color(0.847059, 0.780392, 0.607843, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.470588, 0.388235, 0.270588, 1)
+
+[sub_resource type="StyleBoxFlat" id="14"]
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+bg_color = Color(0.85, 0.83, 0.78, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6, 0.56, 0.5, 1)
+
+[sub_resource type="StyleBoxFlat" id="15"]
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0.968627, 0.937255, 0.85098, 1)
+
 [resource]
 Button/colors/font_color = Color(0, 0, 0, 1)
 Button/colors/font_focus_color = Color(0, 0.45098, 0.741176, 1)
@@ -83,3 +138,17 @@ PopupMenu/styles/panel = SubResource("8")
 TooltipLabel/colors/font_color = Color(0, 0, 0, 1)
 TooltipLabel/fonts/font = ExtResource("1_6qeon")
 TooltipPanel/styles/panel = SubResource("10")
+AcceptDialog/styles/panel = SubResource("15")
+OptionButton/colors/font_color = Color(0, 0, 0, 1)
+OptionButton/colors/font_disabled_color = Color(0.45, 0.42, 0.38, 1)
+OptionButton/colors/font_focus_color = Color(0, 0, 0, 1)
+OptionButton/colors/font_hover_color = Color(0.35, 0.2, 0.05, 1)
+OptionButton/colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+OptionButton/colors/font_pressed_color = Color(0, 0, 0, 1)
+OptionButton/constants/modulate_arrow = 1
+OptionButton/fonts/font = ExtResource("1_6qeon")
+OptionButton/styles/disabled = SubResource("14")
+OptionButton/styles/focus = SubResource("3")
+OptionButton/styles/hover = SubResource("12")
+OptionButton/styles/normal = SubResource("11")
+OptionButton/styles/pressed = SubResource("13")

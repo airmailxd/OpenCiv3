@@ -14,6 +14,7 @@ using MoonSharp.Interpreter;
 public partial class GlobalSingleton : Node {
 	public override void _Ready() {
 		MacShortcuts.Install();
+		TooltipWrap.Install(GetTree());
 	}
 
 	public GameMode GameMode;
