@@ -81,8 +81,7 @@ public class AiHouseRulesTest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void TheRulesDefaultToCiv3AndAreSaved() {
 		Rules rules = new();
-		// The owner's choice: the AI pays no building maintenance.
-		Assert.Equal(0, rules.AiBuildingMaintenancePercent);
+		Assert.Equal(100, rules.AiBuildingMaintenancePercent);
 		Assert.Equal(0, rules.AiExtraFreeUnitsPerCity);
 		Assert.Equal(100, rules.AiCorruptionPercent);
 		Assert.Equal(0, rules.AiExtraContentCitizens);
