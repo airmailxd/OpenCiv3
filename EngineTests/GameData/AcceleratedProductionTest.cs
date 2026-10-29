@@ -22,21 +22,28 @@ public class AcceleratedProductionTest : IClassFixture<SaveGameFixture> {
 		player.DoCorruptionCalculations(gameData);
 	}
 
+	// Civ3's Accelerated Production "simply halves the capacity of every
+	// player's food- and shield-boxes" (tjs282, C3X thread, post-16624265).
+	// The city's yields stay the same: it grows and builds twice as fast on
+	// the same surplus, and makes no more commerce.
 	[Fact]
-	public void CitiesGenerateDoubleFoodShieldsAndCommerce() {
+	public void TheFoodAndShieldBoxesAreHalvedAndYieldsUnchanged() {
 		gameData.rules.AcceleratedProduction = false;
 		int food = city.CurrentFoodYield();
 		int shields = Shields(city);
-		int consumed = city.FoodConsumedPerTurn();
+		int surplus = city.FoodGrowthPerTurn();
 		int commerce = TotalCommerce(city.CurrentCommerceYieldRaw());
+		int box = city.FoodNeededToGrow();
+		UnitPrototype warrior = gameData.unitPrototypes.First(u => u.name == "Warrior");
+		int cost = city.owner.ShieldCost(warrior);
 
 		gameData.rules.AcceleratedProduction = true;
-		Assert.Equal(food * 2, city.CurrentFoodYield());
-		Assert.Equal(shields * 2, Shields(city));
-		Assert.Equal(commerce * 2, TotalCommerce(city.CurrentCommerceYieldRaw()));
-		// Citizens eat as much as before, so the surplus grows by the extra food.
-		Assert.Equal(consumed, city.FoodConsumedPerTurn());
-		Assert.Equal(food * 2 - consumed, city.FoodGrowthPerTurn());
+		Assert.Equal(food, city.CurrentFoodYield());
+		Assert.Equal(shields, Shields(city));
+		Assert.Equal(surplus, city.FoodGrowthPerTurn());
+		Assert.Equal(commerce, TotalCommerce(city.CurrentCommerceYieldRaw()));
+		Assert.Equal(box / 2, city.FoodNeededToGrow());
+		Assert.Equal(cost / 2, city.owner.ShieldCost(warrior));
 	}
 
 	private static int Shields(City c) {

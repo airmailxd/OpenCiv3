@@ -65,7 +65,7 @@ namespace C7Engine.AI {
 					}
 					yield += food;
 				}
-				return yield * city.YieldMultiplier();
+				return yield;
 			}
 
 			public List<CitizenType> KnownSpecialists() {

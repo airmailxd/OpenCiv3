@@ -3083,6 +3083,11 @@ namespace C7GameData {
 			float costFactor = isHuman ? 1.0f : difficulty.AiCostFactor / (float)(difficulty.HumanCostFactor);
 			// A house rule may make it cheaper still (see AiHouseRules).
 			costFactor *= AiHouseRules.CostFactor(this);
+			// Accelerated Production halves the shield box (see
+			// City.AcceleratedProduction).
+			if (City.AcceleratedProduction(this)) {
+				costFactor *= 0.5f;
+			}
 
 			if (producible is Building { isCenterOfEmpire: true }) {
 				return (int)(PalaceShieldCost() * costFactor);

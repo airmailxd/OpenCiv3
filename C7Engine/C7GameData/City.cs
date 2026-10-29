@@ -608,7 +608,22 @@ namespace C7GameData {
 			if (houseFactor != 1) {
 				food = Math.Max(1, (int)(food * houseFactor));
 			}
+			if (AcceleratedProduction(owner)) {
+				food = Math.Max(1, food / 2);
+			}
 			return food;
+		}
+
+		// Civ3's Accelerated Production game option "simply halves the
+		// capacity of every player's food- and shield-boxes" (tjs282, C3X
+		// thread, post-16624265); Flintlock's code reading has a value scaled by
+		// difficulty and "divided by 2 if accelerated production is on"
+		// (post-16848272, context unclear). The tiles'
+		// yields stay as they are, so a city grows and builds twice as fast
+		// on the same surplus, and its commerce is unchanged. See
+		// Player.ShieldCost for the shield box.
+		internal static bool AcceleratedProduction(Player owner) {
+			return owner?.rules?.AcceleratedProduction == true;
 		}
 
 		public int TurnsUntilGrowth() {
@@ -1328,14 +1343,7 @@ namespace C7GameData {
 			foreach (CityResident r in WorkingResidents()) {
 				yield += r.tileWorked.FoodYield(this, buildings).yield;
 			}
-			return yield * YieldMultiplier();
-		}
-
-		// Under Civ3's Accelerated Production rule a city generates twice the
-		// food, shields and commerce its tiles produce. The doubling comes
-		// before waste and corruption, and citizens still eat as much as ever.
-		internal int YieldMultiplier() {
-			return owner?.rules?.AcceleratedProduction == true ? 2 : 1;
+			return yield;
 		}
 
 		// The food, shields and commerce the government's tile penalty (e.g.
@@ -1359,7 +1367,6 @@ namespace C7GameData {
 			foreach (CityResident r in WorkingResidents()) {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
-			yield *= YieldMultiplier();
 			// A celebrating city wastes fewer shields (see CalculateCorruption).
 			CorruptableValue result = new(yield, celebrating ? celebrationWaste : corruption);
 
@@ -1594,7 +1601,7 @@ namespace C7GameData {
 			foreach (CityResident r in WorkingResidents()) {
 				commerce += r.tileWorked.CommerceYield(this, buildings).yield;
 			}
-			return commerce * YieldMultiplier();
+			return commerce;
 		}
 
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {
