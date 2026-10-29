@@ -209,6 +209,12 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		while (!us.CanSupportAnotherArmy()) {
 			BuildCity(us);
 		}
+		// Each city builds Barracks, worth a leader's rush wherever the
+		// map put it.
+		Building barracks = gameData.Buildings.First(b => b.name == "Barracks");
+		foreach (City c in us.cities) {
+			c.ChangeProduction(barracks);
+		}
 		// The city whose build a leader would save the most on, which
 		// depends on each city's production; the leader and the attackers
 		// are there.

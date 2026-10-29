@@ -302,7 +302,7 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		(_, _, City city) = Setup();
 		// Certain to flip, but for the rule.
 		gameData.rules.AllowCultureFlips = false;
-		AddResidents(city, them.civilization, 2000);
+		AddResidents(city, them.civilization, 20000);
 		CultureFlip.ProcessEndOfRound(gameData);
 		Assert.Equal(us, city.owner);
 
@@ -324,7 +324,7 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 	// The city's people rise up for the other civ: certain to flip.
 	private City CityCertainToFlip() {
 		(_, _, City city) = Setup();
-		AddResidents(city, them.civilization, 2000);
+		AddResidents(city, them.civilization, 20000);
 		Assert.Equal(1, CultureFlip.BestChance(gameData, city).probability);
 		return city;
 	}

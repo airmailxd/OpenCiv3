@@ -81,10 +81,13 @@ public class VictoryPointsTest : IClassFixture<SaveGameFixture>, System.IDisposa
 	public void ConqueringACityScoresItsPopulation() {
 		FoundCity(attacker, 1);
 		City city = FoundCity(defender, 4);
+		// Points the attacker scored before (the map's doing) aren't the
+		// capture's.
+		int before = attacker.victoryPoints;
 
 		CityInteractions.CaptureCity(city, attacker);
 
-		Assert.Equal(400, attacker.victoryPoints);
+		Assert.Equal(400, attacker.victoryPoints - before);
 		Assert.Equal(0, defender.victoryPoints);
 	}
 
