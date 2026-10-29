@@ -609,7 +609,7 @@ public partial class LanGameBrowser : VBoxContainer {
 	}
 
 	// The table, its tabs and its scroll bar in the parchment colors.
-	private static Theme MakeTheme() {
+	internal static Theme MakeTheme() {
 		Theme theme = new();
 		theme.SetStylebox("panel", "Tree", Box(PanelColor, Border, 2, 0));
 		theme.SetStylebox("focus", "Tree", new StyleBoxEmpty());

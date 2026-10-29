@@ -73,7 +73,7 @@ public partial class ServerBrowser : Control {
 
 		PanelContainer panel = new() { CustomMinimumSize = new Vector2(960, 600) };
 		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat {
-			BgColor = new Color(0.12f, 0.11f, 0.09f),
+			BgColor = new Color(0.968627f, 0.937255f, 0.85098f),
 			BorderColor = new Color(0.55f, 0.48f, 0.30f),
 			BorderWidthLeft = 2,
 			BorderWidthRight = 2,
@@ -85,6 +85,38 @@ public partial class ServerBrowser : Control {
 			ContentMarginBottom = 10,
 		});
 		center.AddChild(panel);
+		// In the parchment colors of the menus and the LAN game list, as its
+		// dark panel left the theme's black text unreadable (owner's report,
+		// 2026-10-29).
+		Theme theme = LanGameBrowser.MakeTheme();
+		StyleBoxFlat listPanel = new() {
+			BgColor = new Color(0.98f, 0.96f, 0.89f),
+			BorderColor = new Color(0.47f, 0.39f, 0.27f),
+			BorderWidthLeft = 2,
+			BorderWidthRight = 2,
+			BorderWidthTop = 2,
+			BorderWidthBottom = 2,
+			ContentMarginLeft = 4,
+			ContentMarginRight = 4,
+			ContentMarginTop = 4,
+			ContentMarginBottom = 4,
+		};
+		theme.SetStylebox("panel", "TabContainer", listPanel);
+		theme.SetStylebox("panel", "ItemList", listPanel);
+		theme.SetStylebox("focus", "ItemList", new StyleBoxEmpty());
+		theme.SetColor("font_color", "ItemList", new Color(0.13f, 0.09f, 0.05f));
+		theme.SetColor("font_hovered_color", "ItemList", new Color(0.13f, 0.09f, 0.05f));
+		theme.SetColor("font_selected_color", "ItemList", new Color(0.99f, 0.96f, 0.87f));
+		theme.SetStylebox("selected", "ItemList", new StyleBoxFlat { BgColor = new Color(0.33f, 0.25f, 0.15f) });
+		theme.SetStylebox("selected_focus", "ItemList", new StyleBoxFlat { BgColor = new Color(0.33f, 0.25f, 0.15f) });
+		// A TabContainer draws its tabs by its own theme type.
+		foreach (string style in new[] { "tab_selected", "tab_unselected", "tab_hovered", "tab_focus" }) {
+			theme.SetStylebox(style, "TabContainer", theme.GetStylebox(style, "TabBar"));
+		}
+		foreach (string color in new[] { "font_selected_color", "font_unselected_color", "font_hovered_color" }) {
+			theme.SetColor(color, "TabContainer", theme.GetColor(color, "TabBar"));
+		}
+		panel.Theme = theme;
 
 		VBoxContainer layout = new();
 		layout.AddThemeConstantOverride("separation", 8);
