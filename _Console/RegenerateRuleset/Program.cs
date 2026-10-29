@@ -199,6 +199,18 @@ namespace RegenerateRuleset {
 					return 1;
 				}
 			}
+			// The terrain improvements are kept as Civ3's, but with MDJ's
+			// bonuses (its TERR: desert irrigation +2, mountain mines +3).
+			foreach (JsonNode improvement in merged["terrainImprovements"].AsArray()) {
+				string improvementKey = improvement["key"].GetValue<string>();
+				JsonNode ours = biq["terrainImprovements"].AsArray().FirstOrDefault(i => i["key"].GetValue<string>() == improvementKey)
+					?? throw new InvalidDataException($"The import of the MDJ BIQ has no terrain improvement {improvementKey}");
+				if (ours["bonusYields"] is JsonObject yields && yields.Count > 0) {
+					improvement["bonusYields"] = yields.DeepClone();
+				} else {
+					improvement.AsObject().Remove("bonusYields");
+				}
+			}
 			foreach (string key in new[] { "scenarioSearchPath", "scenarioName" }) {
 				if (biq[key] is JsonNode node) {
 					merged[key] = node.DeepClone();

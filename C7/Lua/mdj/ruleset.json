@@ -471,7 +471,7 @@
       "movementCost": -1,
       "bonusYields": {
         "desert": {
-          "food": 1
+          "food": 2
         },
         "plains": {
           "food": 1
@@ -584,7 +584,7 @@
           "production": 2
         },
         "mountains": {
-          "production": 2
+          "production": 3
         }
       }
     },
