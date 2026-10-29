@@ -88,6 +88,9 @@ namespace C7.Map {
 
 			cityGraphics.TextureFilter = ModernGraphics.SpriteFilter;
 			AddChild(cityGraphics);
+			// Above the units (UnitLayer's z-indexes go up to 3), so a unit
+			// standing by the city doesn't hide its name and production.
+			cityLabelScene.ZIndex = UnitLayer.effectAnimZIndex + 1;
 			AddChild(cityLabelScene);
 
 			disorderSprite = new();

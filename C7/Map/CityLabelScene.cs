@@ -9,7 +9,8 @@ namespace C7.Map {
 		public Vector2I tileCenter;
 		Color civColor;
 
-		const byte TRANSPARENCY = 192; // 25%
+		// Nearly opaque, so the text reads over bright terrain.
+		const byte TRANSPARENCY = 230; // 10%
 		const int CITY_LABEL_HEIGHT = 23;
 		const int LEFT_RIGHT_BOXES_WIDTH = 24;
 		const int LEFT_RIGHT_BOXES_HEIGHT = CITY_LABEL_HEIGHT - 2;
