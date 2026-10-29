@@ -89,10 +89,17 @@ public static class LanDiscovery {
 		return NetworkInterface.GetAllNetworkInterfaces()
 			.Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
 			.SelectMany(nic => nic.GetIPProperties().UnicastAddresses
-				.Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork)
+				.Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork && !IsLinkLocal(u.Address))
 				.Select(u => (address: u.Address.ToString(), network: VirtualNetwork(nic, u.Address))))
 			.DistinctBy(a => a.address)
 			.ToList();
+	}
+
+	// 169.254.x.x: what Windows gives an adapter that got no address, such
+	// as Tailscale's while Tailscale is stopped. No one can join by it.
+	public static bool IsLinkLocal(IPAddress address) {
+		byte[] bytes = address.GetAddressBytes();
+		return bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254;
 	}
 
 	private static string VirtualNetwork(NetworkInterface nic, IPAddress address) {
