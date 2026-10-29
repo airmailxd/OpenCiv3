@@ -976,10 +976,12 @@ public partial class LanLobby : Control {
 			"Addresses on a home network usually start with 192.168. or 10. One starting with 127. or 169.254. won't work from another computer.",
 			"Both computers must be on the same network, such as the same router or Wi-Fi. Guest Wi-Fi often keeps devices from seeing each other.",
 			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv3 through it "
-				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games).",
+				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games). "
+				+ "Windows counts Tailscale and other virtual networks as Public networks, so allow it on Public networks too.",
 			$"If the host uses a different port, add it after the address, like 192.168.1.20:{LanProtocol.DefaultPort + 1}.",
 			"Playing over the internet? Ask the host to choose \"Host Online\", then type the join code it shows under \"Join online\" above.",
-			"Or both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it.",
+			"Or both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it. "
+				+ "Games on the machines of your Tailscale network, and on hosts you've joined before, are listed by themselves.",
 		];
 		foreach (string tip in tips) {
 			Label label = new() { Text = "•  " + tip, AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -999,9 +1001,15 @@ public partial class LanLobby : Control {
 		Label searchingLabel = new() { Text = "Searching..." };
 		hostList.AddChild(searchingLabel);
 
+		// Hosts joined before are asked directly too, for one on a virtual
+		// network that the broadcast doesn't reach.
+		List<string> knownHosts = RecentLanHosts.Load();
+		if (LanSession.LastJoinedGame?.address is string lastAddress) {
+			knownHosts.Add(lastAddress);
+		}
 		List<FoundHost> hosts;
 		try {
-			hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5));
+			hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5), knownHosts);
 		} catch (Exception e) when (e is System.Net.Sockets.SocketException or ObjectDisposedException) {
 			log.Warning("Couldn't look for LAN games: {Error}", e.Message);
 			hosts = [];
@@ -1034,7 +1042,8 @@ public partial class LanLobby : Control {
 			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
 				? MakeButton("Rejoin", () => Connect(endpoint, false, last.token))
 				: null;
-			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join, watch, rejoin);
+			string network = found.network != null ? $" ({found.network})" : "";
+			AddSeatRow(hostList, $"{reply.hostName} at {found.address}{network}: {state}, {seats}", join, watch, rejoin);
 		}
 	}
 
@@ -1096,6 +1105,9 @@ public partial class LanLobby : Control {
 			return;
 		}
 		connecting = null;
+		if (endpoint is LanAddressEndpoint joined) {
+			RecentLanHosts.Remember(joined.Address);
+		}
 		LanSession.BeginJoining(client);
 		status.Text = $"Connected to {endpoint.Description}. Waiting for the host...";
 		addressHelp.Visible = false;

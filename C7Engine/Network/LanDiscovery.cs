@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -8,15 +9,33 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace C7Engine.Network;
 
-public record FoundHost(string address, DiscoveryReply reply);
+// A host that answered, at the address it answered from.
+public record FoundHost(string address, DiscoveryReply reply) {
+	// The virtual network it was found on, such as "Tailscale", or null for
+	// an ordinary local network.
+	public string network => LanDiscovery.NetworkOf(address);
+}
 
 // Finds LAN games by broadcasting on the local networks and collecting the
-// hosts' replies.
+// hosts' replies. Virtual networks such as Tailscale carry no broadcasts, so
+// the machines on this player's tailnet and the hosts joined before are also
+// asked directly.
 public static class LanDiscovery {
-	public static async Task<List<FoundHost>> FindHosts(TimeSpan timeout) {
+	private static readonly ILogger log = Log.ForContext(typeof(LanDiscovery));
+
+	// How long Tailscale and name lookups get to say whom to ask.
+	private static readonly TimeSpan DirectLookupLimit = TimeSpan.FromSeconds(2);
+	// How long to listen after asking them: a tailnet peer asked for the
+	// first time may take a moment while Tailscale finds a path to it.
+	private static readonly TimeSpan DirectReplyWait = TimeSpan.FromSeconds(1.5);
+
+	// knownHosts are addresses or names of hosts to ask directly, such as
+	// the ones joined before.
+	public static async Task<List<FoundHost>> FindHosts(TimeSpan timeout, IEnumerable<string> knownHosts = null) {
 		using UdpClient udp = new(0) { EnableBroadcast = true };
 		byte[] request = Encoding.UTF8.GetBytes(LanProtocol.DiscoveryRequest);
 		foreach (IPAddress target in BroadcastAddresses()) {
@@ -27,8 +46,12 @@ public static class LanDiscovery {
 			}
 		}
 
+		// Ends the listening below once the direct requests have had their
+		// time to be answered.
+		using CancellationTokenSource cancel = new();
+		Task askingDirectly = AskDirectly(udp, request, knownHosts?.ToList() ?? [], timeout, cancel);
+
 		Dictionary<string, FoundHost> found = new();
-		using CancellationTokenSource cancel = new(timeout);
 		try {
 			while (true) {
 				UdpReceiveResult result;
@@ -52,7 +75,87 @@ public static class LanDiscovery {
 			}
 		} catch (OperationCanceledException) {
 		}
-		return found.Values.OrderBy(h => h.reply.hostName).ToList();
+		cancel.Cancel();
+		await askingDirectly;
+		return Merge(found.Values);
+	}
+
+	// Sends the request to each host to ask directly, then waits out the
+	// time to listen for answers before ending the search.
+	private static async Task AskDirectly(UdpClient udp, byte[] request, List<string> knownHosts, TimeSpan timeout,
+		CancellationTokenSource cancel) {
+		Stopwatch clock = Stopwatch.StartNew();
+		try {
+			// Off the main thread: asking Tailscale runs a program.
+			List<IPAddress> targets = await Task.Run(() => DirectTargets(knownHosts));
+			foreach (IPAddress target in targets) {
+				if (cancel.IsCancellationRequested) {
+					return;
+				}
+				try {
+					await udp.SendAsync(request, request.Length, new IPEndPoint(target, LanProtocol.DiscoveryPort));
+				} catch (SocketException) {
+					// Unreachable from here; the others may not be.
+				}
+			}
+			TimeSpan wait = timeout - clock.Elapsed;
+			if (targets.Count > 0 && wait < DirectReplyWait) {
+				wait = DirectReplyWait;
+			}
+			if (wait > TimeSpan.Zero) {
+				await Task.Delay(wait, cancel.Token);
+			}
+		} catch (OperationCanceledException) {
+		} catch (Exception e) when (e is SocketException or ObjectDisposedException) {
+			log.Information("Couldn't ask hosts directly for their games: {Error}", e.Message);
+		} finally {
+			cancel.Cancel();
+		}
+	}
+
+	// The IPv4 addresses to ask directly: the known hosts, and this
+	// player's tailnet peers when this machine is on Tailscale.
+	private static async Task<List<IPAddress>> DirectTargets(List<string> knownHosts) {
+		Task<List<IPAddress>> tailnet = LocalAddressesByNetwork().Any(a => a.network == "Tailscale")
+			? TailnetPeers.FindAsync(DirectLookupLimit)
+			: Task.FromResult(new List<IPAddress>());
+		List<IPAddress> targets = [];
+		using CancellationTokenSource limit = new(DirectLookupLimit);
+		foreach (string host in knownHosts) {
+			if (IPAddress.TryParse(host, out IPAddress address)) {
+				targets.Add(address);
+				continue;
+			}
+			// A name, such as a tailnet machine's.
+			try {
+				targets.AddRange(await Dns.GetHostAddressesAsync(host, AddressFamily.InterNetwork, limit.Token));
+			} catch (Exception e) when (e is SocketException or OperationCanceledException or ArgumentException) {
+				// Not known any more.
+			}
+		}
+		targets.AddRange(await tailnet);
+		return DirectTargetsFrom(targets);
+	}
+
+	// The host only answers machines on its own networks, and this one is
+	// always asked by broadcast, so only other machines' IPv4 addresses on
+	// local or virtual networks are worth asking.
+	internal static List<IPAddress> DirectTargetsFrom(IEnumerable<IPAddress> addresses) {
+		return addresses
+			.Select(a => a.IsIPv4MappedToIPv6 ? a.MapToIPv4() : a)
+			.Where(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a) && LanHost.IsLocalNetwork(a))
+			.Distinct()
+			.ToList();
+	}
+
+	// The hosts found, each once: a host on both the local network and
+	// Tailscale answers on each, and is listed by its local address.
+	public static List<FoundHost> Merge(IEnumerable<FoundHost> found) {
+		List<FoundHost> all = found.ToList();
+		HashSet<DiscoveryReply> local = all.Where(h => h.network == null).Select(h => h.reply).ToHashSet();
+		return all.Where(h => h.network == null || !local.Contains(h.reply))
+			.OrderBy(h => h.reply.hostName)
+			.ToList();
 	}
 
 	// The broadcast address of each local IPv4 network, plus this machine for
@@ -104,9 +207,7 @@ public static class LanDiscovery {
 
 	private static string VirtualNetwork(NetworkInterface nic, IPAddress address) {
 		string name = $"{nic.Name} {nic.Description}";
-		byte[] bytes = address.GetAddressBytes();
-		// Tailscale gives out addresses from 100.64.0.0/10.
-		if (name.Contains("Tailscale", StringComparison.OrdinalIgnoreCase) || (bytes[0] == 100 && (bytes[1] & 0xC0) == 64)) {
+		if (name.Contains("Tailscale", StringComparison.OrdinalIgnoreCase) || IsTailscaleAddress(address)) {
 			return "Tailscale";
 		}
 		if (name.Contains("ZeroTier", StringComparison.OrdinalIgnoreCase)) {
@@ -116,5 +217,23 @@ public static class LanDiscovery {
 			return "Radmin VPN";
 		}
 		return null;
+	}
+
+	// Tailscale gives out addresses from 100.64.0.0/10.
+	public static bool IsTailscaleAddress(IPAddress address) {
+		if (address.IsIPv4MappedToIPv6) {
+			address = address.MapToIPv4();
+		}
+		if (address.AddressFamily != AddressFamily.InterNetwork) {
+			return false;
+		}
+		byte[] bytes = address.GetAddressBytes();
+		return bytes[0] == 100 && (bytes[1] & 0xC0) == 64;
+	}
+
+	// The virtual network a found host's address is on, such as "Tailscale",
+	// or null when that can't be told from the address alone.
+	public static string NetworkOf(string address) {
+		return IPAddress.TryParse(address, out IPAddress ip) && IsTailscaleAddress(ip) ? "Tailscale" : null;
 	}
 }
