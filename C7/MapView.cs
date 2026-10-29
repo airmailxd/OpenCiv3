@@ -189,9 +189,14 @@ public partial class TerrainLayer : LooseLayer {
 		tilesByFileID[fileID].Add(tTD);
 	}
 
+	// Null for a tile without terrain art info: the blank stand-ins a LAN
+	// host sends a guest for the tiles it knows nothing about (see
+	// SnapshotFilter), which the fog hides. The terrain config would fail on
+	// them (owner's report, 2026-10-28: a guest's map had no hills,
+	// forests, rivers, borders or resources, as that stopped the drawing).
 	private ImageTexture GetTexture(Tile tile) {
 		if (tile.ExtraInfo == null) {
-			return TextureLoader.Load("terrain.base", tile, useCache: true);
+			return null;
 		}
 
 		var key = (tile.ExtraInfo.BaseTerrainFileID, tile.ExtraInfo.BaseTerrainImageID);
@@ -237,6 +242,9 @@ public partial class TerrainLayer : LooseLayer {
 
 	private void DrawTile(LooseView looseView, TileToDraw tTD) {
 		ImageTexture texture = GetTexture(tTD.tile);
+		if (texture == null) {
+			return;
+		}
 
 		Vector2 terrainOffset = new Vector2(0, -1 * MapView.cellSize.Y);
 		Vector2 position = tTD.tileCenter - (float)0.5 * terrainSpriteSize + terrainOffset;
@@ -755,6 +763,9 @@ public partial class LooseView : Node2D {
 		DrawLayers(EngineStorage.gameData);
 	}
 
+	// The layers whose drawing has failed, each logged once.
+	private static readonly HashSet<Type> failedLayers = new();
+
 	private void DrawLayers(GameData gD) {
 		// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
 		// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
@@ -772,13 +783,20 @@ public partial class LooseView : Node2D {
 			if (!layer.visible || layer is FogOfWarLayer || layer is GridLayer) {
 				continue;
 			}
-			layer.onBeginDraw(this, gD);
-			foreach (MapView.VisibleTile vT in layer.TilesToDraw(this, gD) ?? tiles) {
-				if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
-					layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+			// A layer that fails is left out, and the rest still drawn.
+			try {
+				layer.onBeginDraw(this, gD);
+				foreach (MapView.VisibleTile vT in layer.TilesToDraw(this, gD) ?? tiles) {
+					if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+						layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+					}
+				}
+				layer.onEndDraw(this, gD);
+			} catch (Exception e) {
+				if (failedLayers.Add(layer.GetType())) {
+					Serilog.Log.ForContext<LooseView>().Error(e, "The map's {Layer} failed to draw", layer.GetType().Name);
 				}
 			}
-			layer.onEndDraw(this, gD);
 		}
 
 		foreach (LooseLayer layer in layers) {
