@@ -2,13 +2,15 @@
 
 The ladder: the Advanced AI always plays with no difficulty bonuses
 (Regent's, see GameData.AiBonusDifficulty), against Standard AIs at
-Regent, then Monarch, then Emperor. At each rung a coordinate search tries
-one change at a time (each knob up or down a step, each on-trial behaviour
-on or off) in paired AI trials on training seeds, keeps the best change
-only if it also helps on held-out seeds, and repeats until nothing helps.
-The rung is passed when, on the held-out seeds, the Advanced civs finish
-first at least --pass-first of the time and clearly better ranked than
-the Standard civs; then the next rung starts from the knobs it ended with.
+Regent, then Monarch, Emperor, Demigod and Deity. At each rung a
+coordinate search tries one change at a time (each knob up or down a step,
+each on-trial behaviour on or off) in paired AI trials on training seeds,
+keeps the best change only if it also helps on held-out seeds, and repeats
+until nothing helps. The rung is passed when, in an exam on other held-out
+seeds (an unpaired trial, so wins are counted directly), an Advanced civ
+finishes first by score in at least the rung's share of games (see RUNGS;
+half by chance alone) and the Advanced civs rank clearly better; then the
+next rung starts from the knobs it ended with. Deity is the last rung.
 
 Each trial is EngineTests' AiTrialTest with C7_TRIAL_ADVANCED=1 and
 C7_TRIAL_PAIRED=1: half the civs Advanced, and the same seeds replayed
@@ -62,7 +64,10 @@ DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio
             "BehindInTechShare": 0.9, "ExpandSettlers": 85, "ExpandAggression": -1,
             "BuildScience": 65, "BuildProduction": 65, "WinningOffense": 80,
             "PreyAggression": 1, "PlanEveryTurns": 5, **{b: 0 for b in BEHAVIOURS}}
-RUNGS = [("Regent", 2), ("Monarch", 3), ("Emperor", 4)]
+# Each rung: its name, the Standard AIs' difficulty (an index into the
+# difficulties) and the share of exam games an Advanced civ must win to
+# move up (the owner's bars, 2026-10-29). Deity's exam is only reported.
+RUNGS = [("Regent", 2, 1.00), ("Monarch", 3, 0.90), ("Emperor", 4, 0.75), ("Demigod", 5, 0.50), ("Deity", 6, None)]
 
 LINE = re.compile(r"^(\w+)\s+([-\d.]+) vs\s+([-\d.]+)\s+([-+\d.]+) \+- ([\d.]+)")
 
@@ -71,12 +76,14 @@ def spec(knobs):
     return ",".join(f"{k}={v:g}" for k, v in sorted(knobs.items()) if v != DEFAULTS[k])
 
 
-def run_trial(args, knobs, difficulty, seed, tag):
+# Paired trials (the default) cancel map luck for comparing knobs; the exam
+# is unpaired, so its "first" column is the Advanced civs' own wins.
+def run_trial(args, knobs, difficulty, seed, tag, paired=True):
     out = os.path.join(args.out, "runs", f"{tag}.txt")
     if os.path.exists(out) and "total ms" in open(out, encoding="utf-8").read():
         return parse(out)
     env = dict(os.environ,
-               C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1",
+               C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1" if paired else "0",
                C7_TRIAL_GAMES=str(args.games), C7_TRIAL_DIFFICULTY=str(difficulty), C7_TRIAL_SEED=str(seed),
                C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs))
     with open(out + ".log", "w", encoding="utf-8") as log:
@@ -147,8 +154,6 @@ def main():
     ap.add_argument("--train-seed", type=int, default=1000)
     ap.add_argument("--holdout-seed", type=int, default=7000)
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung")
-    ap.add_argument("--pass-first", type=float, default=0.75,
-                    help="share of games an Advanced civ must win (first by score; half by chance) to pass a rung")
     args = ap.parse_args()
     os.makedirs(os.path.join(args.out, "runs"), exist_ok=True)
 
@@ -163,7 +168,7 @@ def main():
 
     pool = ThreadPoolExecutor(args.parallel)
     while state["rung"] < len(RUNGS):
-        name, difficulty = RUNGS[state["rung"]]
+        name, difficulty, bar = RUNGS[state["rung"]]
         knobs = state["knobs"]
         while state["round"] < args.rounds:
             rnd = state["round"]
@@ -208,9 +213,14 @@ def main():
             save(args, state)
 
         # The rung's exam, on held-out seeds.
-        exam = run_trial(args, knobs, difficulty, args.holdout_seed + 500, f"{name}-exam")
-        passed = won(exam) >= args.pass_first and exam["rank"]["diff"] < -2 * exam["rank"]["se"]
-        note(args, f"\n**{name} exam**: {summary(exam)} — {'PASSED' if passed else 'not passed'}")
+        exam = run_trial(args, knobs, difficulty, args.holdout_seed + 500, f"{name}-exam", paired=False)
+        if bar is None:
+            note(args, f"\n**{name} exam** (last rung): {summary(exam)}")
+            state.setdefault("exams", []).append({"rung": name, "knobs": dict(knobs), "result": exam, "passed": None})
+            save(args, state)
+            break
+        passed = won(exam) >= bar - 1e-9 and exam["rank"]["diff"] < -2 * exam["rank"]["se"]
+        note(args, f"\n**{name} exam** (needs {bar:.0%} won): {summary(exam)} — {'PASSED' if passed else 'not passed'}")
         state.setdefault("exams", []).append({"rung": name, "knobs": dict(knobs), "result": exam, "passed": passed})
         if not passed:
             note(args, "Stopping: the Advanced AI needs better play, not just better knobs, to pass this rung.")
@@ -219,7 +229,7 @@ def main():
         state["rung"] += 1
         state["round"] = 0
         save(args, state)
-    note(args, "\nAll rungs passed.")
+    note(args, "\nThe ladder is done.")
 
 
 if __name__ == "__main__":

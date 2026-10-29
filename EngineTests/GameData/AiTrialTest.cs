@@ -244,6 +244,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The civ's place by score among all civs at the end (1 is
 			// first), and 1 if it came first.
 			"rank", "first",
+			// Advanced civs: the plans made (each a model call when a key is
+			// set) and the size of the briefing the model would get at the
+			// end, in tokens (about 4 characters each).
+			"plans", "briefTokens",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -502,6 +506,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 
 		Dictionary<Player, int> captured = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> plans = civs.ToDictionary(p => p, _ => 0);
+		C7Engine.AI.Advanced.AdvancedAI.onPlan = p => { if (plans.ContainsKey(p)) { plans[p]++; } };
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
 		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { city5Turn = turns, city10Turn = turns, deathTurn = turns });
@@ -906,6 +912,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			int rank = 1 + civs.Count(o => o != p && FinalScore(o) > FinalScore(p));
 			m.values[i++] = rank;
 			m.values[i++] = rank == 1 ? 1 : 0;
+			m.values[i++] = plans[p];
+			m.values[i++] = p.IsAdvancedAi && !p.defeated
+				? C7Engine.AI.Advanced.PlanBriefing.Build(p, gameData, C7Engine.AI.Advanced.RulePlanner.Plan(p, gameData)).text.Length / 4.0 : 0;
 			return m;
 		}
 

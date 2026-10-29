@@ -48,7 +48,14 @@ namespace C7Engine.AI.Advanced {
 			Adopt(player, gameData, plan);
 		}
 
+		// Lets AiTrialTest count the plans made (each one a model call when
+		// a key is set). Null outside a trial.
+		internal static Action<Player> onPlan;
+
 		private static void Adopt(Player player, GameData gameData, StrategicPlan plan) {
+			if (plan.source == "rules") {
+				onPlan?.Invoke(player);
+			}
 			Stamp(plan, player, gameData);
 			player.strategicPlan = plan;
 			log.Information("{Player} plans ({Source}): {Plan}", player, plan.source, Describe(plan));
