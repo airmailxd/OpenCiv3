@@ -229,6 +229,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"met", "metTurn",
 			// Barbarian units the civ killed.
 			"barbKills",
+			// Land units with Civ3's defensive and offensive AI strategies
+			// (see StockWarPlotting.IsDefensive), for the unit mix Civ3's AI
+			// keeps: "D : O : other ~= 53% : 43% : 4%" in peacetime
+			// (Ozymandias; doc/civ3-compendium/08, section 3.2).
+			"defUnits", "offUnits",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -873,6 +878,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = contactTurns.Count(t => t < turns);
 			m.values[i++] = contactTurns.Count == 0 ? 0 : contactTurns.Average();
 			m.values[i++] = barbKills[p];
+			m.values[i++] = p.units.Count(u => u.IsLandUnit() && StockWarPlotting.IsDefensive(u));
+			m.values[i++] = p.units.Count(u => u.IsLandUnit() && StockWarPlotting.IsOffensive(u));
 			return m;
 		}
 
