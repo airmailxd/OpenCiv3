@@ -49,37 +49,63 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 
 ## Track 2: Advanced AI
 
-**A. Strategic plan per player (`StrategicPlan`, saved).**
-- Fields:
-  - weights for growth, expansion, production, science, gold, wonders, culture, offense, defense, naval and air;
-  - a victory goal;
-  - attitude toward each rival;
-  - optional overrides for next tech and next government;
-  - a set turn and an expiry.
-- Read by production (`ChooseProducible`), settling, war plotting (`StockWarPlotting`/`WarCampaign`), research and government.
-- The neutral plan reproduces the Standard AI exactly.
-- It replaces the unused `StrategicPriorityArbitrator` output.
+**Goal (owner, 2026-10-29):** an Advanced AI that can beat a human with no advantages over one.
 
-**B. AI type per player** (Standard / Advanced) — done. Not covered: Civ3 imports and .biq scenarios always use Standard; LAN guests can't see or change it in the lobby.
-- Set in the setup screens: `PlayerSetup`, `MultiplayerSetupScreen`, `NewGameChoices`, `ScenarioSetup`.
-- Stored on `SelectedOpponent` → `Player` → `SavePlayer`. It is nullable, so old saves load as Standard.
+### Built
+- **Fair play.** Advanced AIs:
+  - get Regent's AI bonuses (none) whatever the difficulty (`GameData.AiBonusDifficulty`);
+  - get no AI house rules;
+  - always play with the fog of war (`AIFogOfWar.EnabledFor`).
+- **Strategic plan (`StrategicPlan`, saved with the AI's state).**
+  - Fields:
+    - a focus of 0–100 for each of Civ3's build-often/never categories;
+    - a war-aggression shift of −2..+2;
+    - a stance per rival (Target / Friend / Neutral);
+    - a victory goal;
+    - a rationale and notes.
+  - It nudges production scores (`PlanEffects.ProductionAdjustment`), and war plotting's aggression, exclusions and target score (`StockWarPlotting`).
+  - A neutral, expired or Standard plan changes nothing.
+- **Planning cadence.** A plan is made every 5 turns, and at once when a war starts or ends or the civ's city count changes. Plans lapse after 10 turns.
+- **Rule planner (`RulePlanner`).**
+  - Losing a war → defend, and no new wars.
+  - Winning → press the weakest enemy.
+  - At peace with room → expand.
+  - No room → target a much weaker reachable neighbour, or build up.
+  - Behind in tech → science. Disorder → happiness.
+- **Model planner (`ModelPlanner`, `PlanBriefing`)**, used when a key is set (Settings → Advanced AI, or `ANTHROPIC_API_KEY`).
+  - The briefing is Markdown, covering only what the civ knows.
+  - The answer is structured JSON: checked, clamped, and limited to rivals the civ has met.
+  - It runs in the background; the rules' plan is used until the answer arrives.
+  - Not yet tried against the live API.
+- **Tuning (`AdvancedTuning`).**
+  - The planner's numbers, plus which unadopted on-trial AI behaviours Advanced uses.
+  - Trials override them with `C7_ADVANCED_TUNING`.
+- **Trials.**
+  - `C7_TRIAL_ADVANCED=1` makes the trial half of the civs Advanced.
+  - `C7_TRIAL_MODEL=1` lets them call Claude.
+  - New measures: `rank` and `first`.
 
-**C. Planner.**
-- The **rule-based planner** is used when no API key is set. It reacts to the situation: losing a war → defense; boxed in → overseas expansion; behind in tech → science.
-- The **model planner**:
-  - Runs every 5 turns, and also on a war or peace, a city lost or captured, contact made, or a new era.
-  - Gets a Markdown summary of what the player can see:
-    - the civ, a few lines per city, and rivals with attitude and power;
-    - threat zones and victory progress;
-    - events since the last decision;
-    - the legal options;
-    - its own last plan with its reasons.
-  - Answers in one structured call. The answer is validated and clamped, and only changes beyond a deadband are applied.
-  - Runs asynchronously; a late answer applies the following turn.
-  - Keeps a per-civ notes file between calls.
-- Beyond-Civ3 fixes are switched on only for Advanced AIs: amphibious invasions, pillaging, retreating damaged units.
+### Results
+- **Regent, defaults, 16 paired games** (`C7_TRIAL_DIFFICULTY=2`), Advanced vs Standard:
+  - score +87 ± 37;
+  - cities +1.4 ± 0.6;
+  - first place 13 points more often (about 23% of games vs 10%).
 
-**D. Evaluation.**
-- Trials with mixed seats (Standard vs Advanced), measuring score, cities, wars won and survival over many seeds.
-- Controls: `none` (no planner) and `null` (neutral plan).
-- Per-call cost and latency are logged for the model planner.
+### Training ladder (`tools/advanced-ai-training/train.py`)
+- Advanced (no bonuses) plays Standard AIs at Regent, then Monarch, then Emperor.
+- **Search:** a coordinate search over the knobs in paired trials on training seeds. A change is kept only if it also helps on held-out seeds.
+- **Pass:** an Advanced civ wins at least 75% of exam games (50% by chance) and ranks clearly better.
+- **If a rung isn't passed:** the AI needs better play, not better knobs.
+
+### Next
+- **Better play for Advanced only:**
+  - expansion pace;
+  - worker use;
+  - war execution: artillery with stacks, defeat in detail, amphibious;
+  - tech trading.
+- **Live model trial**, with a key: compare the cost per game and the result against rules alone.
+- **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
+
+### Not covered
+- Civ3 imports and .biq scenarios always use Standard.
+- LAN guests can't see or change the AI type in the lobby.
