@@ -41,14 +41,18 @@ public class MdjScenarioTest {
 		return gameData;
 	}
 
-	// Every civ knows every advance and is in Feudalism, for good; the
-	// units are Medieval Japan's.
+	// Every civ knows every advance but MDJ's lock (Place-Holder Tech, which
+	// keeps railroads, airfields, radar towers, barricades and a new Palace
+	// out of the game) and is in Feudalism, for good; the units are
+	// Medieval Japan's.
 	[Fact]
 	public void EveryCivKnowsEverythingUnderFeudalism() {
 		C7GameData.GameData gameData = NewGame(GameScenario.RisingTide, 1);
 		Assert.Contains(gameData.unitPrototypes, p => p.name == "Ashigaru");
 		foreach (Player civ in gameData.players.Where(p => !p.IsIndependent)) {
-			Assert.Equal(gameData.techs.Count, civ.knownTechs.Count);
+			Assert.Equal(gameData.techs.Count - 1, civ.knownTechs.Count);
+			Assert.DoesNotContain(gameData.techs.Single(t => t.Name == GameSetup.MdjLockTech).id, civ.knownTechs);
+			Assert.DoesNotContain(gameData.Terraforms, t => t.Name == "Railroad" && t.RequiredTech != null && civ.knownTechs.Contains(t.RequiredTech));
 			Assert.Equal(GameSetup.MdjGovernment, civ.government.name);
 			Assert.Equal(EraUtils.MIDDLE_AGES_CVLPD, civ.eraCivilopediaName);
 			Assert.False(civ.CanStartRevolution(gameData));

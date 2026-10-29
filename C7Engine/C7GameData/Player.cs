@@ -1296,7 +1296,7 @@ namespace C7GameData {
 		public OrderedTechSet GetAvailableTechsToResearch(List<Tech> allTechs) {
 			HashSet<Tech> result = new();
 			foreach (Tech tech in allTechs) {
-				if (knownTechs.Contains(tech.id)) {
+				if (knownTechs.Contains(tech.id) || tech.EraCivilopediaName == EraUtils.HIDDEN_CVLPD) {
 					continue;
 				}
 				if (GetEraIndex(tech.EraCivilopediaName) > EraIndex()) {

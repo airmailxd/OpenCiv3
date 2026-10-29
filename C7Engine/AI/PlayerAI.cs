@@ -1689,10 +1689,12 @@ namespace C7Engine {
 
 		internal const string NoAiLuxury = "no-ai-luxury";
 
-		// Whether the player knows every advance there is.
+		// Whether the player knows every advance there is to research (not
+		// those of no era, which can't be researched; see EraUtils.HIDDEN_CVLPD).
 		internal static bool NothingToResearch(Player player) {
 			List<Tech> techs = EngineStorage.gameData?.techs;
-			return techs != null && techs.Count > 0 && techs.All(t => player.knownTechs.Contains(t.id));
+			return techs != null && techs.Count > 0
+				&& techs.All(t => player.knownTechs.Contains(t.id) || t.EraCivilopediaName == EraUtils.HIDDEN_CVLPD);
 		}
 
 		internal static void AdjustSliders(Player player) {

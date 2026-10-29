@@ -126,10 +126,17 @@ public partial class GameSetup {
 		save.Rules.FirstEraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;
 	}
 
-	// Every advance (the era stays the rules' first, see SetUpMdjRisingTide).
+	// Every advance (the era stays the rules' first, see SetUpMdjRisingTide)
+	// but MDJ's lock (owner's ruling, 2026-10-28: "up to the Place-Holder
+	// Tech"), which no one can research in MDJ: it keeps the railroad,
+	// airfield, radar tower and barricade, and rebuilding the Palace, out of
+	// the game.
 	private static void GiveAllTechs(SaveGame save, SavePlayer player) {
-		player.knownTechs.UnionWith(save.Techs.Select(t => t.id));
+		player.knownTechs.UnionWith(save.Techs.Where(t => t.Name != MdjLockTech).Select(t => t.id));
 	}
+
+	// The advance MDJ's BIQ locks what it leaves out of the game behind.
+	public const string MdjLockTech = "Place-Holder Tech";
 
 	// The government everyone starts in: the only one the rules allow, if
 	// they allow only one, or the default.

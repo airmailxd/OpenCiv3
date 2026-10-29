@@ -240,7 +240,7 @@ namespace C7GameData {
 			}
 			foreach (Tech tech in techs) {
 				// Techs of era -1 are hidden ones Civ3 doesn't show.
-				if (tech.EraCivilopediaName == "Hidden") {
+				if (tech.EraCivilopediaName == EraUtils.HIDDEN_CVLPD) {
 					continue;
 				}
 				Add(new CivilopediaEntry { Key = tech.CivilopediaEntry ?? KeyFromName("TECH_", tech.Name), Name = tech.Name, Section = CivilopediaSection.Advances, Tech = tech }, tech);

@@ -13,6 +13,13 @@ public static class EraUtils {
 	public const string INDUSTRIAL_AGE = "Industrial Age";
 	public const string MODERN_ERA = "Modern Era";
 
+	// The era of an advance the BIQ gives no era (-1, "None" in Civ3's
+	// editor). Such advances "can only be assigned; they cannot be
+	// researched, or traded, or "discovered" by the Great Library"
+	// (https://forums.civfanatics.com/threads/preventing-advancement-to-next-age.244311/):
+	// MDJ's clans' own advances and its Place-Holder Tech.
+	public const string HIDDEN_CVLPD = "Hidden";
+
 	public static int GetEraIndex(string era) {
 		if (era == ANCIENT_TIMES_CVLPD) {
 			return 0;
