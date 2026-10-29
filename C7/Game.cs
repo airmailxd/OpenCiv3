@@ -440,6 +440,7 @@ public partial class Game : Node {
 		// The AI's fog of war is this machine's setting; only a host's
 		// engine (or a single machine's) plays the AI.
 		EngineStorage.aiFogOfWar = DeveloperSettings.AIFogOfWar;
+		AdvancedAiSettings.Apply();
 
 		// Initializes the game data and returns the "human" player
 		if (Global.SaveGame != null) {

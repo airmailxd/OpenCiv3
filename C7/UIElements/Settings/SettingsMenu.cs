@@ -129,6 +129,7 @@ public partial class SettingsMenu : Control {
 		AddAudioSettings(column);
 		AddOnlineSettings(column);
 		AddMapGenerationSettings(column);
+		AddAdvancedAiSettings(column);
 		AddDeveloperSettings(column);
 
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
@@ -340,6 +341,47 @@ public partial class SettingsMenu : Control {
 			"When a new map has no room for every civilization to start far enough apart, another is generated. " +
 			"With this on, each map turned down is saved to the Invalid Maps folder, with a note saying why, " +
 			"so it can be loaded and looked at."));
+	}
+
+	// The Advanced AI's model planner: an Anthropic API key and the model.
+	private void AddAdvancedAiSettings(VBoxContainer column) {
+		column.AddChild(MakeHeading("Advanced AI"));
+
+		LineEdit key = new() {
+			Text = AdvancedAiSettings.ApiKey,
+			Secret = true,
+			PlaceholderText = "Anthropic API key (or set ANTHROPIC_API_KEY)",
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		void SaveKey() {
+			if (key.Text.Trim() != AdvancedAiSettings.ApiKey) {
+				AdvancedAiSettings.ApiKey = key.Text;
+				log.Information("Advanced AI API key {State}", string.IsNullOrWhiteSpace(key.Text) ? "cleared" : "set");
+			}
+		}
+		key.TextSubmitted += _ => SaveKey();
+		key.FocusExited += SaveKey;
+		column.AddChild(MakeRow("API key", key, new Control()));
+
+		LineEdit model = new() {
+			Text = AdvancedAiSettings.Model,
+			PlaceholderText = C7Engine.AI.Advanced.ModelPlanner.DefaultModel,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		void SaveModel() {
+			if (model.Text.Trim() != AdvancedAiSettings.Model) {
+				AdvancedAiSettings.Model = model.Text;
+				model.Text = AdvancedAiSettings.Model;
+			}
+		}
+		model.TextSubmitted += _ => SaveModel();
+		model.FocusExited += SaveModel;
+		column.AddChild(MakeRow("Model", model, new Control()));
+
+		column.AddChild(MakeNote(
+			"Computer players set to Advanced AI ask Claude for their strategy every few turns, using this key, " +
+			"and keep playing while they wait. Each call is billed to the key. With no key, they plan by built-in " +
+			"rules. The key is saved in C7.ini as plain text. Takes effect for the next game you start or load."));
 	}
 
 	// Options for testing the game.

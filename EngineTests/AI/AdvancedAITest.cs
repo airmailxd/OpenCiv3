@@ -142,4 +142,43 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 		gameData.turn += AdvancedAI.PlanEveryTurns;
 		Assert.True(AdvancedAI.NeedsNewPlan(player, gameData));
 	}
+
+	[Fact]
+	public void AModelAnswerIsCheckedAndClamped() {
+		System.Collections.Generic.Dictionary<string, ID> rivals = new() { ["Rome"] = rival.id };
+		string json = """
+			{"focus": {"Offense": 140, "Science": 70, "Teleporters": 90}, "aggressionShift": 5,
+			 "stances": [{"rival": "Rome", "stance": "Target"}, {"rival": "Atlantis", "stance": "Target"}],
+			 "victory": "Conquest", "rationale": "Rome is weak", "notes": "take Rome, then build"}
+			""";
+		StrategicPlan plan = ModelPlanner.Parse(json, rivals);
+		Assert.Equal("model", plan.source);
+		Assert.Equal(100, plan.Focus(PlanFocus.Offense));
+		Assert.Equal(70, plan.Focus(PlanFocus.Science));
+		Assert.Equal(2, plan.aggressionShift);
+		Assert.Single(plan.stances);
+		Assert.Equal(RivalStance.Target, plan.StanceToward(rival.id));
+		Assert.Equal("take Rome, then build", plan.notes);
+		Assert.Null(ModelPlanner.Parse("not json", rivals));
+	}
+
+	[Fact]
+	public void TheBriefingNamesOnlyRivalsTheCivHasMet() {
+		player.aiType = AiType.Advanced;
+		PlanBriefing.Result briefing = PlanBriefing.Build(player, gameData, RulePlanner.Plan(player, gameData));
+		Assert.Contains(rival.civilization.name, briefing.text);
+		Assert.Equal(rival.id, briefing.rivals[rival.civilization.name]);
+		foreach (Player stranger in gameData.players.Where(p => p != player && !player.playerRelationships.ContainsKey(p.id))) {
+			Assert.DoesNotContain(stranger.id, briefing.rivals.Values);
+		}
+	}
+
+	[Fact]
+	public void WithNoKeyTheModelIsNeverAsked() {
+		Assert.False(ModelPlanner.Available);
+		player.aiType = AiType.Advanced;
+		AdvancedAI.PlayTurn(player, gameData);
+		Assert.False(ModelPlanner.Waiting(player));
+		Assert.Equal("rules", player.strategicPlan.source);
+	}
 }

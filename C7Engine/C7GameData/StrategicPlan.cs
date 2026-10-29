@@ -41,6 +41,9 @@ namespace C7GameData {
 		// Who made the plan ("rules" or "model"), why, and when.
 		public string source;
 		public string rationale;
+		// The model planner's notes to itself, carried to its next briefing
+		// (RuneBench's agents kept a notes file the same way).
+		public string notes;
 		public int setTurn = -1;
 		// The plan stops steering on this turn if no planner renews it, so
 		// a planner that fails (no answer from the model, say) hands the AI

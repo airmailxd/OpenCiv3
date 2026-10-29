@@ -32,10 +32,23 @@ namespace C7Engine.AI.Advanced {
 			foreach (string behaviour in AdvancedTuning.BehavioursOn()) {
 				AiExperiments.Enable(player, behaviour);
 			}
+			// The model's answer to the last briefing, if it has come.
+			StrategicPlan answer = ModelPlanner.TakeAnswer(player);
+			if (answer != null) {
+				Adopt(player, gameData, answer);
+			}
 			if (!NeedsNewPlan(player, gameData)) {
 				return;
 			}
+			// The rules' plan at once; with a model set up, it is asked too,
+			// and its plan replaces this one when it answers.
 			StrategicPlan plan = RulePlanner.Plan(player, gameData);
+			ModelPlanner.Ask(player, gameData, plan);
+			plan.notes = player.strategicPlan?.notes;
+			Adopt(player, gameData, plan);
+		}
+
+		private static void Adopt(Player player, GameData gameData, StrategicPlan plan) {
 			Stamp(plan, player, gameData);
 			player.strategicPlan = plan;
 			log.Information("{Player} plans ({Source}): {Plan}", player, plan.source, Describe(plan));
