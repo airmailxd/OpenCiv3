@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Serilog;
 
 namespace C7GameData.Save {
@@ -89,6 +90,9 @@ namespace C7GameData.Save {
 		public int? ownerChangedTurn;
 		// See City.wasCityState.
 		public bool wasCityState;
+		// The civilization the city was taken from by force (City.capturedFrom),
+		// by name; absent if it wasn't, or in saves made before this was saved.
+		public string capturedFrom;
 		// A culture flip offered to a human who hasn't answered yet
 		// (City.cultureFlipOfferedTo and cultureFlipOfferTurn); absent if
 		// none.
@@ -152,6 +156,7 @@ namespace C7GameData.Save {
 			resistanceFrom = city.resistanceFrom?.id;
 			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
 			wasCityState = city.wasCityState;
+			capturedFrom = city.capturedFrom?.name;
 			if (city.cultureFlipOfferedTo != null && city.cultureFlipOfferTurn >= 0) {
 				cultureFlipOfferedTo = city.cultureFlipOfferedTo.id;
 				cultureFlipOfferTurn = city.cultureFlipOfferTurn;
@@ -293,6 +298,10 @@ namespace C7GameData.Save {
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				ownerChangedTurn = ownerChangedTurn ?? -1,
 				wasCityState = wasCityState,
+				// Saves made before this was saved still know a city-state a
+				// civ took: it was taken from the city-states.
+				capturedFrom = Lookups.Find(lookups.civilizationsByName, capturedFrom)
+					?? (wasCityState ? lookups.playersById.Values.FirstOrDefault(p => p.isCityStates)?.civilization : null),
 				cultureFlipOfferedTo = Lookups.Find(lookups.playersById, cultureFlipOfferedTo),
 				cultureFlipOfferTurn = cultureFlipOfferTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,

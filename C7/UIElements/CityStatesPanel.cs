@@ -45,6 +45,8 @@ public partial class CityStatesPanel : PanelContainer {
 		layout.AddChild(header);
 		Label title = MakeLabel("City-States", 15, TextColor);
 		title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		// Beside the fold button, so not the panel's full width.
+		title.CustomMinimumSize = Vector2.Zero;
 		header.AddChild(title);
 		foldButton = new Button { CustomMinimumSize = new Vector2(28, 22), FocusMode = FocusModeEnum.None };
 		foldButton.AddThemeFontSizeOverride("font_size", 12);
@@ -69,7 +71,14 @@ public partial class CityStatesPanel : PanelContainer {
 	}
 
 	private static Label MakeLabel(string text, int size, Color color) {
-		Label label = new() { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = MouseFilterEnum.Pass };
+		// The panel's width, so a wrapping label new to the panel isn't
+		// first measured a word to a line, which stretched the panel down
+		// the screen when the rows were rebuilt (as when a city-state was
+		// taken).
+		Label label = new() {
+			Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = MouseFilterEnum.Pass,
+			CustomMinimumSize = new Vector2(Width, 0),
+		};
 		label.AddThemeColorOverride("font_color", color);
 		label.AddThemeFontSizeOverride("font_size", size);
 		return label;
@@ -135,6 +144,8 @@ public partial class CityStatesPanel : PanelContainer {
 			routes.AddChild(MakeLabel(total, 12, TextColor));
 		}
 		Size = Vector2.Zero;
+		// Again once the new rows are laid out, and the old ones gone.
+		Callable.From(() => Size = Vector2.Zero).CallDeferred();
 	}
 
 	// Stays to the left of the scoreboard, which may grow or fold.

@@ -378,6 +378,14 @@ public class KingsAndNomadsScenarioTest {
 		City founded = CityInteractions.BuildCity(site, civ, "Newtown");
 		Grow(founded);
 		Assert.False(CanBuildSettler(founded));
+
+		// A saved game, or the copy a LAN player is sent, still knows
+		// which city was taken.
+		C7GameData.GameData reloaded = SaveGameFixture.HydrateSaveGame(SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON()));
+		EngineStorage.InitializeGameDataForTests(reloaded);
+		bool CanBuildSettlerThere(City c) => c.ListProductionOptions(reloaded).Any(p => p is UnitPrototype u && u.isSettler);
+		Assert.True(CanBuildSettlerThere(reloaded.cities.Single(c => c.location.XCoordinate == city.location.XCoordinate && c.location.YCoordinate == city.location.YCoordinate)));
+		Assert.False(CanBuildSettlerThere(reloaded.cities.Single(c => c.name == "Newtown")));
 	}
 
 	// A civ whose King dies falls, and its cities go to the independents.
