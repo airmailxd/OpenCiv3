@@ -1,0 +1,15 @@
+# WireGuard for Windows: server tunnel "civ". Placeholders only; fill in on the host PC.
+[Interface]
+Address = 10.8.0.1/24
+ListenPort = 51820
+PrivateKey = <SERVER_PRIVATE_KEY>   # made by the WireGuard app; never leaves this PC
+
+[Peer]
+# Friend 1
+PublicKey = <FRIEND1_PUBLIC_KEY>
+AllowedIPs = 10.8.0.2/32
+
+[Peer]
+# Friend 2
+PublicKey = <FRIEND2_PUBLIC_KEY>
+AllowedIPs = 10.8.0.3/32

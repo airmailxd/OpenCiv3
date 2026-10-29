@@ -1,0 +1,10 @@
+# Sent to a friend. They paste it into their own WireGuard app, keeping their own PrivateKey line.
+[Interface]
+Address = <FRIEND_TUNNEL_IP>/32     # 10.8.0.2 for friend 1, 10.8.0.3 for friend 2
+PrivateKey = <FRIEND_PRIVATE_KEY>   # made in the friend's app; never sent to anyone
+
+[Peer]
+PublicKey = <SERVER_PUBLIC_KEY>
+Endpoint = <DUCKDNS_NAME>.duckdns.org:51820
+AllowedIPs = 10.8.0.1/32            # only the relay; normal internet is untouched
+PersistentKeepalive = 25
