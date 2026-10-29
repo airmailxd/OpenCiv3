@@ -184,6 +184,17 @@ public class EternalWarScenarioTest {
 		}
 	}
 
+	// The Offshore Platform comes with Writing, which every civ knows from the
+	// start, so a coastal city may build it at once.
+	[Fact]
+	public void TheOffshorePlatformComesWithWriting() {
+		(_, C7GameData.GameData gameData) = NewGame(3);
+		Building platform = gameData.Buildings.First(b => b.name == "Offshore Platform");
+		Assert.Equal("Writing", platform.requiredTech?.Name);
+		Player civ = gameData.players.First(p => !p.IsIndependent && p.cities.Count > 0);
+		Assert.True(civ.knownTechs.Contains(platform.requiredTech.id));
+	}
+
 	// The economic buildings: the Colosseum makes 3 culture and 3 gold and
 	// costs nothing; the Marketplace makes 2 gold and doubles the buildings'
 	// gold, keeping its luxury bonus but not its tax bonus, which goes to

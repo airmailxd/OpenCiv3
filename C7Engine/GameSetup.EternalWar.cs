@@ -48,6 +48,8 @@ public enum GameScenario {
 // keeping its luxury bonus but no longer adding to taxes; the Harbor makes a
 // gold for each coast tile worked; the Courthouse makes 2 gold and adds to
 // taxes as the Marketplace did. None of them costs anything to keep up.
+// The Offshore Platform comes with Writing rather than Miniaturization
+// (owner's addition, 2026-10-28), so the sea's shields can be worked.
 public partial class GameSetup {
 	public const int EternalWarCitySize = 3;
 	public const int MinEternalWarCitiesPerCiv = 1;
@@ -216,6 +218,10 @@ public partial class GameSetup {
 			courthouse.goldPerTurn = 2;
 			courthouse.maintenanceCost = 0;
 			courthouse.flags.Add(SaveBuilding.Flag.Plus50PercentCommerce);
+		}
+		if (save.Buildings.Find(b => b.name == "Offshore Platform") is SaveBuilding platform
+				&& save.Techs.Find(t => t.Name == "Writing") is SaveTech writing) {
+			platform.requiredTech = writing.id;
 		}
 	}
 
