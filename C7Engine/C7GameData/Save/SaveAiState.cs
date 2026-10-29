@@ -27,6 +27,9 @@ namespace C7GameData.Save {
 		public double? marketPricePerShield;
 		// An Advanced AI's strategy (see StrategicPlan); null for none.
 		public StrategicPlan strategicPlan;
+		// An Advanced AI's reviewed policy (see AdvancedPolicy); null for
+		// none.
+		public AdvancedPolicy advancedPolicy;
 	}
 
 	// See C7Engine.AI.WarCampaign.Campaign.

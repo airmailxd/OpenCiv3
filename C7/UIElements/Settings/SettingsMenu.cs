@@ -379,9 +379,11 @@ public partial class SettingsMenu : Control {
 		column.AddChild(MakeRow("Model", model, new Control()));
 
 		column.AddChild(MakeNote(
-			"Computer players set to Advanced AI ask Claude for their strategy every few turns, using this key, " +
-			"and keep playing while they wait. Each call is billed to the key. With no key, they plan by built-in " +
-			"rules. The key is saved in C7.ini as plain text. Takes effect for the next game you start or load."));
+			"Every 50 turns, each computer player set to Advanced AI asks Claude to review how it plays, using this " +
+			"key, and keeps playing while it waits. What the reviews learn is kept in AdvancedAiPlaybook.jsonl for later " +
+			"games. Each call is billed to the key (about 8 a game per Advanced player). With no key, Advanced players " +
+			"play by their built-in rules. The key is saved in C7.ini as plain text. Takes effect for the next game you " +
+			"start or load."));
 	}
 
 	// Options for testing the game.

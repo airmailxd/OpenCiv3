@@ -18,7 +18,7 @@ namespace C7Engine.AI.Advanced {
 	public static class AdvancedAI {
 		private static readonly ILogger log = Log.ForContext(typeof(AdvancedAI));
 
-		public static int PlanEveryTurns => Math.Max(1, AdvancedTuning.GetInt("PlanEveryTurns"));
+		public static int PlanEveryTurns(Player player) => Math.Max(1, AdvancedTuning.GetInt(player, "PlanEveryTurns"));
 		public const int PlanLastsTurns = 10;
 
 		// Early in the AI's turn, before it plots wars and picks production.
@@ -26,36 +26,25 @@ namespace C7Engine.AI.Advanced {
 			if (!player.IsAdvancedAi) {
 				return;
 			}
+			// With a model set up, its review of the policy, every 50 turns.
+			PolicyReview.PlayTurn(player, gameData);
 			// The on-trial behaviours training found to help (see
 			// AdvancedTuning). They aren't saved, so they are switched on
 			// every turn.
-			foreach (string behaviour in AdvancedTuning.BehavioursOn()) {
+			foreach (string behaviour in AdvancedTuning.BehavioursOn(player)) {
 				AiExperiments.Enable(player, behaviour);
-			}
-			// The model's answer to the last briefing, if it has come.
-			StrategicPlan answer = ModelPlanner.TakeAnswer(player);
-			if (answer != null) {
-				Adopt(player, gameData, answer);
 			}
 			if (!NeedsNewPlan(player, gameData)) {
 				return;
 			}
-			// The rules' plan at once; with a model set up, it is asked too,
-			// and its plan replaces this one when it answers.
-			StrategicPlan plan = RulePlanner.Plan(player, gameData);
-			ModelPlanner.Ask(player, gameData, plan);
-			plan.notes = player.strategicPlan?.notes;
-			Adopt(player, gameData, plan);
+			Adopt(player, gameData, RulePlanner.Plan(player, gameData));
 		}
 
-		// Lets AiTrialTest count the plans made (each one a model call when
-		// a key is set). Null outside a trial.
+		// Lets AiTrialTest count the plans made. Null outside a trial.
 		internal static Action<Player> onPlan;
 
 		private static void Adopt(Player player, GameData gameData, StrategicPlan plan) {
-			if (plan.source == "rules") {
-				onPlan?.Invoke(player);
-			}
+			onPlan?.Invoke(player);
 			Stamp(plan, player, gameData);
 			player.strategicPlan = plan;
 			log.Information("{Player} plans ({Source}): {Plan}", player, plan.source, Describe(plan));
@@ -71,7 +60,7 @@ namespace C7Engine.AI.Advanced {
 
 		public static bool NeedsNewPlan(Player player, GameData gameData) {
 			StrategicPlan plan = player.strategicPlan;
-			if (plan == null || !plan.ActiveOn(gameData.turn) || gameData.turn - plan.setTurn >= PlanEveryTurns) {
+			if (plan == null || !plan.ActiveOn(gameData.turn) || gameData.turn - plan.setTurn >= PlanEveryTurns(player)) {
 				return true;
 			}
 			// The situation turned.

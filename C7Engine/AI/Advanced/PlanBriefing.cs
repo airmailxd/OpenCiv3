@@ -6,28 +6,26 @@ using C7GameData;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine.AI.Advanced {
-	// The written briefing the model planner gets (see ModelPlanner): what the
-	// civ knows, in Markdown, not the map. Lessons taken from Vox Deorum and
-	// RuneBench:
+	// The written situation report the model reviewer gets (see
+	// PolicyReview): what the civ knows, in Markdown, not the map. Lessons
+	// taken from Vox Deorum and RuneBench:
 	// - structured text, not pixels or raw tiles: models reason badly about
 	//   coordinates, so the map is summed up as rivals and fronts;
 	// - only what a human in the civ's seat would know: rivals it has met,
-	//   and their strength in the military advisor's rough words;
-	// - the legal options listed, so every answer can be checked;
-	// - its last plan and notes, so it remembers what it meant to do.
+	//   and their strength in the military advisor's rough words.
 	public static class PlanBriefing {
 		public sealed class Result {
 			public string text;
-			// Rival names as written in the briefing, to their ids.
+			// Rival names as written in the report, to their ids.
 			public Dictionary<string, ID> rivals = new();
 		}
 
-		public static Result Build(Player player, GameData gameData, StrategicPlan suggestion) {
+		public static Result Situation(Player player, GameData gameData) {
 			Result result = new();
 			StringBuilder b = new();
 			float ours = Math.Max(1f, player.CalculateMilitaryStrength());
 
-			b.AppendLine($"# {player.civilization.name}, turn {gameData.turn}");
+			b.AppendLine($"# {player.civilization.name}, turn {gameData.turn}, {EraName(player)}");
 			b.AppendLine();
 			b.AppendLine("## Your civilization");
 			b.AppendLine($"- Government: {player.government?.name ?? "anarchy"}");
@@ -43,6 +41,9 @@ namespace C7Engine.AI.Advanced {
 			if (disorder > 0) {
 				b.AppendLine($"- Cities in disorder: {disorder}");
 			}
+			if (player.strategicPlan != null) {
+				b.AppendLine($"- The rules' current plan: {AdvancedAI.Describe(player.strategicPlan)}");
+			}
 			b.AppendLine();
 
 			b.AppendLine("## Cities");
@@ -57,8 +58,7 @@ namespace C7Engine.AI.Advanced {
 			b.AppendLine();
 
 			b.AppendLine("## Rivals you have met");
-			List<Player> met = gameData.players.Where(p => p != player && !p.IsIndependent && !p.defeated
-				&& player.playerRelationships.ContainsKey(p.id)).ToList();
+			List<Player> met = Met(player, gameData);
 			if (met.Count == 0) {
 				b.AppendLine("- none yet");
 			}
@@ -71,40 +71,23 @@ namespace C7Engine.AI.Advanced {
 					+ $"{p.cities.Count} cities; {Attitudes.Level(gameData, player, p)} toward them; "
 					+ $"{(sameLand ? "shares your continent" : "overseas")}; {p.knownTechs.Count} techs");
 			}
-			b.AppendLine();
-
-			b.AppendLine("## Your previous plan");
-			StrategicPlan previous = player.strategicPlan;
-			if (previous == null) {
-				b.AppendLine("- none (game start)");
-			} else {
-				b.AppendLine($"- Set on turn {previous.setTurn} by {previous.source}: {AdvancedAI.Describe(previous)}");
-				if (!string.IsNullOrWhiteSpace(previous.notes)) {
-					b.AppendLine($"- Your notes: {previous.notes}");
-				}
-				if (previous.citiesWhenSet != player.cities.Count) {
-					b.AppendLine($"- Since then your cities went from {previous.citiesWhenSet} to {player.cities.Count}");
-				}
-			}
-			b.AppendLine();
-
-			b.AppendLine("## What the built-in rules would do now");
-			b.AppendLine($"- {AdvancedAI.Describe(suggestion)}");
-			b.AppendLine();
-
-			b.AppendLine("## Options");
-			b.AppendLine($"- focus: 0-100 for each of {string.Join(", ", Enum.GetNames<PlanFocus>())}; 50 is neutral. "
-				+ "It tilts which builds the cities choose next; it does not change what they are already building.");
-			b.AppendLine("- aggressionShift: -2 to 2, how readily you start wars.");
-			b.AppendLine($"- stances: for any rival above, Target (the one war plotting goes after), Friend (never attacked), or Neutral.");
-			b.AppendLine($"- victory: one of {string.Join(", ", StrategicPlan.Victories)}.");
-
 			result.text = b.ToString();
 			return result;
 		}
 
+		public static List<Player> Met(Player player, GameData gameData) =>
+			gameData.players.Where(p => p != player && !p.IsIndependent && !p.defeated
+				&& player.playerRelationships.ContainsKey(p.id)).ToList();
+
+		public static string EraName(Player player) => player.EraIndex() switch {
+			<= 0 => "Ancient Times",
+			1 => "Middle Ages",
+			2 => "Industrial Age",
+			_ => "Modern Era",
+		};
+
 		// The military advisor's kind of words, not exact numbers.
-		private static string StrengthWords(float ratio) =>
+		public static string StrengthWords(float ratio) =>
 			ratio >= 2f ? "much stronger" : ratio >= 1.25f ? "stronger" : ratio > .8f ? "about as strong" : ratio > .5f ? "weaker" : "much weaker";
 
 		private static string OutlookWords(PeaceAI.WarOutlook o) => o switch {

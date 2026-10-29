@@ -53,8 +53,10 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_ADVANCED     1 for the trial civs to play as the Advanced AI
 //                         (no difficulty bonuses, no house rules, the fog of
 //                         war; see C7Engine.AI.Advanced.AdvancedAI)
-//   C7_TRIAL_MODEL        1 for Advanced civs to ask Claude for their plans
-//                         (needs ANTHROPIC_API_KEY; each call is billed)
+//   C7_TRIAL_MODEL        1 for Advanced civs to have Claude review their
+//                         policy every 50 turns (needs ANTHROPIC_API_KEY;
+//                         each call is billed); C7_TRIAL_MODEL_NAME picks
+//                         the model, C7_TRIAL_PLAYBOOK the playbook file
 //   C7_ADVANCED_TUNING    the Advanced AI's knobs, "name=value,..." (see
 //                         AdvancedTuning)
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
@@ -244,9 +246,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The civ's place by score among all civs at the end (1 is
 			// first), and 1 if it came first.
 			"rank", "first",
-			// Advanced civs: the plans made (each a model call when a key is
-			// set) and the size of the briefing the model would get at the
-			// end, in tokens (about 4 characters each).
+			// Advanced civs: the plans the rules made, and the size of the
+			// policy review's briefing at the end, in tokens (about 4
+			// characters each).
 			"plans", "briefTokens",
 		];
 		public readonly double[] values = new double[Names.Length];
@@ -375,10 +377,20 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 		// C7_ADVANCED_TUNING: the Advanced AI's knobs, for training.
 		C7Engine.AI.Advanced.AdvancedTuning.Override(Environment.GetEnvironmentVariable("C7_ADVANCED_TUNING"));
-		// C7_TRIAL_MODEL=1: Advanced civs also ask Claude for their plans,
-		// with ANTHROPIC_API_KEY (billed per call); otherwise rules only.
-		C7Engine.AI.Advanced.ModelPlanner.apiKey = Setting("C7_TRIAL_MODEL", 0) != 0
-			? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") : null;
+		// C7_TRIAL_MODEL=1: Advanced civs also have Claude review their
+		// policy every 50 turns, with ANTHROPIC_API_KEY (billed per call),
+		// waiting for each answer; otherwise rules only.
+		bool useModel = Setting("C7_TRIAL_MODEL", 0) != 0;
+		C7Engine.AI.Advanced.ModelPlanner.apiKey = useModel ? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") : null;
+		C7Engine.AI.Advanced.ModelPlanner.waitForAnswers = true;
+		C7Engine.AI.Advanced.ModelPlanner.model = Environment.GetEnvironmentVariable("C7_TRIAL_MODEL_NAME") ?? C7Engine.AI.Advanced.ModelPlanner.DefaultModel;
+		C7Engine.AI.Advanced.PolicyPlaybook.path = useModel ? Environment.GetEnvironmentVariable("C7_TRIAL_PLAYBOOK") : null;
+		long modelCalls = 0, modelIn = 0, modelOut = 0;
+		C7Engine.AI.Advanced.ModelPlanner.onUsage = (i, o) => {
+			System.Threading.Interlocked.Increment(ref modelCalls);
+			System.Threading.Interlocked.Add(ref modelIn, i);
+			System.Threading.Interlocked.Add(ref modelOut, o);
+		};
 		string[] experiments = (Environment.GetEnvironmentVariable("C7_TRIAL_EXPERIMENTS") ?? "")
 			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 		int games = Setting("C7_TRIAL_GAMES", 8);
@@ -472,6 +484,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		lines.Add($"great wonders completed by the trial civs: {TurnsSummary(trialWonderTurns)}");
 		lines.Add($"great wonders completed by the others:     {TurnsSummary(otherWonderTurns)}");
 		lines.Add("great wonders built (trial/others): " + string.Join(", ", wondersByName.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key} {kv.Value.trial}/{kv.Value.others}")));
+		if (useModel) {
+			lines.Add($"model {C7Engine.AI.Advanced.ModelPlanner.model}: {modelCalls} calls, {modelIn} input and {modelOut} output tokens");
+		}
 		lines.Add($"total ms={total.ElapsedMilliseconds}");
 		File.WriteAllLines(outPath, lines);
 		foreach (string line in lines) {
@@ -914,7 +929,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = rank == 1 ? 1 : 0;
 			m.values[i++] = plans[p];
 			m.values[i++] = p.IsAdvancedAi && !p.defeated
-				? C7Engine.AI.Advanced.PlanBriefing.Build(p, gameData, C7Engine.AI.Advanced.RulePlanner.Plan(p, gameData)).text.Length / 4.0 : 0;
+				? C7Engine.AI.Advanced.PolicyReview.Briefing(p, gameData, C7Engine.AI.Advanced.PolicyReview.Snapshot(p, gameData)).Length / 4.0 : 0;
 			return m;
 		}
 

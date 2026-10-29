@@ -72,17 +72,26 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - At peace with room → expand.
   - No room → target a much weaker reachable neighbour, or build up.
   - Behind in tech → science. Disorder → happiness.
-- **Model planner (`ModelPlanner`, `PlanBriefing`)**, used when a key is set (Settings → Advanced AI, or `ANTHROPIC_API_KEY`).
-  - The briefing is Markdown, covering only what the civ knows.
-  - The answer is structured JSON: checked, clamped, and limited to rivals the civ has met.
-  - It runs in the background; the rules' plan is used until the answer arrives.
+- **Policy review by Claude (`PolicyReview`, `PolicyPlaybook`)**, used when a key is set (Settings → Advanced AI, or `ANTHROPIC_API_KEY`). The owner's design, 2026-10-29: Claude doesn't play the game. It adjusts behaviour by time and situation, building on past success in small steps.
+  - **Every 50 turns** it reviews the player's own policy (`AdvancedPolicy`, saved): the knob values and behaviour switches the rule planner plays by.
+  - **It sees:**
+    - the situation (`PlanBriefing.Situation`);
+    - a table of the civ's standing at each review (score rank, cities and techs vs rivals, military vs the strongest, wars);
+    - the knobs, with their ranges and meanings;
+    - its past reviews this game and what followed each;
+    - its notes;
+    - the 20 latest playbook lessons, same era first.
+  - **It may change at most 3 knobs, each at most 2 steps.** Answers are checked and clamped.
+  - **Cross-game memory.** At each review, the last review's outcome goes into the playbook (`AdvancedAiPlaybook.jsonl` beside C7.ini): situation, changes, outcome, gain and lesson.
+  - The game doesn't wait for answers; trials do (`ModelPlanner.waitForAnswers`).
+  - Cost: about 8 calls per Advanced player in a 400-turn game, and about 3,500–4,000 input tokens per call once the playbook fills.
   - Not yet tried against the live API.
 - **Tuning (`AdvancedTuning`).**
   - The planner's numbers, plus which unadopted on-trial AI behaviours Advanced uses.
   - Trials override them with `C7_ADVANCED_TUNING`.
 - **Trials.**
   - `C7_TRIAL_ADVANCED=1` makes the trial half of the civs Advanced.
-  - `C7_TRIAL_MODEL=1` lets them call Claude.
+  - `C7_TRIAL_MODEL=1` lets them call Claude, with `C7_TRIAL_MODEL_NAME` and `C7_TRIAL_PLAYBOOK`. The results end with the call and token totals.
   - New measures: `rank` and `first`.
 
 ### Results
@@ -103,7 +112,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - worker use;
   - war execution: artillery with stacks, defeat in detail, amphibious;
   - tech trading.
-- **Live model trial**, with a key: compare the cost per game and the result against rules alone.
+- **Live model trial**, with a key: compare the cost per game and the result against rules alone. Run trials one after another so the playbook builds up.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
 
 ### Not covered

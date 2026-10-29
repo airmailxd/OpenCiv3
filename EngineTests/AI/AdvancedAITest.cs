@@ -46,7 +46,7 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 		player.strategicPlan = PlanWith(PlanFocus.Settlers, 100);
 		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
 		player.aiType = AiType.Advanced;
-		Assert.Equal(PlanEffects.FocusPoints, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+		Assert.Equal(PlanEffects.FocusPoints(player), PlanEffects.ProductionAdjustment(player, Unit("Settler")));
 		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Warrior")));
 	}
 
@@ -139,33 +139,82 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 
 		AdvancedAI.PlayTurn(player, gameData);
 		Assert.NotSame(first, player.strategicPlan);
-		gameData.turn += AdvancedAI.PlanEveryTurns;
+		gameData.turn += AdvancedAI.PlanEveryTurns(player);
 		Assert.True(AdvancedAI.NeedsNewPlan(player, gameData));
 	}
 
+	// The reviewer may change at most 3 knobs, each at most 2 steps from
+	// where the player has it, within range, and only knobs that exist.
 	[Fact]
-	public void AModelAnswerIsCheckedAndClamped() {
-		System.Collections.Generic.Dictionary<string, ID> rivals = new() { ["Rome"] = rival.id };
+	public void AReviewIsCheckedAndKeptSmall() {
+		player.aiType = AiType.Advanced;
 		string json = """
-			{"focus": {"Offense": 140, "Science": 70, "Teleporters": 90}, "aggressionShift": 5,
-			 "stances": [{"rival": "Rome", "stance": "Target"}, {"rival": "Atlantis", "stance": "Target"}],
-			 "victory": "Conquest", "rationale": "Rome is weak", "notes": "take Rome, then build"}
+			{"changes": [
+			  {"knob": "ExpandSettlers", "value": 5},
+			  {"knob": "Teleporters", "value": 9},
+			  {"knob": "war-production", "value": 1},
+			  {"knob": "FocusPoints", "value": 100},
+			  {"knob": "PreyAggression", "value": 2}],
+			 "rationale": "expand faster", "notes": "watch the north", "lesson": "claim land early"}
 			""";
-		StrategicPlan plan = ModelPlanner.Parse(json, rivals);
-		Assert.Equal("model", plan.source);
-		Assert.Equal(100, plan.Focus(PlanFocus.Offense));
-		Assert.Equal(70, plan.Focus(PlanFocus.Science));
-		Assert.Equal(2, plan.aggressionShift);
-		Assert.Single(plan.stances);
-		Assert.Equal(RivalStance.Target, plan.StanceToward(rival.id));
-		Assert.Equal("take Rome, then build", plan.notes);
-		Assert.Null(ModelPlanner.Parse("not json", rivals));
+		PolicyReview.Answer answer = PolicyReview.Parse(json, player);
+		Assert.Equal(3, answer.changes.Count);
+		Assert.Equal(85 - 2 * 10, answer.changes["ExpandSettlers"]);
+		Assert.Equal(1, answer.changes["war-production"]);
+		Assert.Equal(15 + 2 * 5, answer.changes["FocusPoints"]);
+		Assert.False(answer.changes.ContainsKey("Teleporters"));
+		Assert.Equal("claim land early", answer.lesson);
+		Assert.Null(PolicyReview.Parse("not json", player));
+	}
+
+	[Fact]
+	public void AReviewedPolicyIsThePlayersOwnAndIsSaved() {
+		player.aiType = AiType.Advanced;
+		PolicyReview.Answer answer = PolicyReview.Parse("""{"changes": [{"knob": "war-production", "value": 1}], "rationale": "r", "notes": "n", "lesson": "l"}""", player);
+		PolicyReview.Adopt(player, gameData, answer, PolicyReview.Snapshot(player, gameData));
+
+		Assert.Contains("war-production", AdvancedTuning.BehavioursOn(player));
+		Assert.DoesNotContain("war-production", AdvancedTuning.BehavioursOn(rival));
+		C7GameData.GameData loaded = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON()).ToGameData(fixture.behaviors);
+		AdvancedPolicy back = loaded.players.Single(p => p.id == player.id).advancedPolicy;
+		Assert.Equal(1, back.knobs["war-production"]);
+		Assert.Single(back.reviews);
+		Assert.Equal("n", back.notes);
+	}
+
+	// Each review records how the last one turned out in the playbook, and
+	// the next review's briefing reads it back.
+	[Fact]
+	public void ThePlaybookCarriesLessonsToLaterReviews() {
+		string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"playbook-{Guid.NewGuid():N}.jsonl");
+		PolicyPlaybook.path = path;
+		try {
+			player.aiType = AiType.Advanced;
+			PolicySnapshot first = PolicyReview.Snapshot(player, gameData);
+			PolicyReview.Adopt(player, gameData, PolicyReview.Parse(
+				"""{"changes": [{"knob": "ExpandSettlers", "value": 95}], "rationale": "r", "notes": "", "lesson": "settle hard early"}""", player), first);
+			Assert.False(System.IO.File.Exists(path));
+
+			gameData.turn += PolicyReview.ReviewEveryTurns;
+			PolicyReview.Adopt(player, gameData, PolicyReview.Parse(
+				"""{"changes": [], "rationale": "fine", "notes": "", "lesson": "x"}""", player), PolicyReview.Snapshot(player, gameData));
+			PolicyPlaybook.Entry entry = Assert.Single(PolicyPlaybook.Read(first.era));
+			Assert.Equal("settle hard early", entry.lesson);
+			Assert.Equal(95, entry.changes["ExpandSettlers"]);
+
+			string briefing = PolicyReview.Briefing(player, gameData, PolicyReview.Snapshot(player, gameData));
+			Assert.Contains("settle hard early", briefing);
+			Assert.Contains("ExpandSettlers = 95", briefing);
+		} finally {
+			PolicyPlaybook.path = null;
+			System.IO.File.Delete(path);
+		}
 	}
 
 	[Fact]
 	public void TheBriefingNamesOnlyRivalsTheCivHasMet() {
 		player.aiType = AiType.Advanced;
-		PlanBriefing.Result briefing = PlanBriefing.Build(player, gameData, RulePlanner.Plan(player, gameData));
+		PlanBriefing.Result briefing = PlanBriefing.Situation(player, gameData);
 		Assert.Contains(rival.civilization.name, briefing.text);
 		Assert.Equal(rival.id, briefing.rivals[rival.civilization.name]);
 		foreach (Player stranger in gameData.players.Where(p => p != player && !player.playerRelationships.ContainsKey(p.id))) {
@@ -174,11 +223,26 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	}
 
 	[Fact]
+	public void AReviewIsDueEveryFiftyTurns() {
+		player.aiType = AiType.Advanced;
+		gameData.turn = PolicyReview.ReviewEveryTurns - 1;
+		Assert.False(PolicyReview.Due(player, gameData));
+		gameData.turn = PolicyReview.ReviewEveryTurns;
+		Assert.True(PolicyReview.Due(player, gameData));
+		PolicyReview.Adopt(player, gameData, new PolicyReview.Answer(), PolicyReview.Snapshot(player, gameData));
+		Assert.False(PolicyReview.Due(player, gameData));
+		gameData.turn += PolicyReview.ReviewEveryTurns;
+		Assert.True(PolicyReview.Due(player, gameData));
+	}
+
+	[Fact]
 	public void WithNoKeyTheModelIsNeverAsked() {
 		Assert.False(ModelPlanner.Available);
 		player.aiType = AiType.Advanced;
+		gameData.turn = PolicyReview.ReviewEveryTurns;
 		AdvancedAI.PlayTurn(player, gameData);
 		Assert.False(ModelPlanner.Waiting(player));
+		Assert.Null(player.advancedPolicy);
 		Assert.Equal("rules", player.strategicPlan.source);
 	}
 }

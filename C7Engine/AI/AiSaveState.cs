@@ -26,10 +26,11 @@ namespace C7Engine.AI {
 				lastDisbandedTurn = ObsoleteUnits.LastDisbandedTurn(player),
 				marketPricePerShield = MarketAI.SavedPricePerShield(player),
 				strategicPlan = player.strategicPlan,
+				advancedPolicy = player.advancedPolicy,
 			};
 			bool empty = state.warCampaign == null && state.nextCampaignTurn == null && state.dealRequestTurns == null
 				&& state.passageRequestTurns == null && state.lastDisbandedTurn == null && state.marketPricePerShield == null
-				&& state.strategicPlan == null;
+				&& state.strategicPlan == null && state.advancedPolicy == null;
 			return empty ? null : state;
 		}
 
@@ -42,6 +43,7 @@ namespace C7Engine.AI {
 			ObsoleteUnits.RestoreLastDisbandedTurn(player, state?.lastDisbandedTurn);
 			MarketAI.RestorePricePerShield(player, state?.marketPricePerShield);
 			player.strategicPlan = state?.strategicPlan;
+			player.advancedPolicy = state?.advancedPolicy;
 		}
 
 		private static Dictionary<string, int> ByIdString(Dictionary<ID, int> turns) {

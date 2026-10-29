@@ -18,12 +18,12 @@ namespace C7Engine.AI.Advanced {
 		// the civ must be to make it the plan's target, the same edge
 		// PeaceAI looks for before threatening a war (WinningStrengthRatio
 		// is 1.5) and a bit more, since the plan starts the war itself.
-		public static float TargetStrengthRatio => (float)AdvancedTuning.Get("TargetStrengthRatio");
+		public static float TargetStrengthRatio(Player p) => (float)AdvancedTuning.Get(p, "TargetStrengthRatio");
 		// HEURISTIC: a rival this much stronger is a threat to guard against.
-		public static float ThreatStrengthRatio => (float)AdvancedTuning.Get("ThreatStrengthRatio");
+		public static float ThreatStrengthRatio(Player p) => (float)AdvancedTuning.Get(p, "ThreatStrengthRatio");
 		// HEURISTIC: behind in techs when below this share of the average
 		// of the civs it has met.
-		public static float BehindInTechShare => (float)AdvancedTuning.Get("BehindInTechShare");
+		public static float BehindInTechShare(Player p) => (float)AdvancedTuning.Get(p, "BehindInTechShare");
 
 		public static StrategicPlan Plan(Player player, GameData gameData) {
 			StrategicPlan plan = new() { source = "rules" };
@@ -42,7 +42,7 @@ namespace C7Engine.AI.Advanced {
 			// Science: catch up with the civs it knows.
 			if (met.Count > 0) {
 				double average = met.Average(p => p.knownTechs.Count);
-				if (player.knownTechs.Count < BehindInTechShare * average) {
+				if (player.knownTechs.Count < BehindInTechShare(player) * average) {
 					Raise(plan, PlanFocus.Science, 20);
 					Raise(plan, PlanFocus.Trade, 10);
 					why.Add($"behind in techs ({player.knownTechs.Count} vs {average:0.#})");
@@ -93,7 +93,7 @@ namespace C7Engine.AI.Advanced {
 			}
 			// Winning every war: press the weakest enemy that has cities.
 			Player prey = enemies.Where(e => e.cities.Count > 0).OrderBy(e => e.CalculateMilitaryStrength()).FirstOrDefault();
-			Set(plan, PlanFocus.Offense, AdvancedTuning.GetInt("WinningOffense"));
+			Set(plan, PlanFocus.Offense, AdvancedTuning.GetInt(player, "WinningOffense"));
 			Set(plan, PlanFocus.Artillery, 70);
 			Set(plan, PlanFocus.Defense, 50);
 			Set(plan, PlanFocus.Settlers, 40);
@@ -112,11 +112,11 @@ namespace C7Engine.AI.Advanced {
 			int open = player.cities.Count == 0 ? 0 : player.cities.Max(c => ChooseProducible.NumberOfReachableOpenCitySpots(c));
 			bool expanding = open > 0 && player.cities.Count < 2 * Math.Max(1, player.GetAdjustedOptimalCityNumber(gameData));
 			if (expanding) {
-				Set(plan, PlanFocus.Settlers, AdvancedTuning.GetInt("ExpandSettlers"));
+				Set(plan, PlanFocus.Settlers, AdvancedTuning.GetInt(player, "ExpandSettlers"));
 				Set(plan, PlanFocus.Workers, 60);
 				Set(plan, PlanFocus.Growth, 60);
 				Set(plan, PlanFocus.Offense, 35);
-				plan.aggressionShift = AdvancedTuning.GetInt("ExpandAggression");
+				plan.aggressionShift = AdvancedTuning.GetInt(player, "ExpandAggression");
 				plan.victory = "Space";
 				why.Add($"{open} open city sites: expand");
 			}
@@ -124,7 +124,7 @@ namespace C7Engine.AI.Advanced {
 			// A threat on its land: guard against it.
 			Player threat = met.Where(p => PeaceAI.CanFightEachOther(player, p))
 				.OrderByDescending(p => p.CalculateMilitaryStrength()).FirstOrDefault();
-			if (threat != null && threat.CalculateMilitaryStrength() > ThreatStrengthRatio * Math.Max(1f, ours)) {
+			if (threat != null && threat.CalculateMilitaryStrength() > ThreatStrengthRatio(player) * Math.Max(1f, ours)) {
 				Raise(plan, PlanFocus.Defense, 20);
 				plan.stances[threat.id.ToString()] = RivalStance.Friend;
 				why.Add($"{threat} is much stronger: guard, keep the peace with them");
@@ -135,19 +135,19 @@ namespace C7Engine.AI.Advanced {
 			if (!expanding) {
 				Player prey = met.Where(p => p.cities.Count > 0 && PeaceAI.CanFightEachOther(player, p)
 						&& plan.StanceToward(p.id) != RivalStance.Friend
-						&& ours >= TargetStrengthRatio * Math.Max(1f, PeaceAI.StrengthWithPartners(gameData, p))
+						&& ours >= TargetStrengthRatio(player) * Math.Max(1f, PeaceAI.StrengthWithPartners(gameData, p))
 						&& p.cities.Any(c => player.cities.Any(o => o.location.continent == c.location.continent)))
 					.OrderBy(p => p.CalculateMilitaryStrength()).FirstOrDefault();
 				if (prey != null) {
 					plan.stances[prey.id.ToString()] = RivalStance.Target;
-					plan.aggressionShift = AdvancedTuning.GetInt("PreyAggression");
+					plan.aggressionShift = AdvancedTuning.GetInt(player, "PreyAggression");
 					Set(plan, PlanFocus.Offense, 75);
 					Set(plan, PlanFocus.Artillery, 65);
 					plan.victory = "Conquest";
 					why.Add($"no room left; {prey} is much weaker: prepare to take their land");
 				} else {
-					Set(plan, PlanFocus.Science, AdvancedTuning.GetInt("BuildScience"));
-					Set(plan, PlanFocus.Production, AdvancedTuning.GetInt("BuildProduction"));
+					Set(plan, PlanFocus.Science, AdvancedTuning.GetInt(player, "BuildScience"));
+					Set(plan, PlanFocus.Production, AdvancedTuning.GetInt(player, "BuildProduction"));
 					Set(plan, PlanFocus.Trade, 60);
 					Set(plan, PlanFocus.Growth, 60);
 					Set(plan, PlanFocus.Culture, 55);

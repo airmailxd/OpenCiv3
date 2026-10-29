@@ -133,6 +133,9 @@ namespace C7GameData {
 		public bool IsAdvancedAi => aiType == AiType.Advanced && !isHuman && !IsIndependent;
 		// An Advanced AI's current strategy (see StrategicPlan), or null.
 		public StrategicPlan strategicPlan;
+		// An Advanced AI's policy, as the model last reviewed it (see
+		// AdvancedPolicy), or null for the game-wide one.
+		public AdvancedPolicy advancedPolicy;
 		public bool hasPlayedThisTurn = false;
 		public bool skipFirstTurn = false;
 

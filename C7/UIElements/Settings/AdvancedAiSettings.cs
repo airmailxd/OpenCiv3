@@ -33,5 +33,8 @@ public static class AdvancedAiSettings {
 	public static void Apply() {
 		ModelPlanner.apiKey = !string.IsNullOrWhiteSpace(ApiKey) ? ApiKey : System.Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
 		ModelPlanner.model = Model;
+		ModelPlanner.waitForAnswers = false;
+		// What the reviews learn, kept from game to game beside C7.ini.
+		PolicyPlaybook.path = System.IO.Path.Combine(C7Settings.WritableDirectory, "AdvancedAiPlaybook.jsonl");
 	}
 }

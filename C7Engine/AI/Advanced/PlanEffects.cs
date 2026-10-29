@@ -15,7 +15,7 @@ namespace C7Engine.AI.Advanced {
 		// attack and defense weights are 10 to 15), so a strong focus tips
 		// close choices without overriding the AI's needs (an unguarded
 		// city still builds a defender first).
-		public static float FocusPoints => (float)AdvancedTuning.Get("FocusPoints");
+		public static float FocusPoints(Player player) => (float)AdvancedTuning.Get(player, "FocusPoints");
 
 		// The plan steering this player now, or null.
 		public static StrategicPlan Active(Player player) {
@@ -38,7 +38,7 @@ namespace C7Engine.AI.Advanced {
 				total += (plan.Focus(f) - StrategicPlan.NeutralFocus) / (float)StrategicPlan.NeutralFocus;
 				++count;
 			}
-			return count == 0 ? 0 : total / count * FocusPoints;
+			return count == 0 ? 0 : total / count * FocusPoints(player);
 		}
 
 		public static int AggressionShift(Player player) => Active(player)?.aggressionShift ?? 0;
