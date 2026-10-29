@@ -199,6 +199,9 @@ public partial class LanLobby : Control {
 				if (pending.setup.worldCharacteristics?.worldSize is WorldSize size && size.width > 0) {
 					LanSession.Host.MapSize = $"{size.width}x{size.height}";
 				}
+				// As set on the Multiplayer Setup screen.
+				LanSession.Host.PublicName = pending.gameName;
+				LanSession.Host.TurnTimeLimit = pending.turnTimeLimit;
 
 			} else if (LanSession.ResumeGame is LanResumeInfo resume) {
 				// The last game hosted here, as it was autosaved, with its
@@ -338,7 +341,7 @@ public partial class LanLobby : Control {
 		// same code, so that its guests find it where they left it.
 		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
 			HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
-		} else if (LanSession.DevHostOnline) {
+		} else if (LanSession.DevHostOnline || LanSession.PendingGame?.hostOnline == true) {
 			HostOnline();
 		}
 	}
@@ -550,7 +553,7 @@ public partial class LanLobby : Control {
 
 	// The choices for how long each player has for their turn, in minutes;
 	// 0 means no limit.
-	private static readonly int[] TurnTimeChoices = [0, 2, 5, 10, 15, 20, 30, 45, 60];
+	public static readonly int[] TurnTimeChoices = [0, 2, 5, 10, 15, 20, 30, 45, 60];
 
 	private HBoxContainer MakeTurnTimeRow() {
 		HBoxContainer row = new();
@@ -593,8 +596,9 @@ public partial class LanLobby : Control {
 		}
 
 		// Everyone moves at once, and the computer players after them.
-		// Simultaneous unless a resumed game wasn't.
-		bool simultaneousTurns = LanSession.ResumeGame?.simultaneousTurns ?? true;
+		// Simultaneous unless a resumed game wasn't, or the Multiplayer
+		// Setup screen said otherwise.
+		bool simultaneousTurns = LanSession.ResumeGame?.simultaneousTurns ?? LanSession.PendingGame?.simultaneousTurns ?? true;
 		CheckBox simultaneous = new() {
 			Text = "Simultaneous turns",
 			ButtonPressed = simultaneousTurns,

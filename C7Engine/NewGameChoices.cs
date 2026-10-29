@@ -47,6 +47,13 @@ public class NewGameChoices {
 	public SortedDictionary<int, string> HotseatSlots = [];
 	// The slots left for people joining over the LAN, when hosting.
 	public SortedSet<int> LanSlots = [];
+	// The slots set to Closed on the Multiplayer Setup screen: no civ plays
+	// them, so the game has fewer civs.
+	public SortedSet<int> ClosedSlots = [];
+	// The Multiplayer Setup screen's game type (see MultiplayerGameType),
+	// and its turn timer in minutes (0 for none); null if never chosen.
+	public string MultiplayerGameType;
+	public int? TurnTimerMinutes;
 
 	// The rules. Null for those never chosen, which take the ruleset's or
 	// the screen's default.
@@ -84,6 +91,9 @@ public class NewGameChoices {
 		public const string HotseatSlots = nameof(HotseatSlots);
 		public const string HotseatNames = nameof(HotseatNames);
 		public const string LanSlots = nameof(LanSlots);
+		public const string ClosedSlots = nameof(ClosedSlots);
+		public const string MultiplayerGameType = nameof(MultiplayerGameType);
+		public const string TurnTimerMinutes = nameof(TurnTimerMinutes);
 		public const string ConquestVictory = nameof(ConquestVictory);
 		public const string DominationVictory = nameof(DominationVictory);
 		public const string SpaceRaceVictory = nameof(SpaceRaceVictory);
@@ -148,6 +158,10 @@ public class NewGameChoices {
 			}
 		}
 		choices.LanSlots = new(SplitList(get(Keys.LanSlots)).Select(ParseSlot).Where(s => s >= 0));
+		choices.ClosedSlots = new(SplitList(get(Keys.ClosedSlots)).Select(ParseSlot).Where(s => s >= 0));
+		choices.MultiplayerGameType = NonEmpty(get(Keys.MultiplayerGameType));
+		int timer = ParseSlot(get(Keys.TurnTimerMinutes));
+		choices.TurnTimerMinutes = timer >= 0 ? timer : null;
 
 		choices.ConquestVictory = ParseBool(get(Keys.ConquestVictory));
 		choices.DominationVictory = ParseBool(get(Keys.DominationVictory));
@@ -189,6 +203,9 @@ public class NewGameChoices {
 		set(Keys.HotseatSlots, JoinList(HotseatSlots.Keys.Select(s => s.ToString(CultureInfo.InvariantCulture))));
 		set(Keys.HotseatNames, JoinList(HotseatSlots.Values));
 		set(Keys.LanSlots, JoinList(LanSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
+		set(Keys.ClosedSlots, JoinList(ClosedSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
+		set(Keys.MultiplayerGameType, MultiplayerGameType);
+		set(Keys.TurnTimerMinutes, TurnTimerMinutes?.ToString(CultureInfo.InvariantCulture));
 
 		set(Keys.ConquestVictory, FormatBool(ConquestVictory));
 		set(Keys.DominationVictory, FormatBool(DominationVictory));
@@ -279,7 +296,7 @@ public class NewGameChoices {
 	// as Quick Start does: the same world, rivals and rules as chosen last
 	// time, with any random choices made again. Choices the ruleset
 	// doesn't have fall back to its defaults. People who joined over the
-	// LAN are played by the computer.
+	// LAN are played by the computer, and Closed slots aren't played.
 	public GameSetup QuickStartGame(SaveGame save, int mapSeed, System.Random random, string invalidMapsDirectory = null) {
 		WorldCharacteristics world = new(save) {
 			barbarianActivity = ChosenBarbarians(random),
@@ -300,6 +317,9 @@ public class NewGameChoices {
 		List<HotseatPlayer> hotseatPlayers = [];
 		for (int i = 0; i < slots; ++i) {
 			string civ = opponentCivs[i];
+			if (ClosedSlots.Contains(i)) {
+				continue;
+			}
 			if (HotseatSlots.TryGetValue(i, out string name)) {
 				hotseatPlayers.Add(new HotseatPlayer {
 					civilization = civ == null ? null : save.Civilizations.Find(c => c.name == civ),

@@ -248,6 +248,10 @@ public static class LanSession {
 }
 
 // teamCount is how many teams players choose among, or 0 for a
-// free-for-all, and guestTeams the team each guest seat starts on.
+// free-for-all, and guestTeams the team each guest seat starts on. The
+// Multiplayer Setup screen also sets the game's name, its turn timer (null
+// for none), whether turns are simultaneous, and whether to host online
+// too; null or false leaves them to the lobby.
 public record PendingLanGame(GameSetup setup, C7GameData.Save.SaveGame save, int guestSeats, int teamCount = 0,
-	System.Collections.Generic.List<int> guestTeams = null);
+	System.Collections.Generic.List<int> guestTeams = null, string gameName = null, System.TimeSpan? turnTimeLimit = null,
+	bool? simultaneousTurns = null, bool hostOnline = false);

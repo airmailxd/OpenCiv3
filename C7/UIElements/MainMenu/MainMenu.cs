@@ -180,17 +180,22 @@ public partial class MainMenu : Node {
 	}
 
 	// Asks whether to host a new game or a saved one; either way the game
-	// opens the LAN lobby once it's ready.
+	// opens the LAN lobby once it's ready. A new game is set up on the
+	// Multiplayer Setup screen, as in Civ3 (owner's request, 2026-10-28),
+	// or on the world and player setup screens as before.
 	public void HostLanGame() {
 		PlayButtonPressedSound();
 		AcceptDialog dialog = new() {
 			Title = "Host LAN Game",
-			DialogText = "Set up a game for players on your local network.\n" +
-				"For a new game, mark a rival as Human for each of them on the\n" +
-				"player setup screen; they choose their own civilizations when they join.\n" +
+			DialogText = "Set up a game for players on your local network, or a hotseat game.\n" +
+				"For a new game, set a slot to Open for each other player on the\n" +
+				"Multiplayer Setup screen; they choose their own civilizations when they join.\n" +
 				"Or load a game saved with several human players.",
 			OkButtonText = "New Game",
 		};
+		// The world and player setup screens, kept until the owner decides.
+		Button classic = dialog.AddButton("Classic Setup", true, "classic");
+		classic.TooltipText = "Set the new game up on the world and player setup screens instead, marking a rival as Human for each player.";
 		dialog.AddButton("Load Game", true, "load");
 		// The game this machine last hosted, saved as its last turn began.
 		Button resume = dialog.AddButton("Resume Last LAN Game", true, "resume");
@@ -200,11 +205,17 @@ public partial class MainMenu : Node {
 			: "Host the last LAN game hosted here again, from the start of its last turn. Its players get their seats back when they reconnect.";
 		dialog.AddCancelButton("Cancel");
 		dialog.Confirmed += () => {
-			LanSession.HostNextGame = true;
-			GoToWorldSetup();
+			// That screen says whether the game is hosted, when it's launched.
+			LanSession.HostNextGame = false;
+			PlayButtonPressedSound();
+			GetTree().ChangeSceneToFile("res://UIElements/NewGame/multiplayer_setup.tscn");
 		};
 		dialog.CustomAction += action => {
-			if (action == "load") {
+			if (action == "classic") {
+				dialog.Hide();
+				LanSession.HostNextGame = true;
+				GoToWorldSetup();
+			} else if (action == "load") {
 				dialog.Hide();
 				LanSession.HostNextGame = true;
 				OpenLoadDialog();

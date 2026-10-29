@@ -868,6 +868,9 @@ public partial class PlayerSetup : Control {
 			choices.Difficulty = gameSetup.difficulty.Name;
 
 			choices.Opponents = opponentSelectors.Select(ob => ob.GetItemText(ob.Selected)).ToList();
+			// This screen has no Closed slots (the Multiplayer Setup
+			// screen's), so Quick Start plays every slot again.
+			choices.ClosedSlots = [];
 			if (hostingOnLan) {
 				// The LAN seats, for the next game hosted; this game has no
 				// hotseat players.
