@@ -350,7 +350,8 @@ namespace C7Engine.AI {
 		private static bool CanDeclareWarOn(Player player, Player other) {
 			return player != other && !other.IsIndependent && !other.defeated
 				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
-				&& !EngineStorage.gameData.AreInLockedPeace(player, other);
+				&& !EngineStorage.gameData.AreInLockedPeace(player, other)
+			&& !StockWarPlotting.InPeaceCooldown(EngineStorage.gameData, player, other);
 		}
 
 		// Returns false if the campaign should be given up.

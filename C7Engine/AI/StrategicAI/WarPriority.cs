@@ -89,12 +89,13 @@ namespace C7GameData.AIData {
 		}
 
 		// Whether we may declare war on the other player: one we've met and
-		// are at peace with, outside our alliance. Barbarians are always at
+		// are at peace with, outside our alliance and not just made peace with. Barbarians are always at
 		// war with everyone.
 		private static bool CanDeclareWarOn(Player player, Player other) {
 			return player != other && !other.IsIndependent && !other.defeated
 				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
-				&& !EngineStorage.gameData.AreInLockedPeace(player, other);
+				&& !EngineStorage.gameData.AreInLockedPeace(player, other)
+			&& !StockWarPlotting.InPeaceCooldown(EngineStorage.gameData, player, other);
 		}
 
 		internal static Player PickPlayerToFight(Player player) {
