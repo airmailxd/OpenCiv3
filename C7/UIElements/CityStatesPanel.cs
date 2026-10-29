@@ -76,7 +76,9 @@ public partial class CityStatesPanel : PanelContainer {
 		// the screen when the rows were rebuilt (as when a city-state was
 		// taken).
 		Label label = new() {
-			Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = MouseFilterEnum.Pass,
+			Text = text,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			MouseFilter = MouseFilterEnum.Pass,
 			CustomMinimumSize = new Vector2(Width, 0),
 		};
 		label.AddThemeColorOverride("font_color", color);
