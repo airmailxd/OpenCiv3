@@ -1,5 +1,9 @@
 # Identify text-based files and standardize to Unix (lf) line endings
 
+# Default: git detects text files and stores them with LF, so a checkout
+# on Windows and one on Linux agree. The rules below override this.
+* text=auto eol=lf
+
 # C# files
 *.cs text eol=lf
 *.csproj text eol=lf
