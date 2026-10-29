@@ -35,43 +35,39 @@ public partial class ConfirmationPopup : Popup {
 	public override void _Ready() {
 		base._Ready();
 
-		// Dimensions in-game are 530x320
-		// 110px top margin are for the advisor leaderhead, Domestic in this case.
-		// For some reason it uses the Happy graphics.
-
-		// Create a transparent texture background of the appropriate size.
-		// This is super important as if we just add the children, the parent won't be able to figure
-		// out the size of this TextureRect, and it won't be able to align it properly.
-		AddTexture(530, 320);
-
 		TextureRect advisorHead = new TextureRect();
 		advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised, eraIndex: 0);
 		//Appears at 400, 110 in game, but leftmost 25px are transparent with default graphics
 		advisorHead.SetPosition(new Vector2(375, 0));
 		AddChild(advisorHead);
 
-		//TODO: Almost all (135 ms) of the disband confirmation creation, after the first time, is in the
-		//background creation.  90 ms or so on the first time is before this point (and is well-cached later on).
-		//Since we'll be creating the background for a lot of popups, we should optimize this.
-		//Also confirmed the blitting in drawRowOfPopup is essentially free.
-		AddBackground(530, 210, 110);
-
-		AddHeader("Domestic Advisor", 120);
-
 		Label warningMessage = new();
-		//TODO: General-purpose text breaking up util.  Instead of \n
-		//This appears to be the way to do multi line labels, see: https://godotengine.org/qa/11126/how-to-break-line-on-the-label-using-gdscript
-		//Maybe there's an awesomer control we can user instead
-		warningMessage.Text = message; //"Disband " + unitType + "?  Pardon me but these are OUR people. Do \nyou really want to disband them?";
-
-		var multirow = message.Count(System.Environment.NewLine) >= 2;
-		var multirowShift = multirow ? 20 : 0;
-
+		warningMessage.Text = message.TrimEnd();
 		warningMessage.SetPosition(new Vector2(25, 170));
 		AddChild(warningMessage);
 
-		AddButton(yesText, 215 + multirowShift, confirmed);
-		AddButton(noText, 245 + multirowShift, cancel);
+		// The buttons go under the message, however many lines it has, and
+		// the parchment grows to hold them (owner's report, 2026-10-28: the
+		// game-over message's third line was drawn over the first button).
+		int lines = Math.Max(1, warningMessage.Text.Split('\n').Length);
+		int lineHeight = Math.Max(20, warningMessage.GetLineHeight());
+		int yesTop = Math.Max(215, 170 + lines * lineHeight + 16);
+		int noTop = yesTop + 30;
+		int height = Math.Max(320, noTop + 40);
+
+		// Dimensions in-game are 530x320, more for a long message; the top
+		// 110px are for the advisor's head (the Domestic advisor's here).
+		// The size is set as a transparent texture would, so the parent can
+		// align the popup.
+		AddTexture(530, height);
+		AddBackground(530, height - 110, 110);
+		// Behind the message, which was added first to measure it.
+		MoveChild(GetChild(GetChildCount() - 1), 1);
+
+		AddHeader("Domestic Advisor", 120);
+
+		AddButton(yesText, yesTop, confirmed);
+		AddButton(noText, noTop, cancel);
 
 		loadTimer.Stop();
 		TimeSpan stopwatchElapsed = loadTimer.Elapsed;
