@@ -19,6 +19,7 @@ namespace C7Engine.AI {
 		// anarchy for it, so small swings (a few units more or less to
 		// support) don't make it change back and forth.
 		internal const float RevolutionMargin = 10;
+		internal const float FavoriteGovernmentWeight = .125f;
 
 		public static void PlayTurn(Player player, GameData gameData) {
 			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
@@ -158,6 +159,19 @@ namespace C7Engine.AI {
 			// What the current army would cost to support: a Republic's
 			// upkeep for an army raised under Despotism can be ruinous.
 			score -= UnitSupportCost(player, government) / 2f;
+
+			// "Shunned/favorite government is worth 12.5%" of the score
+			// (Flintlock reading the stock code, C3X thread post-16217016;
+			// doc/civ3-compendium/05 section 5.8). Whether it is added or
+			// multiplied is not stated (UNVERIFIED); a tilt by an eighth of
+			// the score's size keeps a negative score from getting better by
+			// being shunned.
+			string name = government.name;
+			if (name != null && name == player.civilization?.favoriteGovernment) {
+				score += Math.Abs(score) * FavoriteGovernmentWeight;
+			} else if (name != null && name == player.civilization?.shunnedGovernment) {
+				score -= Math.Abs(score) * FavoriteGovernmentWeight;
+			}
 
 			return score;
 		}
