@@ -375,6 +375,10 @@ public partial class Game : Node {
 		if (CityStateTrade.IsOn(EngineStorage.gameData)) {
 			ShowCityStatesPanel();
 		}
+		// Staging: says so while others place their units (see StagingBanner).
+		if (EngineStorage.gameData?.rules?.StagingUnits == true) {
+			GetNode<Control>("CanvasLayer/Control").AddChild(new StagingBanner());
+		}
 		// A custom scenario is introduced as its first turn starts.
 		if (EngineStorage.gameData?.turn == 0 && ScenarioIntroPopup.For(EngineStorage.gameData) is ScenarioIntroPopup intro) {
 			popupOverlay.ShowPopup(intro, PopupOverlay.PopupCategory.Advisor);

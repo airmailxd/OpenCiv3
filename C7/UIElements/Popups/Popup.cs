@@ -100,7 +100,7 @@ public partial class Popup : TextureRect {
 		AddChild(header);
 	}
 
-	private void DrawRow(Image image, int vOffset, int width, Image left, Image center, Image right) {
+	private static void DrawRow(Image image, int vOffset, int width, Image left, Image center, Image right) {
 
 		image.BlitRect(left, new Rect2I(new Vector2I(0, 0), new Vector2I(left.GetWidth(), left.GetHeight())), new Vector2I(0, vOffset));
 
@@ -125,7 +125,9 @@ public partial class Popup : TextureRect {
 		AddChild(background);
 	}
 
-	private TextureRect CreateBackground(int width, int height) {
+	// Civ3's popup parchment, with its border, at the given size, for
+	// other panels to stand on too (such as StagingBanner).
+	public static TextureRect CreateBackground(int width, int height) {
 		TextureRect rect = new TextureRect();
 
 		if (backgroundCache.ContainsKey((width, height))) {
@@ -149,7 +151,7 @@ public partial class Popup : TextureRect {
 		Image bottomRightPopup = TextureLoader.Load("popup_background.bottom_right").GetImage();
 		imageTimer.Stop();
 		TimeSpan stopwatchElapsed = imageTimer.Elapsed;
-		log.Debug("Image creation time: " + Convert.ToInt32(stopwatchElapsed.TotalMilliseconds) + " ms");
+		LogManager.ForContext<Popup>().Debug("Image creation time: " + Convert.ToInt32(stopwatchElapsed.TotalMilliseconds) + " ms");
 
 		//Dimensions are 530x320.  The leaderhead takes up 110.  So the popup is 530x210.
 		//We have multiples of... 62? For the horizontal dimension, 45 for vertical.
