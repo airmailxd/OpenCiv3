@@ -635,6 +635,7 @@ namespace C7GameData {
 			city.ownerChangedTurn = turn;
 			// The old owner's governor doesn't serve the new one.
 			city.governor = new();
+			city.rallyPoint = null;
 			HashSet<Tile> withinBorders = city.GetTilesWithinBorders().ToHashSet();
 			foreach (Tile t in map.tiles) {
 				if (t.owningCity != city) {

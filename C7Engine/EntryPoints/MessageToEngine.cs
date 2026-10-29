@@ -659,6 +659,50 @@ namespace C7Engine {
 		}
 	}
 
+	// Civ3's "Rename" on a city's right-click menu.
+	public class MsgRenameCity : MessageToEngine {
+		public City city;
+		public string name;
+
+		public MsgRenameCity(City city, string name) {
+			this.city = city;
+			this.name = name;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+			if (city.TryRename(name)) {
+				new MsgCityChanged(city).send();
+			}
+		}
+	}
+
+	// Civ3's "Set Rally Point", "Set Continental Rally Point" (the same
+	// tile for every city of the player on the city's continent) and "Clear
+	// Continental Rally Point" (a null tile, clearing them all).
+	public class MsgSetRallyPoint : MessageToEngine {
+		public City city;
+		public Tile tile;
+		public bool continental;
+
+		public MsgSetRallyPoint(City city, Tile tile, bool continental) {
+			this.city = city;
+			this.tile = tile;
+			this.continental = continental;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+			foreach (City c in CityInteractions.CitiesInRallyScope(Sender, city, continental)) {
+				if (tile == null) {
+					c.rallyPoint = null;
+				} else if (c.WhyCannotRallyAt(tile) == null) {
+					c.rallyPoint = tile;
+				}
+			}
+		}
+	}
+
 	public class MsgAbandonCity : MessageToEngine {
 		public City city;
 		// Whether this razes a city just captured (which gives slave

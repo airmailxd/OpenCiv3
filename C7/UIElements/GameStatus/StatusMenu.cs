@@ -27,6 +27,7 @@ public partial class StatusMenu : Control {
 	private Player shownPlayer;
 	private bool buttonsSet = false;
 	private bool diplomacyShown;
+	private bool palaceShown;
 
 	public override void _Process(double delta) {
 		GameData gD = EngineStorage.gameData;
@@ -47,11 +48,15 @@ public partial class StatusMenu : Control {
 		// with other civs (haven't met them yet) we should hide the button again.
 		// It will be shown again when we meet another civ.
 		bool showDiplomacy = shownPlayer.playerRelationships.Count > 0;
-		if (buttonsSet && showDiplomacy == diplomacyShown) {
+		// The palace screen is for a civ with a palace, or a city that may
+		// start one.
+		bool showPalace = shownPlayer.cities.Count > 0 && shownPlayer.CanStartPalace(gD);
+		if (buttonsSet && showDiplomacy == diplomacyShown && showPalace == palaceShown) {
 			return;
 		}
 		buttonsSet = true;
 		diplomacyShown = showDiplomacy;
+		palaceShown = showPalace;
 
 		// The embassies are only for civs we've met, too.
 		if (showDiplomacy) {
@@ -62,8 +67,11 @@ public partial class StatusMenu : Control {
 			openEspionage.HideButton();
 		}
 
-		// TODO: Don't show the palace button if the player can't start building the palace
-		openPalaceScreen.ShowButton();
+		if (showPalace) {
+			openPalaceScreen.ShowButton();
+		} else {
+			openPalaceScreen.HideButton();
+		}
 	}
 
 	// Does nothing while the diplomacy button is hidden, so that its

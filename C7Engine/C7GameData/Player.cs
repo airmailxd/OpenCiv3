@@ -2254,6 +2254,22 @@ namespace C7GameData {
 			return newCapital;
 		}
 
+		// Whether the palace screen has anything to show: the civ has its
+		// palace, or a city that may start building one.
+		public bool CanStartPalace(GameData gameData) {
+			if (cities.Any(c => c.IsCapital())) {
+				return true;
+			}
+			HashSet<Resource> resources = null;
+			foreach (City c in cities) {
+				resources ??= c.GetAccessibleResources(gameData);
+				if (gameData.Buildings.Any(b => b.isCenterOfEmpire && b.CanProduce(c, resources))) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		// Puts the palace in the city, which becomes the capital, removing it
 		// from the old capital (as building a new palace does in Civ3).
 		public void MovePalaceTo(City newCapital, Building palace) {

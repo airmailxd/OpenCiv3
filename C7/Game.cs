@@ -206,6 +206,9 @@ public partial class Game : Node {
 	public GotoInfo gotoInfo = null;
 
 	public BombardInfo bombardInfo = null;
+	// While set, the next left click on the map picks a tile for this (the
+	// menus' "Set Rally Point"), and Escape cancels.
+	private Action<Tile> tilePicker = null;
 
 	public TileInfo tileInfo = null;
 
@@ -2621,8 +2624,19 @@ public partial class Game : Node {
 		HandleSingleClick(tile);
 	}
 
+	// Has the next click on the map pick a tile, which is given to the action.
+	public void PickTile(Action<Tile> picked) {
+		tilePicker = picked;
+	}
+
 	private void HandleSingleClick(Tile tile) {
-		if (editorUnit != null) {
+		if (tilePicker != null) {
+			Action<Tile> picker = tilePicker;
+			tilePicker = null;
+			if (Tile.IsTileValid(tile)) {
+				picker(tile);
+			}
+		} else if (editorUnit != null) {
 			PlaceEditorUnit(tile);
 		} else if (gotoInfo != null) {
 			this.ResolveMovement(gotoInfo);
@@ -3236,6 +3250,11 @@ public partial class Game : Node {
 
 		if (currentAction == C7Action.Escape && diplomacy.Visible) {
 			diplomacy.Hide();
+			return;
+		}
+
+		if (currentAction == C7Action.Escape && tilePicker != null) {
+			tilePicker = null;
 			return;
 		}
 

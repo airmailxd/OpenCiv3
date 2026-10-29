@@ -122,6 +122,9 @@ namespace C7GameData.Save {
 		public bool governorNeverBuildsSmallWonders;
 		public int governorProduceNever;
 		public int governorProduceOften;
+		// Where the city sends the units it builds (City.rallyPoint); none in
+		// older saves.
+		public TileLocation? rallyPoint;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
 		public List<SaveQueuedProducible> productionQueue = [];
@@ -165,6 +168,7 @@ namespace C7GameData.Save {
 			receivedForestShields = city.receivedForestShields;
 			lastDiseaseTurn = city.lastDiseaseTurn;
 			diseaseStrikesNextTurn = city.diseaseStrikesNextTurn;
+			rallyPoint = city.rallyPoint == null ? null : new TileLocation(city.rallyPoint);
 			governorManagesMoods = city.governor.manageMoods;
 			governorEmphasizesFood = city.governor.emphasizeFood;
 			governorEmphasizesProduction = city.governor.emphasizeProduction;
@@ -320,6 +324,7 @@ namespace C7GameData.Save {
 					produceOften = (ProductionKind)governorProduceOften,
 				},
 				capital = capital,
+				rallyPoint = rallyPoint is TileLocation rally ? gameMap.tileAt(rally.X, rally.Y) : null,
 				constructed_buildings = [],
 			};
 			foreach (SaveCityBuilding building in this.buildings) {

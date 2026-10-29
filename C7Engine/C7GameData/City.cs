@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Serilog;
 using C7Engine;
+using C7Engine.Pathing;
 using MoonSharp.Interpreter;
 
 namespace C7GameData {
@@ -189,6 +190,11 @@ namespace C7GameData {
 		// What the city's governor (Civ3's "Contact Governor") manages for
 		// its owner. See CityGovernor.
 		public CityGovernor governor = new();
+
+		// Where Civ3's "Set Rally Point" sends the units this city builds
+		// (a goto, picked up at the start of the next turn), or null for no
+		// rally point. Only human players' cities use it.
+		public Tile rallyPoint;
 
 		public static City NONE = new City(Tile.NONE, null, "Dummy City", ID.None("city"));
 
@@ -577,7 +583,7 @@ namespace C7GameData {
 			}
 		}
 
-		private HashSet<Resource> GetAccessibleResources(GameData gameData) {
+		internal HashSet<Resource> GetAccessibleResources(GameData gameData) {
 			return GetAvailableResources(gameData).Keys.ToHashSet();
 		}
 
@@ -916,7 +922,7 @@ namespace C7GameData {
 				receivedForestShields = false;
 			}
 			if (producedItem is UnitPrototype prototype) {
-				AddUnit(prototype, gameData);
+				SendToRallyPoint(AddUnit(prototype, gameData));
 			} else if (producedItem is Building building) {
 				if (building.isCenterOfEmpire) {
 					owner.MovePalaceTo(this, building);
@@ -2383,7 +2389,7 @@ namespace C7GameData {
 			owner?.OnBuildingsChanged();
 		}
 
-		public void AddUnit(UnitPrototype proto, GameData gameData) {
+		public MapUnit AddUnit(UnitPrototype proto, GameData gameData) {
 			MapUnit newUnit = proto.GetInstance(gameData.GenerateID(proto.name), proto, owner, location: location);
 			newUnit.experienceLevelKey = gameData.defaultExperienceLevelKey;
 			newUnit.experienceLevel = gameData.defaultExperienceLevel;
@@ -2402,6 +2408,55 @@ namespace C7GameData {
 			if (newUnit.unitType.attack + newUnit.unitType.defense > 0 && !newUnit.unitType.isSettler
 				&& newUnit.experienceLevel == gameData.defaultExperienceLevel && AiHouseRules.UnitsStartVeteran(owner)) {
 				newUnit.Promote();
+			}
+			return newUnit;
+		}
+
+		// Longest name Civ3 lets a city be given.
+		public const int MaxNameLength = 24;
+
+		// Gives the city a new name, as Civ3's "Rename" does. Returns whether
+		// the name was taken: it must not be empty once trimmed.
+		public bool TryRename(string newName) {
+			newName = newName?.Trim();
+			if (string.IsNullOrEmpty(newName)) {
+				return false;
+			}
+			if (newName.Length > MaxNameLength) {
+				newName = newName.Substring(0, MaxNameLength).TrimEnd();
+			}
+			name = newName;
+			return true;
+		}
+
+		// Why the tile can't be this city's rally point, or null if it can:
+		// the units go there on foot, so it has to be land on the city's
+		// continent that its owner knows.
+		public string WhyCannotRallyAt(Tile tile) {
+			if (!owner.isHuman) {
+				return "Only human players use rally points.";
+			}
+			if (!Tile.IsTileValid(tile) || tile == location) {
+				return "Pick a tile away from the city.";
+			}
+			if (!tile.IsLand() || tile.continent != location.continent) {
+				return "The rally point must be on the city's continent.";
+			}
+			if (!owner.tileKnowledge.knownTiles.Contains(tile)) {
+				return "The rally point must be a tile we have seen.";
+			}
+			return null;
+		}
+
+		// Sends a unit this city just built toward the rally point, if there
+		// is one and a way to get there.
+		internal void SendToRallyPoint(MapUnit unit) {
+			if (rallyPoint == null || !owner.isHuman || rallyPoint == location || !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+				return;
+			}
+			TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(location, rallyPoint, unit);
+			if (path != null && path.PathLength() > 0) {
+				unit.path = path;
 			}
 		}
 

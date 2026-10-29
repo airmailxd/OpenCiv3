@@ -130,6 +130,50 @@ public partial class RightClickMenu : VBoxContainer {
 		});
 	}
 
+	protected void ShowRenameDialog(City city) {
+		ConfirmationDialog dialog = new() { Title = $"Rename {city.name}", OkButtonText = "OK", CancelButtonText = "Cancel" };
+		LineEdit nameEdit = new() {
+			Text = city.name,
+			MaxLength = City.MaxNameLength,
+			CustomMinimumSize = new Vector2(260, 0),
+		};
+		dialog.AddChild(nameEdit);
+		dialog.RegisterTextEnter(nameEdit);
+		dialog.Confirmed += () => new MsgRenameCity(city, nameEdit.Text).send();
+		dialog.VisibilityChanged += () => {
+			if (!dialog.Visible) {
+				dialog.QueueFree();
+			}
+		};
+		game.AddChild(dialog);
+		dialog.PopupCentered();
+		nameEdit.GrabFocus();
+	}
+
+	// Civ3's rally point items: Set Rally Point and Set Continental Rally
+	// Point ask for a tile on the map; Clear Continental Rally Point shows
+	// once the city has a rally point.
+	protected void AddRallyPointItems(City city) {
+		Action<bool> pick = (bool continental) => {
+			this.CloseAndDelete();
+			game.PickTile(target => {
+				string reason = null;
+				EngineStorage.ReadGameData((GameData gameData) => reason = city.WhyCannotRallyAt(target));
+				if (reason == null) {
+					new MsgSetRallyPoint(city, target, continental).send();
+				}
+			});
+		};
+		AddItem("Set Rally Point", () => pick(false));
+		AddItem("Set Continental Rally Point", () => pick(true));
+		if (city.rallyPoint != null) {
+			AddItem("Clear Continental Rally Point", () => {
+				this.CloseAndDelete();
+				new MsgSetRallyPoint(city, null, true).send();
+			});
+		}
+	}
+
 	protected void AddTreeSeparator() {
 		var background = new ColorRect();
 		background.Color = Color.Color8(255, 247, 222, 255);
@@ -281,7 +325,10 @@ public partial class RightClickTileMenu : RightClickMenu {
 					game.ShowCityScreenForCity(gameData, tile.cityAtTile);
 				});
 			});
-			// TODO: Rename city
+			AddItem("Rename", () => {
+				this.CloseAndDelete();
+				ShowRenameDialog(tile.cityAtTile);
+			});
 			AddTreeSeparator();
 			AddItem("Change Production", () => {
 				// Close the first menu before opening the second menu.
@@ -309,9 +356,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 				this.CloseAndDelete();
 				EngineStorage.ReadGameData((GameData gameData) => game.ShowGovernor(tile.cityAtTile));
 			});
-			// TODO: Set Rally Point
-			// TODO: Set Continental Rally Point
-			// TODO: Clear Continental Rally Point
+			AddRallyPointItems(tile.cityAtTile);
 
 			AddAbandonCityItem(tile.cityAtTile);
 			AddCivilopediaItem(tile.cityAtTile);

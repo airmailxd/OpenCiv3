@@ -197,6 +197,13 @@ namespace C7Engine {
 			};
 		}
 
+		// The cities a rally point set for the given city applies to.
+		public static List<City> CitiesInRallyScope(Player player, City city, bool continental) {
+			return continental
+				? player.cities.Where(c => c.location.continent == city.location.continent).ToList()
+				: [city];
+		}
+
 		// Gives the city's governor these options and has it act on them at
 		// once: a new emphasis places the citizens again, and a governor
 		// managing moods sees to them now rather than when the turn ends.
