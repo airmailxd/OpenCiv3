@@ -308,7 +308,7 @@ public partial class PlayerSetup : Control {
 			// ruling, 2026-10-24).
 			ButtonPressed = GetNode<GlobalSingleton>("/root/GlobalSingleton").Scenario == GameScenario.RisingTide
 				|| (choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
-			TooltipText = "Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.",
+			TooltipText = "Cities need half the food to grow and half the shields to build, as in Civ3.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
 

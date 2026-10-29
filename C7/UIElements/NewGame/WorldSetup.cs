@@ -288,7 +288,7 @@ public partial class WorldSetup : Control {
 	}
 
 	// The game types a new game may be, in the order they're listed.
-	private static readonly (GameScenario scenario, string name, string description)[] GameTypes = [
+	internal static readonly (GameScenario scenario, string name, string description)[] GameTypes = [
 		(GameScenario.None, "Normal Game", "A standard game of Civilization III."),
 		(GameScenario.EternalWar, "Eternal War",
 			"A scenario: every civilization starts in the Middle Ages with cities scattered among its enemies', "

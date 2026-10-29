@@ -97,6 +97,13 @@ public partial class MultiplayerSetupScreen : Control {
 	private VBoxContainer slotRows;
 	private readonly List<(OptionButton kind, OptionButton civ)> rows = [];
 	private List<PlayerSlot> slots = [];
+	// The scenario chosen (see WorldSetup.GameTypes), and whether MDJ's
+	// rules are loaded, which MDJ and Rising Tide are played under.
+	private GameScenario scenario = GameScenario.None;
+	private bool mdjRules;
+	private OptionButton scenarioPicker;
+	private Label eternalWarCitiesLabel;
+	private OptionButton eternalWarCities;
 	// The row Rename renames: -1 for the host's.
 	private int selectedRow = -1;
 	private Button renameButton;
@@ -379,6 +386,15 @@ public partial class MultiplayerSetupScreen : Control {
 		}
 		gameType.ItemSelected += _ => ShowGameType();
 
+		// OpenCiv3's own game types, as the world setup screen offers them
+		// (owner's request, 2026-10-28).
+		scenarioPicker = AddSetting(settings, "Scenario:", WorldSetup.GameTypes.Select(g => g.name), 0,
+			"A normal game, or one of OpenCiv3's scenarios.");
+		for (int i = 0; i < WorldSetup.GameTypes.Length; ++i) {
+			scenarioPicker.SetItemTooltip(i, WorldSetup.GameTypes[i].description);
+		}
+		scenarioPicker.ItemSelected += index => ChooseScenario(WorldSetup.GameTypes[index].scenario);
+
 		gameMode = AddSetting(settings, "Game Mode:", GameModes.Select(m => m.text), 0,
 			"Sets the special rules below: Elimination, Regicide, Mass Regicide or Victory Point Scoring, or none of them for Standard.");
 		for (int i = 0; i < GameModes.Length; ++i) {
@@ -403,7 +419,10 @@ public partial class MultiplayerSetupScreen : Control {
 		worldSize = AddSetting(settings, "World Size:", save.WorldSizes.Select(w => w.name).Append(NewGameChoices.Random),
 			sizeIndex < 0 ? save.WorldSizes.IndexOf(lastSize) : sizeIndex,
 			"The world's size, which sets how many civilizations it has room for: a slot for each.");
-		worldSize.ItemSelected += _ => MakeSlotRows();
+		worldSize.ItemSelected += _ => {
+			ShowEternalWarCities();
+			MakeSlotRows();
+		};
 
 		barbarians = AddSetting(settings, "Barbarian Activity:", BarbarianLevels.Select(b => b.ToString()).Append(NewGameChoices.Random),
 			choices.Barbarians is BarbarianActivity b ? Array.IndexOf(BarbarianLevels, b) : BarbarianLevels.Length);
@@ -414,6 +433,23 @@ public partial class MultiplayerSetupScreen : Control {
 		age = AddSetting(settings, "Age:", ["3 Billion", "4 Billion", "5 Billion"], Array.IndexOf(Ages, choices.Age));
 		difficulty = AddSetting(settings, "Difficulty:", save.Difficulties.Select(d => d.Name),
 			save.Difficulties.IndexOf(choices.ChosenDifficulty(save.Difficulties)), "How hard the computer's civilizations play.");
+
+		// Eternal War's own setting, shown only for it.
+		const string citiesTip = "The cities each civilization starts with, scattered at random among its enemies'. "
+			+ "The default grows with the world: 2 on a tiny world up to 10 on a huge one.";
+		eternalWarCitiesLabel = new Label {
+			Text = "Cities per Civ:",
+			Visible = false,
+			TooltipText = citiesTip,
+			MouseFilter = MouseFilterEnum.Pass,
+		};
+		eternalWarCitiesLabel.AddThemeFontSizeOverride("font_size", 12);
+		settings.AddChild(eternalWarCitiesLabel);
+		eternalWarCities = MakeDropdown(citiesTip);
+		AddItems(eternalWarCities, Enumerable.Range(GameSetup.MinEternalWarCitiesPerCiv,
+			GameSetup.MaxEternalWarCitiesPerCiv - GameSetup.MinEternalWarCitiesPerCiv + 1).Select(n => n.ToString()), 0);
+		eternalWarCities.Visible = false;
+		settings.AddChild(eternalWarCities);
 
 		// Civ3's Game Limits: OpenCiv3's limit is the turn limit.
 		Button limits = MakeButton("Game Limits", "When the game ends if no one has won: the turn limit.");
@@ -530,7 +566,94 @@ public partial class MultiplayerSetupScreen : Control {
 	private int SlotCount() {
 		WorldSize size = worldSize.Selected < save.WorldSizes.Count ? save.WorldSizes[worldSize.Selected]
 			: NewGameChoices.DefaultWorldSize(save.WorldSizes);
-		return Math.Max(1, size.numberOfCivs - 1);
+		// Kings & Nomads has about a quarter fewer civs than usual (see
+		// GameSetup.KingsAndNomadsCivs).
+		int civs = scenario == GameScenario.KingsAndNomads ? GameSetup.KingsAndNomadsCivs(size.numberOfCivs) : size.numberOfCivs;
+		return Math.Max(1, civs - 1);
+	}
+
+	// ---- Scenarios ----
+
+	private void ChooseScenario(GameScenario chosen) {
+		scenario = chosen;
+		bool mdj = chosen is GameScenario.Mdj or GameScenario.RisingTide;
+		if (mdj != mdjRules) {
+			LoadRules(mdj);
+		}
+		// Eternal War and Rising Tide are played on a pangaea, Kings &
+		// Nomads on continents or a pangaea.
+		bool pangaeaOnly = chosen is GameScenario.EternalWar or GameScenario.RisingTide;
+		bool noArchipelago = pangaeaOnly || chosen == GameScenario.KingsAndNomads;
+		landMass.SetItemDisabled(1, pangaeaOnly);
+		landMass.SetItemDisabled(2, noArchipelago);
+		if (pangaeaOnly) {
+			landMass.Select(0);
+		} else if (noArchipelago && landMass.Selected == 2) {
+			landMass.Select(1);
+		}
+		landMass.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea."
+			: noArchipelago ? "This scenario is played on continents or a pangaea." : "";
+		// Rising Tide always starts with it on (owner's ruling, 2026-10-24).
+		acceleratedProduction.ButtonPressed = chosen == GameScenario.RisingTide;
+		ShowEternalWarCities();
+		MakeSlotRows();
+		var type = WorldSetup.GameTypes.First(g => g.scenario == chosen);
+		AddMessage(chosen == GameScenario.None ? "A normal game." : $"{type.name}: {type.description}");
+	}
+
+	// Eternal War's cities per civ, at the default for the world size.
+	private void ShowEternalWarCities() {
+		bool eternalWar = scenario == GameScenario.EternalWar;
+		eternalWarCitiesLabel.Visible = eternalWar;
+		eternalWarCities.Visible = eternalWar;
+		WorldSize size = worldSize.Selected < save.WorldSizes.Count ? save.WorldSizes[worldSize.Selected]
+			: NewGameChoices.DefaultWorldSize(save.WorldSizes);
+		eternalWarCities.Select(GameSetup.DefaultEternalWarCitiesPerCiv(save.WorldSizes, size) - GameSetup.MinEternalWarCitiesPerCiv);
+	}
+
+	// The rules a new game is played under: MDJ's for MDJ and Rising Tide
+	// (owner's choice, 2026-10-28), or else the usual ones, as the world
+	// setup screen loads them. The lists made from them are made again.
+	private void LoadRules(bool mdj) {
+		SaveGame rules = null;
+		if (mdj) {
+			try {
+				rules = GameSetup.LoadMdjRules(GamePaths.GameModesDir, GamePaths.GameMode);
+			} catch (Exception e) {
+				log.Error(e, "Could not load MPTournamentMDJ's rules; playing under the usual ones");
+				AddMessage("MDJ's rules couldn't be loaded, so the usual ones are used.", ProblemColor);
+			}
+		}
+		mdjRules = rules != null;
+		save = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
+		// MDJ keeps its leaders' Civ3 art in the scenario's folders.
+		Util.setModPath(save.ScenarioSearchPath);
+		Util.ClearCaches();
+		hasKings = save.UnitPrototypes.Any(p => p.flags.Contains(SaveUnitPrototype.Flag.King));
+		civNames = save.Civilizations.Where(c => !c.isBarbarian).Select(c => c.name).Append(NewGameChoices.Random).ToList();
+
+		// MDJ's world sizes are its own (by player count, 1v1 to 8 Player).
+		worldSize.Clear();
+		AddItems(worldSize, save.WorldSizes.Select(w => w.name).Append(NewGameChoices.Random),
+			save.WorldSizes.IndexOf(NewGameChoices.DefaultWorldSize(save.WorldSizes)));
+		string level = difficulty.Selected >= 0 ? difficulty.GetItemText(difficulty.Selected) : null;
+		difficulty.Clear();
+		AddItems(difficulty, save.Difficulties.Select(d => d.Name),
+			Math.Max(0, save.Difficulties.FindIndex(d => d.Name == level)));
+		string host = hostCivilization.Selected >= 0 ? hostCivilization.GetItemText(hostCivilization.Selected) : NewGameChoices.Random;
+		hostCivilization.Clear();
+		AddItems(hostCivilization, civNames, civNames.Contains(host) ? civNames.IndexOf(host) : civNames.Count - 1);
+		for (int i = 0; i < slots.Count; ++i) {
+			if (!civNames.Contains(slots[i].civilization ?? NewGameChoices.Random)) {
+				slots[i] = slots[i] with { civilization = NewGameChoices.Random };
+			}
+		}
+		regicide.Disabled = !hasKings;
+		massRegicide.Disabled = !hasKings;
+		if (!hasKings) {
+			regicide.ButtonPressed = false;
+			massRegicide.ButtonPressed = false;
+		}
 	}
 
 	// Makes the rivals' rows, keeping what was set for the slots that are
@@ -705,8 +828,11 @@ public partial class MultiplayerSetupScreen : Control {
 			+ "(on a standard map; less on smaller worlds, more on larger) and twice as much as any rival.");
 		wonderVictory = MakeRule("Allow Wonder Victory", vc.AllowWonderVictory,
 			"The game ends as soon as every great wonder has been built, and the civilization with the most victory points wins.");
-		acceleratedProduction = MakeRule("Accelerated Production", choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction,
-			"Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.");
+		// Off by default in multiplayer, as is No Corruption Near Capital;
+		// Culture Flipping and Scientific Leaders on (owner's ruling,
+		// 2026-10-28).
+		acceleratedProduction = MakeRule("Accelerated Production", false,
+			"Cities need half the food to grow and half the shields to build, as in Civ3.");
 		elimination = MakeRule("Elimination", vc.CityElimination,
 			vc.CityEliminationCount == 1
 				? "A civilization that loses a city to an enemy is eliminated: its units and cities are destroyed."
@@ -733,12 +859,12 @@ public partial class MultiplayerSetupScreen : Control {
 			"Every human plays their turn at the same time, rather than waiting for each other. The computer's civilizations move after them.");
 		showScoreboard = MakeRule("Show Scoreboard", choices.ShowScoreboard ?? true,
 			"With more than one human player, show everyone's score and how long the current turn has taken.");
-		cultureFlips = MakeRule("Culture Flipping", choices.CultureFlips ?? save.Rules.AllowCultureFlips,
+		cultureFlips = MakeRule("Culture Flipping", true,
 			"Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.");
-		scientificLeaders = MakeRule("Scientific Leaders", choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
+		scientificLeaders = MakeRule("Scientific Leaders", true,
 			"The first civilization to discover an advance may gain a scientific leader (3% chance, 5% for scientific civilizations), "
 			+ "who can complete anything a city is building, wonders included.");
-		coreCitiesFreeOfCorruption = MakeRule("No Corruption Near Capital", choices.CoreCitiesFreeOfCorruption ?? false,
+		coreCitiesFreeOfCorruption = MakeRule("No Corruption Near Capital", false,
 			"Custom rule: the capital and the 5 cities nearest it have no corruption or waste.");
 
 		// Two columns, as Civ3's: the victories on the left, the other rules
@@ -927,11 +1053,15 @@ public partial class MultiplayerSetupScreen : Control {
 			// The rate chosen on the player setup screen, or the rules'.
 			corruptionRate = choices.CorruptionRate,
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
+			scenario = scenario,
+			eternalWarCitiesPerCiv = scenario == GameScenario.EternalWar
+				? GameSetup.MinEternalWarCitiesPerCiv + eternalWarCities.Selected
+				: null,
 		};
 		RememberChoices(type);
 
 		global.ResetLoadGameFields();
-		global.Scenario = GameScenario.None;
+		global.Scenario = scenario;
 		global.WatchNextGame = false;
 		global.WorldCharacteristics = world;
 		global.SaveGame = save;
@@ -996,10 +1126,8 @@ public partial class MultiplayerSetupScreen : Control {
 			choices.TurnTimerMinutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
 			choices.SetVictoryConditions(victoryConditions);
 			choices.ShowScoreboard = showScoreboard.ButtonPressed;
-			choices.CoreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed;
-			choices.AcceleratedProduction = acceleratedProduction.ButtonPressed;
-			choices.CultureFlips = cultureFlips.ButtonPressed;
-			choices.ScientificLeaders = scientificLeaders.ButtonPressed;
+			// Not the four rules multiplayer sets by default (see MakeGameRules),
+			// which would otherwise change the single-player setup's.
 			choices.Save();
 		} catch (Exception e) {
 			log.Error(e, "Could not remember the multiplayer setup");
@@ -1020,7 +1148,7 @@ public partial class MultiplayerSetupScreen : Control {
 		SetLaunching(false);
 		AddMessage($"Couldn't create the game: {e.Message}", ProblemColor);
 		// The rules were changed making the world; start again from fresh.
-		save = GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
+		LoadRules(mdjRules);
 	}
 
 	private void StartGame() {
