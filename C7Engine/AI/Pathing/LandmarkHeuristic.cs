@@ -116,9 +116,10 @@ namespace C7Engine.Pathing {
 		public static Goal ForSearch(MapUnit unit, Tile goal, float movementPoints) {
 			Player owner = unit.owner;
 			// The landmark distances are by the terrain's costs, which would
-			// overestimate for a unit that treats all terrain as roads.
+			// overestimate for a unit that treats all terrain as roads, or
+			// ignores some terrain's cost.
 			if (owner == null || owner.isHuman || owner.PathsByExploredMap || !unit.IsLandUnit() || movementPoints < 1
-				|| unit.unitType.allTerrainAsRoads) {
+				|| unit.unitType.allTerrainAsRoads || unit.unitType.ignoreMovementCost.Count > 0) {
 				return null;
 			}
 			GameMap map = goal?.map;

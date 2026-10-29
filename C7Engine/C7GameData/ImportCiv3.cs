@@ -2093,6 +2093,15 @@ namespace C7GameData {
 					prototype.requiredTech = save.Techs[prto.Required].id;
 				}
 
+				// Land terrains only: the BIQ marks Sea for nearly every unit,
+				// which changes nothing.
+				for (int t = 0; t < MapGenerator.Civ3TerrainKeys.Length; ++t) {
+					string key = MapGenerator.Civ3TerrainKeys[t];
+					if (prto.IgnoreMovementCost[t] && key is not ("coast" or "sea" or "ocean")) {
+						prototype.ignoreMovementCost.Add(key);
+					}
+				}
+
 				if (prto.RequiredResource1 != -1) {
 					prototype.requiredResources.Add(save.Resources[prto.RequiredResource1].Key);
 				}

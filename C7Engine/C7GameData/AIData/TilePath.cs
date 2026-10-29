@@ -33,7 +33,7 @@ namespace C7GameData {
 			return path != null ? path.Count : -1;
 		}
 
-		public int PathCost(Player player, Tile from, float perTurnMovePoints, float remainingMovementPoints, bool allTerrainAsRoads = false) {
+		public int PathCost(Player player, Tile from, float perTurnMovePoints, float remainingMovementPoints, UnitPrototype type = null) {
 			// If we have no path (such as if we are a land unit trying to move to the water)
 			// return -1 so we don't display a goto cursor.
 			if (path == null || path.Count == 0) { return -1; }
@@ -46,7 +46,7 @@ namespace C7GameData {
 
 			foreach (Tile tile in path) {
 				// Subtract the cost of the next move.
-				float cost = GetMovementCost(player, from, from.DirectionTo(tile), tile, allTerrainAsRoads);
+				float cost = GetMovementCost(player, from, from.DirectionTo(tile), tile, type);
 				movementPoints.onUnitMove(cost);
 
 				// If we can't do any more moves, bump up the turn cost and reset
@@ -95,9 +95,15 @@ namespace C7GameData {
 		// so a step never costs it more than one along a road. UNVERIFIED:
 		// whether a river crossing without bridges still costs it the
 		// terrain's cost; it doesn't.
-		public static float GetMovementCost(Player player, Tile from, TileDirection dir, Tile newLocation, bool allTerrainAsRoads) {
+		// A unit that ignores the tile's terrain's movement cost (see
+		// UnitPrototype.IgnoresMovementCostOf) pays at most 1, a road still
+		// less.
+		public static float GetMovementCost(Player player, Tile from, TileDirection dir, Tile newLocation, UnitPrototype type) {
 			float cost = GetMovementCost(player, from, dir, newLocation);
-			if (allTerrainAsRoads) {
+			if (type != null && cost > 1 && type.IgnoresMovementCostOf(newLocation)) {
+				cost = 1;
+			}
+			if (type != null && type.allTerrainAsRoads) {
 				float road = RoadMovementCost();
 				if (road >= 0 && road < cost) {
 					cost = road;

@@ -6678,6 +6678,10 @@
       ],
       "requiredResources": [
         "Horses"
+      ],
+      "ignoreMovementCost": [
+        "hills",
+        "mountains"
       ]
     },
     {
@@ -9097,6 +9101,10 @@
         "pillage",
         "sentry",
         "airlift"
+      ],
+      "ignoreMovementCost": [
+        "hills",
+        "mountains"
       ]
     },
     {

@@ -276,7 +276,7 @@ public partial class MapUnit {
 			if (steps <= 0) {
 				continue;
 			}
-			int turns = p.PathCost(owner, location, maxMovementPoints, maxMovementPoints, unitType.allTerrainAsRoads);
+			int turns = p.PathCost(owner, location, maxMovementPoints, maxMovementPoints, unitType);
 			if (turns < nearestTurns || (turns == nearestTurns && steps < nearestSteps)) {
 				nearest = city;
 				nearestTurns = turns;
@@ -596,7 +596,7 @@ public partial class MapUnit {
 		}
 
 		facingDirection = dir;
-		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc, unitType.allTerrainAsRoads);
+		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc, unitType);
 		// A won fight costs a full movement point even along a road or
 		// railroad, so moving into the tile takes at least that; a unit with
 		// one move ends its turn (owner's decision, 2026-10-21).

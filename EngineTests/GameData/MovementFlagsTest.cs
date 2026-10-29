@@ -126,6 +126,24 @@ public class MovementFlagsTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(TilePath.RoadMovementCost(), before - explorer.movementPoints.remaining, 4);
 	}
 
+	// The Chasqui Scout "ignores movement costs for both hills and
+	// mountains" (PRTO_Chasquis_Scout; the BIQ's Ignore Movement Cost), so
+	// it pays 1 for each and crosses two a turn. A Scout pays the terrain's
+	// cost.
+	[Theory]
+	[InlineData("hills")]
+	[InlineData("mountains")]
+	public async Task AChasquiScoutCrossesHillsAndMountainsAsFlatLand(string terrain) {
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand(terrain);
+		MapUnit chasqui = Spawn("Chasqui Scout", from);
+		Assert.True(await chasqui.Move(dir));
+		Assert.Equal(1, chasqui.MaxMovementPoints() - chasqui.movementPoints.remaining, 4);
+
+		MapUnit scout = Spawn("Scout", from);
+		Assert.True(await scout.Move(dir));
+		Assert.Equal(System.Math.Min(to.MovementCost(), scout.MaxMovementPoints()), scout.MaxMovementPoints() - scout.movementPoints.remaining, 4);
+	}
+
 	// "Immobile: Can't move", like the Princess.
 	[Fact]
 	public async Task AnImmobileUnitCantMove() {

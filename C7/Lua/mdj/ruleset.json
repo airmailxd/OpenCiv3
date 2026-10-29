@@ -2527,6 +2527,19 @@
         "airlift",
         "joinCity"
       ],
+      "ignoreMovementCost": [
+        "desert",
+        "plains",
+        "grassland",
+        "tundra",
+        "flood plain",
+        "hills",
+        "mountains",
+        "forest",
+        "jungle",
+        "marsh",
+        "volcano"
+      ],
       "terraformActions": [
         "Terraform-4",
         "Terraform-5",

@@ -277,7 +277,6 @@ namespace C7Engine.Pathing {
 			// same goes for any land unit's steps onto terrain impassable to
 			// everyone, which some mods have.
 			bool checkSteps = type.isWheeled || isLandUnit;
-			bool allTerrainAsRoads = type.allTerrainAsRoads;
 
 			// The heuristic is DistanceTo times the cheapest possible step,
 			// which never overestimates (see MovementCostFloor), scaled down a
@@ -336,7 +335,7 @@ namespace C7Engine.Pathing {
 						continue;
 					}
 
-					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints, allTerrainAsRoads);
+					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints, type);
 					if (OutsideTerritoryCost > 0 && neighbor.OwningPlayer() != owner) {
 						edgeCost += OutsideTerritoryCost;
 					}

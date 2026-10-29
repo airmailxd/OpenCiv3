@@ -159,6 +159,11 @@ namespace C7GameData.Save {
 
 		public HashSet<string> requiredResources = [];
 
+		// The terrains (by key) whose movement cost the unit ignores,
+		// paying 1 to enter them (the BIQ's "Ignore Movement Cost"; the
+		// Chasqui Scout's and the Keshik's hills and mountains).
+		public HashSet<string> ignoreMovementCost = [];
+
 		public HashSet<ID> terraformActions = [];
 
 		public SaveUnitPrototype() { }
@@ -188,6 +193,7 @@ namespace C7GameData.Save {
 			flags = new HashSet<Flag>(proto.flags);
 
 			requiredResources = proto.requiredResources.Select(r => r.Key).ToHashSet();
+			ignoreMovementCost = new HashSet<string>(proto.ignoreMovementCost);
 			terraformActions = proto.terraformActions.Select(r => r.Id).ToHashSet();
 			producibleBy = proto.producibleBy.Select(r => r.name).ToHashSet();
 		}

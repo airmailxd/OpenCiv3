@@ -186,6 +186,16 @@ namespace C7GameData {
 		public bool isWheeled => flags.Contains(SaveUnitPrototype.Flag.Wheeled);
 		public bool isFootSoldier => flags.Contains(SaveUnitPrototype.Flag.FootSoldier);
 		public bool allTerrainAsRoads => flags.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads);
+
+		// The terrains (by key) whose movement cost the unit ignores, as the
+		// BIQ's "Ignore Movement Cost" says: the Chasqui Scout "ignores
+		// movement costs for both hills and mountains" (PRTO_Chasquis_Scout),
+		// paying 1 to enter them, as on flat land.
+		public HashSet<string> ignoreMovementCost { get; set; } = [];
+
+		public bool IgnoresMovementCostOf(Tile tile) {
+			return ignoreMovementCost.Count > 0 && tile.overlayTerrainType != null && ignoreMovementCost.Contains(tile.overlayTerrainType.Key);
+		}
 		public bool isImmobile => flags.Contains(SaveUnitPrototype.Flag.Immobile);
 		public bool canCarryFootUnitsOnly => flags.Contains(SaveUnitPrototype.Flag.CanCarryFootUnitsOnly);
 		public bool isFlagUnit => flags.Contains(SaveUnitPrototype.Flag.FlagUnit);
@@ -536,6 +546,7 @@ namespace C7GameData {
 			actions = new HashSet<UnitAction>(proto.actions);
 			attributes = new HashSet<string>(proto.attributes);
 			flags = new HashSet<SaveUnitPrototype.Flag>(proto.flags);
+			ignoreMovementCost = new HashSet<string>(proto.ignoreMovementCost ?? []);
 
 			terraformActions = proto.terraformActions.Select(id => terraforms.First(t => t.Id == id)).ToHashSet();
 		}
