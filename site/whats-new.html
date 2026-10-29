@@ -65,6 +65,7 @@
 
 	<nav aria-label="Versions">
 		<ul>
+			<li><a href="#v0.10.1">Version 0.10.1</a> <span class="muted">(October 29, 2026)</span></li>
 			<li><a href="#v0.10.0">Version 0.10.0</a> <span class="muted">(October 28, 2026)</span></li>
 			<li><a href="#v0.9.9">Version 0.9.9</a> <span class="muted">(October 26, 2026)</span></li>
 			<li><a href="#v0.9.8">Version 0.9.8</a> <span class="muted">(October 24, 2026)</span></li>
@@ -105,6 +106,39 @@
 		</ul>
 	</nav>
 	<p class="muted">A few words that come up a lot: <b>playing without Civ3</b> means playing on a computer that doesn't have the original Civilization III installed, using the game's own art and rules instead. The <b>Graphics Overhaul</b> is the game's own remade, sharper art for the map, which you can switch on or off in <kbd>Settings</kbd>. <b>Computer players</b> are the civilizations the game plays itself (the "AI").</p>
+
+	<h2 id="v0.10.1">Version 0.10.1 <span class="muted">(October 29, 2026)</span></h2>
+	<p><b>Multiplayer</b>:</p>
+	<ul>
+		<li>A new <b>Multiplayer Setup</b> screen, laid out like Civ3's: the game's settings on the left, a slot for each player (Open, Closed or Computer, each with a civilization), the rules, and a messages panel. Choose a scenario there too: Eternal War, Rising Tide, Kings &amp; Nomads or MDJ.</li>
+		<li>Multiplayer games start with Culture Flipping and Scientific Leaders on, and Accelerated Production and No Corruption Near Capital off.</li>
+		<li><b>Join LAN Game</b> is now a game browser: tabs for LAN, Tailscale, Favorites and History, and columns for players, game type, map size, turn, latency and version. Filter, sort, star your favorites, and double-click to join.</li>
+		<li>Games hosted on your <b>Tailscale</b> network are found without typing an address, and so are hosts you joined before.</li>
+		<li>Fixed: a player who joined someone else's game could lose the map's hills, forests, rivers, borders and resources.</li>
+		<li>Fixed: the host no longer suggests an address no one can join by when Tailscale is off.</li>
+		<li>Eternal War: while others place their mercenaries, a banner says who the game is waiting for.</li>
+	</ul>
+	<p>Rules, checked against Civ3:</p>
+	<ul>
+		<li><b>Accelerated Production</b> halves the food a city needs to grow and the shields everything costs, as in Civ3, instead of doubling what cities make. Cities no longer grow faster than they should, and gold and science are no longer doubled.</li>
+		<li>The <b>Chasqui Scout</b> and the <b>Keshik</b> cross hills and mountains at the cost of flat land.</li>
+		<li>Advances with no era (MDJ's clans' own) can't be researched, as in Civ3.</li>
+	</ul>
+	<p>Scenarios:</p>
+	<ul>
+		<li>Kings &amp; Nomads: captured cities can build Settlers again after a game is saved and loaded.</li>
+		<li>MDJ: its own bonuses for irrigated desert (+2 food) and mined mountains (+3 shields), and its own requirements for roads, fortresses and other worker jobs.</li>
+		<li>Rising Tide under MDJ's rules no longer gets stuck between turns. Civilizations know every advance except the one that keeps railroads and a new Palace out of MDJ.</li>
+		<li>Eternal War: the Offshore Platform comes with Writing and costs what a Harbor does.</li>
+	</ul>
+	<p>Other changes:</p>
+	<ul>
+		<li>Random can be chosen as your own civilization.</li>
+		<li>City names and production are drawn above units, on a more solid background.</li>
+		<li>Dropdowns and dialogs that were dark and hard to read are now on parchment, and long tooltips wrap.</li>
+		<li>A long message no longer overlaps the answers in the advisor's popups.</li>
+		<li>The advisors' sidebar faces now come with the game when playing without Civ3.</li>
+	</ul>
 
 	<h2 id="v0.10.0">Version 0.10.0 <span class="muted">(October 28, 2026)</span></h2>
 	<p><b>Maps made the way Civilization III makes them.</b> The map generator is now a copy of Civ3's own: with the same settings and seed, you get the same map Civ3 would make, tile for tile, down to the rivers, resources, goody huts and where each civilization starts. It was checked against more than 8,000 maps made by Civ3 itself, at every world size, landform, water level, climate, temperature and age.</p>
