@@ -18,12 +18,12 @@ namespace C7Engine.AI.Advanced {
 		// the civ must be to make it the plan's target, the same edge
 		// PeaceAI looks for before threatening a war (WinningStrengthRatio
 		// is 1.5) and a bit more, since the plan starts the war itself.
-		public const float TargetStrengthRatio = 1.75f;
+		public static float TargetStrengthRatio => (float)AdvancedTuning.Get("TargetStrengthRatio");
 		// HEURISTIC: a rival this much stronger is a threat to guard against.
-		public const float ThreatStrengthRatio = 1.5f;
+		public static float ThreatStrengthRatio => (float)AdvancedTuning.Get("ThreatStrengthRatio");
 		// HEURISTIC: behind in techs when below this share of the average
 		// of the civs it has met.
-		public const float BehindInTechShare = .9f;
+		public static float BehindInTechShare => (float)AdvancedTuning.Get("BehindInTechShare");
 
 		public static StrategicPlan Plan(Player player, GameData gameData) {
 			StrategicPlan plan = new() { source = "rules" };
@@ -93,7 +93,7 @@ namespace C7Engine.AI.Advanced {
 			}
 			// Winning every war: press the weakest enemy that has cities.
 			Player prey = enemies.Where(e => e.cities.Count > 0).OrderBy(e => e.CalculateMilitaryStrength()).FirstOrDefault();
-			Set(plan, PlanFocus.Offense, 80);
+			Set(plan, PlanFocus.Offense, AdvancedTuning.GetInt("WinningOffense"));
 			Set(plan, PlanFocus.Artillery, 70);
 			Set(plan, PlanFocus.Defense, 50);
 			Set(plan, PlanFocus.Settlers, 40);
@@ -112,11 +112,11 @@ namespace C7Engine.AI.Advanced {
 			int open = player.cities.Count == 0 ? 0 : player.cities.Max(c => ChooseProducible.NumberOfReachableOpenCitySpots(c));
 			bool expanding = open > 0 && player.cities.Count < 2 * Math.Max(1, player.GetAdjustedOptimalCityNumber(gameData));
 			if (expanding) {
-				Set(plan, PlanFocus.Settlers, 85);
+				Set(plan, PlanFocus.Settlers, AdvancedTuning.GetInt("ExpandSettlers"));
 				Set(plan, PlanFocus.Workers, 60);
 				Set(plan, PlanFocus.Growth, 60);
 				Set(plan, PlanFocus.Offense, 35);
-				plan.aggressionShift = -1;
+				plan.aggressionShift = AdvancedTuning.GetInt("ExpandAggression");
 				plan.victory = "Space";
 				why.Add($"{open} open city sites: expand");
 			}
@@ -140,14 +140,14 @@ namespace C7Engine.AI.Advanced {
 					.OrderBy(p => p.CalculateMilitaryStrength()).FirstOrDefault();
 				if (prey != null) {
 					plan.stances[prey.id.ToString()] = RivalStance.Target;
-					plan.aggressionShift = 1;
+					plan.aggressionShift = AdvancedTuning.GetInt("PreyAggression");
 					Set(plan, PlanFocus.Offense, 75);
 					Set(plan, PlanFocus.Artillery, 65);
 					plan.victory = "Conquest";
 					why.Add($"no room left; {prey} is much weaker: prepare to take their land");
 				} else {
-					Set(plan, PlanFocus.Science, 65);
-					Set(plan, PlanFocus.Production, 65);
+					Set(plan, PlanFocus.Science, AdvancedTuning.GetInt("BuildScience"));
+					Set(plan, PlanFocus.Production, AdvancedTuning.GetInt("BuildProduction"));
 					Set(plan, PlanFocus.Trade, 60);
 					Set(plan, PlanFocus.Growth, 60);
 					Set(plan, PlanFocus.Culture, 55);

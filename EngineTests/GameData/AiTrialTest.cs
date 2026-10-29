@@ -53,6 +53,8 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_ADVANCED     1 for the trial civs to play as the Advanced AI
 //                         (no difficulty bonuses, no house rules, the fog of
 //                         war; see C7Engine.AI.Advanced.AdvancedAI)
+//   C7_ADVANCED_TUNING    the Advanced AI's knobs, "name=value,..." (see
+//                         AdvancedTuning)
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
 //                         then no half to compare with, so the summary's two
 //                         columns are the same average over all civs, to
@@ -365,6 +367,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Serilog.Log.Logger = new Serilog.LoggerConfiguration().MinimumLevel.Information()
 				.WriteTo.Sink(new FileSink(logPath)).CreateLogger();
 		}
+		// C7_ADVANCED_TUNING: the Advanced AI's knobs, for training.
+		C7Engine.AI.Advanced.AdvancedTuning.Override(Environment.GetEnvironmentVariable("C7_ADVANCED_TUNING"));
 		string[] experiments = (Environment.GetEnvironmentVariable("C7_TRIAL_EXPERIMENTS") ?? "")
 			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 		int games = Setting("C7_TRIAL_GAMES", 8);

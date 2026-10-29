@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
@@ -17,12 +18,21 @@ namespace C7Engine.AI.Advanced {
 	public static class AdvancedAI {
 		private static readonly ILogger log = Log.ForContext(typeof(AdvancedAI));
 
-		public const int PlanEveryTurns = 5;
+		public static int PlanEveryTurns => Math.Max(1, AdvancedTuning.GetInt("PlanEveryTurns"));
 		public const int PlanLastsTurns = 10;
 
 		// Early in the AI's turn, before it plots wars and picks production.
 		public static void PlayTurn(Player player, GameData gameData) {
-			if (!player.IsAdvancedAi || !NeedsNewPlan(player, gameData)) {
+			if (!player.IsAdvancedAi) {
+				return;
+			}
+			// The on-trial behaviours training found to help (see
+			// AdvancedTuning). They aren't saved, so they are switched on
+			// every turn.
+			foreach (string behaviour in AdvancedTuning.BehavioursOn()) {
+				AiExperiments.Enable(player, behaviour);
+			}
+			if (!NeedsNewPlan(player, gameData)) {
 				return;
 			}
 			StrategicPlan plan = RulePlanner.Plan(player, gameData);
