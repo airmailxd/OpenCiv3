@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.AI;
@@ -65,6 +66,16 @@ namespace EngineTests.GameData;
 //                         compare with a run without the switches (the same
 //                         seeds, C7_TRIAL_EXPERIMENTS="") for whether the
 //                         world as a whole still plays sensibly
+//   C7_TRIAL_STATE        a file to append the state of every civ after every turn
+//                         to, one JSON object per line (game, seed, run, turn,
+//                         civ, ai, trial, defeated, cities, citizens, units,
+//                         military, workers, settlers, ships, techs,
+//                         government, gold, score, culture, atWarWith). "ai"
+//                         is Advanced for a civ with any switch on, else
+//                         Standard. Unset: nothing is collected
+//   C7_TRIAL_JSON         a file for the final results as one JSON document:
+//                         the settings, each game's differences and the
+//                         summary. Rewritten after every game
 // For example:
 //   C7_TRIAL_OUT=trial.txt C7_TRIAL_EXPERIMENTS=cheap-maintenance dotnet test EngineTests --filter "FullyQualifiedName~AiTrialTest"
 public class AiTrialTest : IClassFixture<SaveGameFixture> {
@@ -110,6 +121,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 		return "?";
 	}
+
+	// For C7_TRIAL_STATE: the game being played, as it is labelled in the log.
+	private int stateGame;
+	private int stateSeed;
+	private string stateRun = "main";
 
 	public AiTrialTest(SaveGameFixture fixture, ITestOutputHelper output) {
 		this.fixture = fixture;
@@ -363,6 +379,39 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// A short run with C7_TRIAL_STATE and C7_TRIAL_JSON set: both files come
+	// out and parse.
+	[Fact]
+	public async Task StateLogAndJsonAreWritten() {
+		string dir = Path.Combine(Path.GetTempPath(), "c7trial" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(dir);
+		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_STATE", "C7_TRIAL_JSON", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS"];
+		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
+		try {
+			string state = Path.Combine(dir, "state.jsonl"), json = Path.Combine(dir, "trial.json");
+			string[] values = [Path.Combine(dir, "out.txt"), state, json, "1", "40", "4", "30", "cheap-maintenance"];
+			for (int i = 0; i < names.Length; ++i) {
+				Environment.SetEnvironmentVariable(names[i], values[i]);
+			}
+			await CompareAiWithAndWithoutExperiments();
+
+			string[] rows = File.ReadAllLines(state);
+			Assert.Equal(30 * 4, rows.Length);
+			foreach (string row in rows) {
+				using JsonDocument r = JsonDocument.Parse(row);
+				Assert.True(r.RootElement.TryGetProperty("atWarWith", out _));
+			}
+			using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(json));
+			Assert.Equal(1, doc.RootElement.GetProperty("gamesPlayed").GetInt32());
+			Assert.Equal(Measures.Names.Length, doc.RootElement.GetProperty("summary").GetArrayLength());
+		} finally {
+			for (int i = 0; i < names.Length; ++i) {
+				Environment.SetEnvironmentVariable(names[i], saved[i]);
+			}
+			Directory.Delete(dir, true);
+		}
+	}
+
 	[Fact]
 	public async Task CompareAiWithAndWithoutExperiments() {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
@@ -419,9 +468,45 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		List<int> trialWonderTurns = new(), otherWonderTurns = new();
 		Dictionary<string, (int trial, int others)> wondersByName = new();
 		Stopwatch total = Stopwatch.StartNew();
+		string jsonPath = Environment.GetEnvironmentVariable("C7_TRIAL_JSON");
+		List<int> gameSeeds = new();
+		void WriteJson() {
+			if (string.IsNullOrEmpty(jsonPath)) {
+				return;
+			}
+			int n = differences.Count;
+			var summary = new List<object>();
+			for (int m = 0; m < Measures.Names.Length && n > 0; ++m) {
+				double mean = differences.Average(d => d[m]);
+				double sd = n > 1 ? Math.Sqrt(differences.Sum(d => (d[m] - mean) * (d[m] - mean)) / (n - 1)) : 0;
+				double se = sd / Math.Sqrt(n);
+				summary.Add(new Dictionary<string, object> {
+					["measure"] = Measures.Names[m], ["trialMean"] = trialSums[m] / n, ["othersMean"] = otherSums[m] / n,
+					["difference"] = mean, ["standardError"] = se, ["significant"] = se > 0 && Math.Abs(mean) > 2 * se,
+				});
+			}
+			var doc = new Dictionary<string, object> {
+				["settings"] = new Dictionary<string, object> {
+					["games"] = games, ["size"] = size, ["civs"] = civs, ["turns"] = turns, ["difficulty"] = difficulty,
+					["landform"] = landform.ToString(), ["firstSeed"] = firstSeed, ["seeds"] = Enumerable.Range(0, games).Select(g => firstSeed + g).ToList(),
+					["scenario"] = Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None",
+					["experiments"] = experiments, ["advanced"] = experiments.Length > 0, ["paired"] = paired, ["all"] = all,
+				},
+				["gamesPlayed"] = n,
+				["games"] = differences.Select((d, g) => new Dictionary<string, object> {
+					["game"] = g, ["seed"] = gameSeeds[g],
+					["differences"] = Measures.Names.Select((name, m) => (name, v: d[m])).ToDictionary(x => x.name, x => x.v),
+				}).ToList(),
+				["summary"] = summary,
+			};
+			File.WriteAllText(jsonPath, JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true }));
+		}
 
 		for (int game = 0; game < games; ++game) {
 			int seed = firstSeed + game;
+			stateGame = game;
+			stateSeed = seed;
+			stateRun = "main";
 			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
 				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2,
 					advanced: Setting("C7_TRIAL_ADVANCED", 0) != 0);
@@ -444,6 +529,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			if (paired) {
 				// The same game with every civ playing as it does now: how the
 				// trial half fares anyway.
+				stateRun = "paired-baseline";
 				(List<Measures> baseTrial, List<Measures> baseOthers, _, _, _) =
 					await PlayGame(NewSave(size, civs, seed, difficulty, landform), [], turns, trialHalf: game % 2);
 				for (int m = 0; m < Measures.Names.Length; ++m) {
@@ -462,11 +548,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			lines.AddRange(warLines);
 			warLines.Clear();
 			differences.Add(difference);
+			gameSeeds.Add(seed);
 			allTechs[game] = averageTechs;
 			string line = $"game {game} seed {seed}: " + string.Join(" ", Measures.Names.Select((n, m) => $"{n}={difference[m]:+0.0;-0.0}"));
 			lines.Add(line);
 			output.WriteLine(line);
 			File.WriteAllLines(outPath, lines);
+			WriteJson();
 		}
 
 		lines.Add("");
@@ -489,6 +577,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 		lines.Add($"total ms={total.ElapsedMilliseconds}");
 		File.WriteAllLines(outPath, lines);
+		WriteJson();
 		foreach (string line in lines) {
 			output.WriteLine(line);
 		}
@@ -564,6 +653,33 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					}
 				}
 			}
+		}
+		string statePath = Environment.GetEnvironmentVariable("C7_TRIAL_STATE");
+		void LogState(int turn) {
+			if (string.IsNullOrEmpty(statePath)) {
+				return;
+			}
+			List<string> rows = new();
+			foreach (Player p in civs) {
+				bool dead = p.defeated;
+				rows.Add(JsonSerializer.Serialize(new Dictionary<string, object> {
+					["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = turn,
+					["civ"] = p.civilization.name,
+					["ai"] = experiments.Any(e => AiExperiments.Has(p, e)) ? "Advanced" : "Standard",
+					["trial"] = trialCivs.Contains(p), ["defeated"] = dead,
+					["cities"] = p.cities.Count, ["citizens"] = p.cities.Sum(c => c.residents.Count),
+					["units"] = p.units.Count,
+					["military"] = p.units.Count(u => u.unitType.attack > 0 && !u.unitType.isWorker && !u.unitType.isSettler),
+					["workers"] = p.units.Count(u => u.unitType.isWorker && !u.unitType.isSettler),
+					["settlers"] = p.units.Count(u => u.unitType.isSettler),
+					["ships"] = p.units.Count(u => u.unitType.IsSeaUnit()),
+					["techs"] = p.knownTechs.Count, ["government"] = p.government?.name,
+					["gold"] = p.gold, ["score"] = dead ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
+					["culture"] = p.cities.Sum(c => c.GetCulture()),
+					["atWarWith"] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).Select(o => o.civilization.name).ToList(),
+				}));
+			}
+			File.AppendAllLines(statePath, rows);
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
 		Dictionary<Player, List<int>> cityStateCaptures = civs.ToDictionary(p => p, _ => new List<int>());
@@ -770,6 +886,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				CountCaptures();
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
+				LogState(turn + 1);
 				if (listTide && RisingTide.IsOn(gameData)) {
 					TraceTide(gameData, civs);
 				}
