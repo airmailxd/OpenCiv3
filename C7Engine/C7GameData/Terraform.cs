@@ -54,7 +54,18 @@ public class Terraform {
 		ButtonTexture = saveTerraform.ButtonTexture;
 		ConsumesWorker = saveTerraform.ConsumesWorker;
 		dataSource = saveTerraform;
-		RequiredResources = saveTerraform.RequiredResources.ConvertAll(resKey => gameData.Resources.Find(res => res.Key == resKey));
+		// A resource the rules haven't got is left out, rather than become a
+		// null the trade network can't look up: the bundled MDJ rules once
+		// asked for Coal for the railroad, and every turn of a Rising Tide
+		// game under them failed in the worker AI (owner's report, 2026-10-28).
+		RequiredResources = [];
+		foreach (string resKey in saveTerraform.RequiredResources) {
+			if (gameData.Resources.Find(res => res.Key == resKey) is Resource resource) {
+				RequiredResources.Add(resource);
+			} else {
+				Serilog.Log.ForContext<Terraform>().Warning("{Terraform} requires {Resource}, which the rules haven't got; it's left out", saveTerraform.Name, resKey);
+			}
+		}
 
 		if (saveTerraform.Improvement != null)
 			Improvement = gameData.terrainImprovements.Find(ti => ti.key == saveTerraform.Improvement);

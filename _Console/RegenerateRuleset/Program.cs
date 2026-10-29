@@ -211,6 +211,22 @@ namespace RegenerateRuleset {
 					improvement.AsObject().Remove("bonusYields");
 				}
 			}
+			// The terraforms too are kept as Civ3's, but with MDJ's own
+			// advances, resources and turns: Civ3's would name advances of
+			// Civ3's tree by number, which are others in MDJ's, and Coal for
+			// the railroad, which MDJ hasn't got.
+			foreach (JsonNode terraform in merged["terraForms"].AsArray()) {
+				string id = terraform["id"].GetValue<string>();
+				JsonNode ours = biq["terraForms"].AsArray().FirstOrDefault(t => t["id"].GetValue<string>() == id)
+					?? throw new InvalidDataException($"The import of the MDJ BIQ has no terraform {id}");
+				foreach (string field in new[] { "requiredTech", "requiredResources", "turnsToComplete" }) {
+					if (ours[field] is JsonNode value && !(value is JsonArray { Count: 0 })) {
+						terraform[field] = value.DeepClone();
+					} else {
+						terraform.AsObject().Remove(field);
+					}
+				}
+			}
 			foreach (string key in new[] { "scenarioSearchPath", "scenarioName" }) {
 				if (biq[key] is JsonNode node) {
 					merged[key] = node.DeepClone();

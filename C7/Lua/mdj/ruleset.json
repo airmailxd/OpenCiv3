@@ -6366,7 +6366,7 @@
       "name": "Fortress",
       "civilopediaEntry": "TFRM_Fortress",
       "turnsToComplete": 16,
-      "requiredTech": "tech-21",
+      "requiredTech": "tech-24",
       "improvement": "fortress",
       "aiScore": "terraforms.ai_score.default",
       "animation": "fortress",
@@ -6389,11 +6389,7 @@
       "name": "Railroad",
       "civilopediaEntry": "TFRM_Railroad",
       "turnsToComplete": 12,
-      "requiredTech": "tech-45",
-      "requiredResources": [
-        "Iron",
-        "Coal"
-      ],
+      "requiredTech": "tech-33",
       "improvement": "railroad",
       "aiScore": "terraforms.ai_score.railroad",
       "animation": "road",
@@ -6405,7 +6401,7 @@
       "name": "Plant Forest",
       "civilopediaEntry": "TFRM_Plant_Forest",
       "turnsToComplete": 18,
-      "requiredTech": "tech-24",
+      "requiredTech": "tech-32",
       "validators": [
         "terraforms.validators.plant_forest"
       ],
@@ -6421,7 +6417,7 @@
       "id": "Terraform-7",
       "name": "Clear Forest",
       "civilopediaEntry": "TFRM_Clear_Forest",
-      "turnsToComplete": 4,
+      "turnsToComplete": 6,
       "validators": [
         "terraforms.validators.clear_forest"
       ],
@@ -6437,7 +6433,7 @@
       "id": "Terraform-8",
       "name": "Clear Wetlands",
       "civilopediaEntry": "TFRM_Clear_Wetlands",
-      "turnsToComplete": 16,
+      "turnsToComplete": 4,
       "validators": [
         "terraforms.validators.clear_wetlands"
       ],
@@ -6453,7 +6449,7 @@
       "id": "Terraform-9",
       "name": "Clear Damage",
       "civilopediaEntry": "TFRM_Clear_Damage",
-      "turnsToComplete": 24,
+      "turnsToComplete": 12,
       "validators": [
         "terraforms.validators.clear_damage"
       ],
@@ -6469,7 +6465,7 @@
       "name": "Airfield",
       "civilopediaEntry": "TFRM_Airfield",
       "turnsToComplete": 1,
-      "requiredTech": "tech-59",
+      "requiredTech": "tech-33",
       "improvement": "airfield",
       "validators": [
         "terraforms.validators.airfield"
@@ -6484,7 +6480,7 @@
       "name": "Radar Tower",
       "civilopediaEntry": "TFRM_Radar_Tower",
       "turnsToComplete": 1,
-      "requiredTech": "tech-64",
+      "requiredTech": "tech-33",
       "improvement": "radarTower",
       "validators": [
         "terraforms.validators.radar_tower"
@@ -6499,7 +6495,6 @@
       "name": "Outpost",
       "civilopediaEntry": "TFRM_Outpost",
       "turnsToComplete": 1,
-      "requiredTech": "tech-2",
       "improvement": "outpost",
       "validators": [
         "terraforms.validators.outpost"
@@ -6514,7 +6509,7 @@
       "name": "Barricade",
       "civilopediaEntry": "TFRM_Barricades",
       "turnsToComplete": 16,
-      "requiredTech": "tech-21",
+      "requiredTech": "tech-33",
       "improvement": "barricade",
       "aiScore": "terraforms.ai_score.default",
       "animation": "fortress",
