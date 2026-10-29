@@ -19,12 +19,11 @@ namespace EngineTests.GameData;
 // once were only on one machine, so the release's advisor screens, all but
 // the Domestic advisor's, failed to open (owner's report, 2026-10-12).
 public class StandaloneArtTest {
-	// Art the game draws itself when it's missing: the faces of the advisors'
-	// sidebar (AdvisorUtils) and the Military advisor's war and peace icons.
-	private static readonly string[] drawnWhenMissing = [
-		"Art/SmallHeads/advisor_tab.png",
-		"Art/Advisors/militaryNAV.png",
-	];
+	// Art the game draws itself when it's missing. The faces of the advisors'
+	// sidebar (AdvisorUtils) and the Military advisor's war and peace icons
+	// were, until they were put in C7/ModernArt (owner's report, 2026-10-28:
+	// a standalone player's log warned of them).
+	private static readonly string[] drawnWhenMissing = [];
 
 	private static readonly Lazy<GameMode> standalone = new(() => SaveGameFixture.LoadGameMode(new GameMode.Config("civ3", ["standalone"])));
 
