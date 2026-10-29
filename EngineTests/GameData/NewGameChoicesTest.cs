@@ -130,6 +130,25 @@ public class NewGameChoicesTest {
 		Assert.Null(setup.corruptionRate);
 	}
 
+	// Random, as the player's civilization, is drawn again for each Quick
+	// Start game, from those not set for a rival.
+	[Fact]
+	public void ARandomCivilizationIsDrawnAndNotARivals() {
+		SaveGame save = Ruleset();
+		NewGameChoices choices = new() { Civilization = NewGameChoices.Random, Opponents = ["Rome", "Greece"] };
+		Assert.True(choices.ChoseRandomCivilization);
+		HashSet<string> drawn = [];
+		Random random = new(3);
+		for (int i = 0; i < 40; ++i) {
+			GameSetup setup = choices.QuickStartGame(save, i, random);
+			Assert.NotNull(setup.playerCivilization);
+			Assert.False(setup.playerCivilization.isBarbarian);
+			Assert.DoesNotContain(setup.playerCivilization.name, new[] { "Rome", "Greece" });
+			drawn.Add(setup.playerCivilization.name);
+		}
+		Assert.True(drawn.Count > 5);
+	}
+
 	[Fact]
 	public void ValuesThatCantBeReadAreIgnored() {
 		NewGameChoices read = ReadBack(new() {

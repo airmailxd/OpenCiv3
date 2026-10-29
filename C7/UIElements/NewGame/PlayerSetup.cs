@@ -103,6 +103,7 @@ public partial class PlayerSetup : Control {
 		choices = global.NewGameChoices ?? NewGameChoices.Load();
 
 		// Set up buttons for the civs the player can play as.
+		// The civilizations and Random (the barbarians aren't listed).
 		playerListContainer.Columns = (int)Math.Ceiling(save.Civilizations.Count / 12.0);
 		string initiallySelectedCiv = choices.ChosenCivilization(save.Civilizations).name;
 		foreach (Civilization civ in save.Civilizations) {
@@ -124,10 +125,29 @@ public partial class PlayerSetup : Control {
 			};
 			playerListContainer.AddChild(button);
 
-			if (civ.name == initiallySelectedCiv) {
+			if (civ.name == initiallySelectedCiv && !choices.ChoseRandomCivilization) {
 				button.ButtonPressed = true;
 				selectedCivilization = civ;
 			}
+		}
+		// Last, as in Civ3: a civilization drawn at random when the game
+		// starts, from those no one else has (selectedCivilization null).
+		Civ3MenuButton randomButton = new() {
+			Text = NewGameChoices.Random,
+			FontSize = 12,
+			textPosition = Civ3MenuButton.TextPosition.TextLeftOfIcon,
+			ButtonGroup = playerListButtonGroup,
+			ToggleMode = true,
+			TooltipText = "Play a civilization drawn at random when the game starts.",
+		};
+		randomButton.Pressed += () => {
+			selectedCivilization = null;
+			UpdateOpponentSelectors();
+			DisplaySelectedLeader();
+		};
+		playerListContainer.AddChild(randomButton);
+		if (choices.ChoseRandomCivilization) {
+			randomButton.ButtonPressed = true;
 		}
 		background.AddChild(leaderHead);
 		DisplaySelectedLeader();
@@ -576,7 +596,7 @@ public partial class PlayerSetup : Control {
 	// chosen for it (if this ruleset has it and nobody else has it), and
 	// whether a person plays it, hotseat or over the LAN.
 	private void ChooseOpponentsAsLastTime() {
-		List<string> civs = choices.ChosenOpponents(opponentSelectors.Count, save.Civilizations, selectedCivilization.name);
+		List<string> civs = choices.ChosenOpponents(opponentSelectors.Count, save.Civilizations, selectedCivilization?.name);
 		for (int i = 0; i < opponentSelectors.Count; ++i) {
 			int item = civs[i] == null ? -1 : opponentItemTexts.IndexOf(civs[i]);
 			if (item >= 0) {
@@ -617,7 +637,9 @@ public partial class PlayerSetup : Control {
 
 	private void UpdateOpponentSelectors() {
 		HashSet<string> civsTaken = new();
-		civsTaken.Add(selectedCivilization.name);
+		if (selectedCivilization != null) {
+			civsTaken.Add(selectedCivilization.name);
+		}
 
 		for (int s = 0; s < opponentSelectors.Count; ++s) {
 			OptionButton ob = opponentSelectors[s];
@@ -647,6 +669,11 @@ public partial class PlayerSetup : Control {
 
 	private void DisplaySelectedLeader() {
 		Civilization civilization = selectedCivilization;
+		if (civilization == null) {
+			leaderHead.Texture = null;
+			civLabel.Text = "A random civilization";
+			return;
+		}
 
 		leaderHead.Texture = LeaderHeadTextures.Get(civilization);
 		leaderHead.Scale = new Vector2(1.7f, 1.7f);
@@ -680,9 +707,9 @@ public partial class PlayerSetup : Control {
 
 	// The additional human players. A human slot left on "Random" gets a
 	// random civilization nobody else has picked.
-	private List<HotseatPlayer> CollectHotseatPlayers() {
+	private List<HotseatPlayer> CollectHotseatPlayers(Civilization player) {
 		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
-		HashSet<string> taken = [selectedCivilization.name];
+		HashSet<string> taken = [player.name];
 		foreach (OptionButton ob in opponentSelectors) {
 			taken.Add(ob.GetItemText(ob.Selected));
 		}
@@ -704,6 +731,13 @@ public partial class PlayerSetup : Control {
 			players.Add(new HotseatPlayer { civilization = civ, name = PlayerName(humanNames[i]), team = TeamOn(teamPickers[i]) });
 		}
 		return players;
+	}
+
+	// The civilization chosen, or for Random one drawn now from those no
+	// rival slot has.
+	private Civilization PlayerCivilization() {
+		return selectedCivilization ?? NewGameChoices.RandomCivilization(save.Civilizations,
+			opponentSelectors.Select(ob => ob.GetItemText(ob.Selected)).Where(n => n != NewGameChoices.Random), new Random());
 	}
 
 	// Whether a game is being created, so a second click on the confirm
@@ -759,7 +793,7 @@ public partial class PlayerSetup : Control {
 			// The guests choose their civilizations in the lobby, and the
 			// game is created once the host starts it.
 			GameSetup lanSetup = new() {
-				playerCivilization = selectedCivilization,
+				playerCivilization = PlayerCivilization(),
 				playerName = LanSession.PlayerName,
 				playerTeam = TeamOn(playerTeam),
 				difficulty = selectedDifficulty,
@@ -786,9 +820,10 @@ public partial class PlayerSetup : Control {
 			return;
 		}
 
-		List<HotseatPlayer> hotseatPlayers = CollectHotseatPlayers();
+		Civilization player = PlayerCivilization();
+		List<HotseatPlayer> hotseatPlayers = CollectHotseatPlayers(player);
 		GameSetup gameSetup = new() {
-			playerCivilization = selectedCivilization,
+			playerCivilization = player,
 			// Names only matter when the screen is handed between players.
 			playerName = hotseatPlayers.Count > 0 ? PlayerName(playerNameEdit) : null,
 			playerTeam = TeamOn(playerTeam),
@@ -829,7 +864,7 @@ public partial class PlayerSetup : Control {
 	// the next game's setup and Quick Start.
 	private void PersistGameSettings(GameSetup gameSetup) {
 		try {
-			choices.Civilization = gameSetup.playerCivilization.name;
+			choices.Civilization = selectedCivilization?.name ?? NewGameChoices.Random;
 			choices.Difficulty = gameSetup.difficulty.Name;
 
 			choices.Opponents = opponentSelectors.Select(ob => ob.GetItemText(ob.Selected)).ToList();

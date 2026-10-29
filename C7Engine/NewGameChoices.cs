@@ -236,6 +236,17 @@ public class NewGameChoices {
 
 	// The civilization chosen to play, if the ruleset has it, or the
 	// default one.
+	// Whether the player chose to play a random civilization.
+	public bool ChoseRandomCivilization => Civilization == Random;
+
+	// A civilization to play, at random, that isn't one of the taken ones.
+	public static Civilization RandomCivilization(List<Civilization> civilizations, IEnumerable<string> taken, System.Random random) {
+		HashSet<string> excluded = taken.Where(n => n != null).ToHashSet();
+		List<Civilization> free = civilizations.Where(c => !c.isBarbarian && !excluded.Contains(c.name)).ToList();
+		List<Civilization> pool = free.Count > 0 ? free : civilizations.Where(c => !c.isBarbarian).ToList();
+		return pool[random.Next(pool.Count)];
+	}
+
 	public Civilization ChosenCivilization(List<Civilization> civilizations) {
 		List<Civilization> playable = civilizations.Where(c => !c.isBarbarian).ToList();
 		return playable.Find(c => c.name == Civilization)
@@ -281,9 +292,10 @@ public class NewGameChoices {
 			mapSeed = mapSeed,
 		};
 
-		Civilization player = ChosenCivilization(save.Civilizations);
 		int slots = Math.Max(0, world.worldSize.numberOfCivs - 1);
-		List<string> opponentCivs = ChosenOpponents(slots, save.Civilizations, player.name);
+		Civilization player = ChoseRandomCivilization ? null : ChosenCivilization(save.Civilizations);
+		List<string> opponentCivs = ChosenOpponents(slots, save.Civilizations, player?.name);
+		player ??= RandomCivilization(save.Civilizations, opponentCivs, random);
 		List<SelectedOpponent> opponents = [];
 		List<HotseatPlayer> hotseatPlayers = [];
 		for (int i = 0; i < slots; ++i) {
