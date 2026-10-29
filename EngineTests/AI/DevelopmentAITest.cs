@@ -255,4 +255,33 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		Assert.Equal(0, DevelopmentAI.LeanMilitaryAdjustment(
 			ChooseProducible.CalculateStats(city, player, []), gameData.unitPrototypes.First(p => p.name == "Warrior")));
 	}
+
+	// The stock AI gives workers "a point value of zero ... when it feels it
+	// has enough of them": about 80-90% of its cities.
+	[Fact]
+	public void TheAiBuildsNoWorkerOnceItHasEnough() {
+		UnitPrototype worker = gameData.unitPrototypes.First(p => p.isWorker);
+		// No other units: an unescorted settler would also rule workers out.
+		foreach (MapUnit u in player.units.ToList()) {
+			player.units.Remove(u);
+			u.location.unitsOnTile.Remove(u);
+		}
+		// Big enough to spare a citizen, and guarded, or it would build
+		// only a defender.
+		while (city.residents.Count < 3) {
+			CityResident r = new() {
+				city = city,
+				nationality = player.civilization,
+				citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
+			};
+			city.AddCitizen(r);
+			CityTileAssignmentAI.AssignNewCitizenToTile(gameData, r);
+		}
+		gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Warrior"), city.location);
+		Assert.Equal(1, ChooseProducible.EnoughWorkers(player));
+		float WorkerScore() => ChooseProducible.ScoreUnit(ChooseProducible.CalculateStats(city, player, [worker]), city, player, worker);
+		Assert.True(WorkerScore() > int.MinValue);
+		gameData.SpawnUnit(player, worker, city.location);
+		Assert.Equal(int.MinValue, WorkerScore());
+	}
 }

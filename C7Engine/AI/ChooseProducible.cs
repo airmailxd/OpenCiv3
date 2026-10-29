@@ -376,24 +376,39 @@ namespace C7Engine {
 			}
 
 			if (isWorker) {
-				// If we have unworked tiles and fewer workers than cities, boost
-				// the odds of producing a worker.
+				// The stock AI "assigns a point value of zero to the worker
+				// build option when it feels it has enough of them" (Flintlock,
+				// reading the code), and was seen to build "a number of Workers
+				// equivalent to 80-90% of its number of cities at the peak"
+				// (Erlend Philip Wood); doc/civ3-compendium/08, section 3.2.
+				if (stats.NumWorkers >= EnoughWorkers(player)) {
+					return int.MinValue;
+				}
+				// If we have unworked tiles, boost the odds of producing a
+				// worker.
 				int numUnworkedTiles = stats.NumUnworkedTiles;
-				if (numUnworkedTiles > 0 && stats.NumWorkers < player.cities.Count * 1.5f) {
+				if (numUnworkedTiles > 0) {
 					score += populationCostPenalty * Math.Min(3.0f, 1 + numUnworkedTiles);
 				}
 
 				// If we have a few cities but don't have trade access to the
 				// capital, boost the odds of a worker.
-				// Not past a worker and a half per city, nor for a city on
-				// another landmass, which workers can't join up by road.
-				if (player.cities.Count > 4 && !stats.ConnectedToCapital && stats.NumWorkers < player.cities.Count * 1.5f
+				// Not for a city on another landmass, which workers can't join
+				// up by road.
+				if (player.cities.Count > 4 && !stats.ConnectedToCapital
 						&& city.location.continent == (player.cities.Find(c => c.IsCapital()) ?? player.cities[0]).location.continent) {
 					score += noTradeAccessBoost;
 				}
 			}
 
 			return score;
+		}
+
+		// How many workers the AI wants: 85% of its cities, the middle of the
+		// 80-90% seen in Civ3 (see ScoreUnit), and at least one.
+		internal const float WorkersPerCity = .85f;
+		internal static int EnoughWorkers(Player player) {
+			return Math.Max(1, (int)Math.Ceiling(player.cities.Count * WorkersPerCity));
 		}
 
 		internal static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
