@@ -33,6 +33,18 @@ namespace C7Engine.AI {
 		// The turn each AI last disbanded one.
 		private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Player, System.Runtime.CompilerServices.StrongBox<int>> lastDisbanded = new();
 
+		// The turn, as saved (see AiSaveState).
+		internal static int? LastDisbandedTurn(Player player) {
+			return lastDisbanded.TryGetValue(player, out System.Runtime.CompilerServices.StrongBox<int> last) ? last.Value : null;
+		}
+
+		internal static void RestoreLastDisbandedTurn(Player player, int? turn) {
+			lastDisbanded.Remove(player);
+			if (turn is int t) {
+				lastDisbanded.AddOrUpdate(player, new(t));
+			}
+		}
+
 		public static async Task DisbandOverSupport(Player player) {
 			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
 				return;

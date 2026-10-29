@@ -221,6 +221,15 @@ namespace C7Engine.AI {
 			lastRequestTurn.GetOrCreateValue(us)[them.id] = gD.turn;
 		}
 
+		// The turns asked, as saved (see AiSaveState).
+		internal static Dictionary<ID, int> RequestTurns(Player us) {
+			return lastRequestTurn.TryGetValue(us, out Dictionary<ID, int> turns) ? turns : null;
+		}
+
+		internal static void RestoreRequestTurns(Player us, Dictionary<ID, int> turns) {
+			lastRequestTurn.AddOrUpdate(us, turns ?? new());
+		}
+
 		private static (TradeOffer weGive, TradeOffer weWant)? Checked(GameData gD, Player us, Player them, TradeOffer weGive, TradeOffer weWant) {
 			if (TradeOffer.ProblemWithDeal(gD, us, them, weGive, weWant) != null) {
 				return null;

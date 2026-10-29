@@ -141,6 +141,11 @@ namespace C7GameData.Save {
 		public int airliftTurn = -1;
 		public List<TileLocation> airliftOrigins;
 
+		// What the AI remembers from turn to turn (see SaveAiState); null
+		// in older saves. Loaded once the units and cities are (see
+		// SaveGame.ConvertAiState).
+		public SaveAiState ai;
+
 		// Used when importing from .biq, to make it easier to distinguish barbarians from other players.
 		// It's not meant to be saved in the json.
 		[JsonIgnore]
@@ -346,6 +351,7 @@ namespace C7GameData.Save {
 				airliftTurn = player.airliftTurn;
 				airliftOrigins = player.airliftOrigins.Select(t => new TileLocation(t)).ToList();
 			}
+			ai = C7Engine.AI.AiSaveState.Save(player);
 
 			foreach (KeyValuePair<ID, PlayerRelationship> keyValuePair in player.playerRelationships) {
 				playerRelationships.Add(keyValuePair.Key.ToString(), keyValuePair.Value);

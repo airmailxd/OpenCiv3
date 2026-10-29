@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using C7Engine.AI.UnitAI;
 using C7Engine.Pathing;
 using C7GameData;
+using C7GameData.Save;
 using Serilog;
 
 namespace C7Engine.AI {
@@ -252,6 +253,87 @@ namespace C7Engine.AI {
 
 		internal static void StartCooldown(Player player) {
 			nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + CooldownTurns));
+		}
+
+		// The campaign and cooldown as saved (see AiSaveState).
+		internal static SaveWarCampaign Save(Player player) {
+			if (!campaigns.TryGetValue(player, out Campaign c) || c.enemy == null || c.target == null) {
+				return null;
+			}
+			return new SaveWarCampaign {
+				enemy = c.enemy.id,
+				target = c.target.id,
+				phase = c.phase.ToString(),
+				phaseStartTurn = c.phaseStartTurn,
+				stackTile = c.stackTile != null ? new TileLocation(c.stackTile) : null,
+				units = c.units.Where(u => PlayerAI.IsStillOurs(u, player)).Select(u => u.id).ToList(),
+				failures = c.failures,
+				knownDefenderHitPoints = c.knownDefenderHitPoints,
+				knownHitsEach = c.knownHitsEach,
+				shortTurns = c.shortTurns,
+				retreatTo = c.retreatTo != null ? new TileLocation(c.retreatTo) : null,
+				cooldown = c.cooldown,
+			};
+		}
+
+		internal static int? CooldownUntil(Player player) {
+			return nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) ? next.Value : null;
+		}
+
+		// Takes up a saved campaign again. Unit AIs aren't saved, so the
+		// members are made members again here. A campaign whose enemy or
+		// target is gone is dropped: the next turn plans afresh.
+		internal static void Restore(Player player, GameData gameData, SaveWarCampaign saved, int? cooldownUntil) {
+			campaigns.Remove(player);
+			nextCampaignTurn.Remove(player);
+			if (cooldownUntil is int until) {
+				nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(until));
+			}
+			if (saved == null) {
+				return;
+			}
+			Player enemy = saved.enemy == null ? null : gameData.players.Find(p => p.id == saved.enemy);
+			City target = saved.target == null ? null : gameData.cities.Find(city => city.id == saved.target);
+			if (enemy == null || target == null) {
+				return;
+			}
+			Campaign c = new() {
+				enemy = enemy,
+				target = target,
+				phase = Enum.TryParse(saved.phase, out Phase phase) ? phase : Phase.Gather,
+				phaseStartTurn = saved.phaseStartTurn,
+				stackTile = TileAt(gameData, saved.stackTile),
+				failures = saved.failures,
+				knownDefenderHitPoints = saved.knownDefenderHitPoints,
+				knownHitsEach = saved.knownHitsEach,
+				shortTurns = saved.shortTurns,
+				retreatTo = TileAt(gameData, saved.retreatTo),
+				cooldown = saved.cooldown,
+			};
+			// A stack whose tiles didn't load gathers again.
+			if ((c.phase != Phase.Gather && c.stackTile == null) || (c.phase == Phase.Retreat && c.retreatTo == null)) {
+				c.phase = Phase.Gather;
+			}
+			// In the saved order, which decides ties in which unit goes first.
+			Dictionary<ID, MapUnit> ours = new();
+			foreach (MapUnit u in player.units) {
+				ours.TryAdd(u.id, u);
+			}
+			foreach (ID id in saved.units ?? []) {
+				if (ours.TryGetValue(id, out MapUnit u) && !c.units.Contains(u)) {
+					u.currentAI = new MemberAI();
+					c.units.Add(u);
+				}
+			}
+			campaigns.AddOrUpdate(player, c);
+		}
+
+		private static Tile TileAt(GameData gameData, TileLocation? location) {
+			if (location is not TileLocation l) {
+				return null;
+			}
+			Tile tile = gameData.map.tileAt(l.X, l.Y);
+			return Tile.IsTileValid(tile) ? tile : null;
 		}
 
 		private static void Release(MapUnit u) {

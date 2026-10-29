@@ -369,6 +369,8 @@ public static class SnapshotFilter {
 			filtered.freeTechsRemaining = 0;
 		}
 		filtered.turnsUntilPriorityReevaluation = 0;
+		// The AI's plans are its own.
+		filtered.ai = null;
 		if (!view.met.Contains(player.id)) {
 			filtered.gold = 0;
 			// Loading gives them their civilization's starting techs.

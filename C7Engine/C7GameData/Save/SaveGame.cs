@@ -161,6 +161,7 @@ namespace C7GameData.Save {
 			ConvertBuildings(data);
 			ConvertUnits(data);
 			ConvertCities(data);
+			ConvertAiState(data);
 			SpaceRace.RecordApolloFromCities(data);
 			ConvertBarbarianInfo(data);
 			ConvertCultureGroups(data);
@@ -627,6 +628,13 @@ namespace C7GameData.Save {
 			// as they were created.
 			foreach (City city in data.cities) {
 				data.map.tileAt(city.location.XCoordinate, city.location.YCoordinate).cityAtTile = city;
+			}
+		}
+
+		// The AI's memory refers to units and cities, so it comes after them.
+		private void ConvertAiState(GameData data) {
+			for (int i = 0; i < Players.Count && i < data.players.Count; ++i) {
+				C7Engine.AI.AiSaveState.Restore(data.players[i], data, Players[i].ai);
 			}
 		}
 

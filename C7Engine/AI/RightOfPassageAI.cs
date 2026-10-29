@@ -379,6 +379,15 @@ namespace C7Engine.AI {
 			Espionage.Perform(gameData, player, EspionageMission.EstablishEmbassy, them, null);
 		}
 
+		// The turns asked, as saved (see AiSaveState).
+		internal static Dictionary<ID, int> RequestTurns(Player player) {
+			return lastRequestTurn.TryGetValue(player, out Dictionary<ID, int> asked) ? asked : null;
+		}
+
+		internal static void RestoreRequestTurns(Player player, Dictionary<ID, int> asked) {
+			lastRequestTurn.AddOrUpdate(player, asked ?? new());
+		}
+
 		private static bool RecentlyAsked(GameData gameData, Player player, Player them) {
 			return lastRequestTurn.TryGetValue(player, out Dictionary<ID, int> asked) && asked.TryGetValue(them.id, out int turn)
 				&& gameData.turn - turn < TurnsBetweenRequests;

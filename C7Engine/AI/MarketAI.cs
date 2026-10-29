@@ -33,6 +33,18 @@ namespace C7Engine.AI {
 		// The gold per shield the player reckons wins a unit now.
 		internal static double PricePerShield(Player player) => MemoryOf(player).pricePerShield;
 
+		// The reckoning, as saved (see AiSaveState); null without one.
+		internal static double? SavedPricePerShield(Player player) {
+			return memories.TryGetValue(player, out Memory memory) ? memory.pricePerShield : null;
+		}
+
+		internal static void RestorePricePerShield(Player player, double? price) {
+			memories.Remove(player);
+			if (price is double p) {
+				memories.AddOrUpdate(player, new Memory { pricePerShield = p });
+			}
+		}
+
 		// HEURISTIC: the going price the AI first expects, in gold per
 		// shield of the unit's cost: about the most a civ bidding without
 		// thought would offer.
