@@ -27,7 +27,15 @@ namespace C7Engine.AI.Advanced {
 			return plan != null && plan.ActiveOn(turn) ? plan : null;
 		}
 
+		// The civ's flags and the plan add up: the flags are the civ's
+		// standing personality, the plan the planner's call for now, and both
+		// are small nudges on the same score. A plan can still outweigh the
+		// flags (FocusPoints is three times FlagPoints).
 		public static float ProductionAdjustment(Player player, IProducible option) {
+			return PlanAdjustment(player, option) + FlagAdjustment(player, option);
+		}
+
+		private static float PlanAdjustment(Player player, IProducible option) {
 			StrategicPlan plan = Active(player);
 			if (plan == null) {
 				return 0;
@@ -39,6 +47,41 @@ namespace C7Engine.AI.Advanced {
 				++count;
 			}
 			return count == 0 ? 0 : total / count * FocusPoints(player);
+		}
+
+		// Ozymandias measured the flags at no more than about 5% on unit
+		// builds (compendium 08, section 3.2), so a flag is a third of what
+		// a full plan focus is worth.
+		public static float FlagPoints(Player player) => FocusPoints(player) / 3;
+
+		// More flags than this and Civ3's AI ignores all of them (Ozymandias:
+		// "more than 3 (maybe 4) confuses the AI"). We take 3. UNVERIFIED:
+		// Predator145's second-hand limit of 6 (Alexmann, Firaxis).
+		public const int MaxFlags = 3;
+
+		// A build-often category adds FlagPoints to each option in it, a
+		// build-never one takes them away; an option in several categories
+		// gets the average, as with plan focus. Never is a strong nudge
+		// down, not an exclusion: Soren Johnson advises rarely using the
+		// Never flags, and the AI still has to build defenders and settlers
+		// when it must. Advanced AI only, plan or no plan.
+		public static float FlagAdjustment(Player player, IProducible option) {
+			Civilization civ = player?.civilization;
+			if (civ == null || !player.IsAdvancedAi || civ.buildFlagCount == 0 || civ.buildFlagCount > MaxFlags) {
+				return 0;
+			}
+			float total = 0;
+			int count = 0;
+			foreach (PlanFocus f in Categories(option)) {
+				if (civ.buildOften.Contains(f)) {
+					++total;
+				}
+				if (civ.buildNever.Contains(f)) {
+					--total;
+				}
+				++count;
+			}
+			return count == 0 ? 0 : total / count * FlagPoints(player);
 		}
 
 		public static int AggressionShift(Player player) => Active(player)?.aggressionShift ?? 0;

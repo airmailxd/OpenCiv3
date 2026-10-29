@@ -932,6 +932,7 @@ namespace C7GameData {
 				civ.shunnedGovernment = GovernmentName(race.ShunnedGovernment);
 				civ.civilopediaEntry = race.CivilopediaEntry?.Trim();
 				civ.kingUnit = KingUnitName(race.UnitTypeForKing);
+				LoadBuildFlags(race, civ);
 
 				// Look up the image for non-barbarian civs.
 				string artName = pediaIcons.GetLeaderArtName(race.CivilopediaEntry);
@@ -941,6 +942,44 @@ namespace C7GameData {
 
 				save.Civilizations.Add(civ);
 				i++;
+			}
+		}
+
+		// The civ's build-often and build-never flags (RACE Flags[8..9] and
+		// [12..13]).
+		private static void LoadBuildFlags(RACE race, Civilization civ) {
+			(PlanFocus? focus, bool never, bool often)[] flags = [
+				(PlanFocus.Offense, race.OffensiveLandUnitsNever, race.OffensiveLandUnitsOften),
+				(PlanFocus.Defense, race.DefensiveLandUnitsNever, race.DefensiveLandUnitsOften),
+				(PlanFocus.Artillery, race.ArtilleryLandUnitsNever, race.ArtilleryLandUnitsOften),
+				(PlanFocus.Settlers, race.SettlersNever, race.SettlersOften),
+				(PlanFocus.Workers, race.WorkersNever, race.WorkersOften),
+				(PlanFocus.Naval, race.NavalUnitsNever, race.NavalUnitsOften),
+				(PlanFocus.Air, race.AirUnitsNever, race.AirUnitsOften),
+				(PlanFocus.Growth, race.GrowthNever, race.GrowthOften),
+				(PlanFocus.Production, race.ProductionNever, race.ProductionOften),
+				(PlanFocus.Happiness, race.HappinessNever, race.HappinessOften),
+				(PlanFocus.Science, race.ScienceNever, race.ScienceOften),
+				(PlanFocus.Wealth, race.WealthNever, race.WealthOften),
+				(PlanFocus.Trade, race.TradeNever, race.TradeOften),
+				(PlanFocus.Culture, race.CultureNever, race.CultureOften),
+				(null, race.ExploreNever, race.ExploreOften),
+			];
+			foreach ((PlanFocus? focus, bool never, bool often) in flags) {
+				if (never) {
+					++civ.buildFlagCount;
+				}
+				if (often) {
+					++civ.buildFlagCount;
+				}
+				if (focus is PlanFocus f) {
+					if (never) {
+						civ.buildNever.Add(f);
+					}
+					if (often) {
+						civ.buildOften.Add(f);
+					}
+				}
 			}
 		}
 

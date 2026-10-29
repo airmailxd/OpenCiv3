@@ -50,9 +50,57 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Warrior")));
 	}
 
+	private void Flags(int often, int never, params PlanFocus[] focuses) {
+		player.civilization.buildOften.Clear();
+		player.civilization.buildNever.Clear();
+		for (int i = 0; i < focuses.Length; ++i) {
+			(i < often ? player.civilization.buildOften : player.civilization.buildNever).Add(focuses[i]);
+		}
+		player.civilization.buildFlagCount = focuses.Length;
+	}
+
+	[Fact]
+	public void BuildOftenScoresHigherAndBuildNeverLower() {
+		player.aiType = AiType.Advanced;
+		Flags(1, 1, PlanFocus.Settlers, PlanFocus.Offense);
+		Assert.Equal(PlanEffects.FlagPoints(player), PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+		Assert.Equal(-PlanEffects.FlagPoints(player), PlanEffects.ProductionAdjustment(player, Unit("Horseman")));
+		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Worker")));
+		Assert.True(PlanEffects.FlagPoints(player) < PlanEffects.FocusPoints(player));
+	}
+
+	[Fact]
+	public void FlagsAndPlanAdd() {
+		player.aiType = AiType.Advanced;
+		Flags(1, 0, PlanFocus.Settlers);
+		player.strategicPlan = PlanWith(PlanFocus.Settlers, 100);
+		Assert.Equal(PlanEffects.FocusPoints(player) + PlanEffects.FlagPoints(player),
+			PlanEffects.ProductionAdjustment(player, Unit("Settler")), 3);
+	}
+
+	[Fact]
+	public void NoFlagsOrAStandardAiChangeNothing() {
+		player.aiType = AiType.Advanced;
+		Flags(0, 0);
+		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+		Flags(1, 0, PlanFocus.Settlers);
+		player.aiType = AiType.Standard;
+		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+	}
+
+	[Fact]
+	public void MoreFlagsThanTheLimitAreAllIgnored() {
+		player.aiType = AiType.Advanced;
+		Flags(1, 0, PlanFocus.Settlers, PlanFocus.Offense, PlanFocus.Defense);
+		Assert.NotEqual(0, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+		Flags(4, 0, PlanFocus.Settlers, PlanFocus.Offense, PlanFocus.Defense, PlanFocus.Naval);
+		Assert.Equal(0, PlanEffects.ProductionAdjustment(player, Unit("Settler")));
+	}
+
 	[Fact]
 	public void ANeutralPlanChangesNothing() {
 		player.aiType = AiType.Advanced;
+		Flags(0, 0);
 		player.strategicPlan = PlanWith(PlanFocus.Settlers, StrategicPlan.NeutralFocus);
 		foreach (UnitPrototype unit in gameData.unitPrototypes) {
 			Assert.Equal(0, PlanEffects.ProductionAdjustment(player, unit));

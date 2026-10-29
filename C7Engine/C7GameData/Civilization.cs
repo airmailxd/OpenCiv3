@@ -103,6 +103,15 @@ namespace C7GameData {
 		public string favoriteGovernment;
 		public string shunnedGovernment;
 
+		// What the BIQ's RACE section says the civ's AI builds often and
+		// never (doc/civ3-compendium/08, section 3.2). Explore has no
+		// PlanFocus, so it is only counted in buildFlagCount, the number of
+		// flags set in all (Civ3 ignores them all past a limit; see
+		// PlanEffects.FlagAdjustment). Empty in saves from before.
+		public HashSet<PlanFocus> buildOften = new();
+		public HashSet<PlanFocus> buildNever = new();
+		public int buildFlagCount;
+
 		public class SettlerTileAdjustments {
 			public int DistancePenaltyRadius = 4;
 
