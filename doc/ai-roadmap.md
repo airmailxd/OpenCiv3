@@ -39,9 +39,9 @@ Two tracks:
 | 2 | No new war on a civ for 8 turns after peace with it | 08 §3.4 (Flintlock's belief: 8 turns) | done: wars and captures unchanged in trial |
 | 3 | Favorite/shunned government adds 12.5% to its score | 05 §5.8 (Flintlock); add vs multiply unverified | done: neutral in trial |
 | 4 | Import the BIQ's build-often/never flags and use them in production | 08 §3.2 (small effect, about 5%) | todo |
-| 5 | Workers: stop at about 0.8–0.9 per city, not 1.5 | 08 §3.2 | todo |
-| 6 | Peacetime units: about 53% defense, 43% offense | 08 (Ozymandias) | todo |
-| 7 | Save war campaigns and their cooldowns (now lost on reload) | bug | todo |
+| 5 | Workers: stop at about 0.8–0.9 per city, not 1.5 | 08 §3.2 | done: neutral in trial |
+| 6 | Peacetime units: about 53% defense, 43% offense | 08 §3.2 (Ozymandias) | no change: C3 ends at about 62:38, inside his "3:2 to 4:3" D:A ratio (trial measures defUnits/offUnits) |
+| 7 | Save war campaigns and their cooldowns (now lost on reload) | bug | done: also saves deal and passage request turns, last disband, market price. Not yet saved: strategic priorities, Kings & Nomads hordes |
 
 Kept on purpose, not Civ3: city spacing, coordinated war stacks, no Wealth, no Explorers.
 
@@ -60,7 +60,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 - The neutral plan reproduces the Standard AI exactly.
 - It replaces the unused `StrategicPriorityArbitrator` output.
 
-**B. AI type per player** (Standard / Advanced):
+**B. AI type per player** (Standard / Advanced) — done. Not covered: Civ3 imports and .biq scenarios always use Standard; LAN guests can't see or change it in the lobby.
 - Set in the setup screens: `PlayerSetup`, `MultiplayerSetupScreen`, `NewGameChoices`, `ScenarioSetup`.
 - Stored on `SelectedOpponent` → `Player` → `SavePlayer`. It is nullable, so old saves load as Standard.
 
