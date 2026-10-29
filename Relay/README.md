@@ -436,3 +436,22 @@ Set these in `appsettings.json`, or as environment variables in
 Join codes are six characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789`
 (no 0/O or 1/I/L), so there are almost 900 million of them; with the
 limit on wrong codes, guessing one in use isn't practical.
+
+## Private relay over WireGuard (Windows host)
+
+For a few friends, skip the domain, Caddy and certificate: run the relay on
+your own Windows PC and let friends reach it through a WireGuard tunnel
+(`10.8.0.0/24`, relay at `10.8.0.1`). WireGuard encrypts everything, so the
+game uses plain `ws://10.8.0.1:8080` inside the tunnel.
+
+Files are in `deploy/wireguard/` (templates only, no keys):
+
+1. Check your router's WAN IPv4 matches your public IP (no shared-address ISP).
+2. Give the PC a fixed LAN address and forward **UDP 51820 only** to it.
+3. Install WireGuard for Windows, make a tunnel `civ` from `server-civ.conf.template`.
+4. Run `firewall.ps1` in an admin PowerShell (UDP 51820 in; TCP 8080 from the tunnel only).
+5. Each friend makes their own key and sends you only the public key; add a `[Peer]` for them and send back a config from `friend.conf.template`.
+6. Set `Relay__KeySecret` (64 random hex characters, kept out of the repo) and start `start-relay.ps1`: Below Normal priority, one core, 256 MB, so it won't slow your games.
+7. From a friend's machine, `http://10.8.0.1:8080/health` should answer; then Settings → Online → `ws://10.8.0.1:8080`.
+
+The PC must stay awake while friends play. If your home IP changes, use a dynamic DNS name as the `Endpoint`.
