@@ -110,6 +110,23 @@ public sealed class StockWarPlottingTest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.True(StockWarPlotting.Excluded(gameData, us, them));
 	}
 
+	// "Each player has a cooldown timer that may exclude them. I believe
+	// this blocks war plotting within 8 turns of signing peace."
+	[Fact]
+	public void NoNewWarIsPlottedOnACivForEightTurnsAfterPeaceWithIt() {
+		gameData.random = new LowRandom();
+		DeclareWar(us, them, false, gameData.turn);
+		SignPeaceAfterWar(us, them, gameData);
+		int signed = gameData.turn;
+		for (int t = 0; t < StockWarPlotting.PeaceCooldownTurns; t++) {
+			gameData.turn = signed + t;
+			Assert.True(StockWarPlotting.Excluded(gameData, us, them));
+			Assert.True(StockWarPlotting.Excluded(gameData, them, us));
+		}
+		gameData.turn = signed + StockWarPlotting.PeaceCooldownTurns;
+		Assert.False(StockWarPlotting.Excluded(gameData, us, them));
+	}
+
 	// "X = X + 4 if LandUnitsPerCity is 0, + 2 if it's 1, + 1 if it's 2,
 	// and + 0 if it's 3 or more." A fleet makes them the strongest civ
 	// either way, so the power term stays the same.

@@ -123,6 +123,12 @@ public class PlayerRelationship {
 	// this was recorded).
 	public int warStartTurn = -1;
 
+	// p1.playerRelationships[p2].peaceSignedTurn is the turn p1 and p2 last
+	// made peace after a war, or -1 if they never have (or the save predates
+	// this). The AI plots no war on p2 for a while after (see
+	// StockWarPlotting.Excluded).
+	public int peaceSignedTurn = -1;
+
 	// p1.playerRelationships[p2].lastDealOfferTurn is the turn p1, an AI,
 	// last offered p2 a deal of its own accord, or -1.
 	public int lastDealOfferTurn = -1;
@@ -485,6 +491,8 @@ public class PlayerRelationship {
 		right.playerRelationships[left.id].otherStartedCurrentWar = null;
 		left.playerRelationships[right.id].warStartTurn = -1;
 		right.playerRelationships[left.id].warStartTurn = -1;
+		left.playerRelationships[right.id].peaceSignedTurn = gameData.turn;
+		right.playerRelationships[left.id].peaceSignedTurn = gameData.turn;
 
 		log.Information("{Left} signed a peace treaty with {Right}", left, right);
 	}

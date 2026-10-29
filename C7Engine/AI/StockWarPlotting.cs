@@ -187,10 +187,15 @@ namespace C7Engine.AI {
 		// have"; Flintlock's post #8: "This check is reversed from all the
 		// others", so the target stays in only on the one in X. "The AI will
 		// skip this check if the target is a human player who is ranked
-		// first in power." Left out (UNVERIFIED, his belief only): a cooldown
-		// "within 8 turns of signing peace".
+		// first in power." And "Each player has a cooldown timer that may
+		// exclude them. I believe this blocks war plotting within 8 turns of
+		// signing peace": the timer is in the code he read; its length
+		// (PeaceCooldownTurns) is UNVERIFIED, his belief only.
 		public static bool Excluded(GameData gameData, Player ai, Player target) {
 			if (Pacts.HasDeal(ai, target, DealSubType.MutualProtectionPact)) {
+				return true;
+			}
+			if (InPeaceCooldown(gameData, ai, target)) {
 				return true;
 			}
 			if (HumanRankedFirst(ByPower(gameData), target)) {
@@ -203,6 +208,15 @@ namespace C7Engine.AI {
 			x += 2 * CommonEnemies(gameData, ai, target);
 			x += 2 * MilitaryAlliances(ai, target);
 			return !OneIn(x);
+		}
+
+		public const int PeaceCooldownTurns = 8;
+
+		// Whether ai and target made peace too recently for ai to plot a new
+		// war on target (see Excluded).
+		public static bool InPeaceCooldown(GameData gameData, Player ai, Player target) {
+			return TryGetRelationship(ai, target, out PlayerRelationship r) && r.peaceSignedTurn >= 0
+				&& gameData.turn - r.peaceSignedTurn < PeaceCooldownTurns;
 		}
 
 		private static bool HasPeaceOrPact(Player a, Player b) {
