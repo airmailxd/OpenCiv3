@@ -10,6 +10,10 @@ namespace C7GameData.Save {
 		public int primaryColorIndex;
 		public int secondaryColorIndex;
 		public bool human = false;
+		// Which AI plays the civ (see Player.aiType). Null for Standard, so
+		// it's left out of the save; older saves have none, and load as
+		// Standard.
+		public AiType? aiType;
 		public bool hasPlayedCurrentTurn = false;
 		public bool defeated = false;
 		public bool isIncludedInGame = true;
@@ -161,6 +165,7 @@ namespace C7GameData.Save {
 			Player player = new Player{
 				id = id,
 				isHuman = human,
+				aiType = aiType ?? AiType.Standard,
 				isIncludedInGame = isIncludedInGame,
 				canBePicked = canBePicked,
 				alliance = alliance is not null ? alliances.First(a => a.name == alliance) : null,
@@ -293,6 +298,7 @@ namespace C7GameData.Save {
 			primaryColorIndex = player.primaryColorIndex;
 			secondaryColorIndex = player.secondaryColorIndex;
 			human = player.isHuman;
+			aiType = player.aiType == AiType.Standard ? null : player.aiType;
 			hasPlayedCurrentTurn = player.hasPlayedThisTurn;
 			skipFirstTurn = player.skipFirstTurn;
 			name = player.name;

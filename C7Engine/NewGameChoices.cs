@@ -50,6 +50,9 @@ public class NewGameChoices {
 	// The slots set to Closed on the Multiplayer Setup screen: no civ plays
 	// them, so the game has fewer civs.
 	public SortedSet<int> ClosedSlots = [];
+	// The slots the Advanced AI plays when the computer plays them; the
+	// Standard AI plays the rest.
+	public SortedSet<int> AdvancedAiSlots = [];
 	// The Multiplayer Setup screen's game type (see MultiplayerGameType),
 	// and its turn timer in minutes (0 for none); null if never chosen.
 	public string MultiplayerGameType;
@@ -92,6 +95,7 @@ public class NewGameChoices {
 		public const string HotseatNames = nameof(HotseatNames);
 		public const string LanSlots = nameof(LanSlots);
 		public const string ClosedSlots = nameof(ClosedSlots);
+		public const string AdvancedAiSlots = nameof(AdvancedAiSlots);
 		public const string MultiplayerGameType = nameof(MultiplayerGameType);
 		public const string TurnTimerMinutes = nameof(TurnTimerMinutes);
 		public const string ConquestVictory = nameof(ConquestVictory);
@@ -159,6 +163,7 @@ public class NewGameChoices {
 		}
 		choices.LanSlots = new(SplitList(get(Keys.LanSlots)).Select(ParseSlot).Where(s => s >= 0));
 		choices.ClosedSlots = new(SplitList(get(Keys.ClosedSlots)).Select(ParseSlot).Where(s => s >= 0));
+		choices.AdvancedAiSlots = new(SplitList(get(Keys.AdvancedAiSlots)).Select(ParseSlot).Where(s => s >= 0));
 		choices.MultiplayerGameType = NonEmpty(get(Keys.MultiplayerGameType));
 		int timer = ParseSlot(get(Keys.TurnTimerMinutes));
 		choices.TurnTimerMinutes = timer >= 0 ? timer : null;
@@ -204,6 +209,7 @@ public class NewGameChoices {
 		set(Keys.HotseatNames, JoinList(HotseatSlots.Values));
 		set(Keys.LanSlots, JoinList(LanSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
 		set(Keys.ClosedSlots, JoinList(ClosedSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
+		set(Keys.AdvancedAiSlots, JoinList(AdvancedAiSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
 		set(Keys.MultiplayerGameType, MultiplayerGameType);
 		set(Keys.TurnTimerMinutes, TurnTimerMinutes?.ToString(CultureInfo.InvariantCulture));
 
@@ -326,7 +332,9 @@ public class NewGameChoices {
 					name = HotseatName(name, hotseatPlayers.Count + 2),
 				});
 			} else {
-				opponents.Add(civ == null ? new SelectedOpponent { isRandom = true } : new SelectedOpponent { Name = civ });
+				opponents.Add(civ == null
+					? new SelectedOpponent { isRandom = true, aiType = AiTypeOf(i) }
+					: new SelectedOpponent { Name = civ, aiType = AiTypeOf(i) });
 			}
 		}
 
@@ -346,6 +354,11 @@ public class NewGameChoices {
 			corruptionRate = CorruptionRate,
 			invalidMapsDirectory = invalidMapsDirectory,
 		};
+	}
+
+	// The AI chosen for a rival's slot.
+	public AiType AiTypeOf(int slot) {
+		return AdvancedAiSlots.Contains(slot) ? AiType.Advanced : AiType.Standard;
 	}
 
 	// The victory conditions chosen, with the thresholds the ruleset sets.

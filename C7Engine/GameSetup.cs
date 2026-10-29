@@ -13,6 +13,8 @@ public struct SelectedOpponent {
 	public string Name;
 	// The team the civ plays on, or 0 for none (see GameSetup.Teams.cs).
 	public int team;
+	// Which AI plays the civ; Standard unless chosen.
+	public AiType aiType;
 }
 
 // An additional human player: sharing the computer in a hotseat game, or
@@ -315,7 +317,7 @@ public partial class GameSetup {
 			taken.Add(selectedName);
 
 			Civilization civ = save.Civilizations.Find(x => x.name == selectedName);
-			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom, team = opponent.team });
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom, team = opponent.team, aiType = opponent.aiType });
 		}
 
 		if (save.Map.startingLocations.Count < planned.Count) {
@@ -325,7 +327,7 @@ public partial class GameSetup {
 		if (scenario == GameScenario.EternalWar) {
 			List<List<SaveTile>> sites = DealEternalWarSites(save, planned);
 			for (int i = 0; i < planned.Count; ++i) {
-				SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, sites[i][0]);
+				SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, sites[i][0], aiType: planned[i].aiType);
 				SetUpEternalWarPlayer(save, player, planned[i].civ, sites[i]);
 				teams.Add((player, planned[i].team));
 			}
@@ -340,7 +342,7 @@ public partial class GameSetup {
 			_ => AssignStartingLocations(save, rand, planned, taken),
 		};
 		for (int i = 0; i < planned.Count; ++i) {
-			SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
+			SavePlayer player = AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i], aiType: planned[i].aiType);
 			// A Kings & Nomads AI gets none of the difficulty's extra
 			// starting units, which would otherwise appear in the first
 			// city-state it took (owner's ruling, 2026-10-23).
@@ -360,6 +362,7 @@ public partial class GameSetup {
 		// swapped for another.
 		public bool isRandom;
 		public int team;
+		public AiType aiType;
 	}
 
 	private static bool IsSeafaring(Civilization civ) {
@@ -474,11 +477,13 @@ public partial class GameSetup {
 	// idKey names the player's ID: Kings & Nomads' city-states have their
 	// own, so that the civs' player IDs are as GameSetup.HumanPlayerIDs
 	// says.
-	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null, SaveTile startingTile = null, string idKey = "Player") {
+	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null, SaveTile startingTile = null, string idKey = "Player",
+			AiType aiType = AiType.Standard) {
 		SavePlayer player = new() {
 			isBarbarian = civ.isBarbarian,
 			isCityStates = civ.isCityStates,
 			human = isHuman,
+			aiType = aiType == AiType.Standard ? null : aiType,
 			name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
 			id = ids.CreateID(idKey),
 			primaryColorIndex = civ.primaryColorIndex,

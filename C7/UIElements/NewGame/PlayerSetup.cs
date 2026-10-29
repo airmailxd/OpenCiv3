@@ -33,6 +33,9 @@ public partial class PlayerSetup : Control {
 	// person's name.
 	List<CheckBox> humanToggles = new();
 	List<LineEdit> humanNames = new();
+	// Parallel to opponentSelectors: which AI plays the slot (AiType, by
+	// item index), on the line under it, where a human slot has its name.
+	List<OptionButton> aiTypePickers = new();
 	// Shown instead of the civilization for a human slot in a game hosted on
 	// the LAN, whose player chooses in the lobby.
 	List<Label> playersChoiceLabels = new();
@@ -485,27 +488,8 @@ public partial class PlayerSetup : Control {
 
 		for (int i = 0; i < numOpponents; ++i) {
 			OptionButton optionButton = new();
-			StyleBoxFlat styleBox = new() {
-				BorderColor = Color.Color8(150, 150, 150, 220),
-				BgColor = Color.Color8(255, 255, 255, 0),
-				BorderWidthBottom = 2,
-				BorderWidthLeft = 2,
-				BorderWidthRight = 2,
-				BorderWidthTop = 2,
-				ContentMarginLeft = 4,
-				ContentMarginRight = 4,
-				ContentMarginTop = 4,
-				ContentMarginBottom = 4
-			};
-			optionButton.AddThemeStyleboxOverride("normal", styleBox);
-			optionButton.AddThemeStyleboxOverride("hover", styleBox); ;
-			optionButton.AddThemeStyleboxOverride("pressed", styleBox);
-
+			StyleOpponentDropdown(optionButton);
 			PopupMenu popup = optionButton.GetPopup();
-			// The menu is drawn with the theme's panel (C7Theme.tres), opaque and
-			// readable, not the button's see-through box.
-			popup.MaxSize = new Vector2I(popup.MaxSize.X, 300);
-			popup.SetTransparentBackground(false);
 			opponentSelectors.Add(optionButton);
 
 			CheckBox humanToggle = new() {
@@ -541,6 +525,9 @@ public partial class PlayerSetup : Control {
 			};
 			humanNames.Add(humanName);
 			humanToggle.Toggled += (bool _) => UpdateHumanNameFields();
+			Control aiTypeRow = MakeAiTypePicker();
+			// A person plays a human slot, so it has no AI to choose.
+			humanToggle.Toggled += (bool on) => aiTypeRow.Visible = !on;
 			humanToggle.Toggled += (bool _) => ApplyDefaultTeams();
 			OptionButton teamPicker = MakeTeamPicker("This civilization's team. Teammates are allies for good, and win together.");
 			teamPickers.Add(teamPicker);
@@ -556,6 +543,7 @@ public partial class PlayerSetup : Control {
 			row.AddChild(teamPicker);
 			row.AddChild(humanToggle);
 			slot.AddChild(humanName);
+			slot.AddChild(aiTypeRow);
 
 			const float humanToggleWidth = 80.0f;
 			const float teamPickerWidth = 80.0f;
@@ -592,9 +580,65 @@ public partial class PlayerSetup : Control {
 		UpdateOpponentSelectors();
 	}
 
+	// The rivals' dropdowns: see-through, with a grey border.
+	private static void StyleOpponentDropdown(OptionButton dropdown) {
+		StyleBoxFlat styleBox = new() {
+			BorderColor = Color.Color8(150, 150, 150, 220),
+			BgColor = Color.Color8(255, 255, 255, 0),
+			BorderWidthBottom = 2,
+			BorderWidthLeft = 2,
+			BorderWidthRight = 2,
+			BorderWidthTop = 2,
+			ContentMarginLeft = 4,
+			ContentMarginRight = 4,
+			ContentMarginTop = 4,
+			ContentMarginBottom = 4
+		};
+		dropdown.AddThemeStyleboxOverride("normal", styleBox);
+		dropdown.AddThemeStyleboxOverride("hover", styleBox);
+		dropdown.AddThemeStyleboxOverride("pressed", styleBox);
+
+		PopupMenu popup = dropdown.GetPopup();
+		// The menu is drawn with the theme's panel (C7Theme.tres), opaque and
+		// readable, not the button's see-through box.
+		popup.MaxSize = new Vector2I(popup.MaxSize.X, 300);
+		popup.SetTransparentBackground(false);
+	}
+
+	// The line under a computer slot choosing the AI that plays it, its
+	// items in AiType's order.
+	private Control MakeAiTypePicker() {
+		const string tooltip = "Which AI plays this civilization: Standard, the usual one, or Advanced.";
+		HBoxContainer row = new() { TooltipText = tooltip };
+		Label label = new() {
+			Text = "AI:",
+			VerticalAlignment = VerticalAlignment.Center,
+			TooltipText = tooltip,
+			MouseFilter = MouseFilterEnum.Pass,
+		};
+		label.AddThemeFontSizeOverride("font_size", 13);
+		row.AddChild(label);
+		OptionButton picker = new() { TooltipText = tooltip, FitToLongestItem = true };
+		StyleOpponentDropdown(picker);
+		picker.AddThemeFontSizeOverride("font_size", 13);
+		picker.AddItem("Standard", (int)AiType.Standard);
+		picker.AddItem("Advanced", (int)AiType.Advanced);
+		for (int k = 0; k < picker.ItemCount; ++k) {
+			picker.GetPopup().SetItemAsRadioCheckable(k, false);
+		}
+		picker.Select(0);
+		row.AddChild(picker);
+		aiTypePickers.Add(picker);
+		return row;
+	}
+
+	private AiType AiTypeOf(int slot) {
+		return (AiType)aiTypePickers[slot].GetSelectedId();
+	}
+
 	// Sets each rival's slot as it was set up last time: the civilization
-	// chosen for it (if this ruleset has it and nobody else has it), and
-	// whether a person plays it, hotseat or over the LAN.
+	// chosen for it (if this ruleset has it and nobody else has it), the AI
+	// that plays it, and whether a person plays it, hotseat or over the LAN.
 	private void ChooseOpponentsAsLastTime() {
 		List<string> civs = choices.ChosenOpponents(opponentSelectors.Count, save.Civilizations, selectedCivilization?.name);
 		for (int i = 0; i < opponentSelectors.Count; ++i) {
@@ -602,6 +646,7 @@ public partial class PlayerSetup : Control {
 			if (item >= 0) {
 				opponentSelectors[i].Select(item);
 			}
+			aiTypePickers[i].Select(aiTypePickers[i].GetItemIndex((int)choices.AiTypeOf(i)));
 			if (hostingOnLan) {
 				humanToggles[i].ButtonPressed = choices.LanSlots.Contains(i);
 			} else if (choices.HotseatSlots.TryGetValue(i, out string name)) {
@@ -695,10 +740,11 @@ public partial class PlayerSetup : Control {
 			string selectedName = ob.GetItemText(ob.Selected);
 
 			int team = TeamOn(teamPickers[i]);
+			AiType aiType = AiTypeOf(i);
 			if (selectedName == "Random") {
-				opponents.Add(new SelectedOpponent { isRandom = true, team = team });
+				opponents.Add(new SelectedOpponent { isRandom = true, team = team, aiType = aiType });
 			} else {
-				opponents.Add(new SelectedOpponent { isRandom = false, Name = selectedName, team = team });
+				opponents.Add(new SelectedOpponent { isRandom = false, Name = selectedName, team = team, aiType = aiType });
 			}
 		}
 
@@ -871,6 +917,9 @@ public partial class PlayerSetup : Control {
 			// This screen has no Closed slots (the Multiplayer Setup
 			// screen's), so Quick Start plays every slot again.
 			choices.ClosedSlots = [];
+			// Kept for human slots too, so a slot handed back to the
+			// computer gets the AI it had.
+			choices.AdvancedAiSlots = new(Enumerable.Range(0, aiTypePickers.Count).Where(i => AiTypeOf(i) == AiType.Advanced));
 			if (hostingOnLan) {
 				// The LAN seats, for the next game hosted; this game has no
 				// hotseat players.

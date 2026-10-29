@@ -36,9 +36,9 @@ public enum MultiplayerGameMode {
 }
 
 // A rival's slot: what it holds, the civilization chosen for it (null or
-// Random for a random one), and in hotseat the name of whoever plays it
-// (null for the default, "Player N").
-public record struct PlayerSlot(SlotKind kind, string civilization = null, string name = null);
+// Random for a random one), in hotseat the name of whoever plays it (null
+// for the default, "Player N"), and the AI that plays it as a Computer slot.
+public record struct PlayerSlot(SlotKind kind, string civilization = null, string name = null, AiType aiType = AiType.Standard);
 
 // The players a Multiplayer Setup makes: the host's civilization, the
 // computer's civs, the other people sharing this computer, and the seats
@@ -84,8 +84,8 @@ public static class MultiplayerSlots {
 			switch (slot.kind) {
 				case SlotKind.Computer:
 					plan.opponents.Add(slotCivs[i] == null
-						? new SelectedOpponent { isRandom = true }
-						: new SelectedOpponent { Name = slotCivs[i].name });
+						? new SelectedOpponent { isRandom = true, aiType = slot.aiType }
+						: new SelectedOpponent { Name = slotCivs[i].name, aiType = slot.aiType });
 					break;
 				case SlotKind.Open when type == MultiplayerGameType.Hotseat:
 					plan.hotseatPlayers.Add(new HotseatPlayer {
@@ -154,7 +154,7 @@ public static class MultiplayerSlots {
 			string civ = i < choices.Opponents.Count ? choices.Opponents[i] : NewGameChoices.Random;
 			bool open = type == MultiplayerGameType.Hotseat ? choices.HotseatSlots.ContainsKey(i) : choices.LanSlots.Contains(i);
 			SlotKind kind = open ? SlotKind.Open : choices.ClosedSlots.Contains(i) ? SlotKind.Closed : SlotKind.Computer;
-			slots.Add(new PlayerSlot(kind, civ, choices.HotseatSlots.GetValueOrDefault(i)));
+			slots.Add(new PlayerSlot(kind, civ, choices.HotseatSlots.GetValueOrDefault(i), choices.AiTypeOf(i)));
 		}
 		return slots;
 	}
@@ -163,6 +163,9 @@ public static class MultiplayerSlots {
 	public static void RememberSlots(NewGameChoices choices, MultiplayerGameType type, IReadOnlyList<PlayerSlot> slots) {
 		choices.Opponents = slots.Select(s => s.civilization ?? NewGameChoices.Random).ToList();
 		choices.ClosedSlots = new(Enumerable.Range(0, slots.Count).Where(i => slots[i].kind == SlotKind.Closed));
+		// Kept whatever the slot holds, so a slot set back to Computer gets
+		// the AI it had.
+		choices.AdvancedAiSlots = new(Enumerable.Range(0, slots.Count).Where(i => slots[i].aiType == AiType.Advanced));
 		IEnumerable<int> open = Enumerable.Range(0, slots.Count).Where(i => slots[i].kind == SlotKind.Open);
 		if (type == MultiplayerGameType.Hotseat) {
 			choices.HotseatSlots = new(open.ToDictionary(i => i, i => slots[i].name ?? ""));

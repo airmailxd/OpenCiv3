@@ -125,6 +125,12 @@ namespace C7GameData {
 		//TODO: Refactor front-end so it sends player GUID with requests.
 		//We should allow multiple humans, this is a temporary measure.
 		public bool isHuman = false;
+		// Which AI plays this civ when the computer plays it (see AiType).
+		public AiType aiType = AiType.Standard;
+		// Whether the Advanced AI plays this civ. Never for a human (aiType is
+		// kept, so observer mode's AI plays a human's civ the usual way), the
+		// barbarians or the city-states.
+		public bool IsAdvancedAi => aiType == AiType.Advanced && !isHuman && !IsIndependent;
 		public bool hasPlayedThisTurn = false;
 		public bool skipFirstTurn = false;
 

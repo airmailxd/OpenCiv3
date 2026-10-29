@@ -96,6 +96,11 @@ public partial class MultiplayerSetupScreen : Control {
 	private OptionButton hostCivilization;
 	private VBoxContainer slotRows;
 	private readonly List<(OptionButton kind, OptionButton civ)> rows = [];
+	// Parallel to rows: the AI that plays each Computer slot, its items in
+	// AiType's order.
+	private readonly List<OptionButton> aiPickers = [];
+	// The AI column is narrower than the other two.
+	private const float AiColumnRatio = 0.7f;
 	private List<PlayerSlot> slots = [];
 	// The scenario chosen (see WorldSetup.GameTypes), and whether MDJ's
 	// rules are loaded, which MDJ and Rising Tide are played under.
@@ -496,9 +501,12 @@ public partial class MultiplayerSetupScreen : Control {
 
 		HBoxContainer headings = new();
 		headings.AddThemeConstantOverride("separation", 10);
-		foreach (string heading in new[] { "Players", "Civilizations" }) {
+		foreach (string heading in new[] { "Players", "Civilizations", "AI" }) {
 			Label label = new() { Text = heading, SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalAlignment = HorizontalAlignment.Center };
 			label.AddThemeFontSizeOverride("font_size", 13);
+			if (heading == "AI") {
+				label.SizeFlagsStretchRatio = AiColumnRatio;
+			}
 			headings.AddChild(label);
 		}
 		box.AddChild(headings);
@@ -542,6 +550,9 @@ public partial class MultiplayerSetupScreen : Control {
 		AddItems(hostCivilization, civNames, civNames.IndexOf(hostCiv));
 		hostCivilization.ItemSelected += _ => UpdateCivilizations();
 		hostRow.AddChild(hostCivilization);
+		// The host plays their own civ, so has no AI; this keeps the
+		// columns lined up.
+		hostRow.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsStretchRatio = AiColumnRatio });
 		list.AddChild(hostRow);
 
 		slotRows = new VBoxContainer();
@@ -667,6 +678,7 @@ public partial class MultiplayerSetupScreen : Control {
 			kind.GetParent().QueueFree();
 		}
 		rows.Clear();
+		aiPickers.Clear();
 		for (int i = 0; i < count; ++i) {
 			int slot = i;
 			HBoxContainer row = new();
@@ -687,8 +699,14 @@ public partial class MultiplayerSetupScreen : Control {
 				UpdateCivilizations();
 			};
 			row.AddChild(civ);
+			OptionButton ai = MakeDropdown();
+			ai.SizeFlagsStretchRatio = AiColumnRatio;
+			AddItems(ai, ["Standard", "Advanced"], (int)slots[i].aiType);
+			ai.ItemSelected += index => slots[slot] = slots[slot] with { aiType = (AiType)index };
+			row.AddChild(ai);
 			slotRows.AddChild(row);
 			rows.Add((kind, civ));
+			aiPickers.Add(ai);
 		}
 		if (selectedRow >= count) {
 			SelectRow(-1);
@@ -722,6 +740,12 @@ public partial class MultiplayerSetupScreen : Control {
 				: slot.kind == SlotKind.Closed ? "No one plays this slot."
 				: "This player's civilization.";
 			civ.Select(civ.Disabled ? civNames.Count - 1 : Math.Max(0, civNames.IndexOf(slot.civilization ?? NewGameChoices.Random)));
+			// Only the computer's civs have an AI to choose; the choice is
+			// kept for when the slot is set back to Computer.
+			OptionButton ai = aiPickers[i];
+			ai.Disabled = slot.kind != SlotKind.Computer;
+			ai.TooltipText = ai.Disabled ? "Only a Computer slot has an AI."
+				: "Which AI plays this civilization: Standard, the usual one, or Advanced.";
 		}
 		UpdateCivilizations();
 		renameButton?.SetDeferred(BaseButton.PropertyName.Disabled, !CanRename(selectedRow));
