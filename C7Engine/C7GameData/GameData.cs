@@ -124,6 +124,15 @@ namespace C7GameData {
 		// https://codehappy.net/apolyton/threads/56739-1.htm). UNVERIFIED in
 		// code for the fields other than the OCN percentage (compendium 08,
 		// section 1.2).
+		// The difficulty whose AI bonuses (cost factor, free unit support,
+		// extra start units, the anarchy cap) an AI player gets: the game's,
+		// except for an Advanced AI, which gets Regent's, where Civ3 gives
+		// the AI none. The Advanced AI is meant to beat a human with no
+		// advantage over one (see doc/ai-roadmap.md).
+		public Difficulty AiBonusDifficulty(Player player) {
+			return player != null && player.IsAdvancedAi ? AiRulesDifficulty() : gameDifficulty;
+		}
+
 		public Difficulty DifficultyFor(Player player) {
 			return player == null || player.isHuman ? gameDifficulty : AiRulesDifficulty();
 		}

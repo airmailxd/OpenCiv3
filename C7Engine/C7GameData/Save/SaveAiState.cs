@@ -25,6 +25,8 @@ namespace C7GameData.Save {
 		// The gold per shield the AI reckons wins a unit on the market (see
 		// MarketAI); null if it has no reckoning yet.
 		public double? marketPricePerShield;
+		// An Advanced AI's strategy (see StrategicPlan); null for none.
+		public StrategicPlan strategicPlan;
 	}
 
 	// See C7Engine.AI.WarCampaign.Campaign.

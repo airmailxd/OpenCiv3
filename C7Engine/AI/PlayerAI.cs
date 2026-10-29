@@ -47,6 +47,8 @@ namespace C7Engine {
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await TributeDemands.MakeDemands(player, gameData);
 
+			// The Advanced AI sets its plan, which the steps below read.
+			C7Engine.AI.Advanced.AdvancedAI.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			MaybeDoPriorityReevaluation(player);
 			await EngineStorage.YieldIfFrameBudgetSpent();

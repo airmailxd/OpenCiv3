@@ -150,7 +150,10 @@ namespace C7Engine {
 			foreach (IProducible option in options) {
 				// Get the item score, with a +/- 10% random adjustment to make
 				// things seem appropriately random.
-				float score = GovernorProduction.AdjustScore(governor, player, option, ScoreProducible(stats, city, player, option))
+				// An Advanced AI's plan leans the score toward what it wants
+				// more of (nothing for the Standard AI; see PlanEffects).
+				float score = (GovernorProduction.AdjustScore(governor, player, option, ScoreProducible(stats, city, player, option))
+					+ C7Engine.AI.Advanced.PlanEffects.ProductionAdjustment(player, option))
 					* (GameData.rng.Next(90, 110) / 100.0f);
 				if (score > bestScore) {
 					bestScore = score;

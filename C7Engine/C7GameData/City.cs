@@ -598,7 +598,7 @@ namespace C7GameData {
 			// Emperor (8) an AI city's food box is 8/10 the size
 			// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
 			// See Player.ShieldCost and GameData.TechCostFor.
-			Difficulty difficulty = EngineStorage.gameData?.gameDifficulty;
+			Difficulty difficulty = EngineStorage.gameData?.AiBonusDifficulty(owner);
 			if (!owner.isHuman && difficulty != null && difficulty.AiCostFactor > 0) {
 				food = Math.Max(1, food * difficulty.AiCostFactor / difficulty.HumanCostFactor);
 			}

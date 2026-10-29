@@ -131,6 +131,8 @@ namespace C7GameData {
 		// kept, so observer mode's AI plays a human's civ the usual way), the
 		// barbarians or the city-states.
 		public bool IsAdvancedAi => aiType == AiType.Advanced && !isHuman && !IsIndependent;
+		// An Advanced AI's current strategy (see StrategicPlan), or null.
+		public StrategicPlan strategicPlan;
 		public bool hasPlayedThisTurn = false;
 		public bool skipFirstTurn = false;
 
@@ -602,7 +604,7 @@ namespace C7GameData {
 		// Whether paths for our units go only by what we've explored, taking
 		// tiles we haven't to be passable: a human's always do, and an AI's
 		// do with the AI fog of war (see C7Engine.AI.AIFogOfWar).
-		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !IsIndependent);
+		public bool PathsByExploredMap => isHuman || ((EngineStorage.aiFogOfWar || IsAdvancedAi) && !IsIndependent);
 
 		// Whether to tell this player news meant just for them, such as a
 		// golden age beginning: a human, and while spectators may watch as
@@ -1537,8 +1539,8 @@ namespace C7GameData {
 			// difficulty levels of using religious civs to help cut down on the
 			// AI advantage due to this fact.
 			int result = randomPortion + cityPortion;
-			if (!isHuman && gameData.gameDifficulty.MaxAiGovernmentTransitionTime > 0) {
-				result = Math.Min(result, gameData.gameDifficulty.MaxAiGovernmentTransitionTime);
+			if (!isHuman && gameData.AiBonusDifficulty(this).MaxAiGovernmentTransitionTime > 0) {
+				result = Math.Min(result, gameData.AiBonusDifficulty(this).MaxAiGovernmentTransitionTime);
 			}
 			return result;
 		}
@@ -2106,7 +2108,7 @@ namespace C7GameData {
 		public (int, int, int) TotalUnitsAllowedUnitsAndSupportCostRaw() {
 			int freeUnits = 0;
 
-			Difficulty difficulty = EngineStorage.gameData.gameDifficulty;
+			Difficulty difficulty = EngineStorage.gameData.AiBonusDifficulty(this);
 			if (!isHuman) {
 				freeUnits += difficulty.AdditionalFreeUnitSupport;
 			}
@@ -3042,11 +3044,12 @@ namespace C7GameData {
 			}
 			receivedStartUnits = true;
 			City city = cities.Find(c => c.capital) ?? cities[0];
+			Difficulty bonuses = gD.AiBonusDifficulty(this);
 
-			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit1; ++i) {
+			for (int i = 0; i < bonuses.ExtraStartUnit1; ++i) {
 				city.AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType1), gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit2; ++i) {
+			for (int i = 0; i < bonuses.ExtraStartUnit2; ++i) {
 				city.AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType2), gD);
 			}
 			// The best defender and attacker the city can build, if it can
@@ -3054,10 +3057,10 @@ namespace C7GameData {
 			List<UnitPrototype> buildableUnits = city.ListProductionOptions(gD).OfType<UnitPrototype>().ToList();
 			UnitPrototype bestDefender = buildableUnits.MaxBy(u => u.defense);
 			UnitPrototype bestAttacker = buildableUnits.MaxBy(u => u.attack);
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits && bestDefender != null; ++i) {
+			for (int i = 0; i < bonuses.NumberOfAIDefensiveStartingUnits && bestDefender != null; ++i) {
 				city.AddUnit(bestDefender, gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits && bestAttacker != null; ++i) {
+			for (int i = 0; i < bonuses.NumberOfAIOffensiveStartingUnits && bestAttacker != null; ++i) {
 				city.AddUnit(bestAttacker, gD);
 			}
 		}
@@ -3085,7 +3088,7 @@ namespace C7GameData {
 				return int.MaxValue;
 			}
 			// At higher difficulties, AI players get a cost discount.
-			Difficulty difficulty = EngineStorage.gameData.gameDifficulty;
+			Difficulty difficulty = EngineStorage.gameData.AiBonusDifficulty(this);
 			float costFactor = isHuman ? 1.0f : difficulty.AiCostFactor / (float)(difficulty.HumanCostFactor);
 			// A house rule may make it cheaper still (see AiHouseRules).
 			costFactor *= AiHouseRules.CostFactor(this);

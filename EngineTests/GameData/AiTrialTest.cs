@@ -50,6 +50,9 @@ namespace EngineTests.GameData;
 //                         (no city on a landmass where the aggressor had
 //                         one), the engine class that declared it, the attacks and city captures between the
 //                         two while it lasted, and when it ended
+//   C7_TRIAL_ADVANCED     1 for the trial civs to play as the Advanced AI
+//                         (no difficulty bonuses, no house rules, the fog of
+//                         war; see C7Engine.AI.Advanced.AdvancedAI)
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
 //                         then no half to compare with, so the summary's two
 //                         columns are the same average over all civs, to
@@ -234,6 +237,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// keeps: "D : O : other ~= 53% : 43% : 4%" in peacetime
 			// (Ozymandias; doc/civ3-compendium/08, section 3.2).
 			"defUnits", "offUnits",
+			// The civ's place by score among all civs at the end (1 is
+			// first), and 1 if it came first.
+			"rank", "first",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -375,7 +381,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			paired = false;
 		}
 
-		List<string> lines = [$"scenario={Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None"} experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}{(all ? " all" : "")}"];
+		List<string> lines = [$"scenario={Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None"} experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}{(all ? " all" : "")}{(Setting("C7_TRIAL_ADVANCED", 0) != 0 ? " advanced" : "")}"];
 		// Per game, the average of each measure over the trial civs minus
 		// the average over the others.
 		List<double[]> differences = new();
@@ -391,7 +397,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		for (int game = 0; game < games; ++game) {
 			int seed = firstSeed + game;
 			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
-				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2);
+				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2,
+					advanced: Setting("C7_TRIAL_ADVANCED", 0) != 0);
 			foreach ((Player p, List<(string name, int turns)> list) in wonders.completed) {
 				bool isTrial = trialCivs.Contains(p);
 				foreach ((string name, int t) in list) {
@@ -458,7 +465,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
-	private async Task<(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs)> PlayGame(SaveGame save, string[] experiments, int turns, int trialHalf) {
+	private async Task<(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs)> PlayGame(SaveGame save, string[] experiments, int turns, int trialHalf, bool advanced = false) {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 		await CreateGame.createGame(save, (_) => fixture.behaviors);
@@ -472,6 +479,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			civs[i].isHuman = false;
 			if (trialHalf < 0 || i % 2 == trialHalf) {
 				trialCivs.Add(civs[i]);
+				// C7_TRIAL_ADVANCED: the trial civs play as the Advanced AI.
+				if (advanced) {
+					civs[i].aiType = AiType.Advanced;
+				}
 			}
 			if (trialHalf < 0 || i % 2 == trialHalf || Setting("C7_TRIAL_ALL", 0) != 0) {
 				foreach (string experiment in experiments) {
@@ -772,6 +783,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		double FinalScore(Player p) => p.defeated ? 0 : ScoreVictory.ComputeTurnScore(p, gameData);
+
 		Measures Measure(Player p) {
 			Measures m = new();
 			int i = 0;
@@ -880,6 +893,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = barbKills[p];
 			m.values[i++] = p.units.Count(u => u.IsLandUnit() && StockWarPlotting.IsDefensive(u));
 			m.values[i++] = p.units.Count(u => u.IsLandUnit() && StockWarPlotting.IsOffensive(u));
+			int rank = 1 + civs.Count(o => o != p && FinalScore(o) > FinalScore(p));
+			m.values[i++] = rank;
+			m.values[i++] = rank == 1 ? 1 : 0;
 			return m;
 		}
 

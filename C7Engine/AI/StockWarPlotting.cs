@@ -60,6 +60,9 @@ namespace C7Engine.AI {
 		public static int EffectiveAggressionLevel(GameData gameData, Player player) {
 			int level = (player.civilization?.aggressionLevel ?? 0) + DifficultyIndex(gameData) / 2
 				- Math.Max(1, gameData.difficulties.Count) / 6;
+			// An Advanced AI's plan may raise or lower it, within Civ3's
+			// range (see PlanEffects).
+			level += Advanced.PlanEffects.AggressionShift(player);
 			return Math.Clamp(level, -2, 2);
 		}
 
@@ -198,6 +201,14 @@ namespace C7Engine.AI {
 			if (InPeaceCooldown(gameData, ai, target)) {
 				return true;
 			}
+			// An Advanced AI's plan may name the rival to fight, or one to
+			// leave alone (see PlanEffects).
+			switch (Advanced.PlanEffects.Stance(ai, target)) {
+				case RivalStance.Friend:
+					return true;
+				case RivalStance.Target:
+					return false;
+			}
 			if (HumanRankedFirst(ByPower(gameData), target)) {
 				return false;
 			}
@@ -293,7 +304,15 @@ namespace C7Engine.AI {
 			// military alliances.
 			int alliances = target.playerRelationships.Values.Sum(r => r.multiTurnDeals.Count(d => d.dealSubType == DealSubType.MilitaryAlliance));
 			x /= alliances + 1;
+			// The rival an Advanced AI's plan names is the one it picks
+			// (see PlanEffects).
+			if (Advanced.PlanEffects.Stance(ai, target) == RivalStance.Target) {
+				x += PlanTargetBonus;
+			}
 			return x;
 		}
+
+		// More than any stock score can reach (they run to about 100).
+		internal const int PlanTargetBonus = 1000;
 	}
 }

@@ -19,7 +19,7 @@ namespace C7Engine.AI {
 		public static void MakeDemands(Player us, GameData gameData) {
 			Dictionary<Player, List<MapUnit>> trespassers = FindTrespassers(us, gameData);
 			// With the AI fog of war, only the trespassers we can see.
-			if (AIFogOfWar.Enabled && !us.isHuman) {
+			if (AIFogOfWar.EnabledFor(us)) {
 				AIFogOfWar.Refresh(us);
 				foreach (Player them in new List<Player>(trespassers.Keys)) {
 					trespassers[them].RemoveAll(u => !AIFogOfWar.SeesUnitsOn(us, u.location));

@@ -183,7 +183,7 @@ namespace C7Engine.AI {
 			if (government.allUnitsFree) {
 				return 0;
 			}
-			Difficulty difficulty = EngineStorage.gameData.gameDifficulty;
+			Difficulty difficulty = EngineStorage.gameData.AiBonusDifficulty(player);
 			int free = difficulty.AdditionalFreeUnitSupport;
 			int extraPerCity = AiHouseRules.ExtraFreeUnitsPerCity(player);
 			foreach (City city in player.cities) {

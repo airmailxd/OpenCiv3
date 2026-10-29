@@ -8,8 +8,9 @@ namespace C7GameData {
 	// While a bonus is on trial (see AiTrialTest), an AiExperiments switch
 	// turns it on for some AI players only, overriding the rule's value.
 	public static class AiHouseRules {
+		// Not the Advanced AI, which plays with no advantage over a human.
 		private static bool IsAi(Player player) {
-			return player != null && !player.isHuman && player.civilization?.IsIndependent != true;
+			return player != null && !player.isHuman && player.civilization?.IsIndependent != true && !player.IsAdvancedAi;
 		}
 
 		// The percentage of their normal maintenance this player's buildings
