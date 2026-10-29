@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,8 +14,9 @@ using Serilog;
 
 namespace C7Engine.Network;
 
-// A host that answered, at the address it answered from.
-public record FoundHost(string address, DiscoveryReply reply) {
+// A host that answered, at the address it answered from, and how long its
+// answer took to come, in milliseconds (null if not timed).
+public record FoundHost(string address, DiscoveryReply reply, int? latencyMs = null) {
 	// The virtual network it was found on, such as "Tailscale", or null for
 	// an ordinary local network.
 	public string network => LanDiscovery.NetworkOf(address);
@@ -34,29 +36,37 @@ public static class LanDiscovery {
 	private static readonly TimeSpan DirectReplyWait = TimeSpan.FromSeconds(1.5);
 
 	// knownHosts are addresses or names of hosts to ask directly, such as
-	// the ones joined before.
-	public static async Task<List<FoundHost>> FindHosts(TimeSpan timeout, IEnumerable<string> knownHosts = null) {
+	// the ones joined before. Stopping returns the hosts found so far.
+	//
+	// Each host's latency is the time from asking to its answer. The awaits
+	// don't come back to the caller's thread, which in Godot would wait for
+	// the next frame and add it to the time.
+	public static async Task<List<FoundHost>> FindHosts(TimeSpan timeout, IEnumerable<string> knownHosts = null,
+		CancellationToken stop = default) {
 		using UdpClient udp = new(0) { EnableBroadcast = true };
 		byte[] request = Encoding.UTF8.GetBytes(LanProtocol.DiscoveryRequest);
+		long broadcastSent = Stopwatch.GetTimestamp();
 		foreach (IPAddress target in BroadcastAddresses()) {
 			try {
-				await udp.SendAsync(request, request.Length, new IPEndPoint(target, LanProtocol.DiscoveryPort));
+				await udp.SendAsync(request, request.Length, new IPEndPoint(target, LanProtocol.DiscoveryPort)).ConfigureAwait(false);
 			} catch (SocketException) {
 				// Some interfaces don't allow broadcasts; the others may.
 			}
 		}
 
 		// Ends the listening below once the direct requests have had their
-		// time to be answered.
+		// time to be answered, or when stopped.
 		using CancellationTokenSource cancel = new();
-		Task askingDirectly = AskDirectly(udp, request, knownHosts?.ToList() ?? [], timeout, cancel);
+		using CancellationTokenRegistration stopping = stop.Register(cancel.Cancel);
+		ConcurrentDictionary<IPAddress, long> directSent = new();
+		Task askingDirectly = AskDirectly(udp, request, knownHosts?.ToList() ?? [], timeout, cancel, directSent);
 
 		Dictionary<string, FoundHost> found = new();
 		try {
 			while (true) {
 				UdpReceiveResult result;
 				try {
-					result = await udp.ReceiveAsync(cancel.Token);
+					result = await udp.ReceiveAsync(cancel.Token).ConfigureAwait(false);
 				} catch (SocketException e) when (e.SocketErrorCode == SocketError.ConnectionReset) {
 					// Windows reports a request nobody was listening for (such
 					// as the one to this machine) on the next receive.
@@ -65,10 +75,19 @@ public static class LanDiscovery {
 					// What was found so far is all there is.
 					break;
 				}
+				long received = Stopwatch.GetTimestamp();
 				try {
 					DiscoveryReply reply = NetSerialization.DeserializeRequired<DiscoveryReply>(result.Buffer);
-					string address = result.RemoteEndPoint.Address.ToString();
-					found[$"{address}:{reply.port}"] = new FoundHost(address, reply);
+					IPAddress from = result.RemoteEndPoint.Address;
+					string address = from.ToString();
+					string key = $"{address}:{reply.port}";
+					int latency = LatencyMs(broadcastSent, directSent.TryGetValue(from, out long sent) ? sent : null, received);
+					// A host asked both ways answers twice; the quicker
+					// answer is the truer time.
+					if (found.TryGetValue(key, out FoundHost before) && before.latencyMs < latency) {
+						latency = before.latencyMs.Value;
+					}
+					found[key] = new FoundHost(address, reply, latency);
 				} catch (JsonException) {
 					// Not one of ours.
 				}
@@ -76,14 +95,21 @@ public static class LanDiscovery {
 		} catch (OperationCanceledException) {
 		}
 		cancel.Cancel();
-		await askingDirectly;
+		await askingDirectly.ConfigureAwait(false);
 		return Merge(found.Values);
+	}
+
+	// The time an answer took, from the request to that host if one was sent
+	// to it directly before the answer came, or else from the broadcast.
+	internal static int LatencyMs(long broadcastSent, long? directSent, long received) {
+		long sent = directSent is long direct && direct <= received ? direct : broadcastSent;
+		return (int)Math.Max(0, Stopwatch.GetElapsedTime(sent, received).TotalMilliseconds);
 	}
 
 	// Sends the request to each host to ask directly, then waits out the
 	// time to listen for answers before ending the search.
 	private static async Task AskDirectly(UdpClient udp, byte[] request, List<string> knownHosts, TimeSpan timeout,
-		CancellationTokenSource cancel) {
+		CancellationTokenSource cancel, ConcurrentDictionary<IPAddress, long> sentAt) {
 		Stopwatch clock = Stopwatch.StartNew();
 		try {
 			// Off the main thread: asking Tailscale runs a program.
@@ -93,6 +119,7 @@ public static class LanDiscovery {
 					return;
 				}
 				try {
+					sentAt[target] = Stopwatch.GetTimestamp();
 					await udp.SendAsync(request, request.Length, new IPEndPoint(target, LanProtocol.DiscoveryPort));
 				} catch (SocketException) {
 					// Unreachable from here; the others may not be.

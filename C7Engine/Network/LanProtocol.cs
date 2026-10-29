@@ -327,7 +327,16 @@ public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
 // A host's answer to a discovery broadcast. hasPassword is whether joining
 // takes the game's password, and version the host's LanProtocol.Version (0
 // from a host too old to say), which a guest must match to join.
-public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false, int version = 0);
+//
+// The rest is for the game list's columns (owner's request, 2026-10-28: a
+// server browser like Steam's): the name the host gave the game (null for
+// none), its seats with the host's own, taken and in all, the map's size
+// as "100x100", the turn, the game's type as "Eternal War", and whether
+// anyone may watch. Each is optional, so that an older host's reply, which
+// lacks them, still reads, with blanks (seatsTotal 0 for not known).
+public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false, int version = 0,
+	string gameName = null, int seatsTotal = 0, int seatsTaken = 0, string mapSize = null, int turn = 0, string gameType = null,
+	bool spectatorsAllowed = true);
 
 // The host asks for the game's password: the salt to make its verifier
 // with and the nonce to sign (see GamePassword). wrong is true when the last

@@ -319,6 +319,9 @@ public class LanHost : IDisposable {
 	public string PublicName { get; set; }
 	public string PublicDescription { get; set; }
 	public string MapSize { get; set; }
+	// The game's type as the LAN game list shows it, such as "Standard" or
+	// "Eternal War" (see LanGameList.GameTypeOf); null if not known.
+	public string GameType { get; set; }
 	public string DefaultPublicName => $"{hostName}'s game";
 
 	// The name the host goes by, which everyone sees.
@@ -457,6 +460,7 @@ public class LanHost : IDisposable {
 		if (save.Map?.tilesWide > 0) {
 			MapSize = $"{save.Map.tilesWide}x{save.Map.tilesTall}";
 		}
+		GameType = LanGameList.GameTypeOf(save);
 	}
 
 	// Hosts a game again from its autosave, with the settings it had, and
@@ -671,10 +675,13 @@ public class LanHost : IDisposable {
 	// have changed.
 	private void PublishDiscoveryReply() {
 		int openSeats = seats.Count(s => !s.IsTaken && !s.IsHeld);
-		DiscoveryReply current = discoveryReply;
-		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword
-			|| current.hostName != hostName) {
-			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword, LanProtocol.Version);
+		int turn = Started && EngineStorage.gameData != null ? EngineStorage.gameData.turn : lobbyTurn;
+		string gameName = string.IsNullOrWhiteSpace(PublicName) ? null : PublicName.Trim();
+		// The host's own seat counts among the seats, as the lobby shows them.
+		DiscoveryReply next = new(hostName, Port, openSeats, Started, HasPassword, LanProtocol.Version,
+			gameName, seats.Count + 1, seats.Count - openSeats + 1, MapSize, turn, GameType, AllowSpectators);
+		if (next != discoveryReply) {
+			discoveryReply = next;
 		}
 	}
 

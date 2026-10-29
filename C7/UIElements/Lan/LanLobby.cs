@@ -61,13 +61,11 @@ public partial class LanLobby : Control {
 	private Label passwordStatus;
 	private bool passwordEdited;
 
-	// Joining: the name to play under, the hosts found and where to connect.
+	// Joining: the name to play under, the list of games, and the join
+	// code typed.
 	private LineEdit nameEdit;
-	private LineEdit addressEdit;
+	private LanGameBrowser gameList;
 	private LineEdit codeEdit;
-	private VBoxContainer hostList;
-	private VBoxContainer addressHelp;
-	private bool searching = false;
 
 	// Joining a game with a password: where the player types it.
 	private HBoxContainer passwordPrompt;
@@ -202,6 +200,8 @@ public partial class LanLobby : Control {
 				// As set on the Multiplayer Setup screen.
 				LanSession.Host.PublicName = pending.gameName;
 				LanSession.Host.TurnTimeLimit = pending.turnTimeLimit;
+				// For the game list's Game Type column; not in the save until the game is made.
+				LanSession.Host.GameType = LanGameList.GameTypeName(pending.setup.scenario);
 
 			} else if (LanSession.ResumeGame is LanResumeInfo resume) {
 				// The last game hosted here, as it was autosaved, with its
@@ -829,74 +829,45 @@ public partial class LanLobby : Control {
 	private void BuildJoinScreen() {
 		title.Text = "Join a LAN Game";
 
+		// The list fills the parchment, as Steam's server browser fills its
+		// window (owner's request, 2026-10-28); the lobby's seats take its
+		// place once connected.
+		gameList = new LanGameBrowser { CustomMinimumSize = new Vector2(0, 552) };
+		gameList.JoinRequested += (endpoint, watch, token) => Connect(endpoint, watch, token);
+		content.AddChild(gameList);
+
 		HBoxContainer nameRow = new();
-		nameRow.AddThemeConstantOverride("separation", 12);
+		nameRow.AddThemeConstantOverride("separation", 8);
 		Label nameLabel = new() { Text = "Your name:" };
-		nameLabel.AddThemeFontSizeOverride("font_size", 18);
+		nameLabel.AddThemeFontSizeOverride("font_size", 16);
 		nameRow.AddChild(nameLabel);
-		nameEdit = new LineEdit { Text = LanSession.PlayerName, MaxLength = LanHost.MaxPlayerNameLength, CustomMinimumSize = new Vector2(260, 0) };
+		nameEdit = new LineEdit { Text = LanSession.PlayerName, MaxLength = LanHost.MaxPlayerNameLength, CustomMinimumSize = new Vector2(170, 0) };
 		nameRow.AddChild(nameEdit);
-		content.AddChild(nameRow);
+		gameList.AddToTopRow(nameRow);
 
-		HBoxContainer foundRow = new();
-		foundRow.AddThemeConstantOverride("separation", 12);
-		Label foundLabel = new() { Text = "Games on your network:" };
-		foundLabel.AddThemeFontSizeOverride("font_size", 18);
-		foundRow.AddChild(foundLabel);
-		foundRow.AddChild(MakeButton("Search Again", SearchForHosts));
-		content.AddChild(foundRow);
-
-		hostList = new VBoxContainer();
-		hostList.AddThemeConstantOverride("separation", 6);
-		content.AddChild(hostList);
-
-		HBoxContainer addressRow = new();
-		addressRow.AddThemeConstantOverride("separation", 12);
-		Label addressLabel = new() { Text = "Or join by address:" };
-		addressLabel.AddThemeFontSizeOverride("font_size", 18);
-		addressRow.AddChild(addressLabel);
-		addressEdit = new LineEdit { PlaceholderText = "192.168.1.20", CustomMinimumSize = new Vector2(260, 0) };
-		addressEdit.TextSubmitted += _ => ConnectToAddress(false);
-		addressRow.AddChild(addressEdit);
-		addressRow.AddChild(MakeButton("Join", () => ConnectToAddress(false)));
-		addressRow.AddChild(MakeButton("Watch", () => ConnectToAddress(true)));
-		content.AddChild(addressRow);
-
-		// A host elsewhere, hosting online, gives a join code.
+		// A host elsewhere, hosting online, gives a join code; or one is
+		// listed publicly on the relay.
 		HBoxContainer onlineRow = new();
-		onlineRow.AddThemeConstantOverride("separation", 12);
-		Label onlineLabel = new() { Text = "Or join online with a code:" };
-		onlineLabel.AddThemeFontSizeOverride("font_size", 18);
+		onlineRow.AddThemeConstantOverride("separation", 10);
+		Label onlineLabel = new() { Text = "Online game code:" };
+		onlineLabel.AddThemeFontSizeOverride("font_size", 16);
 		onlineRow.AddChild(onlineLabel);
-		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 200, CustomMinimumSize = new Vector2(260, 0) };
+		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 200, CustomMinimumSize = new Vector2(180, 0) };
 		codeEdit.TextSubmitted += _ => ConnectWithCode(false);
 		onlineRow.AddChild(codeEdit);
-		onlineRow.AddChild(MakeButton("Join", () => ConnectWithCode(false)));
-		onlineRow.AddChild(MakeButton("Watch", () => ConnectWithCode(true)));
-		content.AddChild(onlineRow);
-
-		// Or one listed publicly on the relay.
-		HBoxContainer browseRow = new();
-		browseRow.AddThemeConstantOverride("separation", 12);
-		Label browseLabel = new() { Text = "Or find a public game online:" };
-		browseLabel.AddThemeFontSizeOverride("font_size", 18);
-		browseRow.AddChild(browseLabel);
-		Button browse = MakeButton("Browse Online Games", OpenBrowser);
-		browse.CustomMinimumSize = new Vector2(220, 36);
-		browseRow.AddChild(browse);
-		content.AddChild(browseRow);
+		onlineRow.AddChild(LanGameBrowser.MakeButton("Join", () => ConnectWithCode(false)));
+		onlineRow.AddChild(LanGameBrowser.MakeButton("Watch", () => ConnectWithCode(true)));
+		onlineRow.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+		onlineRow.AddChild(LanGameBrowser.MakeButton("Browse Online Games", OpenBrowser));
+		gameList.AddRow(onlineRow);
 
 		// The game last joined from here, to get back into after closing
-		// the game.
+		// the game; the list's Rejoin also finds it at a new address.
 		if (LanSession.LastJoinedGame is LanSession.LastGame last) {
-			HBoxContainer rejoinRow = new();
-			rejoinRow.AddThemeConstantOverride("separation", 12);
 			string where = last.endpoint is RelayEndpoint online ? $"online, code {RelayProtocol.FormatCode(online.Code)}" : $"at {last.address}";
-			Label rejoinLabel = new() { Text = $"Your last game: {last.hostName} {where}" };
-			rejoinLabel.AddThemeFontSizeOverride("font_size", 18);
-			rejoinRow.AddChild(rejoinLabel);
-			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(last.endpoint, false, last.token)));
-			content.AddChild(rejoinRow);
+			Button rejoin = LanGameBrowser.MakeButton("Rejoin Last Game", () => Connect(last.endpoint, false, last.token));
+			rejoin.TooltipText = $"Your last game: {last.hostName} {where}";
+			gameList.AddBottomButton(rejoin);
 		}
 
 		seatList = new VBoxContainer();
@@ -919,19 +890,17 @@ public partial class LanLobby : Control {
 		passwordPrompt.AddChild(MakeButton("Enter", SendPassword));
 		content.AddChild(passwordPrompt);
 
-		status = AddLabel("");
-
-		AddAddressHelp();
-
-		SearchForHosts();
+		status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		status.AddThemeFontSizeOverride("font_size", 16);
+		gameList.StatusSlot.AddChild(status);
 
 		if (LanSession.DevJoinAddress != null && RelayProtocol.NormalizeCode(LanSession.DevJoinAddress) != null
 			&& !LanSession.DevJoinAddress.Contains('.')) {
 			codeEdit.Text = LanSession.DevJoinAddress;
 			ConnectWithCode(LanSession.DevWatch);
 		} else if (LanSession.DevJoinAddress != null) {
-			addressEdit.Text = LanSession.DevJoinAddress;
-			ConnectToAddress(LanSession.DevWatch);
+			gameList.AddressEdit.Text = LanSession.DevJoinAddress;
+			gameList.JoinAddress(LanSession.DevWatch);
 		}
 
 		if (openBrowser) {
@@ -962,107 +931,22 @@ public partial class LanLobby : Control {
 		status.Text = "Checking the password...";
 	}
 
-	// Tips for finding the host when it isn't listed, hidden once connected.
-	private void AddAddressHelp() {
-		addressHelp = new VBoxContainer();
-		addressHelp.AddThemeConstantOverride("separation", 6);
-		content.AddChild(addressHelp);
-
-		addressHelp.AddChild(new HSeparator());
-		Label heading = new() { Text = "Game not listed? Finding the host's address" };
-		heading.AddThemeFontSizeOverride("font_size", 20);
-		addressHelp.AddChild(heading);
-
-		string[] tips = [
-			"The host's screen shows its addresses under \"Hosting a LAN Game\". Ask the host to read one out and type it in above.",
-			"Or look it up on the host's computer. Windows: open Command Prompt, run ipconfig and use the \"IPv4 Address\" line. "
-				+ "macOS: System Settings > Network, choose the connection, then Details. Linux: run hostname -I in a terminal.",
-			"Addresses on a home network usually start with 192.168. or 10. One starting with 127. or 169.254. won't work from another computer.",
-			"Both computers must be on the same network, such as the same router or Wi-Fi. Guest Wi-Fi often keeps devices from seeing each other.",
-			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv3 through it "
-				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games). "
-				+ "Windows counts Tailscale and other virtual networks as Public networks, so allow it on Public networks too.",
-			$"If the host uses a different port, add it after the address, like 192.168.1.20:{LanProtocol.DefaultPort + 1}.",
-			"Playing over the internet? Ask the host to choose \"Host Online\", then type the join code it shows under \"Join online\" above.",
-			"Or both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it. "
-				+ "Games on the machines of your Tailscale network, and on hosts you've joined before, are listed by themselves.",
-		];
-		foreach (string tip in tips) {
-			Label label = new() { Text = "•  " + tip, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-			label.AddThemeFontSizeOverride("font_size", 15);
-			addressHelp.AddChild(label);
-		}
-	}
-
-	private async void SearchForHosts() {
-		if (searching) {
+	// The list of games while looking for one, or the lobby's seats once
+	// connected; the status line goes with whichever is shown.
+	private void ShowGameList(bool show) {
+		if (gameList == null || gameList.Visible == show) {
 			return;
 		}
-		searching = true;
-		foreach (Node child in hostList.GetChildren()) {
-			child.QueueFree();
+		gameList.Visible = show;
+		status.Reparent(show ? gameList.StatusSlot : content, false);
+		if (show) {
+			foreach (Node child in seatList.GetChildren()) {
+				child.QueueFree();
+			}
+			civPicker.Visible = false;
+			passwordPrompt.Visible = false;
+			gameList.Refresh();
 		}
-		Label searchingLabel = new() { Text = "Searching..." };
-		hostList.AddChild(searchingLabel);
-
-		// Hosts joined before are asked directly too, for one on a virtual
-		// network that the broadcast doesn't reach.
-		List<string> knownHosts = RecentLanHosts.Load();
-		if (LanSession.LastJoinedGame?.address is string lastAddress) {
-			knownHosts.Add(lastAddress);
-		}
-		List<FoundHost> hosts;
-		try {
-			hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5), knownHosts);
-		} catch (Exception e) when (e is System.Net.Sockets.SocketException or ObjectDisposedException) {
-			log.Warning("Couldn't look for LAN games: {Error}", e.Message);
-			hosts = [];
-		} finally {
-			searching = false;
-		}
-		if (!IsInstanceValid(hostList)) {
-			return;
-		}
-
-		foreach (Node child in hostList.GetChildren()) {
-			child.QueueFree();
-		}
-		if (hosts.Count == 0) {
-			hostList.AddChild(new Label { Text = "No games found yet. Check the host is in its lobby, or join by address (see the tips below)." });
-		}
-		foreach (FoundHost found in hosts) {
-			DiscoveryReply reply = found.reply;
-			bool sameVersion = reply.version == LanProtocol.Version;
-			string state = !sameVersion ? "running a different version of the game"
-				: (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
-			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
-			LanAddressEndpoint endpoint = new(found.address, reply.port);
-			Button join = MakeButton("Join", () => Connect(endpoint, false));
-			join.Disabled = reply.openSeats == 0 || !sameVersion;
-			Button watch = MakeButton("Watch", () => Connect(endpoint, true));
-			watch.Disabled = !sameVersion;
-			// The host of our last game may have moved to another address.
-			LanSession.LastGame last = LanSession.LastJoinedGame;
-			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
-				? MakeButton("Rejoin", () => Connect(endpoint, false, last.token))
-				: null;
-			string network = found.network != null ? $" ({found.network})" : "";
-			AddSeatRow(hostList, $"{reply.hostName} at {found.address}{network}: {state}, {seats}", join, watch, rejoin);
-		}
-	}
-
-	private void ConnectToAddress(bool watch) {
-		string text = addressEdit.Text.Trim();
-		if (text == "") {
-			return;
-		}
-		int port = LanProtocol.DefaultPort;
-		int colon = text.LastIndexOf(':');
-		if (colon > 0 && int.TryParse(text[(colon + 1)..], out int parsedPort)) {
-			port = parsedPort;
-			text = text[..colon];
-		}
-		Connect(new LanAddressEndpoint(text, port), watch);
 	}
 
 	// Joins the game with the code typed, through the relay.
@@ -1113,8 +997,8 @@ public partial class LanLobby : Control {
 			RecentLanHosts.Remember(joined.Address);
 		}
 		LanSession.BeginJoining(client);
+		ShowGameList(false);
 		status.Text = $"Connected to {endpoint.Description}. Waiting for the host...";
-		addressHelp.Visible = false;
 		ClearCivPicker();
 		civPicker.Visible = false;
 		LanSession.Client.LobbyChanged += ShowJoinedSeats;
@@ -1126,8 +1010,9 @@ public partial class LanLobby : Control {
 	private void ShowJoinedSeats() {
 		LanClient client = LanSession.Client;
 		if (client.RejectedReason != null) {
-			status.Text = client.RejectedReason;
 			passwordPrompt.Visible = false;
+			ShowGameList(true);
+			status.Text = client.RejectedReason;
 			return;
 		}
 		if (client.PasswordRequest is PasswordChallengeInfo challenge) {
@@ -1480,11 +1365,9 @@ public partial class LanLobby : Control {
 		if (client != null) {
 			client.Poll();
 			if (!client.IsConnected && client.StartingGame == null && client.RejectedReason == null) {
-				status.Text = "Lost the connection to the host.";
-				if (addressHelp != null) {
-					addressHelp.Visible = true;
-				}
 				LanSession.End();
+				ShowGameList(true);
+				status.Text = "Lost the connection to the host.";
 			}
 		}
 	}
