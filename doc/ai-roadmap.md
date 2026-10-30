@@ -112,6 +112,8 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - worker use;
   - war execution: artillery with stacks, defeat in detail, amphibious;
   - tech trading.
+- **Suede tip switches waiting for paired trials** (off by default; a tip is kept only if the trial numbers show it helps):
+  - `railroad-first` and `philosophy-first` (ZUR-33): +150 research value for Steam Power or Philosophy. Read `steamTurn`/`philTurn`, `techs`, `midtechs`, `beakers` and `score` at 300 turns.
 - **Live model trial**, with a key: compare the cost per game and the result against rules alone. Run trials one after another so the playbook builds up.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
 
