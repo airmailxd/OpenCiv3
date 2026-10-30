@@ -65,6 +65,7 @@
 
 	<nav aria-label="Versions">
 		<ul>
+			<li><a href="#v0.11.0">Version 0.11.0</a> <span class="muted">(October 29, 2026)</span></li>
 			<li><a href="#v0.10.2">Version 0.10.2</a> <span class="muted">(October 29, 2026)</span></li>
 			<li><a href="#v0.10.1">Version 0.10.1</a> <span class="muted">(October 29, 2026)</span></li>
 			<li><a href="#v0.10.0">Version 0.10.0</a> <span class="muted">(October 28, 2026)</span></li>
@@ -107,6 +108,29 @@
 		</ul>
 	</nav>
 	<p class="muted">A few words that come up a lot: <b>playing without Civ3</b> means playing on a computer that doesn't have the original Civilization III installed, using the game's own art and rules instead. The <b>Graphics Overhaul</b> is the game's own remade, sharper art for the map, which you can switch on or off in <kbd>Settings</kbd>. <b>Computer players</b> are the civilizations the game plays itself (the "AI").</p>
+
+	<h2 id="v0.11.0">Version 0.11.0 <span class="muted">(October 29, 2026)</span></h2>
+	<p>LAN and online games need everyone on 0.11.0.</p>
+	<p><b>Advanced computer players</b>:</p>
+	<ul>
+		<li>Choose <b>Standard</b> or <b>Advanced</b> for each computer player on the player setup and Multiplayer Setup screens. Your choice is remembered for the next game and for Quick Start, and kept in saved games. Older saves load with Standard players.</li>
+		<li>Standard plays like Civ3's computer players. Advanced plays with no advantages over you, whatever the difficulty, and can't see through the fog of war. It follows a strategy of its own that it keeps in the saved game.</li>
+		<li>With an Anthropic API key set, Claude reviews each Advanced player's strategy every 50 turns and adjusts it to the era and how the game is going.</li>
+		<li>Advanced players favor what each civilization builds often in Civ3 and avoid what it never builds.</li>
+	</ul>
+	<p><b>Cities</b>:</p>
+	<ul>
+		<li>Right-click a city to <b>Rename</b> it, or to <b>Set Rally Point</b>, <b>Set Continental Rally Point</b> and <b>Clear Continental Rally Point</b>, as in Civ3. New units head for the rally point.</li>
+		<li>The Palace button only shows when there's a palace to look at or one you can start.</li>
+	</ul>
+	<p>Computer players, checked against Civ3:</p>
+	<ul>
+		<li>They pay upkeep for their buildings, as in Civ3.</li>
+		<li>They don't plan a war on a civilization for 8 turns after making peace with it, and no longer declare war again in the same round they made peace.</li>
+		<li>They lean toward their favorite government and away from the one they shun.</li>
+		<li>They stop building workers once they have about 85 workers for every 100 cities.</li>
+		<li>Their war plans and other memories are kept in saved games, so a loaded game plays on as it would have.</li>
+	</ul>
 
 	<h2 id="v0.10.2">Version 0.10.2 <span class="muted">(October 29, 2026)</span></h2>
 	<ul>
