@@ -284,4 +284,18 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		gameData.SpawnUnit(player, worker, city.location);
 		Assert.Equal(int.MinValue, WorkerScore());
 	}
+
+	[Theory]
+	[InlineData("Steam Power", DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst)]
+	[InlineData("Philosophy", DevelopmentAI.PhilosophyFirst, DevelopmentAI.RailroadFirst)]
+	public void TheTechSwitchesRaiseOnlyTheirOwnTech(string techName, string own, string other) {
+		Tech tech = TechNamed(techName);
+		double off = DevelopmentAI.TechValue(gameData, player, tech, player.BeakersPerTurn());
+
+		AiExperiments.Enable(player, other);
+		Assert.Equal(off, DevelopmentAI.TechValue(gameData, player, tech, player.BeakersPerTurn()), 6);
+
+		AiExperiments.Enable(player, own);
+		Assert.Equal(off + DevelopmentAI.SwitchedTechBonus, DevelopmentAI.TechValue(gameData, player, tech, player.BeakersPerTurn()), 6);
+	}
 }

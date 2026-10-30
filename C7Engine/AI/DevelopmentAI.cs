@@ -20,6 +20,14 @@ namespace C7Engine.AI {
 		// for 11 cities by turn 200, and paid for most of them.
 		public const string LeanMilitary = "lean-military";
 
+		// Steam Power (railroads) and Philosophy (a free tech for the first
+		// to learn it) count for more when choosing research: a flat
+		// SwitchedTechBonus each. UNVERIFIED: the size; a guess, about a
+		// defender's worth.
+		public const string RailroadFirst = "railroad-first";
+		public const string PhilosophyFirst = "philosophy-first";
+		public const double SwitchedTechBonus = 150;
+
 		////////////////////////////////////////////////////////////////////
 		// lean-military
 
@@ -306,6 +314,13 @@ namespace C7Engine.AI {
 				if (terraform.RequiredTech == tech.id) {
 					flat += WorkerJob;
 				}
+			}
+
+			if (tech.Name == "Steam Power" && AiExperiments.Has(player, RailroadFirst)) {
+				flat += SwitchedTechBonus;
+			}
+			if (tech.Name == "Philosophy" && AiExperiments.Has(player, PhilosophyFirst)) {
+				flat += SwitchedTechBonus;
 			}
 
 			double value = perTurn / TurnsNeeded(gameData, player, tech, beakersPerTurn) + flat;

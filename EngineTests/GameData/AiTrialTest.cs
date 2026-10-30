@@ -266,6 +266,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// policy review's briefing at the end, in tokens (about 4
 			// characters each).
 			"plans", "briefTokens",
+			// The turn the civ learned Steam Power and Philosophy (the
+			// game's length if it never did).
+			"steamTurn", "philTurn",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -325,7 +328,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	// Per civ, how its development went over a game (see Measures).
 	private sealed class Development {
-		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
+		public int steamTurn, philTurn, city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
 		public int midCityStates, cityStateGold, workerTurnsOut, workerTurnsOutAlone;
 	}
 
@@ -614,10 +617,16 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		C7Engine.AI.Advanced.AdvancedAI.onPlan = p => { if (plans.ContainsKey(p)) { plans[p]++; } };
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
-		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { city5Turn = turns, city10Turn = turns, deathTurn = turns });
+		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns });
 		void RecordDevelopment(int turn) {
 			foreach (Player p in civs) {
 				Development d = development[p];
+				if (d.steamTurn == turns && p.knownTechs.Contains(gameData.techs.First(t => t.Name == "Steam Power").id)) {
+					d.steamTurn = turn;
+				}
+				if (d.philTurn == turns && p.knownTechs.Contains(gameData.techs.First(t => t.Name == "Philosophy").id)) {
+					d.philTurn = turn;
+				}
 				if (p.cities.Count >= 5 && d.city5Turn == turns) {
 					d.city5Turn = turn;
 				}
@@ -1047,6 +1056,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = plans[p];
 			m.values[i++] = p.IsAdvancedAi && !p.defeated
 				? C7Engine.AI.Advanced.PolicyReview.Briefing(p, gameData, C7Engine.AI.Advanced.PolicyReview.Snapshot(p, gameData)).Length / 4.0 : 0;
+			m.values[i++] = development[p].steamTurn;
+			m.values[i++] = development[p].philTurn;
 			return m;
 		}
 
