@@ -3,8 +3,10 @@
 
     python tools/advanced-ai-training/dashboard.py --out C:\\Dev\\ladder-runs\\ladder
 
-Reads state.json, log.md and the curated findings.md in --out, writes dashboard.html next to them
-(--html to override). Read-only on the ladder files. Standard library only.
+Reads state.json, log.md, the curated findings.md and heartbeat.json (written by
+train.py) in --out, writes dashboard.html next to them (--html to override).
+--watch [seconds] keeps rebuilding it (default 60). Read-only on the ladder
+files. Standard library only.
 """
 import argparse
 import html
@@ -20,6 +22,7 @@ from train import CIVS, DEFAULTS, RUNGS, spec, won  # noqa: E402
 HEADING = re.compile(r"^## (\w+), round (\d+) — knobs: (.*)$")
 HELD = re.compile(r"^- held-out (.+?): gain ([-+\d.]+)")
 E = html.escape
+STALE_AFTER = 180  # seconds without a heartbeat before the run counts as stopped
 
 
 def parse_log(text):
@@ -35,6 +38,30 @@ def parse_log(text):
         if m and cur:
             held[cur + (m.group(1),)] = float(m.group(2))
     return knobs, held
+
+
+def clock(t):
+    return time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime(t))
+
+
+def status(out, log_text, state_mtime, now):
+    """-> (running, text) from heartbeat.json; falls back to state.json time and log.md."""
+    try:
+        with open(os.path.join(out, "heartbeat.json"), encoding="utf-8") as f:
+            hb = json.load(f)
+    except (OSError, ValueError):
+        hb = None
+    lines = [l.strip() for l in log_text.splitlines() if l.strip()]
+    last = lines[-1] if lines else ""
+    why = f" — {last}" if last.startswith("Stopping:") else " — the ladder is done" if "ladder is done" in last else ""
+    if hb is None:
+        return False, f"Stopped (no heartbeat file; data last changed {clock(state_mtime)}){why}"
+    if hb.get("finished"):
+        return False, f"Stopped at {clock(hb['finished'])} (pid {hb.get('pid')} exited){why}"
+    if now - hb.get("beat", 0) > STALE_AFTER:
+        return False, f"Stopped (no heartbeat since {clock(hb.get('beat', 0))}; pid {hb.get('pid')} started {clock(hb.get('started', 0))})"
+    return True, (f"Running — pid {hb.get('pid')}, started {clock(hb.get('started', 0))}, "
+                  f"last heartbeat {clock(hb['beat'])}")
 
 
 def pct(x):
@@ -124,8 +151,10 @@ def findings_html(text):
     return "".join(out)
 
 
-def build(state, log_text, mtime, report=None, findings=""):
+def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "Stopped"), now=None):
     kn_by_round, held = parse_log(log_text)
+    now = time.time() if now is None else now
+    running, status_text = hb_status
     hist, exams = state.get("history", []), state.get("exams", [])
     cur_idx = state.get("rung", 0)
     cur_name = RUNGS[cur_idx][0] if cur_idx < len(RUNGS) else "finished"
@@ -159,7 +188,7 @@ def build(state, log_text, mtime, report=None, findings=""):
     parts = {"overview": f"""
 <div class="tiles"><div class="tile"><b>{E(cur_name)}</b><span>current difficulty</span></div>
 <div class="tile"><b>{len(hist)}</b><span>rounds run in total</span></div>
-<div class="tile"><b>{time.strftime('%Y-%m-%d %H:%M', time.localtime(mtime))}</b><span>last updated (state.json time)</span></div></div>
+<div class="tile"><b>{time.strftime('%Y-%m-%d %H:%M', time.localtime(mtime))}</b><span>data last changed (state.json time)</span></div></div>
 <h3>Current knobs <small>(highlighted = not the default)</small></h3><p>{nondef}</p>
 <p class="note">Changed from defaults: {E(spec(knobs) or "nothing")}</p>
 <h3>Best win rate per difficulty</h3>
@@ -210,10 +239,14 @@ def build(state, log_text, mtime, report=None, findings=""):
     parts["findings"] = findings_html(findings)
     nav = "".join(f'<button data-t="{i}"{" class=on" if k == 0 else ""}>{E(t)}</button>' for k, (t, i) in enumerate(tabs))
     body = "".join(f'<section id="{i}"{"" if k == 0 else " hidden"}><h2>{E(t)}</h2>{parts[i]}</section>' for k, (t, i) in enumerate(tabs))
-    return PAGE.replace("@NAV@", nav).replace("@BODY@", body)
+    head = (f'<div id="status" class="status {"run" if running else "stop"}">{E(status_text)}</div>'
+            f'<p class="note">Page built {E(clock(now))} <span id="ago" data-built="{now:.0f}"></span><br>'
+            f'Data last changed {E(clock(mtime))}</p>')
+    refresh = '<meta http-equiv="refresh" content="60">' if running else ""
+    return PAGE.replace("@REFRESH@", refresh).replace("@HEAD@", head).replace("@NAV@", nav).replace("@BODY@", body)
 
 
-PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Advanced AI training</title>
+PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Advanced AI training</title>@REFRESH@
 <meta name="viewport" content="width=device-width,initial-scale=1"><style>
 :root{--bg:#fff;--fg:#1f2430;--mut:#667;--line:#dde1e8;--acc:#2b6cb0;--ok:#1a7f4b;--bad:#b42318;--hot:#fff4d6}
 @media(prefers-color-scheme:dark){:root{--bg:#171a21;--fg:#e6e8ee;--mut:#9aa3b2;--line:#2c313c;--acc:#6aa6e8;--ok:#4cc38a;--bad:#f0786c;--hot:#4a3d10}}
@@ -226,11 +259,15 @@ h2{margin:8px 0}h3{margin:20px 0 6px;font-size:15px}small{color:var(--mut);font-
 table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
 th{color:var(--mut);font-weight:600}table.sort th{cursor:pointer}
 .chip{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin:2px}.chip.hot{background:var(--hot);font-weight:600}
+.status{font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--line);margin-bottom:6px}
+.status.run{color:var(--ok)}.status.stop{color:var(--bad)}.late{color:var(--bad);font-weight:600}
 .ok{color:var(--ok)}.bad{color:var(--bad)}.empty,.note{color:var(--mut)}
 svg{width:100%;max-width:640px;height:auto}.grid{stroke:var(--line)}.ax{fill:var(--mut);font-size:11px}
 .target{stroke:var(--bad);stroke-dasharray:5 4}.ln{fill:none;stroke:var(--acc);stroke-width:2}
 .pt{fill:var(--acc);stroke:var(--bg);stroke-width:2}.exam{fill:var(--bg);stroke:var(--fg);stroke-width:2.5}
-</style></head><body><h1>Advanced AI training</h1><nav>@NAV@</nav>@BODY@<script>
+</style></head><body><h1>Advanced AI training</h1>@HEAD@<nav>@NAV@</nav>@BODY@<script>
+(function(){var a=document.getElementById('ago');function f(){var m=Math.floor((Date.now()/1000-a.getAttribute('data-built'))/60);
+a.textContent='(updated '+(m<1?'less than 1':m)+' min ago'+(m>=3?' — page is stale':'')+')';a.className=m>=3?'late':''}f();setInterval(f,15000)})();
 var B=document.querySelectorAll('nav button'),S=document.querySelectorAll('section');
 B.forEach(function(b,i){b.onclick=function(){B.forEach(function(x,j){x.classList.toggle('on',i==j);S[j].hidden=i!=j})}});
 document.querySelectorAll('table.sort').forEach(function(t){t.querySelectorAll('th').forEach(function(th,c){var d=1;th.onclick=function(){d=-d;
@@ -241,24 +278,42 @@ rows.sort(function(a,b){var p=v(a),q=v(b);return (p>q?1:p<q?-1:0)*d});rows.forEa
 """
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True, help="ladder folder with state.json and log.md")
-    ap.add_argument("--html", help="output file (default: dashboard.html in --out)")
-    a = ap.parse_args()
-    sp = os.path.join(a.out, "state.json")
+def write_dashboard(out, html_path=None, now=None):
+    """Build the page from the files in `out`; temp file then os.replace, so a browser never reads half a page."""
+    now = time.time() if now is None else now
+    sp = os.path.join(out, "state.json")
     state = {}
     if os.path.exists(sp):  # a fresh ladder has no state.json until its first round ends
         with open(sp, encoding="utf-8") as f:
             state = json.load(f)
-    lp = os.path.join(a.out, "log.md")
+    lp = os.path.join(out, "log.md")
     log = open(lp, encoding="utf-8").read() if os.path.exists(lp) else ""
-    fp = os.path.join(a.out, "findings.md")
+    fp = os.path.join(out, "findings.md")
     findings = open(fp, encoding="utf-8").read() if os.path.exists(fp) else ""
-    out = a.html or os.path.join(a.out, "dashboard.html")
-    with open(out, "w", encoding="utf-8", newline="\n") as f:
-        f.write(build(state, log, os.path.getmtime(sp if os.path.exists(sp) else lp), latest_report(a.out), findings))
-    print(out)
+    mtime = os.path.getmtime(sp) if os.path.exists(sp) else os.path.getmtime(lp) if os.path.exists(lp) else now
+    path = html_path or os.path.join(out, "dashboard.html")
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        f.write(build(state, log, mtime, latest_report(out), findings, status(out, log, mtime, now), now))
+    os.replace(tmp, path)
+    return path
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True, help="ladder folder with state.json and log.md")
+    ap.add_argument("--html", help="output file (default: dashboard.html in --out)")
+    ap.add_argument("--watch", nargs="?", const=60, type=float, metavar="SECONDS",
+                    help="keep rebuilding every SECONDS (default 60) until stopped")
+    a = ap.parse_args()
+    while True:
+        print(write_dashboard(a.out, a.html), flush=True)
+        if a.watch is None:
+            break
+        try:
+            time.sleep(a.watch)
+        except KeyboardInterrupt:
+            break
 
 
 if __name__ == "__main__":

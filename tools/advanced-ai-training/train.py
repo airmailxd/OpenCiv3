@@ -21,6 +21,8 @@ Usage (from the repo root):
     python tools/advanced-ai-training/train.py --out <dir> --resume
 
 Results: <dir>/state.json (the knobs and every run) and <dir>/log.md.
+While it runs, <dir>/heartbeat.json says it is alive and <dir>/dashboard.html
+is rebuilt every --dashboard-every seconds (see dashboard.py).
 """
 import argparse
 import json
@@ -28,6 +30,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -166,6 +169,53 @@ def summary(r):
             f"Advanced won {won(r):.0%} of games (50% by chance)")
 
 
+class Monitor:
+    """Daemon thread: heartbeat.json every few seconds, dashboard.html every `every` seconds (0 = off)."""
+
+    def __init__(self, out, every):
+        self.out, self.every, self.started = out, every, time.time()
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+
+    def beat(self, **extra):
+        hb = {"pid": os.getpid(), "started": self.started, "beat": time.time(), **extra}
+        tmp = os.path.join(self.out, "heartbeat.json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(hb, f)
+        os.replace(tmp, os.path.join(self.out, "heartbeat.json"))
+
+    def rebuild(self):
+        try:
+            import dashboard
+            dashboard.write_dashboard(self.out)
+        except Exception as e:  # a dashboard fault never stops training
+            print(f"dashboard rebuild failed: {e!r}", flush=True)
+
+    def loop(self):
+        last = 0.0
+        while True:
+            try:
+                self.beat()
+            except OSError as e:
+                print(f"heartbeat failed: {e!r}", flush=True)
+            if self.every > 0 and time.time() - last >= self.every:
+                self.rebuild()
+                last = time.time()
+            if self.stop.wait(min(15, self.every) if self.every > 0 else 15):
+                return
+
+    def start(self):
+        self.beat()
+        self.thread.start()
+
+    def finish(self, error=None):
+        self.stop.set()
+        self.thread.join(5)
+        self.beat(finished=time.time(), **({"error": error} if error else {}))
+        if self.every > 0:
+            self.rebuild()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -178,8 +228,22 @@ def main():
     ap.add_argument("--targets", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "suede-benchmarks.md"),
                     help="Suede's figures for the benchmarks report (see benchmarks.py)")
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung")
+    ap.add_argument("--dashboard-every", type=int, default=60, help="seconds between dashboard rebuilds, 0 = off")
     args = ap.parse_args()
     os.makedirs(os.path.join(args.out, "runs"), exist_ok=True)
+    monitor = Monitor(args.out, args.dashboard_every)
+    monitor.start()
+    error = None
+    try:
+        ladder(args)
+    except BaseException as e:
+        error = repr(e)
+        raise
+    finally:
+        monitor.finish(error)
+
+
+def ladder(args):
 
     state_path = os.path.join(args.out, "state.json")
     if args.resume and os.path.exists(state_path):
