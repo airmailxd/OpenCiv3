@@ -125,6 +125,31 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		}
 	}
 
+	// republic-route: while in Despotism and before anyone has Philosophy,
+	// the techs to Philosophy count for more; with a free tech due, Republic.
+	[Fact]
+	public void RepublicRouteRaisesPhilosophyTechsThenRepublic() {
+		Assert.Empty(GovernmentAI.RepublicRoutePath(player, gameData));
+		AiExperiments.Enable(player, GovernmentAI.RepublicRoute);
+		HashSet<Tech> path = GovernmentAI.RepublicRoutePath(player, gameData);
+		Assert.Contains(TechNamed("Philosophy"), path);
+		Assert.Contains(TechNamed("Writing"), path);
+		Tech republic = gameData.techs.First(t => t.id == gameData.governments.First(g => g.name == "Republic").prerequisiteTech);
+		Assert.DoesNotContain(republic, path);
+
+		player.freeTechsRemaining = 1;
+		path = GovernmentAI.RepublicRoutePath(player, gameData);
+		Assert.Equal([republic], path);
+	}
+
+	[Fact]
+	public void RepublicRouteEndsOnceAnotherCivHasPhilosophy() {
+		AiExperiments.Enable(player, GovernmentAI.RepublicRoute);
+		Player rival = gameData.players.First(p => p != player && !p.IsIndependent);
+		rival.knownTechs.Add(TechNamed("Philosophy").id);
+		Assert.Empty(GovernmentAI.RepublicRoutePath(player, gameData));
+	}
+
 	[Fact]
 	public void EarlyGovernmentEndsOnceAGovernmentIsKnown() {
 		AiExperiments.Enable(player, GovernmentAI.EarlyGovernment);

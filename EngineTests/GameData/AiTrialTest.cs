@@ -353,6 +353,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The turn the phase-plan script's first war began (the game's
 			// length if it never did).
 			"firstWar",
+			// 1 if the civ ends in Republic (the republic-route's goal).
+			"endRepublic",
 		];
 
 		public readonly double[] values = new double[Names.Length];
@@ -1552,6 +1554,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.techGold;
 			m.values[i++] = 10.0 * kills[p] / Math.Max(1, unitsLost[p]);
 			m.values[i++] = p.gamePhase is { firstWarTurn: >= 0 } phaseState ? phaseState.firstWarTurn : turns;
+			m.values[i++] = p.government?.name == "Republic" ? 1 : 0;
 			return m;
 		}
 

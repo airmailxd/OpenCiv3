@@ -121,6 +121,38 @@ namespace C7Engine.AI {
 			return best == null ? new HashSet<Tech>() : path;
 		}
 
+		// Suede's route (ZUR-130): Code of Law and Philosophy first, then
+		// Philosophy's free tech on Republic (the first civ to learn
+		// Philosophy picks any researchable tech free; Republic needs Code
+		// of Laws and Literacy, which the route has by then). With the
+		// switch on, while in Despotism and before anyone has Philosophy,
+		// the techs still to learn for Philosophy count for more; when a
+		// free tech is due, Republic's does. The revolt itself stays with
+		// early-government.
+		public const string RepublicRoute = "republic-route";
+		public const double RepublicRouteBonus = 400;
+
+		internal static HashSet<Tech> RepublicRoutePath(Player player, GameData gameData) {
+			HashSet<Tech> path = new();
+			if (!AiExperiments.Has(player, RepublicRoute) || player.government == null || !player.government.hasTilePenalty) {
+				return path;
+			}
+			Government republic = gameData.governments.Find(g => g.name == "Republic");
+			Tech republicTech = republic == null || !gameData.rules.AllowsGovernment(republic) ? null : gameData.techs.Find(t => t.id == republic.prerequisiteTech);
+			Tech philosophy = gameData.techs.Find(t => t.Name == "Philosophy");
+			if (republicTech == null || philosophy == null || player.HasTech(republicTech.id)) {
+				return path;
+			}
+			if (player.freeTechsRemaining > 0) {
+				path.Add(republicTech);
+				return path;
+			}
+			if (player.IsFirstToLearn(gameData, philosophy) && !player.HasTech(philosophy.id)) {
+				AddMissing(player, philosophy, path);
+			}
+			return path;
+		}
+
 		private static void AddMissing(Player player, Tech tech, HashSet<Tech> missing) {
 			if (tech == null || player.HasTech(tech.id) || !missing.Add(tech)) {
 				return;

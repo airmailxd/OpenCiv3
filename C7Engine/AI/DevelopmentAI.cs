@@ -335,6 +335,9 @@ namespace C7Engine.AI {
 			value = tech.RequiredForEraAdvancement ? value : value / OptionalDivisor;
 			// After the divisor: the way out of Despotism is wanted whether
 			// or not the era needs it.
+			if (GovernmentAI.RepublicRoutePath(player, gameData).Contains(tech)) {
+				value += GovernmentAI.RepublicRouteBonus;
+			}
 			return GovernmentAI.EarlyGovernmentPath(player, gameData).Contains(tech) ? value + GovernmentAI.EarlyGovernmentBonus : value;
 		}
 
