@@ -155,6 +155,40 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private int stateSeed;
 	private string stateRun = "main";
 
+	// <C7_TRIAL_OUT>.progress.json: where the trial is, rewritten after every turn.
+	private string progressPath;
+	private int progressGames, progressTurnLimit, progressTurn;
+	private bool progressPaired;
+	private readonly List<Dictionary<string, object>> progressFinished = new();
+
+	private void WriteProgress(bool complete) {
+		if (string.IsNullOrEmpty(progressPath)) {
+			return;
+		}
+		var doc = new Dictionary<string, object> {
+			["games"] = progressGames, ["turnLimit"] = progressTurnLimit, ["paired"] = progressPaired,
+			["updated"] = DateTimeOffset.Now.ToString("yyyy-MM-dd'T'HH:mm:sszzz"),
+			["playing"] = complete ? null : new Dictionary<string, object> { ["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = progressTurn },
+			["finished"] = progressFinished,
+			["complete"] = complete,
+		};
+		string tmp = progressPath + ".tmp";
+		// A viewer reading the file can block the move on Windows; skip this
+		// turn rather than stop the trial.
+		try {
+			File.WriteAllText(tmp, JsonSerializer.Serialize(doc));
+			File.Move(tmp, progressPath, true);
+		} catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) {
+		}
+	}
+
+	private void FinishRun(string result) {
+		progressFinished.Add(new Dictionary<string, object> {
+			["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["endTurn"] = progressTurn, ["result"] = result,
+		});
+		WriteProgress(false);
+	}
+
 	public AiTrialTest(SaveGameFixture fixture, ITestOutputHelper output) {
 		this.fixture = fixture;
 		this.output = output;
@@ -594,6 +628,37 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// A short run: the progress file is written, parses and ends complete.
+	[Fact]
+	public async Task ProgressFileIsWritten() {
+		string dir = Path.Combine(Path.GetTempPath(), "c7trial" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(dir);
+		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS"];
+		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
+		try {
+			string outFile = Path.Combine(dir, "out.txt");
+			string[] values = [outFile, "2", "40", "4", "5", "cheap-maintenance"];
+			for (int i = 0; i < names.Length; ++i) {
+				Environment.SetEnvironmentVariable(names[i], values[i]);
+			}
+			await CompareAiWithAndWithoutExperiments();
+
+			using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(outFile + ".progress.json"));
+			JsonElement root = doc.RootElement;
+			Assert.Equal(2, root.GetProperty("games").GetInt32());
+			Assert.Equal(5, root.GetProperty("turnLimit").GetInt32());
+			Assert.True(root.GetProperty("complete").GetBoolean());
+			Assert.Equal(JsonValueKind.Null, root.GetProperty("playing").ValueKind);
+			Assert.Equal(2, root.GetProperty("finished").GetArrayLength());
+			Assert.False(File.Exists(outFile + ".progress.json.tmp"));
+		} finally {
+			for (int i = 0; i < names.Length; ++i) {
+				Environment.SetEnvironmentVariable(names[i], saved[i]);
+			}
+			Directory.Delete(dir, true);
+		}
+	}
+
 	[Fact]
 	public async Task CompareAiWithAndWithoutExperiments() {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
@@ -670,6 +735,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Stopwatch total = Stopwatch.StartNew();
 		string jsonPath = Environment.GetEnvironmentVariable("C7_TRIAL_JSON");
 		List<int> gameSeeds = new();
+		progressPath = string.IsNullOrEmpty(outPath) ? null : outPath + ".progress.json";
+		progressGames = games;
+		progressTurnLimit = turns;
+		progressPaired = paired;
+		progressFinished.Clear();
 		void WriteJson() {
 			if (string.IsNullOrEmpty(jsonPath)) {
 				return;
@@ -723,9 +793,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			stateGame = game;
 			stateSeed = seed;
 			stateRun = "main";
+			progressTurn = 0;
 			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
 				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2,
 					advanced: Setting("C7_TRIAL_ADVANCED", 0) != 0);
+			int firstIndex = Array.IndexOf(Measures.Names, "first");
+			FinishRun(trial.Any(x => x.values[firstIndex] == 1) ? "won" : "lost");
 			foreach ((Player p, List<(string name, int turns)> list) in wonders.completed) {
 				bool isTrial = trialCivs.Contains(p);
 				foreach ((string name, int t) in list) {
@@ -746,8 +819,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				// The same game with every civ playing as it does now: how the
 				// trial half fares anyway.
 				stateRun = "paired-baseline";
+				progressTurn = 0;
 				(List<Measures> baseTrial, List<Measures> baseOthers, _, _, _) =
 					await PlayGame(NewSave(size, civs, seed, difficulty, landform), [], turns, trialHalf: game % 2);
+				FinishRun("done");
 				for (int m = 0; m < Measures.Names.Length; ++m) {
 					double t = baseTrial.Average(x => x.values[m]);
 					double o = baseOthers.Average(x => x.values[m]);
@@ -776,6 +851,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			WriteJson();
 		}
 
+		WriteProgress(true);
 		lines.Add("");
 		lines.Add(paired
 			? "measure: trial civs vs the same civs without the switches (average per civ), difference net of the others' +- standard error over games"
@@ -1295,6 +1371,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				if ((turn + 1) % mapEvery == 0 || turn + 1 == turns || gameData.gameOver) {
 					MapFrame(turn + 1);
 				}
+				progressTurn = turn + 1;
+				WriteProgress(false);
 				if (listTide && RisingTide.IsOn(gameData)) {
 					TraceTide(gameData, civs);
 				}
