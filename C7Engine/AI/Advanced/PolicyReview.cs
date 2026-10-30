@@ -27,17 +27,58 @@ namespace C7Engine.AI.Advanced {
 		public const int MaxStepsPerChange = 2;
 
 		// How the civ stood when a review was asked for, for the record.
-		private static readonly ConditionalWeakTable<Player, PolicySnapshot> askedAt = new();
+		private sealed record Asked(PolicySnapshot standing, string briefing);
+		private static readonly ConditionalWeakTable<Player, Asked> askedAt = new();
+
+		// What one review saw and did, for the log of every review.
+		public sealed class ReviewEvent {
+			public string civ { get; set; }
+			public int turn { get; set; }
+			public PolicySnapshot situation { get; set; }
+			// The briefing the model was sent (null for a replayed review).
+			public string briefing { get; set; }
+			public Dictionary<string, double> knobsBefore { get; set; }
+			public Dictionary<string, double> knobsAfter { get; set; }
+			// Only the knobs that changed, name to new value.
+			public Dictionary<string, double> changes { get; set; }
+			public string rationale { get; set; }
+			public string notes { get; set; }
+			public string lesson { get; set; }
+			public long inputTokens { get; set; }
+			public long outputTokens { get; set; }
+			public bool replayed { get; set; }
+		}
+
+		// Told of every review as it is adopted; a trial writes them to its
+		// state log and JSON. Null otherwise.
+		public static Action<ReviewEvent> onReview;
+
+		// For replaying a recorded game's reviews without the model (a trial's
+		// C7_TRIAL_POLICY_REPLAY): the changes recorded for this civ on this
+		// turn, or null if it had no review then.
+		public static Func<Player, int, Dictionary<string, double>> replay;
 
 		// Early in an Advanced AI's turn: adopts a review that has come in,
 		// and asks for one when it is due.
 		public static void PlayTurn(Player player, GameData gameData) {
+			if (replay != null) {
+				if (Due(player, gameData) && replay(player, gameData.turn) is Dictionary<string, double> recorded) {
+					Answer answer = new();
+					foreach ((string name, double value) in recorded) {
+						if (AdvancedTuning.IsKnob(name) && Math.Abs(AdvancedTuning.Clamp(name, value) - AdvancedTuning.Get(player, name)) > 1e-9) {
+							answer.changes[name] = AdvancedTuning.Clamp(name, value);
+						}
+					}
+					Adopt(player, gameData, answer, Snapshot(player, gameData), replayed: true);
+				}
+				return;
+			}
 			if (!ModelPlanner.Available) {
 				return;
 			}
-			string answer = ModelPlanner.TakeAnswer(player);
-			if (answer != null && askedAt.TryGetValue(player, out PolicySnapshot standing)) {
-				Adopt(player, gameData, Parse(answer, player), standing);
+			string reply = ModelPlanner.TakeAnswer(player);
+			if (reply != null && askedAt.TryGetValue(player, out Asked asked)) {
+				Adopt(player, gameData, Parse(reply, player), asked.standing, asked.briefing);
 			}
 			if (Due(player, gameData) && !ModelPlanner.Waiting(player)) {
 				Ask(player, gameData);
@@ -51,13 +92,14 @@ namespace C7Engine.AI.Advanced {
 		public static bool Due(Player player, GameData gameData) {
 			int last = player.advancedPolicy?.reviews.LastOrDefault()?.turn ?? 0;
 			return gameData.turn >= ReviewEveryTurns && gameData.turn - last >= ReviewEveryTurns
-				&& !(askedAt.TryGetValue(player, out PolicySnapshot s) && ModelPlanner.Waiting(player));
+				&& !(askedAt.TryGetValue(player, out Asked _) && ModelPlanner.Waiting(player));
 		}
 
 		private static void Ask(Player player, GameData gameData) {
 			PolicySnapshot standing = Snapshot(player, gameData);
-			askedAt.AddOrUpdate(player, standing);
-			ModelPlanner.Ask(player, Instructions, Briefing(player, gameData, standing), Schema());
+			string briefing = Briefing(player, gameData, standing);
+			askedAt.AddOrUpdate(player, new Asked(standing, briefing));
+			ModelPlanner.Ask(player, Instructions, briefing, Schema());
 		}
 
 		public static PolicySnapshot Snapshot(Player player, GameData gameData) {
@@ -246,7 +288,7 @@ namespace C7Engine.AI.Advanced {
 
 		// Applies a review: records how the last one turned out (in the
 		// playbook too), then the new changes; the rules re-plan next turn.
-		public static void Adopt(Player player, GameData gameData, Answer answer, PolicySnapshot standing) {
+		public static void Adopt(Player player, GameData gameData, Answer answer, PolicySnapshot standing, string briefing = null, bool replayed = false) {
 			if (answer == null) {
 				return;
 			}
@@ -264,6 +306,7 @@ namespace C7Engine.AI.Advanced {
 					lesson = last.lesson,
 				});
 			}
+			Dictionary<string, double> before = AdvancedTuning.Knobs.ToDictionary(k => k.name, k => AdvancedTuning.Get(player, k.name));
 			foreach ((string name, double value) in answer.changes) {
 				policy.knobs[name] = value;
 			}
@@ -278,6 +321,15 @@ namespace C7Engine.AI.Advanced {
 			if (player.strategicPlan != null) {
 				player.strategicPlan.expiresTurn = gameData.turn;
 			}
+			(long tokensIn, long tokensOut) = replayed ? (0, 0) : ModelPlanner.LastUsage(player);
+			onReview?.Invoke(new ReviewEvent {
+				civ = player.civilization.name, turn = gameData.turn, situation = standing, briefing = briefing,
+				knobsBefore = before,
+				knobsAfter = AdvancedTuning.Knobs.ToDictionary(k => k.name, k => AdvancedTuning.Get(player, k.name)),
+				changes = new Dictionary<string, double>(answer.changes),
+				rationale = answer.rationale, notes = answer.notes, lesson = answer.lesson,
+				inputTokens = tokensIn, outputTokens = tokensOut, replayed = replayed,
+			});
 			log.Information("{Player} reviewed its policy on turn {Turn}: {Changes}. {Why}", player, gameData.turn,
 				Changes(answer.changes), answer.rationale);
 		}

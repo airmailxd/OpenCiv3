@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7Engine.AI;
@@ -305,5 +306,59 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.False(ModelPlanner.Waiting(player));
 		Assert.Null(player.advancedPolicy);
 		Assert.Equal("rules", player.strategicPlan.source);
+	}
+
+	[Fact]
+	public void AKeyAloneDoesNotTurnTheModelOn() {
+		try {
+			ModelPlanner.apiKey = "sk-test";
+			ModelPlanner.enabled = false;
+			Assert.False(ModelPlanner.Available);
+			player.aiType = AiType.Advanced;
+			gameData.turn = PolicyReview.ReviewEveryTurns;
+			PolicyReview.PlayTurn(player, gameData);
+			Assert.False(ModelPlanner.Waiting(player));
+			ModelPlanner.enabled = true;
+			Assert.True(ModelPlanner.Available);
+		} finally {
+			ModelPlanner.apiKey = null;
+			ModelPlanner.enabled = false;
+		}
+	}
+
+	[Fact]
+	public void EveryReviewIsReportedWithKnobsBeforeAndAfter() {
+		player.aiType = AiType.Advanced;
+		List<PolicyReview.ReviewEvent> seen = new();
+		PolicyReview.onReview = seen.Add;
+		try {
+			PolicyReview.Adopt(player, gameData, PolicyReview.Parse(
+				"""{"changes": [{"knob": "ExpandSettlers", "value": 95}], "rationale": "r", "notes": "n", "lesson": "l"}""", player),
+				PolicyReview.Snapshot(player, gameData));
+		} finally {
+			PolicyReview.onReview = null;
+		}
+		PolicyReview.ReviewEvent e = Assert.Single(seen);
+		Assert.Equal(player.civilization.name, e.civ);
+		Assert.Equal(85, e.knobsBefore["ExpandSettlers"]);
+		Assert.Equal(95, e.knobsAfter["ExpandSettlers"]);
+		Assert.Equal(95, e.changes["ExpandSettlers"]);
+		Assert.Equal("r", e.rationale);
+	}
+
+	[Fact]
+	public void ARecordedReviewReplaysWithNoModel() {
+		player.aiType = AiType.Advanced;
+		gameData.turn = PolicyReview.ReviewEveryTurns;
+		PolicyReview.replay = (p, turn) => p == player && turn == PolicyReview.ReviewEveryTurns
+			? new Dictionary<string, double> { ["ExpandSettlers"] = 75, ["Teleporters"] = 3 } : null;
+		try {
+			PolicyReview.PlayTurn(player, gameData);
+		} finally {
+			PolicyReview.replay = null;
+		}
+		Assert.Equal(75, AdvancedTuning.Get(player, "ExpandSettlers"));
+		Assert.Single(player.advancedPolicy.reviews);
+		Assert.False(ModelPlanner.Waiting(player));
 	}
 }

@@ -12,8 +12,10 @@ using Serilog;
 
 namespace C7Engine.AI.Advanced {
 	// The Advanced AI's line to Claude, used by its policy reviews (see
-	// PolicyReview). Without an API key nothing is sent and the Advanced AI
-	// plays by its rules and the trained policy alone.
+	// PolicyReview). Off by default: only with the switch (enabled) on AND
+	// an API key is anything sent; otherwise the Advanced AI plays by its
+	// rules and the trained policy alone. (A paired trial found the model's
+	// advice made the Advanced AI worse, so a key alone no longer turns it on.)
 	//
 	// The game doesn't wait on an answer (but see waitForAnswers): a request
 	// runs in the background and its answer is picked up on a later turn.
@@ -27,18 +29,29 @@ namespace C7Engine.AI.Advanced {
 		// an AI trial that asks for the model (C7_TRIAL_MODEL). Nothing else
 		// sets it, so tests never make paid calls.
 		public static string apiKey;
+		// The switch; off unless the player (Settings -> Advanced AI) or a
+		// trial (C7_TRIAL_MODEL) turns it on.
+		public static bool enabled;
 		public static string model = DefaultModel;
 		public static Effort effort = Effort.Medium;
 		// AI trials play hundreds of turns a minute, so an answer would land
 		// long after the turn it was asked on; they wait for it instead.
 		public static bool waitForAnswers;
 
-		public static bool Available => !string.IsNullOrWhiteSpace(apiKey);
+		public static bool Available => enabled && !string.IsNullOrWhiteSpace(apiKey);
 
 		// Lets AI trials total up calls and tokens. Null outside a trial.
 		internal static Action<long, long> onUsage;
 
 		private static readonly ConditionalWeakTable<Player, Task<string>> pending = new();
+
+		// Tokens (in, out) of the call whose answer was last taken, for the
+		// review log.
+		private sealed class Usage { public long input, output; }
+		private static readonly ConditionalWeakTable<Player, Usage> usage = new();
+
+		public static (long input, long output) LastUsage(Player player) =>
+			usage.TryGetValue(player, out Usage u) ? (u.input, u.output) : (0, 0);
 
 		public static bool Waiting(Player player) => pending.TryGetValue(player, out Task<string> t) && !t.IsCompleted;
 
@@ -52,7 +65,9 @@ namespace C7Engine.AI.Advanced {
 			string key = apiKey;
 			string modelName = model;
 			Effort level = effort;
-			pending.AddOrUpdate(player, Task.Run(() => Call(key, modelName, level, civ, system, user, schema)));
+			Usage used = new();
+			usage.AddOrUpdate(player, used);
+			pending.AddOrUpdate(player, Task.Run(() => Call(key, modelName, level, civ, system, user, schema, used)));
 		}
 
 		// The answer to this player's last request, if it has come (or, with
@@ -72,7 +87,7 @@ namespace C7Engine.AI.Advanced {
 		}
 
 		private static async Task<string> Call(string key, string modelName, Effort level, string civ, string system, string user,
-				Dictionary<string, JsonElement> schema) {
+				Dictionary<string, JsonElement> schema, Usage used) {
 			Stopwatch watch = Stopwatch.StartNew();
 			try {
 				AnthropicClient client = new() { ApiKey = key };
@@ -83,6 +98,8 @@ namespace C7Engine.AI.Advanced {
 					OutputConfig = new OutputConfig { Effort = level, Format = new JsonOutputFormat { Schema = schema } },
 					Messages = [new UserMessageParam { Content = user }],
 				});
+				used.input = response.Usage.InputTokens;
+				used.output = response.Usage.OutputTokens;
 				onUsage?.Invoke(response.Usage.InputTokens, response.Usage.OutputTokens);
 				log.Information("Model call for {Civ}: {Ms} ms, {In} in / {Out} out tokens", civ, watch.ElapsedMilliseconds,
 					response.Usage.InputTokens, response.Usage.OutputTokens);

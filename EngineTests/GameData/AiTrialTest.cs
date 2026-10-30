@@ -57,7 +57,17 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_MODEL        1 for Advanced civs to have Claude review their
 //                         policy every 50 turns (needs ANTHROPIC_API_KEY;
 //                         each call is billed); C7_TRIAL_MODEL_NAME picks
-//                         the model, C7_TRIAL_PLAYBOOK the playbook file
+//                         the model, C7_TRIAL_PLAYBOOK the playbook file.
+//                         This is the trial's only switch for the model: a
+//                         key alone does nothing. Every review is written
+//                         as a "review" line to C7_TRIAL_STATE and under
+//                         "reviews" in C7_TRIAL_JSON: civ, turn, the
+//                         situation, the briefing sent, the knobs before and
+//                         after, the changes, rationale and tokens
+//   C7_TRIAL_POLICY_REPLAY a file of "review" lines from an earlier run's
+//                         C7_TRIAL_STATE: each Advanced civ then applies the
+//                         changes recorded for its (seed, civ, turn) at the
+//                         same turns, with no model and no cost
 //   C7_ADVANCED_TUNING    the Advanced AI's knobs, "name=value,..." (see
 //                         AdvancedTuning)
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
@@ -489,6 +499,26 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		});
 	}
 
+	// The changes recorded in "review" lines of an earlier run's state log,
+	// for C7_TRIAL_POLICY_REPLAY, found by (seed, civ, turn).
+	public static Func<Player, int, Dictionary<string, double>> LoadReplay(string path, Func<int> seed) {
+		Dictionary<(int, string, int), Dictionary<string, double>> recorded = new();
+		foreach (string line in File.ReadLines(path)) {
+			if (!line.Contains("\"review\"")) {
+				continue;
+			}
+			using JsonDocument doc = JsonDocument.Parse(line);
+			JsonElement r = doc.RootElement;
+			if (!r.TryGetProperty("type", out JsonElement type) || type.GetString() != "review"
+					|| (r.TryGetProperty("run", out JsonElement run) && run.GetString() != "main")) {
+				continue;
+			}
+			recorded[(r.GetProperty("seed").GetInt32(), r.GetProperty("civ").GetString(), r.GetProperty("turn").GetInt32())] =
+				r.GetProperty("changes").EnumerateObject().ToDictionary(c => c.Name, c => c.Value.GetDouble());
+		}
+		return (player, turn) => recorded.GetValueOrDefault((seed(), player.civilization.name, turn));
+	}
+
 	[Fact]
 	public async Task CompareAiWithAndWithoutExperiments() {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
@@ -507,6 +537,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		// policy every 50 turns, with ANTHROPIC_API_KEY (billed per call),
 		// waiting for each answer; otherwise rules only.
 		bool useModel = Setting("C7_TRIAL_MODEL", 0) != 0;
+		C7Engine.AI.Advanced.ModelPlanner.enabled = useModel;
 		C7Engine.AI.Advanced.ModelPlanner.apiKey = useModel ? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") : null;
 		C7Engine.AI.Advanced.ModelPlanner.waitForAnswers = true;
 		C7Engine.AI.Advanced.ModelPlanner.model = Environment.GetEnvironmentVariable("C7_TRIAL_MODEL_NAME") ?? C7Engine.AI.Advanced.ModelPlanner.DefaultModel;
@@ -517,6 +548,23 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			System.Threading.Interlocked.Add(ref modelIn, i);
 			System.Threading.Interlocked.Add(ref modelOut, o);
 		};
+		List<object> reviewDocs = new();
+		string reviewStatePath = Environment.GetEnvironmentVariable("C7_TRIAL_STATE");
+		C7Engine.AI.Advanced.PolicyReview.onReview = e => {
+			Dictionary<string, object> row = new() {
+				["type"] = "review", ["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = e.turn,
+				["civ"] = e.civ, ["situation"] = e.situation, ["briefing"] = e.briefing,
+				["knobsBefore"] = e.knobsBefore, ["knobsAfter"] = e.knobsAfter, ["changes"] = e.changes,
+				["rationale"] = e.rationale, ["notes"] = e.notes, ["lesson"] = e.lesson,
+				["inputTokens"] = e.inputTokens, ["outputTokens"] = e.outputTokens, ["replayed"] = e.replayed,
+			};
+			reviewDocs.Add(row);
+			if (!string.IsNullOrEmpty(reviewStatePath)) {
+				File.AppendAllLines(reviewStatePath, [JsonSerializer.Serialize(row)]);
+			}
+		};
+		string replayPath = Environment.GetEnvironmentVariable("C7_TRIAL_POLICY_REPLAY");
+		C7Engine.AI.Advanced.PolicyReview.replay = string.IsNullOrEmpty(replayPath) ? null : LoadReplay(replayPath, () => stateSeed);
 		string[] experiments = (Environment.GetEnvironmentVariable("C7_TRIAL_EXPERIMENTS") ?? "")
 			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 		int games = Setting("C7_TRIAL_GAMES", 8);
@@ -590,6 +638,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					["differences"] = Measures.Names.Select((name, m) => (name, v: d[m])).ToDictionary(x => x.name, x => x.v),
 				}).ToList(),
 				["summary"] = summary,
+				["reviews"] = reviewDocs,
 			};
 			File.WriteAllText(jsonPath, JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true }));
 		}

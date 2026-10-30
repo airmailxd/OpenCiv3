@@ -347,6 +347,20 @@ public partial class SettingsMenu : Control {
 	private void AddAdvancedAiSettings(VBoxContainer column) {
 		column.AddChild(MakeHeading("Advanced AI"));
 
+		Civ3Checkbox review = new() {
+			Text = "Model review (experimental)",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = AdvancedAiSettings.ModelReview,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		review.Toggled += (bool on) => {
+			PlayClick();
+			AdvancedAiSettings.ModelReview = on;
+			log.Information("Advanced AI model review turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(review);
+
 		LineEdit key = new() {
 			Text = AdvancedAiSettings.ApiKey,
 			Secret = true,
@@ -379,9 +393,10 @@ public partial class SettingsMenu : Control {
 		column.AddChild(MakeRow("Model", model, new Control()));
 
 		column.AddChild(MakeNote(
-			"Every 50 turns, each computer player set to Advanced AI asks Claude to review how it plays, using this " +
-			"key, and keeps playing while it waits. What the reviews learn is kept in AdvancedAiPlaybook.jsonl for later " +
-			"games. Each call is billed to the key (about 8 a game per Advanced player). With no key, Advanced players " +
+			"Off by default: in trials, Claude's advice made the Advanced AI play worse, so a key alone does nothing. " +
+			"With Model review on, every 50 turns each computer player set to Advanced AI asks Claude to review how it " +
+			"plays, using this key, and keeps playing while it waits. What the reviews learn is kept in AdvancedAiPlaybook.jsonl for later " +
+			"games. Each call is billed to the key (about 8 a game per Advanced player). With it off or no key, Advanced players " +
 			"play by their built-in rules. The key is saved in C7.ini as plain text. Takes effect for the next game you " +
 			"start or load."));
 	}
