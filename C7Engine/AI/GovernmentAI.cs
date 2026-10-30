@@ -123,11 +123,11 @@ namespace C7Engine.AI {
 
 		// Suede's route (ZUR-130): Code of Law and Philosophy first, then
 		// Philosophy's free tech on Republic (the first civ to learn
-		// Philosophy picks any researchable tech free; Republic needs Code
-		// of Laws and Literacy, which the route has by then). With the
-		// switch on, while in Despotism and before anyone has Philosophy,
-		// the techs still to learn for Philosophy count for more; when a
-		// free tech is due, Republic's does. The revolt itself stays with
+		// Philosophy picks any researchable tech free, so Republic must be
+		// researchable then). With the switch on, while in Despotism and
+		// before anyone has Philosophy, the techs still to learn for
+		// Philosophy and for Republic's prerequisites count for more; when
+		// a free tech is due, Republic's does. The revolt itself stays with
 		// early-government.
 		public const string RepublicRoute = "republic-route";
 		public const double RepublicRouteBonus = 400;
@@ -149,6 +149,9 @@ namespace C7Engine.AI {
 			}
 			if (player.IsFirstToLearn(gameData, philosophy) && !player.HasTech(philosophy.id)) {
 				AddMissing(player, philosophy, path);
+				foreach (Tech prereq in republicTech.Prerequisites) {
+					AddMissing(player, prereq, path);
+				}
 			}
 			return path;
 		}

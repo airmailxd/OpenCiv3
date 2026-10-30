@@ -136,6 +136,12 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		Assert.Contains(TechNamed("Writing"), path);
 		Tech republic = gameData.techs.First(t => t.id == gameData.governments.First(g => g.name == "Republic").prerequisiteTech);
 		Assert.DoesNotContain(republic, path);
+		Assert.Contains(TechNamed("Code of Laws"), path);
+		foreach (Tech prereq in republic.Prerequisites) {
+			if (!player.HasTech(prereq.id)) {
+				Assert.Contains(prereq, path);
+			}
+		}
 
 		player.freeTechsRemaining = 1;
 		path = GovernmentAI.RepublicRoutePath(player, gameData);
