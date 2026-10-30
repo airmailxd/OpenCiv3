@@ -92,14 +92,14 @@ namespace C7Engine.AI {
 				&& HasCityNear(player, them) && Beats(player, them);
 		}
 
-		// Whether the unit's type is the best attack per shield among the
-		// land attackers the civ can build.
+		// Attack points per shield of the unit (0 if it has no cost); callers compare it with
+		// the best among the land attackers the civ can build.
 		public static float AttackPerShield(UnitPrototype unit) {
 			return unit.shieldCost > 0 ? (float)unit.attack / unit.shieldCost : 0;
 		}
 
 		// The best attack per shield among the land attackers the civ can
-		// build, or 1 if it can build none (a divisor).
+		// build, or float.Epsilon if it can build none (so it is safe as a divisor).
 		public static float BestAttackPerShield(Player player) {
 			return Math.Max(float.Epsilon, EarlyRush.LandUnitsBuildable(player).Select(AttackPerShield).DefaultIfEmpty(0).Max());
 		}
