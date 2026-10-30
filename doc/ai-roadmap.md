@@ -128,7 +128,11 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   4. `archer-rush` (ZUR-67, after ZUR-58): the Owner's later idea, archers stacked early against a civ within 10 tiles (6 archers and a defender, small cities may be razed, keeps going after a win). Read with the `early-rush` trials at low difficulty. Built, waiting for a paired trial; new measures `razed` and `eliminated`.
   5. `lean-garrison` (ZUR-71, trial ZUR-73): Advanced AI only. Interior cities keep 1 defender (2 at war or with an enemy close), border cities 2 (3 at war); the shields go to attackers. The Owner saw 20 Infantry in a city far from any enemy. Standard keeps Civ3's 2 defenders + 1 attacker per city. Shares the interior-city test with `lean-buildings`. Paired and all civs.
   6. `grow-to-settle` (ZUR-72, trial ZUR-74): Advanced AI only. Fast-growing cities build Settlers and Workers to shed population; specialists only when the luxury slider at its cap can't stop disorder. Trialled on top of `lux-slider-high`.
-- **More ideas from how players beat the AI:** the Strategy Researcher's second pass (ZUR-68) ranks the next ideas to build.
+- **More ideas from how players beat the AI:** the Strategy Researcher's third pass (ZUR-68, `doc/ai-strategy-notes.md` tips 99-127) ranks 8 ideas. Next to build:
+  1. `snipe-workers` (#105): at war, a spare unit kills or captures an unguarded rival worker or settler. Nothing does this today.
+  2. `stage-on-defence` (#101): the rush stack waits on the best defensive tile, so the AI's piecemeal counterattacks die on it.
+  3. `sell-to-all` with `gpt-probe` (#111, #113): sell a new tech to every civ in one turn and find the most gold per turn each will pay. Check what `trade-gpt` already does first.
+  - Its #2 `rush-archers` is mostly `archer-rush`; its two extra points (strike before the target has Bronze Working; go while the target has 2 cities or fewer) are follow-ups if the `archer-rush` trial asks for them.
 - **Live model trial**, with a key: compare the cost per game and the result against rules alone. Run trials one after another so the playbook builds up.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
 
