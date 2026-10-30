@@ -135,7 +135,8 @@ def parse(path):
     for line in open(path, encoding="utf-8"):
         m = LINE.match(line)
         if m:
-            r[m[1]] = {"adv": float(m[2]), "std": float(m[3]), "diff": float(m[4]), "se": float(m[5])}
+            # The trial writes a tiny negative difference as "-+0.00".
+            r[m[1]] = {"adv": float(m[2]), "std": float(m[3]), "diff": float(m[4].replace("-+", "-")), "se": float(m[5])}
     return r
 
 
@@ -301,6 +302,10 @@ def main():
     error = None
     try:
         ladder(args)
+    except SystemExit as e:
+        if e.code != NONSTOP_EXIT:  # a cycle end is not an error
+            error = repr(e)
+        raise
     except BaseException as e:
         error = repr(e)
         raise
