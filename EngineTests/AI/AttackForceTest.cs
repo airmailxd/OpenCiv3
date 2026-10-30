@@ -162,4 +162,28 @@ public sealed class AttackForceTest : IClassFixture<SaveGameFixture>, IDisposabl
 		gameData.SpawnUnit(enemy, Prototype("Knight"), beside);
 		Assert.Null(PlayerAI.SnipeWorkersPlan(raider, ai));
 	}
+	// A lone warrior in our own city stays; with a second defender it goes.
+	[Fact]
+	public void SnipeWorkersNeverEmptiesACity() {
+		MapUnit raider = gameData.map.tiles.Where(IsFlatEmptyLand).Select(t => gameData.SpawnUnit(ai, Prototype("Warrior"), t)).First();
+		Tile home = raider.location;
+		City city = new(home, ai, "Home", ID.None("city"));
+		home.cityAtTile = city;
+		ai.cities.Add(city);
+		Tile prey = home.GetTilesWithinRankDistance(2).First(t => IsFlatEmptyLand(t) && t.DistanceTo(home) == 2);
+		gameData.SpawnUnit(enemy, Prototype("Worker"), prey);
+		ai.tileKnowledge.AddTilesToKnown(prey);
+		Assert.Null(PlayerAI.SnipeWorkersPlan(raider, ai));
+		gameData.SpawnUnit(ai, Prototype("Spearman"), home);
+		Assert.NotNull(PlayerAI.SnipeWorkersPlan(raider, ai));
+	}
+
+	// The workersCaptured measure counts workers and settlers, not fighters.
+	[Fact]
+	public void CapturesCountWorkersAndSettlersOnly() {
+		Tile t = gameData.map.tiles.First(IsFlatEmptyLand);
+		Assert.True(AiExperiments.IsCaptive(gameData.SpawnUnit(enemy, Prototype("Worker"), t)));
+		Assert.True(AiExperiments.IsCaptive(gameData.SpawnUnit(enemy, Prototype("Settler"), t)));
+		Assert.False(AiExperiments.IsCaptive(gameData.SpawnUnit(enemy, Prototype("Warrior"), t)));
+	}
 }

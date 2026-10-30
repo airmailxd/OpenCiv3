@@ -1237,6 +1237,12 @@ namespace C7Engine {
 				return null;
 			}
 			Tile start = unit.location;
+			// Never empty one of our own cities: another unit that can defend
+			// must stay (not one that is itself going out to snipe).
+			if (start.cityAtTile != null && start.cityAtTile.owner == player
+					&& !start.unitsOnTile.Any(u => u != unit && u.CanDefendOnLand() && u.owner == player && !(u.currentAI is CombatAI))) {
+				return null;
+			}
 			List<Tile> targets = new();
 			foreach (Tile t in start.GetTilesWithinTileSquare(SnipeRange)) {
 				if (t == Tile.NONE || t == start || !t.IsLand() || !OnlyPreyHere(t, player)

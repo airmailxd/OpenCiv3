@@ -36,5 +36,7 @@ namespace C7Engine.AI {
 		// And techs bought with gold or gold per turn: the buyer and how
 		// many.
 		internal static Action<Player, int> onTechsBought;
+		// A unit the trial counts as a capture for its taker (ZUR-84).
+		internal static bool IsCaptive(MapUnit unit) => unit.unitType.isWorker || unit.unitType.isSettler;
 	}
 }

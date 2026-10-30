@@ -278,7 +278,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// off (the civ that took the last city, or the one at war with
 			// the fallen civ that took a city that turn).
 			"razed", "eliminated",
+			// Workers and settlers the civ took from rivals (ZUR-84).
+			"workersCaptured",
 		];
+
 		public readonly double[] values = new double[Names.Length];
 	}
 
@@ -716,6 +719,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> unitsLost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> shipKills = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> workersLost = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> workersCaptured = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> workersLostOutside = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> cityStateAttacks = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> kingAttacks = civs.ToDictionary(p => p, _ => 0);
@@ -779,7 +783,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Add(rops, asker);
 			Add(rops, partner);
 		};
-		AiExperiments.onUnitTaken = (unit, _) => {
+		AiExperiments.onUnitTaken = (unit, taker) => {
+			if (AiExperiments.IsCaptive(unit)) {
+				Add(workersCaptured, taker);
+			}
 			if (unit.unitType.isWorker) {
 				Add(workersLost, unit.owner);
 				if (unit.location.OwningPlayer() != unit.owner) {
@@ -1114,6 +1121,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = p.cities.Count(c => c.residents.Count >= 12);
 			m.values[i++] = razed[p];
 			m.values[i++] = eliminated[p];
+			m.values[i++] = workersCaptured[p];
 			return m;
 		}
 
