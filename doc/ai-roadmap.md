@@ -109,6 +109,13 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 - **Progress page:** `python tools/advanced-ai-training/dashboard.py --out <ladder dir>` writes `dashboard.html` there (one offline page: Overview plus a tab per difficulty with ideas tried, best win rate, win rate by round, knobs).
 
 ### Next
+- **Pass the Regent exam with Suede-based play, steered by benchmarks (ZUR-106, owner's direction 2026-10-30).**
+  - What the exam shows (16 games, Advanced minus Standard): no real edge (score +29 ± 43, cities -0.2 ± 0.7); a smaller, more passive army (military -50 ± 11, wars 0.2 vs 0.6, captured -0.8 ± 0.3); about 135 of 200 turns in Despotism, same as Standard. It ran with none of the Suede tips that won their trials.
+  - ZUR-107: `lux-slider-high`, `site-food` and `site-tight-7` on by default for Advanced; every on-trial switch becomes an Advanced behaviour the ladder can search; the Regent knobs become defaults.
+  - ZUR-108: a 100-game Regent exam before and after ZUR-107, with a loss autopsy.
+  - ZUR-109: benchmark measures (`govTurn`, `cities50`, `cities100`, `techs100`, `workersPerCity100`, `techGold`, `killRatio`) and a scorecard and loss autopsy after every exam.
+  - ZUR-110: Suede's own figures for each benchmark (`doc/suede-benchmarks.md`), and the 5 ideas most likely to close the gaps.
+  - ZUR-111: `early-government`, leave Despotism early.
 - **Better play for Advanced only:**
   - expansion pace;
   - worker use;
@@ -116,9 +123,9 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - tech trading.
 - **Suede tip switches waiting for paired trials** (off by default; a tip is kept only if the trial numbers show it helps):
   - `railroad-first` and `philosophy-first` (ZUR-33): +150 research value for Steam Power or Philosophy. Read `steamTurn`/`philTurn`, `techs`, `midtechs`, `beakers` and `score` at 300 turns.
-  - `site-food` (ZUR-32): city sites scored food-first (centre tile's bonus food ignored, river/lake bonus, two 2-food tiles wanted). Trial ZUR-61.
+  - `site-food` (ZUR-32): city sites scored food-first (centre tile's bonus food ignored, river/lake bonus, two 2-food tiles wanted). Trial ZUR-61: leans helpful alone; with `site-tight-7` (ZUR-62) cities +2.8 ± 0.8, score +158 ± 59. Both go on for Advanced in ZUR-107.
   - `site-tight-12` / `site-tight-7` (ZUR-58): sites 3-4 tiles from our own cities with at least 12 / 7 good food tiles get a flat +40 score. Landed; trial ZUR-62. Trial measures `size7`, `size12` added.
-  - `lux-slider-high` (ZUR-31): luxury raised until no city is unhappy before entertainers. Trial ZUR-61.
+  - `lux-slider-high` (ZUR-31): luxury raised until no city is unhappy before entertainers. Trial ZUR-61: helps (score +204 ± 61, citizens +13 ± 6, gold per turn -9.6 ± 3.9). On for Advanced in ZUR-107.
   - `early-rush` (ZUR-30): while expanding, 5 attackers hit a weakly held capital or size 3+ city when our attack is 1.5x their defence by tech. Trial ZUR-65 (16 paired games, 300 turns): helps at Chieftain (captured +1.5 ± 0.3, rank −4.1 ± 0.4) and Warlord (captured +0.9 ± 0.4, rank −1.6 ± 0.4), but most of that gain is the Advanced AI beating weak opponents, not the rush. No clear effect at Regent (captured +0.7 ± 0.7; wars +0.8 ± 0.2, so it fires but rarely takes cities). All civs at Regent, same seeds: captured 2.9 vs 2.7, unitsLost 20.3 vs 15.6, score 1350 vs 1382 (means only, no error bars). Stays off; `archer-rush` is the follow-up.
   - `trade-gpt` (ZUR-29): AI tech deals pay gold per turn; trade at once on contact and on a new tech. New measure `techsBought`. Trial ZUR-66, paired and all civs.
 - **Owner's ideas from watching Advanced games (ZUR-56)**, built and trialled one at a time, in build order (archer-rush, then 2, 5, 3, 6):
