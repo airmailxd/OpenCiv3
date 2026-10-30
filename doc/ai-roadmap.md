@@ -85,7 +85,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - **Cross-game memory.** At each review, the last review's outcome goes into the playbook (`AdvancedAiPlaybook.jsonl` beside C7.ini): situation, changes, outcome, gain and lesson.
   - The game doesn't wait for answers; trials do (`ModelPlanner.waitForAnswers`).
   - Cost: about 8 calls per Advanced player in a 400-turn game, and about 3,500–4,000 input tokens per call once the playbook fills.
-  - Not yet tried against the live API.
+  - **Live trial (ZUR-20, Haiku `claude-haiku-5-5`, 48 paired games at Regent, 200 turns): it hurts.** Model-on minus rules-only per Advanced civ: score -329, cities -2.3, techs -2.8; worse in 37, 35 and 38 of 48 games. 624 calls, about $2.84. Off by default from now on; ZUR-126 (Engine Engineer) makes it an explicit switch, logs every review and finds which advice did the damage.
 - **Tuning (`AdvancedTuning`).**
   - The planner's numbers, plus which unadopted on-trial AI behaviours Advanced uses.
   - Trials override them with `C7_ADVANCED_TUNING`.
@@ -151,7 +151,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   2. `stage-on-defence` (#101): the rush stack waits on the best defensive tile, so the AI's piecemeal counterattacks die on it.
   3. `sell-to-all` with `gpt-probe` (#111, #113): sell a new tech to every civ in one turn and find the most gold per turn each will pay. Check what `trade-gpt` already does first.
   - Its #2 `rush-archers` is mostly `archer-rush`; its two extra points (strike before the target has Bronze Working; go while the target has 2 cities or fewer) are follow-ups if the `archer-rush` trial asks for them.
-- **Live model trial**, with a key: compare the cost per game and the result against rules alone. Run trials one after another so the playbook builds up.
+- **Policy review fix (ZUR-126):** find why Haiku's advice hurts (free: state logs, playbook, replay of recorded changes), then propose a fix. No new paid run without a fresh plan and the owner's approval.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
 
 ### Not covered
