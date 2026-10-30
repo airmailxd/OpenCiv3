@@ -854,10 +854,6 @@
      "decide": "Grow core cities to size 7 before Republic (#73) can delay #23's switch; delay no more than 20 turns."
     },
     {
-     "id": 73,
-     "decide": "See #23 vs #73."
-    },
-    {
      "id": 75,
      "decide": "Republic (#23) is the default only at peace. #75 overrides it: never switch government during a war, and stay out of Republic when atWar with invasionThreat above 1.0. After the war, switch."
     },
@@ -1195,10 +1191,6 @@
     {
      "id": 60,
      "decide": "Same idea; #60 gives the verified min and max research times, #33 says lower science when the tech finishes anyway."
-    },
-    {
-     "id": 60,
-     "decide": "Same idea."
     }
    ]
   },
@@ -1992,7 +1984,7 @@
    "name": "Set slider on turn 1; minimum science in expansion; full only for Philosophy",
    "category": "research-economy",
    "base_weight": 80,
-   "weight_reason": "Cheap, rule is verified.",
+   "weight_reason": "Cheap to follow; the research-time limits it relies on are verified, the advice is not.",
    "phase": "expansion",
    "conditions": [
     "expansion phase"
@@ -2008,8 +2000,8 @@
     }
    ],
    "not_computable_today": [],
-   "validation": "verified",
-   "validation_note": "compendium 04-science-and-wonders §4.2 (research time 4-50 turns)",
+   "validation": "unverified",
+   "validation_note": "Suede's advice only. The 4-50 turn research limits are verified (compendium 04-science-and-wonders §4.2), but they do not show that minimum science while expanding is right; the 20% slider floor is UNVERIFIED there.",
    "code": "min-tech E19 (notes: already holds)",
    "implemented": "partly",
    "evidence": "",
@@ -2022,10 +2014,6 @@
     {
      "id": 33,
      "decide": "Same idea; #60 gives the verified min and max research times, #33 says lower science when the tech finishes anyway."
-    },
-    {
-     "id": 33,
-     "decide": "Same idea."
     }
    ]
   },
@@ -2148,10 +2136,6 @@
     {
      "id": 68,
      "decide": "Great Library (#64) versus not delaying expansion for wonders (#68). #68 wins while expansionPhase is on. #64 applies after expansion, only when at least two rivals know techs we lack (the library gives techs two or more civs know) and the city has library and university."
-    },
-    {
-     "id": 68,
-     "decide": "See #64 vs #68."
     }
    ]
   },
@@ -2271,10 +2255,6 @@
     {
      "id": 64,
      "decide": "Great Library (#64) versus not delaying expansion for wonders (#68). #68 wins while expansionPhase is on. #64 applies after expansion, only when at least two rivals know techs we lack (the library gives techs two or more civs know) and the city has library and university."
-    },
-    {
-     "id": 64,
-     "decide": "See #64 vs #68."
     }
    ]
   },
@@ -2406,10 +2386,6 @@
     {
      "id": 23,
      "decide": "Grow core cities to size 7 before Republic (#73) can delay #23's switch; delay no more than 20 turns."
-    },
-    {
-     "id": 23,
-     "decide": "See #23 vs #73."
     }
    ]
   },

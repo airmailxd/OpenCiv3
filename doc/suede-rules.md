@@ -6,7 +6,7 @@
 
 - By category: diplomacy 29, expansion 18, infrastructure 10, military 40, research-economy 13, wonders 5, workers 12.
 - By `implemented`: no 50, partly 59, yes 18.
-- By `validation`: disabled 9, disputed 10, unverified 101, verified 7.
+- By `validation`: disabled 9, disputed 10, unverified 102, verified 6.
 
 ## Fields
 
@@ -50,4 +50,4 @@ Other conflicts and duplicates are listed in each entry's `conflicts`. Where the
 
 ## Caveats
 
-Weights outside the owner's list are my judgement, not measurements. A tip's weight should change only on trial numbers (ZUR-119 ablation). Seven entries are `verified`, all citing the compendium; everything else waits for a check against the game.
+Weights outside the owner's list are my judgement, not measurements. A tip's weight should change only on trial numbers (ZUR-119 ablation). Six entries are `verified`, all citing the compendium; everything else waits for a check against the game.
