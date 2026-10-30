@@ -91,6 +91,18 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		Assert.True(gold + gpt >= 0);
 	}
 
+	// "lux-slider-high": without it a tenth of the cities may stay unhappy
+	// (left to entertainers); with it, none.
+	[Fact]
+	public void LuxSliderHighLeavesNoCityUnhappy() {
+		Assert.False(PlayerAI.TooManyUnhappy(player, 1, 10));
+		Assert.True(PlayerAI.TooManyUnhappy(player, 2, 10));
+		Assert.False(PlayerAI.TooManyUnhappy(player, 0, 10));
+		AiExperiments.Enable(player, PlayerAI.LuxSliderHigh);
+		Assert.True(PlayerAI.TooManyUnhappy(player, 1, 10));
+		Assert.False(PlayerAI.TooManyUnhappy(player, 0, 10));
+	}
+
 	// Before GovernmentAI, the AI stayed in Despotism all game.
 	[Fact]
 	public void AiRevoltsOutOfDespotismOnceMonarchyIsKnown() {

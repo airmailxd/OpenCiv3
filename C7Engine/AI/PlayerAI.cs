@@ -1691,6 +1691,20 @@ namespace C7Engine {
 
 		internal const string NoAiLuxury = "no-ai-luxury";
 
+		// Trial switch "lux-slider-high": the AI keeps raising the luxury
+		// slider (within its cap and the government's) until no city is
+		// unhappy, rather than stopping once 10% or fewer are, before
+		// FixRemainingUnhappyCities falls back to entertainers
+		// (SuedeCivIII's tips, ZUR-31).
+		internal const string LuxSliderHigh = "lux-slider-high";
+
+		// Whether, of this many cities, this many unhappy ones are too many
+		// to leave to entertainers.
+		internal static bool TooManyUnhappy(Player player, int unhappyCities, int cities) {
+			double allowed = AiExperiments.Has(player, LuxSliderHigh) ? 0 : .1;
+			return unhappyCities / (double)cities > allowed;
+		}
+
 		// Whether the player knows every advance there is to research (not
 		// those of no era, which can't be researched; see EraUtils.HIDDEN_CVLPD).
 		internal static bool NothingToResearch(Player player) {
@@ -1815,8 +1829,8 @@ namespace C7Engine {
 			}
 		}
 
-		// Returns true if more than 10% of the player's cities are unhappy with
-		// current settings.
+		// Returns true if more than 10% of the player's cities (any, with the
+		// switch lux-slider-high) are unhappy with current settings.
 		private static bool MostCitiesUnhappy(Player player) {
 			int unhappyCities = 0;
 			foreach (City city in player.cities) {
@@ -1825,7 +1839,7 @@ namespace C7Engine {
 					++unhappyCities;
 				}
 			}
-			return unhappyCities / (double)player.cities.Count > .1;
+			return TooManyUnhappy(player, unhappyCities, player.cities.Count);
 		}
 
 		// In each city, reassign citizens, managing moods, to ensure that we
