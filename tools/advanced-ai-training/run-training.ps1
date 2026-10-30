@@ -11,12 +11,21 @@
 #   Extra train.py options, e.g. fewer games per trial:
 #     ... -TrainArgs "--games 8 --rounds 3"
 #
+#   Nonstop (never stops by itself; ZUR-129): each time train.py ends a cycle
+#   (exit code 75) the worktree moves to the latest Development, is rebuilt
+#   and the ladder resumes. It ends only when <Out>\STOP exists or the
+#   process tree is ended. Works on a ladder that is already running:
+#     ... -Nonstop -Resume -Out C:\Dev\ladder-runs\ladder-2026-10-30 -Tree <its worktree>
+#   Ideas for the search go in <Out>\ideas.txt (see train.py); the one-line
+#   progress per round is <Out>\progress.txt.
+#
 # Pause: Ctrl+C. Resume: the same line with -Resume. A trial cut off
 # mid-way restarts; finished trials are kept. Progress is in <Out>\log.md;
 # the page <Out>\dashboard.html is rebuilt when the run stops.
 param(
 	[string]$Out = "",
 	[switch]$Resume,
+	[switch]$Nonstop,
 	[int]$Parallel = 6,
 	[int]$Cores = 12,
 	[int]$MemGB = 8,
@@ -46,40 +55,58 @@ if ($Resume -and -not (Test-Path (Join-Path $Out "state.json"))) { throw "$Out h
 if (-not $Resume -and (Test-Path (Join-Path $Out "state.json"))) { throw "$Out already has a ladder. Add -Resume, or pick another -Out." }
 New-Item -ItemType Directory -Force $Out | Out-Null
 
-# The worktree: create it, or move it to the latest $Ref. Never touches
-# the main checkout's uncommitted work.
-if (-not (Test-Path (Join-Path $Tree ".git"))) {
-	git -C $repo worktree add --detach $Tree $Ref
-	if ($LASTEXITCODE -ne 0) { throw "git worktree add failed" }
-} else {
-	if (git -C $Tree status --porcelain) { throw "$Tree has local changes; commit or discard them first." }
-	git -C $Tree checkout --quiet --detach $Ref
-	if ($LASTEXITCODE -ne 0) { throw "git checkout in $Tree failed" }
-}
-$commit = git -C $Tree log -1 --format="%h %s"
+# Nonstop: train.py leaves with this code at the end of a cycle.
+$cycleEnd = 75
+$stop = Join-Path $Out "STOP"
+$first = $true
 
-# No paid calls: the trials only call Claude when this is set.
-Remove-Item Env:C7_TRIAL_MODEL -ErrorAction SilentlyContinue
-
-$cmd = "python tools\advanced-ai-training\train.py --out `"$Out`" --parallel $Parallel"
-if ($Resume) { $cmd += " --resume" }
-if ($TrainArgs -ne "") { $cmd += " $TrainArgs" }
-
-Write-Host "Code:     $commit ($Tree)"
-Write-Host "Output:   $Out"
-Write-Host "Progress: Get-Content `"$Out\log.md`" -Wait"
-Write-Host "Pause with Ctrl+C; resume with -Resume."
-Write-Host ""
-
-Push-Location $Tree
-try {
-	powershell -ExecutionPolicy Bypass -File (Join-Path $Tree "tools\advanced-ai-training\run-throttled.ps1") -Cores $Cores -MemGB $MemGB -Run $cmd
-	$code = $LASTEXITCODE
-} finally {
-	if (Test-Path (Join-Path $Out "state.json")) {
-		python tools\advanced-ai-training\dashboard.py --out $Out
-		Write-Host "Dashboard: $Out\dashboard.html"
+while ($true) {
+	# The worktree: create it, or move it to the latest $Ref. Never touches
+	# the main checkout's uncommitted work.
+	if (-not (Test-Path (Join-Path $Tree ".git"))) {
+		git -C $repo worktree add --detach $Tree $Ref
+		if ($LASTEXITCODE -ne 0) { throw "git worktree add failed" }
+	} else {
+		if (git -C $Tree status --porcelain) { throw "$Tree has local changes; commit or discard them first." }
+		git -C $Tree checkout --quiet --detach $Ref
+		if ($LASTEXITCODE -ne 0) { throw "git checkout in $Tree failed" }
 	}
-	Pop-Location
+	$commit = git -C $Tree log -1 --format="%h %s"
+
+	# No paid calls: the trials only call Claude when this is set.
+	Remove-Item Env:C7_TRIAL_MODEL -ErrorAction SilentlyContinue
+
+	$cmd = "python tools\advanced-ai-training\train.py --out `"$Out`" --parallel $Parallel"
+	if ($Resume -or -not $first) { $cmd += " --resume" }
+	if ($Nonstop) { $cmd += " --nonstop" }
+	if ($TrainArgs -ne "") { $cmd += " $TrainArgs" }
+
+	Write-Host "Code:     $commit ($Tree)"
+	Write-Host "Output:   $Out"
+	Write-Host "Progress: Get-Content `"$Out\log.md`" -Wait"
+	Write-Host "Pause with Ctrl+C; resume with -Resume."
+	Write-Host ""
+
+	Push-Location $Tree
+	try {
+		# train.py rebuilds EngineTests itself on every start.
+		powershell -ExecutionPolicy Bypass -File (Join-Path $Tree "tools\advanced-ai-training\run-throttled.ps1") -Cores $Cores -MemGB $MemGB -Run $cmd
+		$code = $LASTEXITCODE
+	} finally {
+		if (Test-Path (Join-Path $Out "state.json")) {
+			python tools\advanced-ai-training\dashboard.py --out $Out
+			Write-Host "Dashboard: $Out\dashboard.html"
+		}
+		Pop-Location
+	}
+	$first = $false
+	if (-not $Nonstop) { break }
+	if (Test-Path $stop) { Write-Host "$stop exists: stopping."; break }
+	if ($code -ne $cycleEnd) {
+		# Not a cycle end (a failed build, say): wait, then try the latest code.
+		Write-Host "train.py ended with exit code $code; trying again in 5 minutes (create $stop to end)."
+		for ($i = 0; $i -lt 30 -and -not (Test-Path $stop); $i++) { Start-Sleep -Seconds 10 }
+		if (Test-Path $stop) { Write-Host "$stop exists: stopping."; break }
+	}
 }
 exit $code

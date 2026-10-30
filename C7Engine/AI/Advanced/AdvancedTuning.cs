@@ -26,7 +26,7 @@ namespace C7Engine.AI.Advanced {
 			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
-			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo,
+			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -88,6 +88,8 @@ namespace C7Engine.AI.Advanced {
 				"1: early stack of attackers and a defender against a rival city within 10 tiles."),
 			new(PhasePlan.Switch, 0, 1, 0, 1,
 				"1: play the owner's script: expand toward a rival, muster archers, first war, consolidate."),
+			new(GovernmentAI.EarlyGovernment, 0, 1, 0, 1,
+				"1: head for the best government early, leaving despotism as soon as it can."),
 			new("PhaseCities", 4, 1, 3, 5,
 				"phase-plan: cities to found before mustering."),
 			new("PhaseArmy", 9, 1, 6, 16,

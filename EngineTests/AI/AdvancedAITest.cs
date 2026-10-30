@@ -230,6 +230,19 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	}
 
 	[Fact]
+	public void TheTuningSpecEarlyGovernmentTurnsItOnForAnAdvancedPlayerOnly() {
+		player.aiType = AiType.Advanced;
+		try {
+			AdvancedTuning.Override("early-government=1");
+			AdvancedAI.PlayTurn(player, gameData);
+			Assert.True(AiExperiments.Has(player, GovernmentAI.EarlyGovernment));
+			Assert.False(AiExperiments.Has(rival, GovernmentAI.EarlyGovernment));
+		} finally {
+			AdvancedTuning.Override("");
+		}
+	}
+
+	[Fact]
 	public void AReviewedPolicyIsThePlayersOwnAndIsSaved() {
 		player.aiType = AiType.Advanced;
 		PolicyReview.Answer answer = PolicyReview.Parse("""{"changes": [{"knob": "war-production", "value": 1}], "rationale": "r", "notes": "n", "lesson": "l"}""", player);

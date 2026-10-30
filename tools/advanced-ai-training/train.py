@@ -20,7 +20,15 @@ Usage (from the repo root):
     python tools/advanced-ai-training/train.py --out <dir>
     python tools/advanced-ai-training/train.py --out <dir> --resume
 
-Results: <dir>/state.json (the knobs and every run) and <dir>/log.md.
+With --nonstop the ladder never stops on a failed exam: it starts a new
+cycle on the same rung (new training and held-out seeds, +100 per cycle)
+and exits with code 75, so run-training.ps1 -Nonstop can move to the latest
+code and call it again. An exam also follows every kept change. Tuning
+specs in <dir>/ideas.txt (one per line, # for comments) are tried as extra
+candidates, once per cycle.
+
+Results: <dir>/state.json (the knobs and every run), <dir>/log.md and one
+line per round or exam in <dir>/progress.txt.
 While it runs, <dir>/heartbeat.json says it is alive and <dir>/dashboard.html
 is rebuilt every --dashboard-every seconds (see dashboard.py).
 """
@@ -68,7 +76,7 @@ BEHAVIOURS = ["wonder-timing", "wonder-value", "war-production", "war-no-peace",
               "leader-hurry-best", "lean-military", "no-ai-luxury", "snipe-workers",
               "lux-slider-high", "site-food", "site-tight-7", "site-tight-12", "trade-gpt",
               "railroad-first", "philosophy-first", "early-rush", "archer-rush", "phase-plan",
-              "workers-1-2"]
+              "workers-1-2", "early-government"]
 ON_BY_DEFAULT = {"lean-military", "lux-slider-high", "site-food", "site-tight-7"}
 DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.75,
             "BehindInTechShare": 0.9, "ExpandSettlers": 85, "ExpandAggression": -1,
@@ -80,6 +88,9 @@ DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio
 RUNGS = [("Regent", 2, 1.00), ("Monarch", 3, 0.90), ("Emperor", 4, 0.75), ("Demigod", 5, 0.50), ("Deity", 6, None)]
 
 LINE = re.compile(r"^(\w+)\s+([-\d.]+) vs\s+([-\d.]+)\s+([-+\d.]+) \+- ([\d.]+)")
+
+
+NONSTOP_EXIT = 75
 
 
 def spec(knobs):
@@ -216,6 +227,57 @@ class Monitor:
             self.rebuild()
 
 
+def progress(args, state, name, rnd, kept):
+    """One line per round and exam, for the daily report."""
+    exams = state.get("exams", [])
+    latest = f"{won(exams[-1]['result']):.0%}" if exams else "none yet"
+    line = (f"{time.strftime('%Y-%m-%d %H:%M')} | rung {name} | cycle {state['cycle']} | round {rnd} | "
+            f"kept {kept or 'none'} | latest exam win rate {latest}")
+    with open(os.path.join(args.out, "progress.txt"), "a", encoding="utf-8", newline="\n") as f:
+        f.write(line + "\n")
+
+
+def read_ideas(args, knobs, tried):
+    """Idea-queue lines not yet tried this cycle, as (label, spec, knobs). Re-read every round."""
+    path = os.path.join(args.out, "ideas.txt")
+    if not os.path.exists(path):
+        return []
+    found = []
+    for line in open(path, encoding="utf-8"):
+        text = line.split("#", 1)[0].strip()
+        if not text:
+            continue
+        try:
+            parsed = {}
+            for part in text.split(","):
+                k, v = part.split("=", 1)
+                k = k.strip()
+                if k not in DEFAULTS:
+                    raise ValueError(f"unknown knob {k}")
+                parsed[k] = float(v)
+            if any(float(knobs[k]) != v for k, v in parsed.items()):
+                canon = ",".join(f"{k}={v:g}" for k, v in sorted(parsed.items()))
+                if canon not in tried and all(canon != f[1] for f in found):
+                    found.append(("idea-" + canon.replace(",", "+"), canon,
+                                  {**knobs, **{k: int(v) if k in BEHAVIOURS else v for k, v in parsed.items()}}))
+                continue
+            canon = text  # already what the knobs are: nothing to try
+        except ValueError as e:
+            canon = text
+            if text not in tried:
+                note(args, f"- idea ignored ({e}): {text}")
+        if canon not in tried:
+            tried.append(canon)
+    return found
+
+
+def last_exam(state, name, cycle, knobs):
+    for e in reversed(state.get("exams", [])):
+        if e["rung"] == name and e.get("cycle", 0) == cycle and e["knobs"] == knobs:
+            return e
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -225,9 +287,12 @@ def main():
     ap.add_argument("--parallel", type=int, default=8)
     ap.add_argument("--train-seed", type=int, default=1000)
     ap.add_argument("--holdout-seed", type=int, default=7000)
+    ap.add_argument("--exam-seed", type=int, default=7500, help="fixed across cycles, so exams stay comparable")
+    ap.add_argument("--nonstop", action="store_true",
+                    help=f"a failed exam starts a new cycle (new seeds) and exits with code {NONSTOP_EXIT}, never stops")
     ap.add_argument("--targets", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "suede-benchmarks.md"),
                     help="Suede's figures for the benchmarks report (see benchmarks.py)")
-    ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung")
+    ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung and cycle")
     ap.add_argument("--dashboard-every", type=int, default=60, help="seconds between dashboard rebuilds, 0 = off")
     args = ap.parse_args()
     os.makedirs(os.path.join(args.out, "runs"), exist_ok=True)
@@ -248,76 +313,115 @@ def ladder(args):
     state_path = os.path.join(args.out, "state.json")
     if args.resume and os.path.exists(state_path):
         state = json.load(open(state_path, encoding="utf-8"))
+        for k, v in DEFAULTS.items():  # knobs added since the state was saved
+            state["knobs"].setdefault(k, v)
     else:
         state = {"knobs": dict(DEFAULTS), "rung": 0, "round": 0, "history": []}
         open(os.path.join(args.out, "log.md"), "w", encoding="utf-8").write("# Advanced AI training\n\n")
+    state.setdefault("cycle", 0)
     if subprocess.run(["dotnet", "build", "EngineTests"], capture_output=True).returncode != 0:
         sys.exit("build failed")
 
     pool = ThreadPoolExecutor(args.parallel)
     while state["rung"] < len(RUNGS):
         name, difficulty, bar = RUNGS[state["rung"]]
+        cycle = state["cycle"]
         knobs = state["knobs"]
-        while state["round"] < args.rounds:
+        # Cycle 0 keeps the first ladder's file tags and seeds.
+        cyc = f"-c{cycle}" if cycle else ""
+        train_seed = args.train_seed + 100 * cycle
+        holdout_seed = args.holdout_seed + 100 * cycle
+        tried_ideas = state.setdefault("ideas_tried", {}).setdefault(f"{name}-c{cycle}", [])
+        if cycle:
+            note(args, f"\n# {name}, cycle {cycle}: training seeds {train_seed}, held-out seeds {holdout_seed}")
+        while True:
             rnd = state["round"]
-            prefix = f"{name}-r{rnd}"
-            note(args, f"\n## {name}, round {rnd} — knobs: {spec(knobs) or 'defaults'}")
-            started = time.time()
-            base = pool.submit(run_trial, args, knobs, difficulty, args.train_seed, f"{prefix}-base")
-            tries = [(label, k, pool.submit(run_trial, args, k, difficulty, args.train_seed, f"{prefix}-{label}"))
-                     for label, k in candidates(knobs)]
-            base = base.result()
-            note(args, f"- current (training seeds): {summary(base)}")
-            scored = []
-            for label, k, fut in tries:
-                r = fut.result()
-                scored.append((objective(r) - objective(base), label, k, r))
-            scored.sort(key=lambda t: t[0], reverse=True)
-            for gain, label, _, r in scored[:5]:
-                note(args, f"- {label}: gain {gain:+.2f} ({summary(r)})")
-            note(args, f"- ({len(scored)} changes tried in {(time.time() - started) / 60:.0f} min)")
+            if rnd < args.rounds and not state.get("settled"):
+                prefix = f"{name}{cyc}-r{rnd}"
+                note(args, f"\n## {name}, cycle {cycle}, round {rnd} — knobs: {spec(knobs) or 'defaults'}")
+                started = time.time()
+                ideas = read_ideas(args, knobs, tried_ideas)
+                base = pool.submit(run_trial, args, knobs, difficulty, train_seed, f"{prefix}-base")
+                tries = [(label, k, pool.submit(run_trial, args, k, difficulty, train_seed, f"{prefix}-{label}"))
+                         for label, k in candidates(knobs)]
+                tries += [(label, k, pool.submit(run_trial, args, k, difficulty, train_seed, f"{prefix}-{label}"))
+                          for label, _, k in ideas]
+                base = base.result()
+                note(args, f"- current (training seeds): {summary(base)}")
+                scored = []
+                for label, k, fut in tries:
+                    r = fut.result()
+                    scored.append((objective(r) - objective(base), label, k, r))
+                scored.sort(key=lambda t: t[0], reverse=True)
+                for gain, label, _, r in scored[:5]:
+                    note(args, f"- {label}: gain {gain:+.2f} ({summary(r)})")
+                for gain, label, _, r in scored:
+                    if label.startswith("idea-") and not any(label == s[1] for s in scored[:5]):
+                        note(args, f"- {label}: gain {gain:+.2f} ({summary(r)})")
+                note(args, f"- ({len(scored)} changes tried in {(time.time() - started) / 60:.0f} min)")
 
-            # Confirm the best few on held-out seeds; keep the first that holds.
-            kept = None
-            for gain, label, k, _ in scored[:3]:
-                if gain <= 0:
-                    break
-                hb = run_trial(args, knobs, difficulty, args.holdout_seed, f"{prefix}-holdout-base")
-                hc = run_trial(args, k, difficulty, args.holdout_seed, f"{prefix}-holdout-{label}")
-                hgain = objective(hc) - objective(hb)
-                note(args, f"- held-out {label}: gain {hgain:+.2f} ({summary(hc)})")
-                if hgain > 0:
-                    kept = (label, k)
-                    break
-            state["history"].append({"rung": name, "round": rnd, "base": base,
-                                     "tried": [(g, l, r) for g, l, _, r in scored], "kept": kept[0] if kept else None})
-            state["round"] += 1
-            if kept is None:
-                note(args, "- nothing held up on held-out seeds: the search has settled")
+                # Confirm the best few on held-out seeds; keep the first that holds.
+                kept = None
+                for gain, label, k, _ in scored[:3]:
+                    if gain <= 0:
+                        break
+                    hb = run_trial(args, knobs, difficulty, holdout_seed, f"{prefix}-holdout-base")
+                    hc = run_trial(args, k, difficulty, holdout_seed, f"{prefix}-holdout-{label}")
+                    hgain = objective(hc) - objective(hb)
+                    note(args, f"- held-out {label}: gain {hgain:+.2f} ({summary(hc)})")
+                    if hgain > 0:
+                        kept = (label, k)
+                        break
+                tried_ideas.extend(c for _, c, _ in ideas)
+                state["history"].append({"rung": name, "cycle": cycle, "round": rnd, "base": base,
+                                         "tried": [(g, l, r) for g, l, _, r in scored], "kept": kept[0] if kept else None})
+                state["round"] += 1
+                if kept is None:
+                    note(args, "- nothing held up on held-out seeds: the search has settled")
+                    state["settled"] = True
+                else:
+                    knobs = state["knobs"] = kept[1]
+                    note(args, f"- kept {kept[0]}")
+                save(args, state)
+                progress(args, state, name, rnd, kept[0] if kept else None)
+
+            # The exam, on fixed held-out seeds: after every kept change, and
+            # once the search settles or runs out of rounds.
+            done = max(state["round"] - 1, 0)
+            exam_needed = last_exam(state, name, cycle, knobs) is None
+            if exam_needed:
+                tag = f"{name}-c{cycle}-r{done}-exam"
+                exam = run_trial(args, knobs, difficulty, args.exam_seed, tag, paired=False, detail=True)
+                write_report(args, tag)
+                passed = None if bar is None else won(exam) >= bar - 1e-9 and exam["rank"]["diff"] < -2 * exam["rank"]["se"]
+                needs = "last rung" if bar is None else f"needs {bar:.0%} won"
+                verdict = "" if passed is None else f" — {'PASSED' if passed else 'not passed'}"
+                note(args, f"\n**{name} exam, cycle {cycle} round {done}** ({needs}): {summary(exam)}{verdict}")
+                state.setdefault("exams", []).append({"rung": name, "cycle": cycle, "round": done, "knobs": dict(knobs),
+                                                      "result": exam, "passed": passed})
+                save(args, state)
+                last = state["history"][-1] if state["history"] else {}
+                progress(args, state, name, f"{done} exam", last.get("kept") if last.get("rung") == name and last.get("cycle", 0) == cycle else None)
+            e = last_exam(state, name, cycle, knobs)
+            if e["passed"]:
+                state["rung"] += 1
+                state["round"] = 0
+                state["settled"] = False
                 save(args, state)
                 break
-            knobs = state["knobs"] = kept[1]
-            note(args, f"- kept {kept[0]}")
-            save(args, state)
-
-        # The rung's exam, on held-out seeds.
-        exam = run_trial(args, knobs, difficulty, args.holdout_seed + 500, f"{name}-exam", paired=False, detail=True)
-        write_report(args, f"{name}-exam")
-        if bar is None:
-            note(args, f"\n**{name} exam** (last rung): {summary(exam)}")
-            state.setdefault("exams", []).append({"rung": name, "knobs": dict(knobs), "result": exam, "passed": None})
-            save(args, state)
-            break
-        passed = won(exam) >= bar - 1e-9 and exam["rank"]["diff"] < -2 * exam["rank"]["se"]
-        note(args, f"\n**{name} exam** (needs {bar:.0%} won): {summary(exam)} — {'PASSED' if passed else 'not passed'}")
-        state.setdefault("exams", []).append({"rung": name, "knobs": dict(knobs), "result": exam, "passed": passed})
-        if not passed:
-            note(args, "Stopping: the Advanced AI needs better play, not just better knobs, to pass this rung.")
-            save(args, state)
-            return
-        state["rung"] += 1
-        state["round"] = 0
-        save(args, state)
+            if state["round"] >= args.rounds or state.get("settled"):
+                if bar is None and not args.nonstop:
+                    break
+                if args.nonstop:
+                    state["cycle"] += 1
+                    state["round"] = 0
+                    state["settled"] = False
+                    save(args, state)
+                    note(args, f"\nCycle {cycle} of {name} is over without passing the exam: cycle {state['cycle']} starts on new seeds, with the latest code.")
+                    sys.exit(NONSTOP_EXIT)
+                note(args, "Stopping: the Advanced AI needs better play, not just better knobs, to pass this rung.")
+                save(args, state)
+                return
     note(args, "\nThe ladder is done.")
 
 
