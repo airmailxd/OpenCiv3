@@ -27,6 +27,7 @@ namespace C7Engine.AI.Advanced {
 
 		public static StrategicPlan Plan(Player player, GameData gameData) {
 			StrategicPlan plan = new() { source = "rules" };
+			RuleWeights.Update(player, gameData);
 			List<string> why = [];
 			float ours = player.CalculateMilitaryStrength();
 			List<Player> met = gameData.players.Where(p => p != player && !p.IsIndependent && !p.defeated
@@ -47,8 +48,8 @@ namespace C7Engine.AI.Advanced {
 			if (met.Count > 0) {
 				double average = met.Average(p => p.knownTechs.Count);
 				if (player.knownTechs.Count < BehindInTechShare(player) * average) {
-					Raise(plan, PlanFocus.Science, 20);
-					Raise(plan, PlanFocus.Trade, 10);
+					Raise(plan, PlanFocus.Science, Weighted(player, RuleCategory.Research, 20, 0, "research"));
+					Raise(plan, PlanFocus.Trade, Weighted(player, RuleCategory.Research, 10, 0, "research"));
 					why.Add($"behind in techs ({player.knownTechs.Count} vs {average:0.#})");
 				}
 			}
@@ -97,8 +98,8 @@ namespace C7Engine.AI.Advanced {
 			}
 			// Winning every war: press the weakest enemy that has cities.
 			Player prey = enemies.Where(e => e.cities.Count > 0).OrderBy(e => e.CalculateMilitaryStrength()).FirstOrDefault();
-			Set(plan, PlanFocus.Offense, AdvancedTuning.GetInt(player, "WinningOffense"));
-			Set(plan, PlanFocus.Artillery, 70);
+			Set(plan, PlanFocus.Offense, Weighted(player, RuleCategory.Military, AdvancedTuning.GetInt(player, "WinningOffense"), 50, "war"));
+			Set(plan, PlanFocus.Artillery, Weighted(player, RuleCategory.Military, 70, 50, "war"));
 			Set(plan, PlanFocus.Defense, 50);
 			Set(plan, PlanFocus.Settlers, 40);
 			if (prey != null) {
@@ -116,11 +117,11 @@ namespace C7Engine.AI.Advanced {
 			int open = player.cities.Count == 0 ? 0 : player.cities.Max(c => ChooseProducible.NumberOfReachableOpenCitySpots(c));
 			bool expanding = open > 0 && player.cities.Count < 2 * Math.Max(1, player.GetAdjustedOptimalCityNumber(gameData));
 			if (expanding) {
-				Set(plan, PlanFocus.Settlers, AdvancedTuning.GetInt(player, "ExpandSettlers"));
-				Set(plan, PlanFocus.Workers, 60);
+				Set(plan, PlanFocus.Settlers, Weighted(player, RuleCategory.Expansion, AdvancedTuning.GetInt(player, "ExpandSettlers"), 50, "production"));
+				Set(plan, PlanFocus.Workers, Weighted(player, RuleCategory.Workers, 60, 50, "production"));
 				Set(plan, PlanFocus.Growth, 60);
 				Set(plan, PlanFocus.Offense, 35);
-				plan.aggressionShift = AdvancedTuning.GetInt(player, "ExpandAggression");
+				plan.aggressionShift = Aggression(player, AdvancedTuning.GetInt(player, "ExpandAggression"));
 				plan.victory = "Space";
 				why.Add($"{open} open city sites: expand");
 			}
@@ -144,21 +145,45 @@ namespace C7Engine.AI.Advanced {
 					.OrderBy(p => p.CalculateMilitaryStrength()).FirstOrDefault();
 				if (prey != null) {
 					plan.stances[prey.id.ToString()] = RivalStance.Target;
-					plan.aggressionShift = AdvancedTuning.GetInt(player, "PreyAggression");
-					Set(plan, PlanFocus.Offense, 75);
-					Set(plan, PlanFocus.Artillery, 65);
+					plan.aggressionShift = Aggression(player, AdvancedTuning.GetInt(player, "PreyAggression"));
+					Set(plan, PlanFocus.Offense, Weighted(player, RuleCategory.Military, 75, 50, "war"));
+					Set(plan, PlanFocus.Artillery, Weighted(player, RuleCategory.Military, 65, 50, "war"));
 					plan.victory = "Conquest";
 					why.Add($"no room left; {prey} is much weaker: prepare to take their land");
 				} else {
-					Set(plan, PlanFocus.Science, AdvancedTuning.GetInt(player, "BuildScience"));
-					Set(plan, PlanFocus.Production, AdvancedTuning.GetInt(player, "BuildProduction"));
+					Set(plan, PlanFocus.Science, Weighted(player, RuleCategory.Research, AdvancedTuning.GetInt(player, "BuildScience"), 50, "research"));
+					Set(plan, PlanFocus.Production, Weighted(player, RuleCategory.Infrastructure, AdvancedTuning.GetInt(player, "BuildProduction"), 50, "production"));
 					Set(plan, PlanFocus.Trade, 60);
 					Set(plan, PlanFocus.Growth, 60);
-					Set(plan, PlanFocus.Culture, 55);
+					Set(plan, PlanFocus.Culture, Weighted(player, RuleCategory.Wonders, 55, 50, "production"));
 					plan.victory = "Space";
 					why.Add("no room and no easy prey: build up");
 				}
 			}
+		}
+
+		// A lever value leaned by the category's weight (unchanged at 50),
+		// counted in the rule-use log when it moved.
+		private static int Weighted(Player player, RuleCategory c, int lever, int neutral, string decision) {
+			int leaned = RuleWeights.LeanInt(player, c, lever, neutral);
+			if (leaned != lever) {
+				RuleWeights.Used(player, c, decision);
+			}
+			return leaned;
+		}
+
+		// A war-readiness shift moved by the military weight: a point for
+		// each 25 above 50, a point less for each 25 below.
+		private static int Aggression(Player player, int shift) {
+			double w = RuleWeights.Effective(player, RuleCategory.Military);
+			if (w == RuleWeights.Neutral) {
+				return shift;
+			}
+			int moved = Math.Clamp(shift + (int)Math.Round((w - RuleWeights.Neutral) / 25), -2, 2);
+			if (moved != shift) {
+				RuleWeights.Used(player, RuleCategory.Military, "war");
+			}
+			return moved;
 		}
 
 		private static void Set(StrategicPlan plan, PlanFocus f, int value) => plan.focus[f] = value;

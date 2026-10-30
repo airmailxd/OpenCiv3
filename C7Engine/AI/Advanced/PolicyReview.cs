@@ -165,6 +165,10 @@ namespace C7Engine.AI.Advanced {
 				string range = k.IsBehaviour ? "0 or 1" : $"{Num(k.min)} to {Num(k.max)}, step {Num(k.step)}";
 				b.AppendLine($"- {k.name} = {value} (started at {Num(AdvancedTuning.Get(k.name))}; {range}): {k.meaning}");
 			}
+			b.AppendLine("Category weights now (base weight, then the effective weight after the game state; 50 = no change):");
+			foreach (RuleCategory c in Enum.GetValues<RuleCategory>()) {
+				b.AppendLine($"- {c}: base {Num(RuleWeights.BaseWeight(player, c))}, effective {Num(RuleWeights.Effective(player, c))}");
+			}
 			b.AppendLine();
 
 			List<PolicyReviewRecord> reviews = policy?.reviews ?? [];

@@ -66,7 +66,7 @@ namespace C7Engine {
 			// (With the trade-gpt switch, at once on meeting someone or
 			// learning a tech; see TradeGpt.)
 			bool tradeNow = TradeGpt.WantsToTradeNow(player);
-			if (tradeNow || GameData.rng.Next(100) < 25) {
+			if (tradeNow || GameData.rng.Next(100) < TradeChance(player)) {
 				await AttemptTrading(player, tradeNow);
 			}
 
@@ -1563,7 +1563,7 @@ namespace C7Engine {
 				(TradeOffer weGive, TradeOffer weWant)? deal = DealProposalAI.AllianceDeal(gD, us, them)
 					?? (TradeGpt.On(us, them) ? null : TechDeal(gD, us, them))
 					?? DealProposalAI.ResourceDeal(gD, us, them)
-					?? DealProposalAI.PactDeal(gD, us, them)
+					?? (TriesPacts(us) ? DealProposalAI.PactDeal(gD, us, them) : null)
 					?? DealProposalAI.EmbargoDeal(gD, us, them);
 				if (deal is not (TradeOffer weGive, TradeOffer weWant)) {
 					continue;
@@ -1582,6 +1582,32 @@ namespace C7Engine {
 		// Paired AI trials (8 games of 200 turns, score per civ against the
 		// same civs without it): +25 +- 110 on Continents, -13 +- 169 on
 		// Pangaea, so no measurable change, and it is Civ3's rule.
+		// Percent chance a turn that an AI looks for trades: 25, and for an
+		// Advanced AI that much leaned by the average of its diplomacy and
+		// research weights (50 = as is).
+		private static int TradeChance(Player us) {
+			if (!us.IsAdvancedAi) {
+				return 25;
+			}
+			double w = (C7Engine.AI.Advanced.RuleWeights.Effective(us, C7Engine.AI.Advanced.RuleCategory.Diplomacy) + C7Engine.AI.Advanced.RuleWeights.Effective(us, C7Engine.AI.Advanced.RuleCategory.Research)) / 2;
+			if (w == C7Engine.AI.Advanced.RuleWeights.Neutral) {
+				return 25;
+			}
+			C7Engine.AI.Advanced.RuleWeights.Used(us, C7Engine.AI.Advanced.RuleCategory.Diplomacy, "trade");
+			return (int)Math.Round(25 * w / C7Engine.AI.Advanced.RuleWeights.Neutral);
+		}
+
+		// Whether an Advanced AI tries a pact this time: always at a
+		// diplomacy weight of 50 or more (no random draw then), otherwise
+		// with a chance of twice the weight.
+		private static bool TriesPacts(Player us) {
+			if (!us.IsAdvancedAi || C7Engine.AI.Advanced.RuleWeights.Effective(us, C7Engine.AI.Advanced.RuleCategory.Diplomacy) >= C7Engine.AI.Advanced.RuleWeights.Neutral) {
+				return true;
+			}
+			C7Engine.AI.Advanced.RuleWeights.Used(us, C7Engine.AI.Advanced.RuleCategory.Diplomacy, "trade");
+			return GameData.rng.Next(100) < 2 * C7Engine.AI.Advanced.RuleWeights.Effective(us, C7Engine.AI.Advanced.RuleCategory.Diplomacy);
+		}
+
 		public static bool RollsToNegotiate(Player them) {
 			return them.isHuman || GameData.rng.Next(4) == 0;
 		}

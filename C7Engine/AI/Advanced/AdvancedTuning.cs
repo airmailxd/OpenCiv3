@@ -26,7 +26,7 @@ namespace C7Engine.AI.Advanced {
 			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
-			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment,
+			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment, RuleWeights.ByState,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -98,6 +98,22 @@ namespace C7Engine.AI.Advanced {
 				"phase-plan: turns to consolidate after a war before mustering again."),
 			new(DevelopmentAI.WorkersOneTwo, 0, 1, 0, 1,
 				"1: one worker per city while expanding, 1.2 once expansion ends."),
+			new(RuleWeights.ByState, 0, 1, 0, 1,
+				"1: the seven category weights change with the era, the land left, threats, tech position and missing resources."),
+			new("WeightExpansion", 50, 5, 0, 100,
+				"Category weight (50 = no change): settler priority and the pull toward war readiness while expanding."),
+			new("WeightWorkers", 50, 5, 0, 100,
+				"Category weight (50 = no change): workers wanted per city and the worker focus."),
+			new("WeightResearch", 50, 5, 0, 100,
+				"Category weight (50 = no change): science focus, catching up in techs and how often techs are traded."),
+			new("WeightMilitary", 50, 5, 0, 100,
+				"Category weight (50 = no change): offensive unit priority and war aggression."),
+			new("WeightDiplomacy", 50, 5, 0, 100,
+				"Category weight (50 = no change): how often trades and pacts are tried."),
+			new("WeightInfrastructure", 50, 5, 0, 100,
+				"Category weight (50 = no change): production priority."),
+			new("WeightWonders", 50, 5, 0, 100,
+				"Category weight (50 = no change): how much great wonders are wanted."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

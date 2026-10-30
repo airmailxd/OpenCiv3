@@ -418,6 +418,12 @@ namespace C7Engine {
 			if (player.IsAdvancedAi && AiExperiments.Has(player, DevelopmentAI.WorkersOneTwo)) {
 				perCity = expanding ? 1f : 1.2f;
 			}
+			// Advanced AI: the workers category weight (50 = as is).
+			double workersWeight = C7Engine.AI.Advanced.RuleWeights.Effective(player, C7Engine.AI.Advanced.RuleCategory.Workers);
+			if (workersWeight != C7Engine.AI.Advanced.RuleWeights.Neutral) {
+				perCity *= (float)(workersWeight / C7Engine.AI.Advanced.RuleWeights.Neutral);
+				C7Engine.AI.Advanced.RuleWeights.Used(player, C7Engine.AI.Advanced.RuleCategory.Workers, "production");
+			}
 			return Math.Max(1, (int)Math.Ceiling(player.cities.Count * perCity));
 		}
 
@@ -447,6 +453,12 @@ namespace C7Engine {
 						return -1000f;
 					}
 					score += site.Value;
+				}
+				// Advanced AI: the wonders category weight (50 = as is).
+				double wondersWeight = C7Engine.AI.Advanced.RuleWeights.Effective(player, C7Engine.AI.Advanced.RuleCategory.Wonders);
+				if (wondersWeight != C7Engine.AI.Advanced.RuleWeights.Neutral) {
+					score += (float)((wondersWeight - C7Engine.AI.Advanced.RuleWeights.Neutral) / C7Engine.AI.Advanced.RuleWeights.Neutral * C7Engine.AI.Advanced.PlanEffects.FocusPoints(player));
+					C7Engine.AI.Advanced.RuleWeights.Used(player, C7Engine.AI.Advanced.RuleCategory.Wonders, "production");
 				}
 				if (AiExperiments.Has(player, WonderPlanner.Value)) {
 					valuedWonder = true;

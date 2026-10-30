@@ -830,6 +830,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 		Dictionary<Player, int> captured = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> plans = civs.ToDictionary(p => p, _ => 0);
+		C7Engine.AI.Advanced.RuleWeights.ResetUse();
 		C7Engine.AI.Advanced.AdvancedAI.onPlan = p => { if (plans.ContainsKey(p)) { plans[p]++; } };
 		C7Engine.AI.Advanced.PhasePlan.onPhase = (p, from, to) => phaseLines.Add($"phase turn {gameData.turn}: {p.civilization.name} {from?.ToString() ?? "start"} -> {to}");
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
@@ -1481,6 +1482,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				["civ"] = p.civilization.name,
 				["trial"] = trialCivs.Contains(p),
 				["govName"] = p.government?.name,
+				["ruleUse"] = C7Engine.AI.Advanced.RuleWeights.UseOf(p).ToDictionary(kv => kv.Key, kv => kv.Value),
 			}).ToList();
 		}
 		List<Measures> trial = civs.Where(trialCivs.Contains).Select(Measure).ToList();

@@ -58,6 +58,13 @@ STEPS = {
     "WinningOffense": 10,
     "PreyAggression": 1,
     "PlanEveryTurns": 2,
+    "WeightExpansion": 5,
+    "WeightWorkers": 5,
+    "WeightResearch": 5,
+    "WeightMilitary": 5,
+    "WeightDiplomacy": 5,
+    "WeightInfrastructure": 5,
+    "WeightWonders": 5,
 }
 LIMITS = {
     "FocusPoints": (0, 60),
@@ -71,17 +78,25 @@ LIMITS = {
     "WinningOffense": (50, 100),
     "PreyAggression": (-2, 2),
     "PlanEveryTurns": (1, 15),
+    "WeightExpansion": (0, 100),
+    "WeightWorkers": (0, 100),
+    "WeightResearch": (0, 100),
+    "WeightMilitary": (0, 100),
+    "WeightDiplomacy": (0, 100),
+    "WeightInfrastructure": (0, 100),
+    "WeightWonders": (0, 100),
 }
 BEHAVIOURS = ["wonder-timing", "wonder-value", "war-production", "war-no-peace",
               "leader-hurry-best", "lean-military", "no-ai-luxury", "snipe-workers",
               "lux-slider-high", "site-food", "site-tight-7", "site-tight-12", "trade-gpt",
               "railroad-first", "philosophy-first", "early-rush", "archer-rush", "phase-plan",
-              "workers-1-2", "early-government"]
+              "workers-1-2", "early-government", "weights-by-state"]
 ON_BY_DEFAULT = {"lean-military", "lux-slider-high", "site-food", "site-tight-7"}
 DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.75,
             "BehindInTechShare": 0.9, "ExpandSettlers": 85, "ExpandAggression": -1,
             "BuildScience": 55, "BuildProduction": 65, "WinningOffense": 80,
-            "PreyAggression": 1, "PlanEveryTurns": 5, **{b: int(b in ON_BY_DEFAULT) for b in BEHAVIOURS}}
+            "PreyAggression": 1, "PlanEveryTurns": 5,
+            **{f"Weight{w}": 50 for w in ("Expansion", "Workers", "Research", "Military", "Diplomacy", "Infrastructure", "Wonders")}, **{b: int(b in ON_BY_DEFAULT) for b in BEHAVIOURS}}
 # Each rung: its name, the Standard AIs' difficulty (an index into the
 # difficulties) and the share of exam games an Advanced civ must win to
 # move up (the owner's bars, 2026-10-29). Deity's exam is only reported.
