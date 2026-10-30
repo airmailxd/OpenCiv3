@@ -40,7 +40,7 @@ def parse_log(text):
     return knobs, held
 
 
-MEASURE = re.compile(r"^(\w+)\s+(-?[\d.]+) vs\s+(-?[\d.]+)\s+([-+][\d.]+) \+- ([\d.]+)(\s+\*)?\s*$")
+MEASURE = re.compile(r"^(\w+)\s+(-?[\d.]+) vs\s+(-?[\d.]+)\s+([-+]+[\d.]+) \+- ([\d.]+)(\s+\*)?\s*$")
 RUNNING_WITHIN = 900  # seconds: a run with no "total ms=" yet whose .log changed this recently is still running
 
 
@@ -52,7 +52,8 @@ def parse_run(text):
         m = MEASURE.match(line)
         if m:
             g = m.groups()
-            run["rows"].append([g[0]] + [float(x) for x in g[1:5]] + [bool(g[5])])
+            # The trial writes a tiny negative difference as "-+0.00".
+            run["rows"].append([g[0]] + [float(x.replace("-+", "-")) for x in g[1:5]] + [bool(g[5])])
         elif line.startswith("measure:"):
             run["header"] = line[len("measure:"):].strip()
         elif line.startswith("total ms="):
