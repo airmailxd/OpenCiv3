@@ -33,5 +33,8 @@ namespace C7Engine.AI {
 		// (captured, or destroyed by barbarians): the unit, still its
 		// owner's, and the taker.
 		internal static Action<MapUnit, Player> onUnitTaken;
+		// And techs bought with gold or gold per turn: the buyer and how
+		// many.
+		internal static Action<Player, int> onTechsBought;
 	}
 }

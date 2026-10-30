@@ -269,6 +269,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// The turn the civ learned Steam Power and Philosophy (the
 			// game's length if it never did).
 			"steamTurn", "philTurn",
+			// Techs the civ bought with gold or gold per turn.
+			"techsBought",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -747,6 +749,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				rushGold[city.owner] += gold;
 			}
 		};
+		Dictionary<Player, int> techsBought = civs.ToDictionary(p => p, _ => 0);
+		AiExperiments.onTechsBought = (buyer, n) => {
+			if (techsBought.ContainsKey(buyer)) {
+				techsBought[buyer] += n;
+			}
+		};
 		Dictionary<Player, int> marketBought = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> marketGold = civs.ToDictionary(p => p, _ => 0);
 		Staging.onBuy = (buyer, _, gold) => {
@@ -928,6 +936,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onWarDeclared = null;
 			AiExperiments.onCombat = null;
 			AiExperiments.onHurry = null;
+			AiExperiments.onTechsBought = null;
 			AiExperiments.onCultureFlip = null;
 			AiExperiments.onUnitTaken = null;
 			RightOfPassageAI.onSigned = null;
@@ -1061,6 +1070,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				? C7Engine.AI.Advanced.PolicyReview.Briefing(p, gameData, C7Engine.AI.Advanced.PolicyReview.Snapshot(p, gameData)).Length / 4.0 : 0;
 			m.values[i++] = development[p].steamTurn;
 			m.values[i++] = development[p].philTurn;
+			m.values[i++] = techsBought[p];
 			return m;
 		}
 

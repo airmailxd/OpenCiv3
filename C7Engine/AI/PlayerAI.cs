@@ -63,8 +63,11 @@ namespace C7Engine {
 			await PeaceAI.ProposePeace(player, gameData);
 
 			// Roughly every 4 turns, see if there are trades to be made.
-			if (GameData.rng.Next(100) < 25) {
-				await AttemptTrading(player);
+			// (With the trade-gpt switch, at once on meeting someone or
+			// learning a tech; see TradeGpt.)
+			bool tradeNow = TradeGpt.WantsToTradeNow(player);
+			if (tradeNow || GameData.rng.Next(100) < 25) {
+				await AttemptTrading(player, tradeNow);
 			}
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
@@ -1418,7 +1421,7 @@ namespace C7Engine {
 			return result;
 		}
 
-		private static async Task AttemptTrading(Player us) {
+		private static async Task AttemptTrading(Player us, bool tradeNow = false) {
 			GameData gD = EngineStorage.gameData;
 
 			log.Information($"{us} is checking for trading opportunities");
@@ -1441,6 +1444,17 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Trial switch trade-gpt: techs for gold per turn with every AI
+				// we can, at once when there's news (see TradeGpt).
+				if (TradeGpt.On(us, them) && (tradeNow || RollsToNegotiate(them))) {
+					TradeGpt.TradeTechs(gD, us, them);
+					if (tradeNow) {
+						continue;
+					}
+				} else if (tradeNow) {
+					continue;
+				}
+
 				if (!RollsToNegotiate(them)) {
 					continue;
 				}
@@ -1458,7 +1472,7 @@ namespace C7Engine {
 				// resource deal, otherwise a pact or embargo (see
 				// DealProposalAI).
 				(TradeOffer weGive, TradeOffer weWant)? deal = DealProposalAI.AllianceDeal(gD, us, them)
-					?? TechDeal(gD, us, them)
+					?? (TradeGpt.On(us, them) ? null : TechDeal(gD, us, them))
 					?? DealProposalAI.ResourceDeal(gD, us, them)
 					?? DealProposalAI.PactDeal(gD, us, them)
 					?? DealProposalAI.EmbargoDeal(gD, us, them);

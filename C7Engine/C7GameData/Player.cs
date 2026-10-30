@@ -1096,6 +1096,13 @@ namespace C7GameData {
 			GiveMapsAndContacts(this, other, ourOffer);
 			GiveMapsAndContacts(other, this, theirOffer);
 
+			// Techs bought (for gold or gold per turn), for AI trials.
+			if (ourOffer.techs.Count > 0 && (theirOffer.gold > 0 || theirOffer.goldPerTurn > 0)) {
+				C7Engine.AI.AiExperiments.onTechsBought?.Invoke(other, ourOffer.techs.Count);
+			}
+			if (theirOffer.techs.Count > 0 && (ourOffer.gold > 0 || ourOffer.goldPerTurn > 0)) {
+				C7Engine.AI.AiExperiments.onTechsBought?.Invoke(this, theirOffer.techs.Count);
+			}
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
 
