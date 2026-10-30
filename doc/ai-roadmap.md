@@ -121,6 +121,12 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
     - ZUR-118 (Engine Engineer): 7 category weights (expansion 95, workers 90, research 88, military 85, diplomacy 75, infrastructure 70, wonders 40) scaled by era, state and opportunity, wired to the existing levers; 50 = today's play. Logs which categories drove each decision (`ruleUse`). The ladder searches the weights and the policy review can adjust them. The owner's values become defaults only if a trial shows they help.
     - ZUR-119 (Trials Analyst): ablation, each category off in turn on the Regent exam seeds.
     - The model still doesn't pick actions each turn (Vox Deorum: per-turn deciding did worse, and costs about 100 times more). The engine does the arithmetic; the model steers weights at its 50-turn reviews.
+  - **Game phases (owner's idea, ZUR-122).** What the AI wants at the start differs from later. A `phase-plan` switch (Advanced only, off until trialled) runs the owner's script:
+    1. Expand to 3-5 cities, sited toward the nearest rival, with a road toward them.
+    2. Muster: the capital and the 1-2 best production, lowest corruption cities build Barracks and 9-12 archers (more at higher difficulty).
+    3. First war on a weak reachable civ, along the roads (re-uses `archer-rush`'s stack).
+    4. Consolidate: fill the gaps, then muster again.
+    - ZUR-123 (Engine Engineer) builds it; ZUR-124 (Trials Analyst) trials it at Regent, Monarch and all civs. ZUR-118's weights will scale by phase once both land.
 - **Better play for Advanced only:**
   - expansion pace;
   - worker use;
