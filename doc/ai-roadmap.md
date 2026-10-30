@@ -101,10 +101,12 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - first place 13 points more often (about 23% of games vs 10%).
 
 ### Training ladder (`tools/advanced-ai-training/train.py`)
-- Advanced (no bonuses) plays Standard AIs at Regent, then Monarch, then Emperor.
+- Advanced (no bonuses) plays Standard AIs at Regent, Monarch, Emperor, Demigod, then Deity.
 - **Search:** a coordinate search over the knobs in paired trials on training seeds. A change is kept only if it also helps on held-out seeds.
-- **Pass:** an Advanced civ wins at least 75% of exam games (50% by chance) and ranks clearly better.
+- **Pass:** an Advanced civ wins at least 100% / 90% / 75% / 50% of exam games (50% by chance) at Regent / Monarch / Emperor / Demigod and ranks clearly better. Deity is reported only.
 - **If a rung isn't passed:** the AI needs better play, not better knobs.
+- **Status (2026-10-29):** stopped at Regent after 4 rounds; exam 80% won vs 100% needed, not passed. Kept: ThreatStrengthRatio 1.75, lean-military, BuildScience 55.
+- **Progress page:** `python tools/advanced-ai-training/dashboard.py --out <ladder dir>` writes `dashboard.html` there (one offline page: Overview plus a tab per difficulty with ideas tried, best win rate, win rate by round, knobs).
 
 ### Next
 - **Better play for Advanced only:**
