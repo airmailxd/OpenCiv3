@@ -81,8 +81,19 @@ namespace EngineTests.GameData;
 //                         civ, ai, trial, defeated, cities, citizens, units,
 //                         military, workers, settlers, ships, techs,
 //                         government, gold, score, culture, atWarWith). "ai"
-//                         is Advanced for a civ with any switch on, else
-//                         Standard. Unset: nothing is collected
+//                         is the civ's AI type (Advanced or Standard).
+//                         Unset: nothing is collected
+//   C7_TRIAL_MAP          a folder for map snapshots, off when unset: one
+//                         file per game, game-<n>-seed-<s>.json, holding the
+//                         map's size and wrap, each tile's terrain once, the
+//                         civs (name, ai, trial), and a frame every
+//                         C7_TRIAL_MAP_EVERY turns (default 10, plus turn 0
+//                         and the last turn) with tile owners (run-length
+//                         encoded: value, count, value, count...), cities,
+//                         unit counts per tile and owner, and each civ's
+//                         techs known, research, era, government, score,
+//                         cities, units and military. Open the files with
+//                         tools/trial-map-viewer/index.html
 //   C7_TRIAL_JSON         a file for the final results as one JSON document:
 //                         the settings, each game's differences and the
 //                         summary. Rewritten after every game
@@ -519,6 +530,70 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		return (player, turn) => recorded.GetValueOrDefault((seed(), player.civilization.name, turn));
 	}
 
+	// A short run with C7_TRIAL_MAP set: the game's file parses, has a
+	// terrain entry for every tile, and its last frame lists the game's cities.
+	[Fact]
+	public async Task MapSnapshotsAreWritten() {
+		string dir = Path.Combine(Path.GetTempPath(), "c7trial" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(dir);
+		// Settings not listed here are cleared, as in RunShortTrial.
+		string[] names = Environment.GetEnvironmentVariables().Keys.Cast<string>()
+			.Where(n => n.StartsWith("C7_TRIAL_") || n == "C7_ADVANCED_TUNING").Union(["C7_TRIAL_OUT", "C7_TRIAL_MAP", "C7_TRIAL_MAP_EVERY", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS", "C7_TRIAL_ADVANCED", "C7_TRIAL_SEED", "C7_TRIAL_STATE"]).ToArray();
+		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
+		try {
+			string state = Path.Combine(dir, "state.jsonl");
+			Dictionary<string, string> set = new() {
+				["C7_TRIAL_OUT"] = Path.Combine(dir, "out.txt"),
+				["C7_TRIAL_MAP"] = Path.Combine(dir, "maps"),
+				["C7_TRIAL_MAP_EVERY"] = "10",
+				["C7_TRIAL_GAMES"] = "1",
+				["C7_TRIAL_SIZE"] = "40",
+				["C7_TRIAL_CIVS"] = "4",
+				["C7_TRIAL_TURNS"] = "25",
+				["C7_TRIAL_EXPERIMENTS"] = "",
+				["C7_TRIAL_ADVANCED"] = "1",
+				["C7_TRIAL_SEED"] = "7",
+				["C7_TRIAL_STATE"] = state,
+			};
+			foreach (string n in names) {
+				Environment.SetEnvironmentVariable(n, set.GetValueOrDefault(n));
+			}
+			await CompareAiWithAndWithoutExperiments();
+
+			string file = Path.Combine(dir, "maps", "game-0-seed-7.json");
+			using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(file));
+			JsonElement root = doc.RootElement;
+			// Civ3 maps stagger their rows, so only half of width x height positions are tiles.
+			int tiles = root.GetProperty("width").GetInt32() * root.GetProperty("height").GetInt32() / 2;
+			Assert.Equal(40 * 40 / 2, tiles);
+			Assert.Equal(tiles, root.GetProperty("terrain").GetArrayLength());
+			Assert.Equal(4, root.GetProperty("civs").GetArrayLength());
+			// Frames at turns 0, 10, 20 and the last, 25.
+			JsonElement frames = root.GetProperty("frames");
+			Assert.Equal([0, 10, 20, 25], frames.EnumerateArray().Select(f => f.GetProperty("turn").GetInt32()).ToArray());
+			JsonElement last = frames[frames.GetArrayLength() - 1];
+			JsonElement owners = last.GetProperty("owners");
+			int covered = 0;
+			for (int i = 1; i < owners.GetArrayLength(); i += 2) {
+				covered += owners[i].GetInt32();
+			}
+			Assert.Equal(tiles, covered);
+			// The same cities as the game, which the state log counts per civ.
+			string[] lastRows = File.ReadAllLines(state).TakeLast(4).ToArray();
+			int stateCities = lastRows.Sum(r => JsonDocument.Parse(r).RootElement.GetProperty("cities").GetInt32());
+			int civCities = last.GetProperty("civs").EnumerateArray().Sum(c => c.GetProperty("cities").GetInt32());
+			Assert.Equal(stateCities, civCities);
+			Assert.True(civCities >= 4);
+			Assert.Equal(civCities, last.GetProperty("cities").EnumerateArray().Count(c => c[2].GetInt32() >= 0));
+			Assert.Contains(lastRows, r => JsonDocument.Parse(r).RootElement.GetProperty("ai").GetString() == "Advanced");
+		} finally {
+			for (int i = 0; i < names.Length; ++i) {
+				Environment.SetEnvironmentVariable(names[i], saved[i]);
+			}
+			Directory.Delete(dir, true);
+		}
+	}
+
 	[Fact]
 	public async Task CompareAiWithAndWithoutExperiments() {
 		string outPath = Environment.GetEnvironmentVariable("C7_TRIAL_OUT");
@@ -852,7 +927,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					["run"] = stateRun,
 					["turn"] = turn,
 					["civ"] = p.civilization.name,
-					["ai"] = experiments.Any(e => AiExperiments.Has(p, e)) ? "Advanced" : "Standard",
+					["ai"] = p.aiType.ToString(),
 					["trial"] = trialCivs.Contains(p),
 					["defeated"] = dead,
 					["cities"] = p.cities.Count,
@@ -871,6 +946,101 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}));
 			}
 			File.AppendAllLines(statePath, rows);
+		}
+		string mapDir = Environment.GetEnvironmentVariable("C7_TRIAL_MAP");
+		int mapEvery = Math.Max(1, Setting("C7_TRIAL_MAP_EVERY", 10));
+		List<object> mapFrames = new();
+		int lastMapTurn = -1;
+		void MapFrame(int turn) {
+			if (string.IsNullOrEmpty(mapDir) || stateRun != "main" || turn == lastMapTurn) {
+				return;
+			}
+			lastMapTurn = turn;
+			int OwnerIndex(Player o) => o == null ? 0 : civs.IndexOf(o) + 1;
+			List<int> owners = new();
+			int run = 0, current = 0;
+			foreach (Tile t in gameData.map.tiles) {
+				int o = OwnerIndex(t.OwningPlayer());
+				if (run > 0 && o != current) {
+					owners.Add(current);
+					owners.Add(run);
+					run = 0;
+				}
+				current = o;
+				++run;
+			}
+			if (run > 0) {
+				owners.Add(current);
+				owners.Add(run);
+			}
+			List<object> cityRows = new();
+			foreach (Player p in gameData.players) {
+				foreach (City c in p.cities) {
+					cityRows.Add(new object[] { c.location.XCoordinate, c.location.YCoordinate, OwnerIndex(p) - 1, c.name, c.residents.Count, c.IsCapital() });
+				}
+			}
+			List<object> unitRows = new();
+			for (int i = 0; i < civs.Count; ++i) {
+				foreach (var g in civs[i].units.GroupBy(u => u.location)) {
+					int mil = 0, work = 0, settle = 0, ships = 0;
+					foreach (MapUnit u in g) {
+						if (u.unitType.IsSeaUnit()) {
+							++ships;
+						} else if (u.unitType.isSettler) {
+							++settle;
+						} else if (u.unitType.isWorker) {
+							++work;
+						} else if (u.unitType.attack > 0) {
+							++mil;
+						}
+					}
+					if (mil + work + settle + ships > 0) {
+						unitRows.Add(new[] { g.Key.XCoordinate, g.Key.YCoordinate, i, mil, work, settle, ships });
+					}
+				}
+			}
+			mapFrames.Add(new Dictionary<string, object> {
+				["turn"] = turn,
+				["owners"] = owners,
+				["cities"] = cityRows,
+				["units"] = unitRows,
+				["civs"] = civs.Select(p => new Dictionary<string, object> {
+					["techs"] = p.knownTechs.Select(t => gameData.techs.FirstOrDefault(x => x.id == t)?.Name).ToList(),
+					["researching"] = p.currentlyResearchedTech == null ? null : gameData.techs.FirstOrDefault(t => t.id == p.currentlyResearchedTech)?.Name,
+					["era"] = p.EraIndex(),
+					["government"] = p.government?.name,
+					["score"] = p.defeated ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
+					["cities"] = p.cities.Count,
+					["units"] = p.units.Count,
+					["military"] = p.units.Count(u => u.unitType.attack > 0 && !u.unitType.isWorker && !u.unitType.isSettler),
+					["defeated"] = p.defeated,
+				}).ToList(),
+			});
+		}
+		void WriteMap() {
+			if (string.IsNullOrEmpty(mapDir) || stateRun != "main") {
+				return;
+			}
+			Directory.CreateDirectory(mapDir);
+			GameMap map = gameData.map;
+			List<string> terrainKeys = gameData.terrainTypes.Select(t => t.Key).ToList();
+			File.WriteAllText(Path.Combine(mapDir, $"game-{stateGame}-seed-{stateSeed}.json"), JsonSerializer.Serialize(new Dictionary<string, object> {
+				["game"] = stateGame,
+				["seed"] = stateSeed,
+				["run"] = stateRun,
+				["width"] = map.numTilesWide,
+				["height"] = map.numTilesTall,
+				["wrapX"] = map.wrapHorizontally,
+				["wrapY"] = map.wrapVertically,
+				["terrainKeys"] = terrainKeys,
+				["terrain"] = map.tiles.Select(t => terrainKeys.IndexOf((t.overlayTerrainType != TerrainType.NONE ? t.overlayTerrainType : t.baseTerrainType).Key)).ToList(),
+				["civs"] = civs.Select(p => new Dictionary<string, object> {
+					["name"] = p.civilization.name,
+					["ai"] = p.aiType.ToString(),
+					["trial"] = trialCivs.Contains(p),
+				}).ToList(),
+				["frames"] = mapFrames,
+			}));
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
 		Dictionary<Player, List<int>> cityStateCaptures = civs.ToDictionary(p => p, _ => new List<int>());
@@ -1112,6 +1282,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Task firstTurn = TurnHandling.AdvanceTurn();
 			EngineWaits.WaitForStartTurnMessage(_ => { });
 			await firstTurn;
+			MapFrame(0);
 			for (int turn = 0; turn < turns && !gameData.gameOver; ++turn) {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				WaitForTurnOrGameOver();
@@ -1120,6 +1291,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
 				LogState(turn + 1);
+				if ((turn + 1) % mapEvery == 0 || turn + 1 == turns || gameData.gameOver) {
+					MapFrame(turn + 1);
+				}
 				if (listTide && RisingTide.IsOn(gameData)) {
 					TraceTide(gameData, civs);
 				}
@@ -1145,6 +1319,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					+ (w.end < 0 ? "ongoing" : $"ended turn {w.end}{(w.renewed ? " (peace, then war again within the round)" : w.defender.defeated ? " (defender destroyed)" : w.aggressor.defeated ? " (aggressor destroyed)" : "")}"));
 			}
 		} finally {
+			WriteMap();
 			gameData.observerMode = false;
 			AiExperiments.onWarDeclared = null;
 			C7Engine.AI.AiExperiments.onTechSold = null;

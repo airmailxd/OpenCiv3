@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenCiv3 trial map viewer</title>
+<style>
+	body { margin: 0; font: 13px system-ui, sans-serif; background: #1b1d21; color: #ddd; }
+	#bar { padding: 8px 12px; background: #262a30; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+	#bar input[type=range] { width: 360px; }
+	#main { display: flex; gap: 12px; padding: 12px; align-items: flex-start; }
+	canvas { background: #000; }
+	#side { min-width: 480px; }
+	table { border-collapse: collapse; width: 100%; }
+	th, td { padding: 2px 6px; text-align: right; border-bottom: 1px solid #333; }
+	th:first-child, td:first-child { text-align: left; }
+	.sw { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 1px solid #000; }
+	.adv { font-weight: bold; color: #ffd84a; }
+	#hint { padding: 12px; color: #999; }
+	#tip { color: #aaa; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<div id="bar">
+	<input type="file" id="files" multiple accept=".json">
+	<select id="game"></select>
+	<button id="play">Play</button>
+	<input type="range" id="slider" min="0" max="0" value="0">
+	<b id="turn">turn -</b>
+	<span class="adv">&#9733; = Advanced AI civ</span>
+</div>
+<div id="hint">Open one or more game-N-seed-S.json files written by C7_TRIAL_MAP (or drop them on this page).</div>
+<div id="main" hidden>
+	<div><canvas id="map"></canvas><div id="tip">&nbsp;</div></div>
+	<div id="side">
+		<table id="table"></table>
+		<canvas id="chart" width="480" height="260"></canvas>
+	</div>
+</div>
+<script>
+"use strict";
+const PALETTE = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990", "#dcbeff", "#9a6324"];
+const TERRAIN = { desert: "#d8c47a", plains: "#c2b05a", grassland: "#5fa148", tundra: "#b9c4c4", "flood plain": "#7fa860", hills: "#8a7a4a", mountains: "#7b7b7b", forest: "#2f6f33", jungle: "#1f8a4a", marsh: "#5a7a6a", volcano: "#a04a2a", coast: "#3d7fc0", sea: "#2a5fa0", ocean: "#1f4a85" };
+const CELL = 6; // pixels per coordinate step; a tile is a diamond 2 steps wide and 2 tall
+const games = new Map(); // label -> parsed file
+let game = null, frameIx = 0, timer = null;
+
+const $ = id => document.getElementById(id);
+const mapCv = $("map"), ctx = mapCv.getContext("2d");
+const chart = $("chart"), cctx = chart.getContext("2d");
+
+function civColor(i) { return PALETTE[i % PALETTE.length]; }
+
+async function load(files) {
+	for (const f of files) {
+		try {
+			const d = JSON.parse(await f.text());
+			if (!d.frames || !d.terrain) { continue; }
+			games.set(f.name, d);
+		} catch (e) { console.warn(f.name, e); }
+	}
+	const sel = $("game");
+	sel.innerHTML = "";
+	[...games.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(k => sel.add(new Option(k, k)));
+	if (games.size) { pickGame(sel.value); }
+}
+
+function pickGame(name) {
+	game = games.get(name);
+	$("hint").hidden = true;
+	$("main").hidden = false;
+	const w = game.width, h = game.height;
+	mapCv.width = (w + 1) * CELL;
+	mapCv.height = (h + 1) * CELL;
+	// Terrain once, into an offscreen canvas.
+	const off = document.createElement("canvas");
+	off.width = mapCv.width; off.height = mapCv.height;
+	const o = off.getContext("2d");
+	game.terrain.forEach((t, i) => {
+		const [x, y] = coords(i);
+		o.fillStyle = TERRAIN[game.terrainKeys[t]] || "#444";
+		diamond(o, x, y);
+	});
+	game.terrainImg = off;
+	$("slider").max = game.frames.length - 1;
+	$("slider").value = game.frames.length - 1;
+	show(game.frames.length - 1);
+}
+
+function coords(i) {
+	const w = game.width, row = Math.floor(i / w), rem = i % w;
+	return rem < w / 2 ? [2 * rem, 2 * row] : [1 + 2 * (rem - w / 2), 2 * row + 1];
+}
+
+function diamond(c, x, y) {
+	const cx = (x + 1) * CELL, cy = (y + 1) * CELL;
+	c.beginPath();
+	c.moveTo(cx - CELL, cy); c.lineTo(cx, cy - CELL); c.lineTo(cx + CELL, cy); c.lineTo(cx, cy + CELL);
+	c.closePath(); c.fill();
+}
+
+function show(ix) {
+	frameIx = ix;
+	const f = game.frames[ix];
+	$("turn").textContent = "turn " + f.turn + " of " + game.frames[game.frames.length - 1].turn;
+	ctx.drawImage(game.terrainImg, 0, 0);
+	// Borders: tint each owned tile with its civ's colour.
+	ctx.globalAlpha = 0.45;
+	let i = 0;
+	for (let k = 0; k < f.owners.length; k += 2) {
+		const owner = f.owners[k], n = f.owners[k + 1];
+		for (let j = 0; j < n; ++j, ++i) {
+			if (owner > 0) {
+				ctx.fillStyle = civColor(owner - 1);
+				const [x, y] = coords(i);
+				diamond(ctx, x, y);
+			}
+		}
+	}
+	ctx.globalAlpha = 1;
+	// Unit stacks: small squares in the owner's colour, number inside when more than one military unit.
+	for (const [x, y, c, mil, work, settle, ships] of f.units) {
+		const cx = (x + 1) * CELL, cy = (y + 1) * CELL;
+		ctx.fillStyle = civColor(c);
+		ctx.strokeStyle = "#000";
+		const total = mil + work + settle + ships;
+		if (ships) {
+			ctx.beginPath(); ctx.moveTo(cx - 3, cy - 2); ctx.lineTo(cx + 3, cy - 2); ctx.lineTo(cx, cy + 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+		} else {
+			const s = mil ? 3 : 2;
+			ctx.fillRect(cx - s, cy - s, 2 * s, 2 * s); ctx.strokeRect(cx - s, cy - s, 2 * s, 2 * s);
+		}
+		if (total > 1) { ctx.fillStyle = "#fff"; ctx.font = "8px sans-serif"; ctx.fillText(total, cx + 3, cy - 3); }
+	}
+	// Cities: dot sized by population, ring for Advanced civs, name beside.
+	ctx.font = "10px sans-serif";
+	for (const [x, y, owner, name, size, capital] of f.cities) {
+		const cx = (x + 1) * CELL, cy = (y + 1) * CELL, r = 2 + Math.sqrt(size) * 1.3;
+		const adv = owner >= 0 && game.civs[owner].ai === "Advanced";
+		ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7);
+		ctx.fillStyle = owner >= 0 ? civColor(owner) : "#999"; ctx.fill();
+		ctx.lineWidth = adv ? 2.5 : 1; ctx.strokeStyle = adv ? "#ffd84a" : "#000"; ctx.stroke();
+		ctx.lineWidth = 1;
+		if (capital) { ctx.fillStyle = "#fff"; ctx.fillRect(cx - 1, cy - 1, 2, 2); }
+		ctx.fillStyle = "#fff"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2.5;
+		ctx.strokeText(name, cx + r + 2, cy + 3); ctx.lineWidth = 1;
+		ctx.fillText(name, cx + r + 2, cy + 3);
+	}
+	table(f);
+	drawChart();
+}
+
+function table(f) {
+	const cols = ["techs", "researching", "era", "government", "score", "cities", "units", "military"];
+	let h = "<tr><th>civ</th>" + cols.map(c => "<th>" + c + "</th>").join("") + "</tr>";
+	game.civs.forEach((c, i) => {
+		const s = f.civs[i];
+		const adv = c.ai === "Advanced";
+		const row = { ...s, techs: s.techs.length };
+		h += "<tr style='" + (s.defeated ? "opacity:.4" : "") + "'><td class='" + (adv ? "adv" : "") + "'><span class='sw' style='background:" + civColor(i) + "'></span>" +
+			(adv ? "&#9733; " : "") + c.name + (s.defeated ? " (out)" : "") + "</td>" + cols.map(k => "<td>" + (row[k] ?? "") + "</td>").join("") + "</tr>";
+	});
+	$("table").innerHTML = h;
+}
+
+function drawChart() {
+	const W = chart.width, H = chart.height, L = 34, B = 20, T = 8, R = 8;
+	cctx.clearRect(0, 0, W, H);
+	cctx.fillStyle = "#1b1d21"; cctx.fillRect(0, 0, W, H);
+	const fr = game.frames, maxT = fr[fr.length - 1].turn || 1;
+	let maxV = 1;
+	fr.forEach(f => f.civs.forEach(c => { maxV = Math.max(maxV, c.techs.length); }));
+	const X = t => L + (W - L - R) * t / maxT, Y = v => H - B - (H - B - T) * v / maxV;
+	cctx.strokeStyle = "#444"; cctx.fillStyle = "#999"; cctx.font = "10px sans-serif"; cctx.lineWidth = 1;
+	for (let v = 0; v <= maxV; v += Math.max(1, Math.ceil(maxV / 5))) {
+		cctx.beginPath(); cctx.moveTo(L, Y(v)); cctx.lineTo(W - R, Y(v)); cctx.stroke(); cctx.fillText(v, 4, Y(v) + 3);
+	}
+	for (let t = 0; t <= maxT; t += Math.max(10, Math.ceil(maxT / 5 / 10) * 10)) { cctx.fillText(t, X(t) - 6, H - 6); }
+	game.civs.forEach((c, i) => {
+		const adv = c.ai === "Advanced";
+		cctx.strokeStyle = civColor(i); cctx.lineWidth = adv ? 3 : 1.2; cctx.setLineDash(adv ? [] : [4, 3]);
+		cctx.beginPath();
+		fr.forEach((f, k) => { const x = X(f.turn), y = Y(f.civs[i].techs.length); k ? cctx.lineTo(x, y) : cctx.moveTo(x, y); });
+		cctx.stroke();
+	});
+	cctx.setLineDash([]);
+	cctx.strokeStyle = "#fff"; cctx.lineWidth = 1;
+	const cur = X(fr[frameIx].turn);
+	cctx.beginPath(); cctx.moveTo(cur, T); cctx.lineTo(cur, H - B); cctx.stroke();
+	cctx.fillStyle = "#999"; cctx.fillText("techs known (solid thick = Advanced AI)", L + 6, T + 10);
+}
+
+mapCv.addEventListener("mousemove", e => {
+	if (!game) { return; }
+	const r = mapCv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+	const f = game.frames[frameIx];
+	let best = null, bd = 12 * 12;
+	for (const c of f.cities) {
+		const d = (mx - (c[0] + 1) * CELL) ** 2 + (my - (c[1] + 1) * CELL) ** 2;
+		if (d < bd) { bd = d; best = c; }
+	}
+	$("tip").textContent = best ? best[3] + " (" + (best[2] >= 0 ? game.civs[best[2]].name : "independent") + ") size " + best[4] + (best[5] ? ", capital" : "") : " ";
+});
+
+$("files").addEventListener("change", e => load(e.target.files));
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); load(e.dataTransfer.files); });
+$("game").addEventListener("change", e => pickGame(e.target.value));
+$("slider").addEventListener("input", e => show(+e.target.value));
+$("play").addEventListener("click", () => {
+	if (timer) { clearInterval(timer); timer = null; $("play").textContent = "Play"; return; }
+	if (frameIx >= game.frames.length - 1) { $("slider").value = 0; show(0); }
+	$("play").textContent = "Pause";
+	timer = setInterval(() => {
+		if (frameIx >= game.frames.length - 1) { clearInterval(timer); timer = null; $("play").textContent = "Play"; return; }
+		$("slider").value = frameIx + 1; show(frameIx + 1);
+	}, 300);
+});
+</script>
+</body>
+</html>
