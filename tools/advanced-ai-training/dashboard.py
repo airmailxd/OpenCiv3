@@ -3,7 +3,7 @@
 
     python tools/advanced-ai-training/dashboard.py --out C:\\Dev\\ladder-runs\\ladder
 
-Reads state.json and log.md in --out, writes dashboard.html next to them
+Reads state.json, log.md and the curated findings.md in --out, writes dashboard.html next to them
 (--html to override). Read-only on the ladder files. Standard library only.
 """
 import argparse
@@ -107,13 +107,30 @@ def benchmarks_html(report):
     return "".join(out)
 
 
-def build(state, log_text, mtime, report=None):
+def findings_html(text):
+    """The curated findings.md (written by hand as runs go) as HTML: ## headings, - bullets, paragraphs."""
+    if not text:
+        return '<p class="empty">No findings written yet: the CTO adds them to findings.md as runs finish.</p>'
+    out = []
+    for line in text.splitlines():
+        if line.startswith("# "):
+            continue
+        if line.startswith("## "):
+            out.append(f"<h3>{E(line[3:])}</h3>")
+        elif line.startswith("- "):
+            out.append(f"<div>&bull; {E(line[2:])}</div>")
+        elif line.strip():
+            out.append(f"<p>{E(line)}</p>")
+    return "".join(out)
+
+
+def build(state, log_text, mtime, report=None, findings=""):
     kn_by_round, held = parse_log(log_text)
     hist, exams = state.get("history", []), state.get("exams", [])
     cur_idx = state.get("rung", 0)
     cur_name = RUNGS[cur_idx][0] if cur_idx < len(RUNGS) else "finished"
     knobs = state.get("knobs", {})
-    tabs = [("Overview", "overview")] + [(n, n.lower()) for n, _, _ in RUNGS] + [("Benchmarks", "benchmarks")]
+    tabs = [("Overview", "overview"), ("Findings", "findings")] + [(n, n.lower()) for n, _, _ in RUNGS] + [("Benchmarks", "benchmarks")]
 
     per = {}
     for name, _, target in RUNGS:
@@ -190,6 +207,7 @@ def build(state, log_text, mtime, report=None):
 <table><tr><th>Round</th><th>Base win rate</th><th>Knobs (non-default)</th><th>Kept after round</th></tr>{krows}</table>"""
 
     parts["benchmarks"] = benchmarks_html(report)
+    parts["findings"] = findings_html(findings)
     nav = "".join(f'<button data-t="{i}"{" class=on" if k == 0 else ""}>{E(t)}</button>' for k, (t, i) in enumerate(tabs))
     body = "".join(f'<section id="{i}"{"" if k == 0 else " hidden"}><h2>{E(t)}</h2>{parts[i]}</section>' for k, (t, i) in enumerate(tabs))
     return PAGE.replace("@NAV@", nav).replace("@BODY@", body)
@@ -229,13 +247,17 @@ def main():
     ap.add_argument("--html", help="output file (default: dashboard.html in --out)")
     a = ap.parse_args()
     sp = os.path.join(a.out, "state.json")
-    with open(sp, encoding="utf-8") as f:
-        state = json.load(f)
+    state = {}
+    if os.path.exists(sp):  # a fresh ladder has no state.json until its first round ends
+        with open(sp, encoding="utf-8") as f:
+            state = json.load(f)
     lp = os.path.join(a.out, "log.md")
     log = open(lp, encoding="utf-8").read() if os.path.exists(lp) else ""
+    fp = os.path.join(a.out, "findings.md")
+    findings = open(fp, encoding="utf-8").read() if os.path.exists(fp) else ""
     out = a.html or os.path.join(a.out, "dashboard.html")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
-        f.write(build(state, log, os.path.getmtime(sp), latest_report(a.out)))
+        f.write(build(state, log, os.path.getmtime(sp if os.path.exists(sp) else lp), latest_report(a.out), findings))
     print(out)
 
 
