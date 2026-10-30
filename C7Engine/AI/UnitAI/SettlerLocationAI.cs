@@ -180,6 +180,7 @@ namespace C7Engine {
 
 			cache.UpdateCities(ownCities, rivalCities, adjustments.RivalCityRadius);
 			bool tide = TideAI.IsOn();
+			bool siteFood = AiExperiments.Has(player, SiteFood);
 
 			foreach (Tile t in candidates) {
 				float score = cache.TileYieldScore(t);
@@ -217,6 +218,10 @@ namespace C7Engine {
 				// Lava from a volcano next to the site would destroy the city
 				// (see Volcano).
 				score += SitePenalty(t, player);
+
+				if (siteFood) {
+					score += SiteFoodAdjustment(t, player, bfc);
+				}
 
 				// Rival cities nearby will compete for the tiles, and their
 				// borders will grow over them. (The penalty is added once
@@ -268,6 +273,42 @@ namespace C7Engine {
 				scores[t] = score;
 			}
 			return scores;
+		}
+
+		// The experiment switch for food-first city sites.
+		public const string SiteFood = "site-food";
+
+		// HEURISTIC: the worth of a site next to fresh water (a river or
+		// lake), where the city needs no aqueduct to pass size 8, and the
+		// cost of each of the two 2-food tiles a site lacks.
+		internal const float FreshWaterBonus = 15;
+		internal const float MissingFoodTilePenalty = -25;
+		internal const int FoodTilesWanted = 2;
+
+		// Under the site-food switch: a city centre makes the same food
+		// whatever it stands on (Rules.CityCenterFood, 2 normally; see
+		// Tile.BaseFoodYield), so bonus food under it is wasted and the
+		// site's own food is scored at that. A river or lake beside the
+		// site counts for it. And the site wants two tiles of 2 food or
+		// more around it to grow on.
+		internal static float SiteFoodAdjustment(Tile t, Player player, BigFatCross bfc) {
+			float adjustment = 0;
+			int centerFood = player.rules?.CityCenterFood ?? 2;
+			adjustment += player.civilization.Adjustments.FoodYieldBonus * (centerFood - t.FoodYield(player).yield);
+
+			if (t.BordersRiver() || t.NeighborsFreshWater()) {
+				adjustment += FreshWaterBonus;
+			}
+
+			int foodTiles = 0;
+			for (int i = 0; i < bfc.tiles.Length && foodTiles < FoodTilesWanted; ++i) {
+				Tile n = bfc.tiles[i];
+				if (!IsOwnedByRival(n, player) && AIFogOfWar.KnowsTile(player, n) && n.FoodYield(player).yield >= 2) {
+					++foodTiles;
+				}
+			}
+			adjustment += (FoodTilesWanted - foodTiles) * MissingFoodTilePenalty;
+			return adjustment;
 		}
 
 		// HEURISTIC: a small penalty for a site next to a volcano. Flood
@@ -334,7 +375,7 @@ namespace C7Engine {
 
 		// The workable tiles around a city site (excluding the site itself),
 		// with how much each contributes to the site's score.
-		private sealed class BigFatCross {
+		internal sealed class BigFatCross {
 			public Tile[] tiles;
 			public float[] adjustments;
 		}
