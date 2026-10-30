@@ -116,6 +116,11 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - ZUR-109: benchmark measures (`govTurn`, `cities50`, `cities100`, `techs100`, `workersPerCity100`, `techGold`, `killRatio`) and a scorecard and loss autopsy after every exam. **Landed** (`3c5f1503`, `9b10f9a9`): `AiTrialTest` records the seven measures (and each civ's final `govName` in the JSON); `tools/advanced-ai-training/benchmarks.py` writes `<exam>-report.md`, `train.py` runs it after each exam and links it from `log.md`, the dashboard has a Benchmarks tab. The Suede column stays blank until ZUR-110 writes `doc/suede-benchmarks.md`. Not yet run on a full exam.
   - ZUR-110: Suede's own figures for each benchmark (`doc/suede-benchmarks.md`), and the 5 ideas most likely to close the gaps.
   - ZUR-111: `early-government`, leave Despotism early.
+  - **Weighted rules (owner's idea, 2026-10-30).** The tips become weighted, conditional rules rather than a flat list:
+    - ZUR-117 (Strategy Researcher): `doc/suede-rules.json`, every tip with category, base weight 0-100, conditions, exceptions, modifiers, conflicts, validation status (verified / unverified / disputed / disabled) and the code that does it today.
+    - ZUR-118 (Engine Engineer): 7 category weights (expansion 95, workers 90, research 88, military 85, diplomacy 75, infrastructure 70, wonders 40) scaled by era, state and opportunity, wired to the existing levers; 50 = today's play. Logs which categories drove each decision (`ruleUse`). The ladder searches the weights and the policy review can adjust them. The owner's values become defaults only if a trial shows they help.
+    - ZUR-119 (Trials Analyst): ablation, each category off in turn on the Regent exam seeds.
+    - The model still doesn't pick actions each turn (Vox Deorum: per-turn deciding did worse, and costs about 100 times more). The engine does the arithmetic; the model steers weights at its 50-turn reviews.
 - **Better play for Advanced only:**
   - expansion pace;
   - worker use;
