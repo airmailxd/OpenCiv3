@@ -40,6 +40,69 @@ def parse_log(text):
     return knobs, held
 
 
+MEASURE = re.compile(r"^(\w+)\s+(-?[\d.]+) vs\s+(-?[\d.]+)\s+([-+][\d.]+) \+- ([\d.]+)(\s+\*)?\s*$")
+RUNNING_WITHIN = 900  # seconds: a run with no "total ms=" yet whose .log changed this recently is still running
+
+
+def parse_run(text):
+    """-> settings line, measures header, measure rows and footer lines of one runs/<tag>.txt (per-game lines left out)."""
+    lines = text.splitlines()
+    run = dict(settings=lines[0].strip() if lines else "", header="", rows=[], footer=[], minutes=None)
+    for line in lines[1:]:
+        m = MEASURE.match(line)
+        if m:
+            g = m.groups()
+            run["rows"].append([g[0]] + [float(x) for x in g[1:5]] + [bool(g[5])])
+        elif line.startswith("measure:"):
+            run["header"] = line[len("measure:"):].strip()
+        elif line.startswith("total ms="):
+            run["minutes"] = float(line[9:]) / 60000
+        elif line.strip() and not line.startswith("game "):
+            run["footer"].append(line.strip())
+    return run
+
+
+def load_runs(out):
+    """-> parsed runs under out/runs, newest .txt first; a run without 'total ms=' is 'failed' or 'still running'."""
+    d = os.path.join(out, "runs")
+    runs = []
+    for f in os.listdir(d) if os.path.isdir(d) else []:
+        if not f.endswith(".txt"):
+            continue
+        path = os.path.join(d, f)
+        try:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                run = parse_run(fh.read())
+            mtime = os.path.getmtime(path)
+            log = path + ".log"
+            logtime = os.path.getmtime(log) if os.path.exists(log) else 0
+        except OSError:
+            continue
+        tag = f[:-4]
+        diff, _, rest = tag.partition("-")
+        rnd, _, name = rest.partition("-")
+        if re.fullmatch(r"r\d+", rnd):
+            label = f"{diff} {rnd} · {name}" if name else f"{diff} {rnd}"
+        else:
+            label = f"{diff} · {rest}" if rest else tag
+        run.update(tag=tag, label=f"{label} · {time.strftime('%Y-%m-%d %H:%M', time.localtime(mtime))}", mtime=mtime)
+        if run["minutes"] is None:
+            run["state"] = "still running" if time.time() - max(mtime, logtime) < RUNNING_WITHIN else "failed"
+        runs.append(run)
+    return sorted(runs, key=lambda r: -r["mtime"])
+
+
+def runs_html(runs):
+    """The Runs tab: a select and a div that the page script fills in; the parsed runs ride along as one JSON blob."""
+    if not runs:
+        return '<p class="empty">No runs yet.</p>'
+    for r in runs:
+        r.pop("mtime", None)
+    blob = json.dumps(runs, separators=(",", ":")).replace("</", "<\\/")
+    return ('<p><select id="runsel"></select></p><div id="run"></div>'
+            f'<script type="application/json" id="rundata">{blob}</script>')
+
+
 def clock(t):
     return time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime(t))
 
@@ -151,7 +214,7 @@ def findings_html(text):
     return "".join(out)
 
 
-def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "Stopped"), now=None):
+def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "Stopped"), now=None, runs=None):
     kn_by_round, held = parse_log(log_text)
     now = time.time() if now is None else now
     running, status_text = hb_status
@@ -159,7 +222,7 @@ def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "S
     cur_idx = state.get("rung", 0)
     cur_name = RUNGS[cur_idx][0] if cur_idx < len(RUNGS) else "finished"
     knobs = state.get("knobs", {})
-    tabs = [("Overview", "overview"), ("Findings", "findings")] + [(n, n.lower()) for n, _, _ in RUNGS] + [("Benchmarks", "benchmarks")]
+    tabs = [("Overview", "overview"), ("Findings", "findings")] + [(n, n.lower()) for n, _, _ in RUNGS] + [("Runs", "runs"), ("Benchmarks", "benchmarks")]
 
     per = {}
     for name, _, target in RUNGS:
@@ -235,6 +298,7 @@ def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "S
 <h3>Knobs in force at each round</h3>
 <table><tr><th>Round</th><th>Base win rate</th><th>Knobs (non-default)</th><th>Kept after round</th></tr>{krows}</table>"""
 
+    parts["runs"] = runs_html(runs or [])
     parts["benchmarks"] = benchmarks_html(report)
     parts["findings"] = findings_html(findings)
     nav = "".join(f'<button data-t="{i}"{" class=on" if k == 0 else ""}>{E(t)}</button>' for k, (t, i) in enumerate(tabs))
@@ -261,6 +325,7 @@ th{color:var(--mut);font-weight:600}table.sort th{cursor:pointer}
 .chip{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin:2px}.chip.hot{background:var(--hot);font-weight:600}
 .status{font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--line);margin-bottom:6px}
 .status.run{color:var(--ok)}.status.stop{color:var(--bad)}.late{color:var(--bad);font-weight:600}
+tr.sig{background:var(--hot)}td.n{font-variant-numeric:tabular-nums}select{font:inherit;max-width:100%}
 .ok{color:var(--ok)}.bad{color:var(--bad)}.empty,.note{color:var(--mut)}
 svg{width:100%;max-width:640px;height:auto}.grid{stroke:var(--line)}.ax{fill:var(--mut);font-size:11px}
 .target{stroke:var(--bad);stroke-dasharray:5 4}.ln{fill:none;stroke:var(--acc);stroke-width:2}
@@ -270,10 +335,26 @@ svg{width:100%;max-width:640px;height:auto}.grid{stroke:var(--line)}.ax{fill:var
 a.textContent='(updated '+(m<1?'less than 1':m)+' min ago'+(m>=3?' — page is stale':'')+')';a.className=m>=3?'late':''}f();setInterval(f,15000)})();
 var B=document.querySelectorAll('nav button'),S=document.querySelectorAll('section');
 B.forEach(function(b,i){b.onclick=function(){B.forEach(function(x,j){x.classList.toggle('on',i==j);S[j].hidden=i!=j})}});
-document.querySelectorAll('table.sort').forEach(function(t){t.querySelectorAll('th').forEach(function(th,c){var d=1;th.onclick=function(){d=-d;
+function sortable(t){t.querySelectorAll('th').forEach(function(th,c){var d=1;th.onclick=function(){d=-d;
 var rows=[].slice.call(t.rows,1);function v(r){var x=r.cells[c];var a=x.getAttribute('data-v');if(a===null)a=x.textContent;
 if(a==='')return -1e9;var n=parseFloat(a);return isNaN(n)?a:n}
-rows.sort(function(a,b){var p=v(a),q=v(b);return (p>q?1:p<q?-1:0)*d});rows.forEach(function(r){t.tBodies[0].appendChild(r)})}})});
+rows.sort(function(a,b){var p=v(a),q=v(b);return (p>q?1:p<q?-1:0)*d});rows.forEach(function(r){t.tBodies[0].appendChild(r)})}})}
+document.querySelectorAll('table.sort').forEach(sortable);
+var RD=document.getElementById('rundata');
+if(RD){var R=JSON.parse(RD.textContent),sel=document.getElementById('runsel'),box=document.getElementById('run');
+function esc(x){var e=document.createElement('div');e.textContent=x;return e.innerHTML}
+R.forEach(function(r,i){var o=document.createElement('option');o.value=r.tag;o.textContent=r.label;sel.appendChild(o)});
+function show(){var r=R[sel.selectedIndex];try{localStorage.setItem('runTag',r.tag)}catch(e){}
+var h='<p><b>'+esc(r.settings)+'</b>'+(r.state?' <span class="bad">('+r.state+')</span>':'')+'</p>';
+if(r.rows.length){h+='<p class="note">'+esc(r.header)+'</p><table class="sort"><tr><th>Measure</th><th>Trial</th><th>Others</th><th>Difference</th><th>± error</th></tr>';
+r.rows.forEach(function(m){h+='<tr'+(m[5]?' class="sig"':'')+'><td>'+esc(m[0])+(m[5]?' *':'')+'</td><td class="n" data-v="'+m[1]+'">'+m[1]+'</td><td class="n" data-v="'+m[2]+'">'+m[2]+'</td><td class="n" data-v="'+m[3]+'">'+(m[3]>0?'+':'')+m[3].toFixed(2)+'</td><td class="n" data-v="'+m[4]+'">'+m[4].toFixed(2)+'</td></tr>'});
+h+='</table>'}
+r.footer.forEach(function(l){h+='<div>'+esc(l)+'</div>'});
+if(r.minutes!==null)h+='<div>Total time: '+r.minutes.toFixed(1)+' minutes</div>';
+box.innerHTML=h;var t=box.querySelector('table');if(t)sortable(t)}
+var want=null;try{want=localStorage.getItem('runTag')}catch(e){}
+for(var i=0;i<R.length;i++)if(R[i].tag===want)sel.selectedIndex=i;
+sel.onchange=show;show()}
 </script></body></html>
 """
 
@@ -294,7 +375,7 @@ def write_dashboard(out, html_path=None, now=None):
     path = html_path or os.path.join(out, "dashboard.html")
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        f.write(build(state, log, mtime, latest_report(out), findings, status(out, log, mtime, now), now))
+        f.write(build(state, log, mtime, latest_report(out), findings, status(out, log, mtime, now), now, load_runs(out)))
     os.replace(tmp, path)
     return path
 
