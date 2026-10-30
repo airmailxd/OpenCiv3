@@ -385,7 +385,7 @@ namespace C7Engine {
 				// reading the code), and was seen to build "a number of Workers
 				// equivalent to 80-90% of its number of cities at the peak"
 				// (Erlend Philip Wood); doc/civ3-compendium/08, section 3.2.
-				if (stats.NumWorkers >= EnoughWorkers(player)) {
+				if (stats.NumWorkers >= EnoughWorkers(player, stats.InExpansionPhase)) {
 					return int.MinValue;
 				}
 				// If we have unworked tiles, boost the odds of producing a
@@ -411,8 +411,14 @@ namespace C7Engine {
 		// How many workers the AI wants: 85% of its cities, the middle of the
 		// 80-90% seen in Civ3 (see ScoreUnit), and at least one.
 		internal const float WorkersPerCity = .85f;
-		internal static int EnoughWorkers(Player player) {
-			return Math.Max(1, (int)Math.Ceiling(player.cities.Count * WorkersPerCity));
+		// With the workers-1-2 trial (Advanced only; Suede keeps 1.2-1.4):
+		// one per city while expanding, 1.2 once expansion ends.
+		internal static int EnoughWorkers(Player player, bool expanding = true) {
+			float perCity = WorkersPerCity;
+			if (player.IsAdvancedAi && AiExperiments.Has(player, DevelopmentAI.WorkersOneTwo)) {
+				perCity = expanding ? 1f : 1.2f;
+			}
+			return Math.Max(1, (int)Math.Ceiling(player.cities.Count * perCity));
 		}
 
 		internal static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {

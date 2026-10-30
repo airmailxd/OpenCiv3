@@ -28,6 +28,10 @@ namespace C7Engine.AI {
 		public const string PhilosophyFirst = "philosophy-first";
 		public const double SwitchedTechBonus = 150;
 
+		// Workers per city: 1.0 while expanding, 1.2 after (see
+		// ChooseProducible.EnoughWorkers).
+		public const string WorkersOneTwo = "workers-1-2";
+
 		////////////////////////////////////////////////////////////////////
 		// lean-military
 

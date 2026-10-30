@@ -26,7 +26,7 @@ namespace C7Engine.AI.Advanced {
 			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
-			PhasePlan.Switch,
+			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -94,6 +94,8 @@ namespace C7Engine.AI.Advanced {
 				"phase-plan: attackers to gather (one more per difficulty level above Regent, to 12 unless this is higher)."),
 			new("PhaseConsolidateTurns", 20, 5, 5, 60,
 				"phase-plan: turns to consolidate after a war before mustering again."),
+			new(DevelopmentAI.WorkersOneTwo, 0, 1, 0, 1,
+				"1: one worker per city while expanding, 1.2 once expansion ends."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

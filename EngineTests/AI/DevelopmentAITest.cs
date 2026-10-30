@@ -285,6 +285,20 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		Assert.Equal(int.MinValue, WorkerScore());
 	}
 
+	[Fact]
+	public void WorkersOneTwoRaisesTheCapForAdvancedOnly() {
+		for (int i = 0; i < 4; ++i) {
+			player.cities.Add(player.cities[0]);
+		}
+		int standard = ChooseProducible.EnoughWorkers(player, false);
+		AiExperiments.Enable(player, DevelopmentAI.WorkersOneTwo);
+		Assert.Equal(standard, ChooseProducible.EnoughWorkers(player, false));
+		player.aiType = AiType.Advanced;
+		int n = player.cities.Count;
+		Assert.Equal(n, ChooseProducible.EnoughWorkers(player, true));
+		Assert.Equal((int)Math.Ceiling(n * 1.2), ChooseProducible.EnoughWorkers(player, false));
+	}
+
 	[Theory]
 	[InlineData("Steam Power", DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst)]
 	[InlineData("Philosophy", DevelopmentAI.PhilosophyFirst, DevelopmentAI.RailroadFirst)]
