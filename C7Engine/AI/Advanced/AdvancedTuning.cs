@@ -23,7 +23,7 @@ namespace C7Engine.AI.Advanced {
 		// The on-trial behaviours an Advanced AI may take up; 1 turns one on.
 		public static readonly string[] Behaviours = [
 			WonderPlanner.Timing, WonderPlanner.Value, "war-production", "war-no-peace",
-			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury,
+			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -63,6 +63,8 @@ namespace C7Engine.AI.Advanced {
 				"1: stop adding soldiers that cost upkeep once cities are guarded."),
 			new(PlayerAI.NoAiLuxury, 0, 1, 0, 1,
 				"1: don't raise the luxury rate for unhappy cities."),
+			new(PlayerAI.SnipeWorkers, 0, 1, 0, 1,
+				"1: at war, a spare attacker takes enemy workers and settlers left without a defender nearby."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

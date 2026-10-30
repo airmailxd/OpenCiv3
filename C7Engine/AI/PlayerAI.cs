@@ -1080,6 +1080,9 @@ namespace C7Engine {
 
 			// Special case: we're at war.
 			if (IsInAnyWar(player, EngineStorage.gameData.players)) {
+				if (AiExperiments.Has(player, SnipeWorkers) && SnipeWorkersPlan(unit, player) is UnitAI snipe) {
+					return snipe;
+				}
 				// Priority 1: ensure we don't have any unguarded cities.
 				//
 				// If this is an offensive unit only go defend if there are
@@ -1216,6 +1219,86 @@ namespace C7Engine {
 
 		private const int HuntRange = 6;
 		private const double HuntOdds = 0.6;
+
+		// On trial (ZUR-84; CivFanatics "Capturing-Enemy-Settlers",
+		// "Plucking-workers"): at war, a spare attacker goes for an enemy
+		// worker or settler within SnipeRange tiles that has no defender on
+		// its tile; walking onto it captures it (a settler gives two workers).
+		// Not while the enemy's fighters could reach the tile next turn and
+		// are likely to win (SnipeSurviveOdds).
+		internal const string SnipeWorkers = "snipe-workers";
+		private const int SnipeRange = 3;
+		private const double SnipeSurviveOdds = 0.5;
+
+		internal static UnitAI SnipeWorkersPlan(MapUnit unit, Player player) {
+			if (!unit.IsLandUnit() || unit.IsArmy() || unit.IsLeader() || unit.unitType.isSettler || unit.unitType.isWorker
+					|| !unit.CanAttack() || unit.unitType.attack <= 0 || unit.unitType.attack < unit.unitType.defense
+					|| IsArtillery(unit) || unit.currentAI is WarCampaign.MemberAI) {
+				return null;
+			}
+			Tile start = unit.location;
+			List<Tile> targets = new();
+			foreach (Tile t in start.GetTilesWithinTileSquare(SnipeRange)) {
+				if (t == Tile.NONE || t == start || !t.IsLand() || !OnlyPreyHere(t, player)
+						|| !player.tileKnowledge.isTileKnown(t) || !AIFogOfWar.SeesUnitsOn(player, t)
+						|| !unit.CanEnter(t) || t.HasCity() || SnipeTileIsDangerous(unit, player, t)) {
+					continue;
+				}
+				targets.Add(t);
+			}
+			if (targets.Count == 0) {
+				return null;
+			}
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			foreach (Tile target in targets.OrderBy(t => t.DistanceTo(start))) {
+				TilePath p = algorithm is AStarAlgorithm aStar
+					? aStar.PathFrom(start, target, unit, 2 * SnipeRange)
+					: algorithm.PathFrom(start, target, unit);
+				if (p != null && p.PathLength() > 0) {
+					log.Information("Set unit {Unit} to snipe the workers at {Tile}", unit, target);
+					return new CombatAI(new CombatAIData { destination = target, path = p });
+				}
+			}
+			return null;
+		}
+
+		// Whether the tile holds only defenceless units of civs we are at war
+		// with, at least one a worker or settler; see SnipeTileIsDangerous.
+		private static bool OnlyPreyHere(Tile t, Player player) {
+			bool prey = false;
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (u.owner.IsIndependent || u.owner == player || !player.playerRelationships.TryGetValue(u.owner.id, out PlayerRelationship r)
+						|| !r.AtWar() || !u.IsSeenBy(player)) {
+					return false;
+				}
+				if (u.CanDefendOnLand() && u.CombatBaseStrength(CombatRole.Defense) > 0 && !u.unitType.isWorker && !u.unitType.isSettler) {
+					return false;
+				}
+				prey |= u.unitType.isWorker || u.unitType.isSettler;
+			}
+			return prey;
+		}
+
+		// An enemy fighter that can reach the tile next turn and is likely to
+		// beat the sniper there.
+		private static bool SnipeTileIsDangerous(MapUnit unit, Player player, Tile target) {
+			foreach (Tile near in target.GetTilesWithinTileSquare(3)) {
+				if (near == Tile.NONE) {
+					continue;
+				}
+				foreach (MapUnit foe in near.unitsOnTile) {
+					if (foe.owner == player || !foe.IsLandUnit() || !foe.CanAttack()
+							|| foe.unitType.attack <= 0 || player.IsAtPeaceWith(foe.owner)
+							|| near.DistanceTo(target) > foe.unitType.movement + 1) {
+						continue;
+					}
+					if (CombatAI.EstimateChanceToWin(foe, unit) > 1 - SnipeSurviveOdds) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
 
 		private static Tile FindNearbyBarbCamp(MapUnit unit, Player player, out TilePath path) {
 			path = null;

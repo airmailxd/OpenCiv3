@@ -110,4 +110,56 @@ public sealed class AttackForceTest : IClassFixture<SaveGameFixture>, IDisposabl
 		CombatAI combat = Assert.IsType<CombatAI>(plan);
 		Assert.Equal(prey, combat.data.destination);
 	}
+
+	// ZUR-84: with snipe-workers on, a spare attacker goes for a lone enemy
+	// worker; off, or with the worker guarded, or at peace, it does not.
+	private (MapUnit raider, Tile prey) RaiderAndWorker(bool guarded) {
+		MapUnit raider = gameData.map.tiles.Where(IsFlatEmptyLand).Select(t => gameData.SpawnUnit(ai, Prototype("Horseman"), t)).First();
+		Tile prey = raider.location.GetTilesWithinRankDistance(2).First(t => IsFlatEmptyLand(t) && t.DistanceTo(raider.location) == 2);
+		gameData.SpawnUnit(enemy, Prototype("Worker"), prey);
+		if (guarded) {
+			gameData.SpawnUnit(enemy, Prototype("Spearman"), prey);
+		}
+		ai.tileKnowledge.AddTilesToKnown(prey);
+		return (raider, prey);
+	}
+
+	[Fact]
+	public void SnipeWorkersTakesALoneWorker() {
+		AiExperiments.Enable(ai, PlayerAI.SnipeWorkers);
+		(MapUnit raider, Tile prey) = RaiderAndWorker(guarded: false);
+		CombatAI combat = Assert.IsType<CombatAI>(PlayerAI.GetAIForUnit(raider, ai));
+		Assert.Equal(prey, combat.data.destination);
+	}
+
+	// Finding: the stock war AI (CombatAI's generic target search) already
+	// goes for a lone visible worker when the unit has nothing else to do, so
+	// the switch only changes priority (before defending a city, hunting
+	// barbarians) and which units go.
+	[Fact]
+	public void StockAiAlreadyGoesForAVisibleLoneWorker() {
+		(MapUnit raider, Tile prey) = RaiderAndWorker(guarded: false);
+		Assert.Equal(prey, CombatAI.MakeAiData(raider, ai)?.destination);
+	}
+
+	[Fact]
+	public void SnipeWorkersSkipsAGuardedWorker() {
+		(MapUnit raider, _) = RaiderAndWorker(guarded: true);
+		Assert.Null(PlayerAI.SnipeWorkersPlan(raider, ai));
+	}
+
+	[Fact]
+	public void SnipeWorkersSkipsAWorkerAtPeace() {
+		(MapUnit raider, _) = RaiderAndWorker(guarded: false);
+		PlayerRelationship.SignPeaceAfterWar(ai, enemy, gameData);
+		Assert.Null(PlayerAI.SnipeWorkersPlan(raider, ai));
+	}
+
+	[Fact]
+	public void SnipeWorkersSkipsAWorkerAnEnemyFighterGuardsFromNearby() {
+		(MapUnit raider, Tile prey) = RaiderAndWorker(guarded: false);
+		Tile beside = prey.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && t.unitsOnTile.Count == 0 && t != raider.location);
+		gameData.SpawnUnit(enemy, Prototype("Knight"), beside);
+		Assert.Null(PlayerAI.SnipeWorkersPlan(raider, ai));
+	}
 }
