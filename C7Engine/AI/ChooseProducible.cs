@@ -242,7 +242,7 @@ namespace C7Engine {
 			score -= populationCostPenalty;
 
 			// On trial: the productive cities arm a war campaign that needs it.
-			if (AiExperiments.Has(player, "war-production")) {
+			if (AiExperiments.Has(player, "war-production") || (EarlyRush.On(player) && WarCampaign.HasRush(player))) {
 				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack);
 			}
 
@@ -537,6 +537,11 @@ namespace C7Engine {
 			// war.
 			if (building.providesVeteranGroundUnits) {
 				score += (city.residents.Count / 5) * (atWar ? 3 : 1);
+				// On trial: the city an early rush gathers in raises veterans
+				// (see EarlyRush).
+				if (EarlyRush.On(player) && WarCampaign.RushStagingCity(player) == city) {
+					score += EarlyRush.BarracksBonus;
+				}
 				// Barracks in the core cities that raise the army (see
 				// CoreBarracksBonus).
 				if (!atWar && city.residents.Count >= CoreBarracksMinSize

@@ -75,6 +75,9 @@ namespace C7Engine.AI {
 			// (see CooldownTurns): not when it ended because it won, or to
 			// meet a more pressing danger.
 			public bool cooldown = true;
+			// Whether this is an early rush (see EarlyRush): a small stack
+			// at a weakly held city while the civ is still expanding.
+			public bool rush;
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -159,7 +162,24 @@ namespace C7Engine.AI {
 
 		// Whether a city should build more attackers for a campaign.
 		public static bool WantsAttackers(Player player) {
-			return campaigns.TryGetValue(player, out Campaign c) && c.units.Count(IsAttacker) < NeededAttackers(player, c) + 2;
+			return campaigns.TryGetValue(player, out Campaign c) && c.units.Count(IsAttacker) < NeededAttackers(player, c) + Spare(c);
+		}
+
+		// The attackers beyond the number needed that a campaign takes: none
+		// for a rush, which is small and quick.
+		private static int Spare(Campaign c) {
+			return c.rush ? 0 : 2;
+		}
+
+		// Whether the player has an early rush planned or under way.
+		public static bool HasRush(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.rush;
+		}
+
+		// The city an early rush gathers in, or null without one (see
+		// ChooseProducible, for its barracks).
+		public static City RushStagingCity(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.rush && c.target != null ? StagingCity(player, c) : null;
 		}
 
 		// Whether a campaign has fewer than max bombarders, counting those
@@ -246,7 +266,10 @@ namespace C7Engine.AI {
 			}
 			campaign.units.Clear();
 			campaigns.Remove(player);
-			if (cooldown) {
+			if (campaign.rush) {
+				// Won or lost, back to settlers for a good while.
+				nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + EarlyRush.CooldownTurns));
+			} else if (cooldown) {
 				StartCooldown(player);
 			}
 		}
@@ -504,6 +527,12 @@ namespace C7Engine.AI {
 				}
 			}
 
+			bool rush = false;
+			if (enemy == null && !coolingDown && EarlyRush.On(player) && EarlyRush.Expanding(player)) {
+				enemy = PickRushTarget(player, gameData, out target);
+				rush = enemy != null;
+			}
+
 			if (enemy == null) {
 				enemy = PlotWar(player, gameData, out target);
 				if (enemy != null && target == null) {
@@ -523,7 +552,7 @@ namespace C7Engine.AI {
 				return null;
 			}
 			log.Information("{Player} plans a campaign against {Enemy}, starting with {City}", player, enemy, target.name);
-			Campaign c = new() { enemy = enemy, target = target };
+			Campaign c = new() { enemy = enemy, target = target, rush = rush };
 			SetPhase(c, Phase.Gather);
 			return c;
 		}
@@ -582,6 +611,42 @@ namespace C7Engine.AI {
 			}
 			if (enemy != null) {
 				target = PickTarget(player, enemy);
+			}
+			return enemy;
+		}
+
+		// For an early rush (see EarlyRush), the civ we have the tech on, and
+		// its capital or city of size 3 or more nearest and weakest, with
+		// no more defenders than we can take with a handful of attackers.
+		// Null if there is none.
+		private static Player PickRushTarget(Player player, GameData gameData, out City target) {
+			target = null;
+			Player enemy = null;
+			float best = 0;
+			foreach (Player p in gameData.players) {
+				if (p.isBarbarians || !CanDeclareWarOn(player, p) || p.cities.Count == 0 || !EarlyRush.Outteched(player, p)) {
+					continue;
+				}
+				foreach (City city in p.cities) {
+					if (city.residents.Count < EarlyRush.MinTargetSize || !AIFogOfWar.KnowsTile(player, city.location)) {
+						continue;
+					}
+					int distance = player.cities.Where(c => c.location.continent == city.location.continent)
+						.Select(c => c.location.DistanceTo(city.location)).DefaultIfEmpty(int.MaxValue).Min();
+					if (distance == int.MaxValue) {
+						continue;
+					}
+					int defenders = EstimateDefenders(player, city);
+					if (AIFogOfWar.SeesUnitsOn(player, city.location) && defenders > EarlyRush.MaxVisibleDefenders) {
+						continue;
+					}
+					float score = (city.IsCapital() ? EarlyRush.CapitalFactor : 1) * (2 + city.residents.Count) / (1 + defenders) / (1 + distance / 4f);
+					if (score > best) {
+						best = score;
+						enemy = p;
+						target = city;
+					}
+				}
 			}
 			return enemy;
 		}
@@ -740,7 +805,7 @@ namespace C7Engine.AI {
 			// An army counts for (at least) as many attackers as it has
 			// members.
 			int armyMembers = c.units.Where(IsFightingArmy).Sum(a => a.PassengerCount());
-			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, MaxAttackers);
+			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : MaxAttackers);
 		}
 
 		// HEURISTIC: the most attackers a campaign gathers.
@@ -806,7 +871,7 @@ namespace C7Engine.AI {
 					continue;
 				}
 				if (IsAttacker(u)) {
-					take = attackers < needed + 2;
+					take = attackers < needed + Spare(c);
 				} else if (IsBombarder(u)) {
 					take = bombarders < 3;
 				} else if (IsEscort(u)) {
