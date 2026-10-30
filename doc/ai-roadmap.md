@@ -111,7 +111,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 ### Next
 - **Pass the Regent exam with Suede-based play, steered by benchmarks (ZUR-106, owner's direction 2026-10-30).**
   - What the exam shows (16 games, Advanced minus Standard): no real edge (score +29 ± 43, cities -0.2 ± 0.7); a smaller, more passive army (military -50 ± 11, wars 0.2 vs 0.6, captured -0.8 ± 0.3); about 135 of 200 turns in Despotism, same as Standard. It ran with none of the Suede tips that won their trials.
-  - ZUR-107: `lux-slider-high`, `site-food` and `site-tight-7` on by default for Advanced; every on-trial switch becomes an Advanced behaviour the ladder can search; the Regent knobs become defaults.
+  - ZUR-107: `lux-slider-high`, `site-food` and `site-tight-7` on by default for Advanced; every on-trial switch becomes an Advanced behaviour the ladder can search; the Regent knobs become defaults. **Landed** (`1f021072`): AdvancedTuning and `train.py` list `lux-slider-high`, `site-food`, `site-tight-7`, `site-tight-12`, `trade-gpt`, `railroad-first`, `philosophy-first`, `early-rush`, `archer-rush`, `snipe-workers`; ThreatStrengthRatio 1.75, lean-military 1, BuildScience 55. Short check (4 games, 100 turns): switches on vs off differ (score +94 vs +82), too few games to size the effect. The ZUR-86 sell-to-all switch joins once ZUR-86 lands.
   - ZUR-108: a 100-game Regent exam before and after ZUR-107, with a loss autopsy.
   - ZUR-109: benchmark measures (`govTurn`, `cities50`, `cities100`, `techs100`, `workersPerCity100`, `techGold`, `killRatio`) and a scorecard and loss autopsy after every exam.
   - ZUR-110: Suede's own figures for each benchmark (`doc/suede-benchmarks.md`), and the 5 ideas most likely to close the gaps.
