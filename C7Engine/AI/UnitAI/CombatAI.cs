@@ -321,7 +321,7 @@ namespace C7Engine.AI.UnitAI {
 			return result;
 		}
 
-		private static float ScoreTile(Tile t, MapUnit unit, Player player, HashSet<Player> enemies) {
+		internal static float ScoreTile(Tile t, MapUnit unit, Player player, HashSet<Player> enemies) {
 			bool hasEnemyCity = t.cityAtTile != null && enemies.Contains(t.cityAtTile.owner);
 			// With the AI fog of war, the units in a city we can't see now
 			// are unknown: we assume it is defended, by nobody in particular.
@@ -359,7 +359,8 @@ namespace C7Engine.AI.UnitAI {
 			//   (https://forums.civfanatics.com/threads/study-of-inner-workings-of-military-advisor.83599/)
 			//
 			// TODO: We should figure out how to incorporate this.
-			if (defender != null && !hasEnemyCity) {
+			// NONE is not null but has no unitType, so check validity, not null.
+			if (MapUnit.IsMapUnitValid(defender) && !hasEnemyCity) {
 				// Units in our territory are a threat.
 				if (t.owningCity != null && t.owningCity.owner == player) {
 					score += 3 * defender.unitType.attack;
