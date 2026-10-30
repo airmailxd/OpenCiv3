@@ -72,7 +72,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - At peace with room → expand.
   - No room → target a much weaker reachable neighbour, or build up.
   - Behind in tech → science. Disorder → happiness.
-- **Policy review by Claude (`PolicyReview`, `PolicyPlaybook`)**, used when a key is set (Settings → Advanced AI, or `ANTHROPIC_API_KEY`). The owner's design, 2026-10-29: Claude doesn't play the game. It adjusts behaviour by time and situation, building on past success in small steps.
+- **Policy review by Claude (`PolicyReview`, `PolicyPlaybook`)**, **off by default**: it needs its own switch (Settings → Advanced AI → Model review, or `C7_TRIAL_MODEL=1` in trials) as well as a key; a key alone does nothing (ZUR-126). The owner's design, 2026-10-29: Claude doesn't play the game. It adjusts behaviour by time and situation, building on past success in small steps.
   - **Every 50 turns** it reviews the player's own policy (`AdvancedPolicy`, saved): the knob values and behaviour switches the rule planner plays by.
   - **It sees:**
     - the situation (`PlanBriefing.Situation`);
@@ -85,7 +85,10 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   - **Cross-game memory.** At each review, the last review's outcome goes into the playbook (`AdvancedAiPlaybook.jsonl` beside C7.ini): situation, changes, outcome, gain and lesson.
   - The game doesn't wait for answers; trials do (`ModelPlanner.waitForAnswers`).
   - Cost: about 8 calls per Advanced player in a 400-turn game, and about 3,500–4,000 input tokens per call once the playbook fills.
-  - **Live trial (ZUR-20, Haiku `claude-haiku-5-5`, 48 paired games at Regent, 200 turns): it hurts.** Model-on minus rules-only per Advanced civ: score -329, cities -2.3, techs -2.8; worse in 37, 35 and 38 of 48 games. 624 calls, about $2.84. Off by default from now on; ZUR-126 (Engine Engineer) makes it an explicit switch, logs every review and finds which advice did the damage.
+  - **Live trial (ZUR-20, Haiku `claude-haiku-5-5`, 48 paired games at Regent, 200 turns): looked harmful.** Model-on minus rules-only per Advanced civ: score -329, cities -2.3, techs -2.8; worse in 37, 35 and 38 of 48 games. 624 calls, about2.84. 
+  - **Re-check (ZUR-126): the harm didn't reproduce.** Against a rules-only re-run of the same 48 seeds on the same settings (bit-identical to the analyst's own rules-only files for seeds 1012–1047), model-on minus rules-only per Advanced civ is score +18.6 (SE 28), cities +0.1, techs +0.1: no effect either way. The games part ways right after the turn-50 review. The -329 most likely came from a mismatched baseline (difficulty 2 with tuned knobs); asked the analyst to confirm. Haiku's knob changes weren't logged, so they can't be recovered.
+  - It stays off because it hasn't been shown to help. Each review is now logged (`review` lines in `C7_TRIAL_STATE`, `reviews` in `C7_TRIAL_JSON`: situation, briefing, knobs before and after, rationale, tokens), and `C7_TRIAL_POLICY_REPLAY=<state log>` re-applies recorded changes for free.
+  - Before any new paid run (fresh plan, owner's approval): rank civs among all, not just met ones, in the past-review table; record failed calls so a civ doesn't ask again every turn; limit the model to the numeric knobs (no behaviour switches); prompt less war-leaning than "win against all others".
 - **Tuning (`AdvancedTuning`).**
   - The planner's numbers, plus which unadopted on-trial AI behaviours Advanced uses.
   - Trials override them with `C7_ADVANCED_TUNING`.
@@ -155,7 +158,6 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
   2. `stage-on-defence` (#101): the rush stack waits on the best defensive tile, so the AI's piecemeal counterattacks die on it.
   3. `sell-to-all` with `gpt-probe` (#111, #113): sell a new tech to every civ in one turn and find the most gold per turn each will pay. Check what `trade-gpt` already does first.
   - Its #2 `rush-archers` is mostly `archer-rush`; its two extra points (strike before the target has Bronze Working; go while the target has 2 cities or fewer) are follow-ups if the `archer-rush` trial asks for them.
-- **Policy review fix (ZUR-126):** find why Haiku's advice hurts (free: state logs, playbook, replay of recorded changes), then propose a fix. No new paid run without a fresh plan and the owner's approval.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
 
 ### Not covered
