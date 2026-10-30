@@ -88,21 +88,31 @@ def read_tail(path):
     return data.decode("utf-8", "replace").splitlines()
 
 
-def games_from_sibling(path):
-    """Total games from a results.json next to the state log (first 4 KB only)."""
+def read_meta(path):
+    """Games, turns, paired and gamesPlayed from the JSON that belongs to this state log (first 8 KB only)."""
     d = os.path.dirname(path)
-    for n in os.listdir(d):
-        if n.lower().endswith(".json") and not n.lower().endswith(".progress.json"):
-            try:
-                with open(os.path.join(d, n), "r", encoding="utf-8-sig") as f:
-                    head = f.read(4096)
-                m = re.search(r'"games"\s*:\s*(\d+)', head)
-                t = re.search(r'"turns"\s*:\s*(\d+)', head)
-                if m:
-                    return int(m.group(1)), (int(t.group(1)) if t else None)
-            except OSError:
-                pass
-    return 0, None
+    base = os.path.basename(path)
+    for suffix in (".log", ".jsonl"):
+        if base.endswith(suffix):
+            base = base[: -len(suffix)]
+    stem = re.sub(r"[-_.]?state$", "", base)
+    candidates = [stem + ".json"] if stem else []
+    candidates.append("results.json")
+    for n in candidates:
+        try:
+            with open(os.path.join(d, n), "r", encoding="utf-8-sig") as f:
+                head = f.read(8192)
+        except OSError:
+            continue
+        m = re.search(r'"games"\s*:\s*(\d+)', head)
+        if not m:
+            continue
+        t = re.search(r'"turns"\s*:\s*(\d+)', head)
+        pr = re.search(r'"paired"\s*:\s*(true|false)', head)
+        gp = re.search(r'"gamesPlayed"\s*:\s*(\d+)', head)
+        return dict(games=int(m.group(1)), turns=int(t.group(1)) if t else None,
+                    paired=bool(pr and pr.group(1) == "true"), played=int(gp.group(1)) if gp else None)
+    return dict(games=0, turns=None, paired=False, played=None)
 
 
 def read_state_log(path, name):
@@ -124,10 +134,22 @@ def read_state_log(path, name):
             break
     if last is None:
         return None
-    games, turn_limit = games_from_sibling(path)
-    row = dict(game=last["game"], run=last.get("run", "main"), turn=last["turn"], result=None)
-    return dict(name=name, total=games, games=games, turn_limit=turn_limit,
-                rows=[row], complete=False, source="state log")
+    meta = read_meta(path)
+    games, mult = meta["games"], 2 if meta["paired"] else 1
+    played = meta["played"]
+    if played is None:
+        played = max(0, last["game"])  # games before the current one are finished
+        if games and last["game"] >= games:
+            played = games
+    complete = bool(games) and played >= games
+    done = played * mult
+    rows = []
+    if not complete:
+        if last.get("run", "main") == "paired-baseline":
+            done += 1
+        rows.append(dict(game=last["game"], run=last.get("run", "main"), turn=last["turn"], result=None))
+    return dict(name=name, total=games * mult, games=games, turn_limit=meta["turns"],
+                rows=rows, complete=complete, done=done, source="state log")
 
 
 def collect(root):
@@ -164,16 +186,14 @@ def label(t, r):
 
 
 def trial_summary(t):
-    done = sum(1 for r in t["rows"] if r["result"])
-    if t["source"] == "state log":
-        done = max(0, t["rows"][0]["game"])  # games before the current one are finished
-        if t["games"] and t["rows"][0]["game"] >= t["games"]:
-            done = t["games"]
+    done = t["done"] if "done" in t else sum(1 for r in t["rows"] if r["result"])
     s = "%d/%d runs done" % (done, t["total"]) if t["total"] else "%d runs done" % done
     won = sum(1 for r in t["rows"] if r["result"] == "won")
     lost = sum(1 for r in t["rows"] if r["result"] == "lost")
     if won or lost:
         s += ", %d won %d lost" % (won, lost)
+    if t["complete"]:
+        s += ", complete"
     return done, s
 
 
@@ -192,7 +212,7 @@ def render_text(trials):
         done, s = trial_summary(t)
         grand_done += done
         grand_total += t["total"]
-        out.append("%s  [%s]" % (t["name"], t["source"]))
+        out.append("%s  [%s]%s" % (t["name"], t["source"], " complete" if t["complete"] else ""))
         hidden = len([r for r in t["rows"] if r["result"]]) - len([r for r in visible_rows(t, False) if r["result"]])
         if hidden > 0:
             out.append("  ... %d earlier finished games not shown" % hidden)
@@ -258,6 +278,13 @@ def main():
     a = ap.parse_args()
     lower_priority()
     os.system("") if os.name == "nt" else None  # enables ANSI escapes in the Windows console
+    try:
+        run(a)
+    except KeyboardInterrupt:
+        pass
+
+
+def run(a):
     while True:
         trials = collect(a.root)
         text = render_text(trials)
@@ -267,10 +294,7 @@ def main():
             return
         sys.stdout.write("\x1b[2J\x1b[H" + "Trial progress (Ctrl+C to stop) " + time.strftime("%H:%M:%S") + "\n\n" + text + "\n")
         sys.stdout.flush()
-        try:
-            time.sleep(a.interval)
-        except KeyboardInterrupt:
-            return
+        time.sleep(a.interval)
 
 
 if __name__ == "__main__":
