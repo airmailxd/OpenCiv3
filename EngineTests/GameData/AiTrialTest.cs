@@ -618,13 +618,16 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
 		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns });
+		// Null under rules without these techs (the turns stay at the game's length).
+		ID steamPower = gameData.techs.FirstOrDefault(t => t.Name == "Steam Power")?.id;
+		ID philosophy = gameData.techs.FirstOrDefault(t => t.Name == "Philosophy")?.id;
 		void RecordDevelopment(int turn) {
 			foreach (Player p in civs) {
 				Development d = development[p];
-				if (d.steamTurn == turns && p.knownTechs.Contains(gameData.techs.First(t => t.Name == "Steam Power").id)) {
+				if (d.steamTurn == turns && steamPower != null && p.knownTechs.Contains(steamPower)) {
 					d.steamTurn = turn;
 				}
-				if (d.philTurn == turns && p.knownTechs.Contains(gameData.techs.First(t => t.Name == "Philosophy").id)) {
+				if (d.philTurn == turns && philosophy != null && p.knownTechs.Contains(philosophy)) {
 					d.philTurn = turn;
 				}
 				if (p.cities.Count >= 5 && d.city5Turn == turns) {
