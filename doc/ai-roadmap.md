@@ -117,15 +117,17 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 - **Suede tip switches waiting for paired trials** (off by default; a tip is kept only if the trial numbers show it helps):
   - `railroad-first` and `philosophy-first` (ZUR-33): +150 research value for Steam Power or Philosophy. Read `steamTurn`/`philTurn`, `techs`, `midtechs`, `beakers` and `score` at 300 turns.
   - `site-food` (ZUR-32): city sites scored food-first (centre tile's bonus food ignored, river/lake bonus, two 2-food tiles wanted). Trial ZUR-61.
-  - `site-tight-12` / `site-tight-7` (ZUR-58): sites 3-4 tiles from our own cities with at least 12 / 7 good food tiles get a flat +40 score. Trial pending. Trial measures `size7`, `size12` added.
+  - `site-tight-12` / `site-tight-7` (ZUR-58): sites 3-4 tiles from our own cities with at least 12 / 7 good food tiles get a flat +40 score. Landed; trial ZUR-62. Trial measures `size7`, `size12` added.
   - `lux-slider-high` (ZUR-31): luxury raised until no city is unhappy before entertainers. Trial ZUR-61.
   - `early-rush` (ZUR-30): while expanding, 5 attackers hit a weakly held capital or size 3+ city when our attack is 1.5x their defence by tech. Trial ZUR-65 at Chieftain, Warlord and Regent, plus all civs.
   - `trade-gpt` (ZUR-29): AI tech deals pay gold per turn; trade at once on contact and on a new tech. New measure `techsBought`. Trial ZUR-66, paired and all civs.
-- **Owner's ideas from watching Advanced games (ZUR-56)**, built and trialled one at a time, in this order:
+- **Owner's ideas from watching Advanced games (ZUR-56)**, built and trialled one at a time, in build order (archer-rush, then 2, 5, 3, 6):
   1. `site-tight-12` / `site-tight-7` (ZUR-58, trial ZUR-62): sites closer to our cities where they keep 12 (or 7) good food tiles. New measures `size7`, `size12`.
   2. `lean-buildings` (ZUR-59, trial ZUR-63): no Walls in interior cities, Temples/Colosseums only when needed, no Barracks in low-shield cities.
   3. `siege-escort` (ZUR-60, trial ZUR-64): catapults never alone outside borders. New measure `siegeLost`; also an all-civs run.
   4. `archer-rush` (ZUR-67, after ZUR-58): the Owner's later idea, archers stacked early against a civ within 10 tiles (6 archers and a defender, small cities may be razed, keeps going after a win). Read with the `early-rush` trials at low difficulty.
+  5. `lean-garrison` (ZUR-71, trial ZUR-73): Advanced AI only. Interior cities keep 1 defender (2 at war or with an enemy close), border cities 2 (3 at war); the shields go to attackers. The Owner saw 20 Infantry in a city far from any enemy. Standard keeps Civ3's 2 defenders + 1 attacker per city. Shares the interior-city test with `lean-buildings`. Paired and all civs.
+  6. `grow-to-settle` (ZUR-72, trial ZUR-74): Advanced AI only. Fast-growing cities build Settlers and Workers to shed population; specialists only when the luxury slider at its cap can't stop disorder. Trialled on top of `lux-slider-high`.
 - **More ideas from how players beat the AI:** the Strategy Researcher's second pass (ZUR-68) ranks the next ideas to build.
 - **Live model trial**, with a key: compare the cost per game and the result against rules alone. Run trials one after another so the playbook builds up.
 - **Human-proxy opponents:** the C7AI bots (C:\Dev\C7AI) over LAN.
