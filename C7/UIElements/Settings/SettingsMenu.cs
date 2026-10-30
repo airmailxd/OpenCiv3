@@ -393,7 +393,7 @@ public partial class SettingsMenu : Control {
 		column.AddChild(MakeRow("Model", model, new Control()));
 
 		column.AddChild(MakeNote(
-			"Off by default: in trials, Claude's advice made the Advanced AI play worse, so a key alone does nothing. " +
+			"Off by default: trials haven't shown that Claude's advice helps the Advanced AI, so a key alone does nothing. " +
 			"With Model review on, every 50 turns each computer player set to Advanced AI asks Claude to review how it " +
 			"plays, using this key, and keeps playing while it waits. What the reviews learn is kept in AdvancedAiPlaybook.jsonl for later " +
 			"games. Each call is billed to the key (about 8 a game per Advanced player). With it off or no key, Advanced players " +

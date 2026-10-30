@@ -12,8 +12,8 @@ public static class AdvancedAiSettings {
 	public const string ModelReviewKey = "modelReview";
 
 	// Whether Advanced AIs ask the model to review their policy. Off by
-	// default: a key alone doesn't turn it on, as trials found the model's
-	// advice made the Advanced AI worse.
+	// default: a key alone doesn't turn it on, as trials haven't shown the
+	// model's advice helps the Advanced AI.
 	public static bool ModelReview {
 		get => C7Settings.GetSettingsValueOrDefault(SettingsSection, ModelReviewKey, "false") == "true";
 		set {

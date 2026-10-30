@@ -14,8 +14,8 @@ namespace C7Engine.AI.Advanced {
 	// The Advanced AI's line to Claude, used by its policy reviews (see
 	// PolicyReview). Off by default: only with the switch (enabled) on AND
 	// an API key is anything sent; otherwise the Advanced AI plays by its
-	// rules and the trained policy alone. (A paired trial found the model's
-	// advice made the Advanced AI worse, so a key alone no longer turns it on.)
+	// rules and the trained policy alone. (Trials haven't shown the model's
+	// advice helps, so a key alone no longer turns it on.)
 	//
 	// The game doesn't wait on an answer (but see waitForAnswers): a request
 	// runs in the background and its answer is picked up on a later turn.
