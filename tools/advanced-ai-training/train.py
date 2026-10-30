@@ -59,11 +59,14 @@ LIMITS = {
     "PlanEveryTurns": (1, 15),
 }
 BEHAVIOURS = ["wonder-timing", "wonder-value", "war-production", "war-no-peace",
-              "leader-hurry-best", "lean-military", "no-ai-luxury"]
-DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.5,
+              "leader-hurry-best", "lean-military", "no-ai-luxury", "snipe-workers",
+              "lux-slider-high", "site-food", "site-tight-7", "site-tight-12", "trade-gpt",
+              "railroad-first", "philosophy-first", "early-rush", "archer-rush"]
+ON_BY_DEFAULT = {"lean-military", "lux-slider-high", "site-food", "site-tight-7"}
+DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.75,
             "BehindInTechShare": 0.9, "ExpandSettlers": 85, "ExpandAggression": -1,
-            "BuildScience": 65, "BuildProduction": 65, "WinningOffense": 80,
-            "PreyAggression": 1, "PlanEveryTurns": 5, **{b: 0 for b in BEHAVIOURS}}
+            "BuildScience": 55, "BuildProduction": 65, "WinningOffense": 80,
+            "PreyAggression": 1, "PlanEveryTurns": 5, **{b: int(b in ON_BY_DEFAULT) for b in BEHAVIOURS}}
 # Each rung: its name, the Standard AIs' difficulty (an index into the
 # difficulties) and the share of exam games an Advanced civ must win to
 # move up (the owner's bars, 2026-10-29). Deity's exam is only reported.

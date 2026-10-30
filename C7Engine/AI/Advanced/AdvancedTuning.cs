@@ -24,6 +24,8 @@ namespace C7Engine.AI.Advanced {
 		public static readonly string[] Behaviours = [
 			WonderPlanner.Timing, WonderPlanner.Value, "war-production", "war-no-peace",
 			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
+			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
+			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -31,7 +33,7 @@ namespace C7Engine.AI.Advanced {
 				"How hard the plan's build priorities tilt city production (0 = not at all)."),
 			new("TargetStrengthRatio", 1.75, .25, 1, 4,
 				"How many times stronger than a neighbour (with its allies) you must be to make it a war target once land runs out."),
-			new("ThreatStrengthRatio", 1.5, .25, 1, 4,
+			new("ThreatStrengthRatio", 1.75, .25, 1, 4,
 				"How many times stronger than you a neighbour must be before you raise defence and keep the peace with it."),
 			new("BehindInTechShare", .9, .05, .5, 1,
 				"Below this share of the average tech count of the civs you know, science and trade are raised."),
@@ -39,7 +41,7 @@ namespace C7Engine.AI.Advanced {
 				"Settler priority (50 neutral, 100 most) while open city sites remain."),
 			new("ExpandAggression", -1, 1, -2, 2,
 				"War-readiness shift while expanding (-2 most peaceful, 2 most warlike)."),
-			new("BuildScience", 65, 10, 0, 100,
+			new("BuildScience", 55, 10, 0, 100,
 				"Science priority at peace with no room left and no easy war target."),
 			new("BuildProduction", 65, 10, 0, 100,
 				"Production priority at peace with no room left and no easy war target."),
@@ -59,12 +61,30 @@ namespace C7Engine.AI.Advanced {
 				"1: while your army marches and you are not losing, refuse peace unless offered a city."),
 			new("leader-hurry-best", 0, 1, 0, 1,
 				"1: great leaders hurry the most valuable building in reach."),
-			new(DevelopmentAI.LeanMilitary, 0, 1, 0, 1,
+			new(DevelopmentAI.LeanMilitary, 1, 1, 0, 1,
 				"1: stop adding soldiers that cost upkeep once cities are guarded."),
 			new(PlayerAI.NoAiLuxury, 0, 1, 0, 1,
 				"1: don't raise the luxury rate for unhappy cities."),
 			new(PlayerAI.SnipeWorkers, 0, 1, 0, 1,
 				"1: at war, a spare attacker takes enemy workers and settlers left without a defender nearby."),
+			new(PlayerAI.LuxSliderHigh, 1, 1, 0, 1,
+				"1: raise the luxury rate until no city is unhappy before using entertainers."),
+			new(SettlerLocationAI.SiteFood, 1, 1, 0, 1,
+				"1: score city sites food-first."),
+			new(SettlerLocationAI.SiteTight7, 1, 1, 0, 1,
+				"1: favour city sites within 7 tiles of a city where food is plentiful."),
+			new(SettlerLocationAI.SiteTight12, 0, 1, 0, 1,
+				"1: favour city sites within 12 tiles of a city where food is plentiful."),
+			new(TradeGpt.Switch, 0, 1, 0, 1,
+				"1: tech deals with AIs pay gold per turn, and trade on contact or a new tech."),
+			new(DevelopmentAI.RailroadFirst, 0, 1, 0, 1,
+				"1: value Steam Power highly."),
+			new(DevelopmentAI.PhilosophyFirst, 0, 1, 0, 1,
+				"1: value Philosophy highly."),
+			new(EarlyRush.Switch, 0, 1, 0, 1,
+				"1: while expanding, rush a weak enemy city with barracks and about five attackers."),
+			new(ArcherRush.Switch, 0, 1, 0, 1,
+				"1: early stack of attackers and a defender against a rival city within 10 tiles."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

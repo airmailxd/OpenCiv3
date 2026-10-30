@@ -216,6 +216,19 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	}
 
 	[Fact]
+	public void AnAdvancedPlayerPlaysWithTheWinningSuedeTipsAndAStandardOneDoesNot() {
+		player.aiType = AiType.Advanced;
+		string[] tips = ["lux-slider-high", "site-food", "site-tight-7"];
+		AdvancedAI.PlayTurn(player, gameData);
+		foreach (string tip in tips) {
+			Assert.True(AiExperiments.Has(player, tip), tip);
+			Assert.False(AiExperiments.Has(rival, tip), tip);
+		}
+		Assert.False(AiExperiments.Has(player, "site-tight-12"));
+		Assert.False(AiExperiments.Has(player, "early-rush"));
+	}
+
+	[Fact]
 	public void AReviewedPolicyIsThePlayersOwnAndIsSaved() {
 		player.aiType = AiType.Advanced;
 		PolicyReview.Answer answer = PolicyReview.Parse("""{"changes": [{"knob": "war-production", "value": 1}], "rationale": "r", "notes": "n", "lesson": "l"}""", player);
