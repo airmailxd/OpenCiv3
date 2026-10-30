@@ -41,6 +41,9 @@ namespace C7Engine.AI.Advanced {
 			if (disorder > 0) {
 				b.AppendLine($"- Cities in disorder: {disorder}");
 			}
+			if (PhasePlan.PhaseOf(player) is GamePhase phase) {
+				b.AppendLine($"- Game phase: {phase} (since turn {player.gamePhase.startTurn})");
+			}
 			if (player.strategicPlan != null) {
 				b.AppendLine($"- The rules' current plan: {AdvancedAI.Describe(player.strategicPlan)}");
 			}

@@ -34,7 +34,9 @@ namespace C7Engine.AI.Advanced {
 			foreach (string behaviour in AdvancedTuning.BehavioursOn(player)) {
 				AiExperiments.Enable(player, behaviour);
 			}
-			if (!NeedsNewPlan(player, gameData)) {
+			// Switch phase-plan: a new phase re-plans at once.
+			bool newPhase = PhasePlan.Update(player, gameData);
+			if (!newPhase && !NeedsNewPlan(player, gameData)) {
 				return;
 			}
 			Adopt(player, gameData, RulePlanner.Plan(player, gameData));

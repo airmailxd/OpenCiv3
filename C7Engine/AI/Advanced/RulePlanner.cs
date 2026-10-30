@@ -37,6 +37,10 @@ namespace C7Engine.AI.Advanced {
 				PlanWar(player, plan, enemies, met, why);
 			} else {
 				PlanPeace(player, gameData, plan, met, ours, why);
+				// Switch phase-plan: the script's phase, when no war is on.
+				if (PhasePlan.On(player)) {
+					PhasePlan.ApplyFocus(player, plan, why);
+				}
 			}
 
 			// Science: catch up with the civs it knows.

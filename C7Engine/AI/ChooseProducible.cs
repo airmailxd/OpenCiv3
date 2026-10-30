@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Serilog;
 using Serilog.Events;
 using C7Engine.AI;
+using C7Engine.AI.Advanced;
 using C7Engine.AI.UnitAI;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
@@ -242,7 +243,7 @@ namespace C7Engine {
 			score -= populationCostPenalty;
 
 			// On trial: the productive cities arm a war campaign that needs it.
-			if (AiExperiments.Has(player, "war-production") || ((EarlyRush.On(player) || ArcherRush.On(player)) && WarCampaign.HasRush(player))) {
+			if (AiExperiments.Has(player, "war-production") || ((EarlyRush.On(player) || ArcherRush.On(player) || PhasePlan.On(player)) && WarCampaign.HasRush(player))) {
 				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack, stats.bestDefense);
 			}
 
@@ -542,6 +543,10 @@ namespace C7Engine {
 				if (EarlyRush.On(player) && WarCampaign.RushStagingCity(player) == city) {
 					score += EarlyRush.BarracksBonus;
 				}
+				// And the muster cities of the phase-plan script.
+				if (PhasePlan.WantsBarracks(player, city)) {
+					score += EarlyRush.BarracksBonus;
+				}
 				// Barracks in the core cities that raise the army (see
 				// CoreBarracksBonus).
 				if (!atWar && city.residents.Count >= CoreBarracksMinSize
@@ -802,7 +807,8 @@ namespace C7Engine {
 			}
 			if (unit.attack > unit.defense && WarCampaign.WantsAttackers(player)) {
 				float average = (float)player.cities.Average(c => c.CurrentProductionYield().useful);
-				if (city.CurrentProductionYield().useful >= average) {
+				// The phase-plan script's army comes from its muster cities.
+				if (WarCampaign.HasPhaseCampaign(player) ? PhasePlan.IsMusterCity(player, city) : city.CurrentProductionYield().useful >= average) {
 					// An archer rush takes the best attack per shield (a
 					// little for the best attack, to break ties).
 					if (WarCampaign.HasArcherRush(player)) {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using C7Engine.AI.Advanced;
 using C7Engine.AI.UnitAI;
 using C7Engine.Pathing;
 using C7GameData;
@@ -81,6 +82,10 @@ namespace C7Engine.AI {
 			// Whether this rush is an archer rush (see ArcherRush): a
 			// rush that also goes on to the rival's next near city.
 			public bool archer;
+			// Whether it is the phase-plan script's war (see PhasePlan): an
+			// archer rush of the script's size, on any known city of the
+			// target on our landmass.
+			public bool script;
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -182,6 +187,17 @@ namespace C7Engine.AI {
 		// Whether the player has an archer rush planned or under way.
 		public static bool HasArcherRush(Player player) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.archer;
+		}
+
+		// Whether the player's campaign is the phase-plan script's.
+		public static bool HasPhaseCampaign(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.script;
+		}
+
+		// Whether the phase-plan script's campaign has left its gathering
+		// city (so the war is on or about to be).
+		public static bool PhaseCampaignMarching(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.script && c.phase != Phase.Gather;
 		}
 
 		// Whether an archer rush is short of its defender, counting none
@@ -310,6 +326,7 @@ namespace C7Engine.AI {
 				shortTurns = c.shortTurns,
 				retreatTo = c.retreatTo != null ? new TileLocation(c.retreatTo) : null,
 				cooldown = c.cooldown,
+				script = c.script,
 			};
 		}
 
@@ -346,6 +363,9 @@ namespace C7Engine.AI {
 				shortTurns = saved.shortTurns,
 				retreatTo = TileAt(gameData, saved.retreatTo),
 				cooldown = saved.cooldown,
+				script = saved.script,
+				rush = saved.script,
+				archer = saved.script,
 			};
 			// A stack whose tiles didn't load gathers again.
 			if ((c.phase != Phase.Gather && c.stackTile == null) || (c.phase == Phase.Retreat && c.retreatTo == null)) {
@@ -425,9 +445,9 @@ namespace C7Engine.AI {
 				if (c.target.owner == player) {
 					Garrison(player, c, c.target);
 				}
-				City next = c.archer ? PickArcherTarget(player, c.enemy) : PickTarget(player, c.enemy);
+				City next = c.script ? PickScriptCity(player, c.enemy) : c.archer ? PickArcherTarget(player, c.enemy) : PickTarget(player, c.enemy);
 				// An archer rush goes on only with attackers left to do it.
-				if (c.archer && c.units.Count(u => IsAttacker(u) && Health(u) >= ReadyHealth) < ArcherRush.AttackersToContinue) {
+				if (c.archer && c.units.Count(u => IsAttacker(u) && Health(u) >= ReadyHealth) < (c.script ? PhasePlan.AttackersToContinue(player, gameData) : ArcherRush.AttackersToContinue)) {
 					next = null;
 				}
 				if (next == null) {
@@ -555,6 +575,11 @@ namespace C7Engine.AI {
 				enemy = PickRushTarget(player, gameData, out target);
 				rush = enemy != null;
 			}
+			bool script = false;
+			if (enemy == null && !coolingDown && PhasePlan.Mustering(player)) {
+				enemy = PickScriptTarget(player, gameData, out target);
+				rush = archer = script = enemy != null;
+			}
 
 			if (enemy == null) {
 				enemy = PlotWar(player, gameData, out target);
@@ -575,7 +600,7 @@ namespace C7Engine.AI {
 				return null;
 			}
 			log.Information("{Player} plans a campaign against {Enemy}, starting with {City}", player, enemy, target.name);
-			Campaign c = new() { enemy = enemy, target = target, rush = rush, archer = archer };
+			Campaign c = new() { enemy = enemy, target = target, rush = rush, archer = archer, script = script };
 			SetPhase(c, Phase.Gather);
 			return c;
 		}
@@ -704,6 +729,37 @@ namespace C7Engine.AI {
 				.OrderByDescending(c => c.IsCapital()).ThenBy(c => ArcherRush.DistanceTo(player, c)).ThenBy(c => c.id.ToString()).FirstOrDefault();
 		}
 
+		// For the phase-plan script (see PhasePlan), the weakest rival we can
+		// declare war on with a known city on our landmass, and that city.
+		// Null if there is none.
+		internal static Player PickScriptTarget(Player player, GameData gameData, out City target) {
+			target = null;
+			Player enemy = null;
+			float weakest = float.MaxValue;
+			foreach (Player p in gameData.players) {
+				if (p.isBarbarians || !CanDeclareWarOn(player, p) || p.cities.Count == 0
+						|| player.strategicPlan?.StanceToward(p.id) == RivalStance.Friend) {
+					continue;
+				}
+				City city = PickScriptCity(player, p);
+				float strength = p.CalculateMilitaryStrength();
+				if (city != null && strength < weakest) {
+					weakest = strength;
+					enemy = p;
+					target = city;
+				}
+			}
+			return enemy;
+		}
+
+		// The city of theirs the script's war takes: the nearest known one
+		// on a landmass of ours (no radius, the roads lead there), its
+		// capital among equals.
+		internal static City PickScriptCity(Player player, Player enemy) {
+			return enemy.cities.Where(c => AIFogOfWar.KnowsTile(player, c.location) && ArcherRush.DistanceTo(player, c) != int.MaxValue)
+				.OrderBy(c => ArcherRush.DistanceTo(player, c)).ThenByDescending(c => c.IsCapital()).ThenBy(c => c.id.ToString()).FirstOrDefault();
+		}
+
 		private static City PickTarget(Player player, Player enemy) {
 			return PickTarget(player, enemy, out _);
 		}
@@ -829,6 +885,9 @@ namespace C7Engine.AI {
 		// How many attackers to gather: enough to expect to wear down every
 		// defender, by our best attacker's odds against their best defender.
 		private static int NeededAttackers(Player player, Campaign c) {
+			if (c.script) {
+				return PhasePlan.ArmySize(player, EngineStorage.gameData, EstimateDefenders(player, c.target));
+			}
 			if (c.archer) {
 				return ArcherRush.Attackers;
 			}

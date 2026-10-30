@@ -26,6 +26,7 @@ namespace C7Engine.AI.Advanced {
 			"leader-hurry-best", DevelopmentAI.LeanMilitary, PlayerAI.NoAiLuxury, PlayerAI.SnipeWorkers,
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
+			PhasePlan.Switch,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -85,6 +86,14 @@ namespace C7Engine.AI.Advanced {
 				"1: while expanding, rush a weak enemy city with barracks and about five attackers."),
 			new(ArcherRush.Switch, 0, 1, 0, 1,
 				"1: early stack of attackers and a defender against a rival city within 10 tiles."),
+			new(PhasePlan.Switch, 0, 1, 0, 1,
+				"1: play the owner's script: expand toward a rival, muster archers, first war, consolidate."),
+			new("PhaseCities", 4, 1, 3, 5,
+				"phase-plan: cities to found before mustering."),
+			new("PhaseArmy", 9, 1, 6, 16,
+				"phase-plan: attackers to gather (one more per difficulty level above Regent, to 12 unless this is higher)."),
+			new("PhaseConsolidateTurns", 20, 5, 5, 60,
+				"phase-plan: turns to consolidate after a war before mustering again."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

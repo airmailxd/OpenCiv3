@@ -27,10 +27,11 @@ namespace C7Engine.AI {
 				marketPricePerShield = MarketAI.SavedPricePerShield(player),
 				strategicPlan = player.strategicPlan,
 				advancedPolicy = player.advancedPolicy,
+				gamePhase = player.gamePhase,
 			};
 			bool empty = state.warCampaign == null && state.nextCampaignTurn == null && state.dealRequestTurns == null
 				&& state.passageRequestTurns == null && state.lastDisbandedTurn == null && state.marketPricePerShield == null
-				&& state.strategicPlan == null && state.advancedPolicy == null;
+				&& state.strategicPlan == null && state.advancedPolicy == null && state.gamePhase == null;
 			return empty ? null : state;
 		}
 
@@ -44,6 +45,7 @@ namespace C7Engine.AI {
 			MarketAI.RestorePricePerShield(player, state?.marketPricePerShield);
 			player.strategicPlan = state?.strategicPlan;
 			player.advancedPolicy = state?.advancedPolicy;
+			player.gamePhase = state?.gamePhase;
 		}
 
 		private static Dictionary<string, int> ByIdString(Dictionary<ID, int> turns) {

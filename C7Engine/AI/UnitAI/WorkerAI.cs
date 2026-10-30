@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using C7GameData.AIData;
 using C7Engine.AI;
+using C7Engine.AI.Advanced;
 using C7Engine.AI.UnitAI;
 using Serilog;
 
@@ -640,6 +641,12 @@ namespace C7Engine {
 						AddRoadless(algorithm.PathFrom(t, nearest, unit));
 					}
 				}
+			}
+			// Switch phase-plan: with our cities joined, a road from the one
+			// nearest the rival toward them (see PhasePlan).
+			if (result.Count == 0 && PhasePlan.PhaseOf(player) is GamePhase.Expand or GamePhase.Muster or GamePhase.War
+					&& PhasePlan.NearestRival(player) is (City nearOurs, City nearTheirs)) {
+				AddRoadless(algorithm.PathFrom(nearOurs.location, nearTheirs.location, unit));
 			}
 			return result;
 		}

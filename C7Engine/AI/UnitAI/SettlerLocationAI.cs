@@ -1,5 +1,6 @@
 using System;
 using C7Engine.AI;
+using C7Engine.AI.Advanced;
 using C7GameData;
 using C7GameData.AIData;
 using System.Collections.Generic;
@@ -182,6 +183,9 @@ namespace C7Engine {
 			bool tide = TideAI.IsOn();
 			bool siteFood = AiExperiments.Has(player, SiteFood);
 			int tightTarget = TightTarget(player);
+			// Switch phase-plan: while expanding, sites toward the nearest rival
+			// are worth more (see PhasePlan).
+			(City ours, City theirs)? rival = PhasePlan.Expanding(player) ? PhasePlan.NearestRival(player) : null;
 			TerrainImprovement irrigation = tightTarget > 0 ? EngineStorage.gameData?.terrainImprovements?.Find(i => i?.key == Tile.TileOverlays.IRRIGATION) : null;
 
 			foreach (Tile t in candidates) {
@@ -228,6 +232,10 @@ namespace C7Engine {
 				if (tightTarget > 0 && ownCities.Count > 0 && cache.DistanceFromCities(t) <= adjustments.DistancePenaltyRadius
 						&& GoodFoodTiles(t, player, bfc, ownCities, irrigation) >= tightTarget) {
 					score += TightSiteBonus;
+				}
+
+				if (rival is (City, City) towards) {
+					score += PhasePlan.SiteBonus(t, towards);
 				}
 
 				// Rival cities nearby will compete for the tiles, and their

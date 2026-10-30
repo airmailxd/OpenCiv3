@@ -87,6 +87,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private readonly List<string> tideLines = new();
 	// With C7_TRIAL_WARS, the wars declared in the game being played.
 	private readonly List<string> warLines = new();
+	// The phase-plan script's phase changes (see PhasePlan).
+	private readonly List<string> phaseLines = new();
 
 	// A war declared during a game, for C7_TRIAL_WARS.
 	private sealed class WarRecord {
@@ -293,6 +295,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// received for techs it sold (at once, and the per-turn payments
 			// while they ran), and its kills per unit lost x10.
 			"govTurn", "cities50", "cities100", "techs100", "workersPerCity100", "techGold", "killRatio",
+			// The turn the phase-plan script's first war began (the game's
+			// length if it never did).
+			"firstWar",
 		];
 
 		public readonly double[] values = new double[Names.Length];
@@ -634,6 +639,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			tideLines.Clear();
 			lines.AddRange(warLines);
 			warLines.Clear();
+			lines.AddRange(phaseLines);
+			phaseLines.Clear();
 			differences.Add(difference);
 			gameSeeds.Add(seed);
 			gameGovNames.Add(govNames);
@@ -700,6 +707,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> captured = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> plans = civs.ToDictionary(p => p, _ => 0);
 		C7Engine.AI.Advanced.AdvancedAI.onPlan = p => { if (plans.ContainsKey(p)) { plans[p]++; } };
+		C7Engine.AI.Advanced.PhasePlan.onPhase = (p, from, to) => phaseLines.Add($"phase turn {gameData.turn}: {p.civilization.name} {from?.ToString() ?? "start"} -> {to}");
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
 		Dictionary<Player, Development> development = civs.ToDictionary(p => p, p => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns, govTurn = turns, startGovernment = p.government?.name });
@@ -1240,6 +1248,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = d.workersPerCity100;
 			m.values[i++] = d.techGold;
 			m.values[i++] = 10.0 * kills[p] / Math.Max(1, unitsLost[p]);
+			m.values[i++] = p.gamePhase is { firstWarTurn: >= 0 } phaseState ? phaseState.firstWarTurn : turns;
 			return m;
 		}
 

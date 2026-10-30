@@ -30,6 +30,9 @@ namespace C7GameData.Save {
 		// An Advanced AI's reviewed policy (see AdvancedPolicy); null for
 		// none.
 		public AdvancedPolicy advancedPolicy;
+		// An Advanced AI's place in the phase-plan script (see
+		// GamePhaseState); null for none, as in older saves.
+		public GamePhaseState gamePhase;
 	}
 
 	// See C7Engine.AI.WarCampaign.Campaign.
@@ -46,5 +49,8 @@ namespace C7GameData.Save {
 		public int shortTurns;
 		public TileLocation? retreatTo;
 		public bool cooldown = true;
+		// Whether it is the phase-plan script's campaign (see
+		// C7Engine.AI.Advanced.PhasePlan).
+		public bool script;
 	}
 }
