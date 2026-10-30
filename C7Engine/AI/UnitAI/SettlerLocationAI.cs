@@ -181,6 +181,8 @@ namespace C7Engine {
 			cache.UpdateCities(ownCities, rivalCities, adjustments.RivalCityRadius);
 			bool tide = TideAI.IsOn();
 			bool siteFood = AiExperiments.Has(player, SiteFood);
+			int tightTarget = TightTarget(player);
+			TerrainImprovement irrigation = tightTarget > 0 ? EngineStorage.gameData?.terrainImprovements?.Find(i => i?.key == Tile.TileOverlays.IRRIGATION) : null;
 
 			foreach (Tile t in candidates) {
 				float score = cache.TileYieldScore(t);
@@ -221,6 +223,11 @@ namespace C7Engine {
 
 				if (siteFood) {
 					score += SiteFoodAdjustment(t, player, bfc);
+				}
+
+				if (tightTarget > 0 && ownCities.Count > 0 && cache.DistanceFromCities(t) <= adjustments.DistancePenaltyRadius
+						&& GoodFoodTiles(t, player, bfc, ownCities, irrigation) >= tightTarget) {
+					score += TightSiteBonus;
 				}
 
 				// Rival cities nearby will compete for the tiles, and their
@@ -277,6 +284,61 @@ namespace C7Engine {
 
 		// The experiment switch for food-first city sites.
 		public const string SiteFood = "site-food";
+
+		// The experiment switches for tighter city sites where food is
+		// plentiful: a site close to our own cities (up to
+		// DistancePenaltyRadius tiles, though never nearer than
+		// IsInvalidCityLocation allows, 3 tiles) that still has this many good
+		// food tiles of its own is scored higher. Today's score has no
+		// closeness or overlap cost to drop: tiles shared with our other cities
+		// count in full and the distance penalty only starts beyond the
+		// radius, so the switch adds a bonus that lets such sites beat
+		// farther ones.
+		public const string SiteTight12 = "site-tight-12";
+		public const string SiteTight7 = "site-tight-7";
+
+		// HEURISTIC (UNVERIFIED): about the worth of 8 food on the tiles.
+		internal const float TightSiteBonus = 40;
+
+		// The good food tiles a site must have, or 0 with neither switch on.
+		internal static int TightTarget(Player player) {
+			if (AiExperiments.Has(player, SiteTight12)) {
+				return 12;
+			}
+			return AiExperiments.Has(player, SiteTight7) ? 7 : 0;
+		}
+
+		// How many good food tiles the site has within its 21-tile radius: a
+		// workable tile that makes 2 food or more, or will after irrigation
+		// (`irrigation` is the irrigation improvement, null if the game has
+		// none), counts one. Coast and sea tiles make only 1 food without a
+		// Harbour (compendium 07, section 1.1), so they count half. A tile
+		// within the radius of another of our cities counts half, as the two
+		// cities share it. Tiles in a rival's land, or unexplored, don't
+		// count.
+		internal static float GoodFoodTiles(Tile site, Player player, BigFatCross bfc, List<Tile> ownCities, TerrainImprovement irrigation) {
+			float total = 0;
+			foreach (Tile n in bfc.tiles) {
+				if (IsOwnedByRival(n, player) || !AIFogOfWar.KnowsTile(player, n)) {
+					continue;
+				}
+				float worth;
+				if (n.FoodYield(player).yield >= 2 || (irrigation != null && n.IsLand()
+						&& n.baseTerrainType != null && n.FoodYield(player).yield + irrigation.GetYieldBonus(n.overlayTerrainType, Tile.YieldType.Food) >= 2
+						&& n.CanBeIrrigated(irrigation, player))) {
+					worth = 1;
+				} else if (n.IsWater() && n.FoodYield(player).yield >= 1) {
+					worth = 0.5f;
+				} else {
+					continue;
+				}
+				if (ownCities.Exists(c => c != site && n.DistanceTo(c) <= 2)) {
+					worth /= 2;
+				}
+				total += worth;
+			}
+			return total;
+		}
 
 		// HEURISTIC: the worth of a site next to fresh water (a river or
 		// lake), where the city needs no aqueduct to pass size 8, and the

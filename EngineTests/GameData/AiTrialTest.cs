@@ -271,6 +271,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"steamTurn", "philTurn",
 			// Techs the civ bought with gold or gold per turn.
 			"techsBought",
+			// Cities of size 7 and more, and 12 and more, at the end.
+			"size7", "size12",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -1071,6 +1073,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = development[p].steamTurn;
 			m.values[i++] = development[p].philTurn;
 			m.values[i++] = techsBought[p];
+			m.values[i++] = p.cities.Count(c => c.residents.Count >= 7);
+			m.values[i++] = p.cities.Count(c => c.residents.Count >= 12);
 			return m;
 		}
 

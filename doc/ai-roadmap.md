@@ -117,6 +117,7 @@ War and diplomacy changes also need the all-civs (`C7_TRIAL_ALL=1`) trial agains
 - **Suede tip switches waiting for paired trials** (off by default; a tip is kept only if the trial numbers show it helps):
   - `railroad-first` and `philosophy-first` (ZUR-33): +150 research value for Steam Power or Philosophy. Read `steamTurn`/`philTurn`, `techs`, `midtechs`, `beakers` and `score` at 300 turns.
   - `site-food` (ZUR-32): city sites scored food-first (centre tile's bonus food ignored, river/lake bonus, two 2-food tiles wanted). Trial ZUR-61.
+  - `site-tight-12` / `site-tight-7` (ZUR-58): sites 3-4 tiles from our own cities with at least 12 / 7 good food tiles get a flat +40 score. Trial pending. Trial measures `size7`, `size12` added.
   - `lux-slider-high` (ZUR-31): luxury raised until no city is unhappy before entertainers. Trial ZUR-61.
   - `early-rush` (ZUR-30): while expanding, 5 attackers hit a weakly held capital or size 3+ city when our attack is 1.5x their defence by tech. Trial ZUR-65 at Chieftain, Warlord and Regent, plus all civs.
   - `trade-gpt` (ZUR-29): AI tech deals pay gold per turn; trade at once on contact and on a new tech. New measure `techsBought`. Trial ZUR-66, paired and all civs.
