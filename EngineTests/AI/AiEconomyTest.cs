@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7Engine.AI;
@@ -101,6 +102,56 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		AiExperiments.Enable(player, PlayerAI.LuxSliderHigh);
 		Assert.True(PlayerAI.TooManyUnhappy(player, 1, 10));
 		Assert.False(PlayerAI.TooManyUnhappy(player, 0, 10));
+	}
+
+	private Tech TechNamed(string name) => gameData.techs.First(t => t.Name == name);
+
+	// The techs on the way to the best government within reach count for
+	// more while in Despotism; others, and a civ without the switch, don't.
+	[Fact]
+	public void EarlyGovernmentRaisesTheTechsOnTheWayToTheBestGovernment() {
+		int beakers = player.BeakersPerTurn();
+		Tech[] all = gameData.techs.ToArray();
+		double[] off = all.Select(t => DevelopmentAI.TechValue(gameData, player, t, beakers)).ToArray();
+		Assert.Empty(GovernmentAI.EarlyGovernmentPath(player, gameData));
+
+		AiExperiments.Enable(player, GovernmentAI.EarlyGovernment);
+		HashSet<Tech> path = GovernmentAI.EarlyGovernmentPath(player, gameData);
+		Assert.NotEmpty(path);
+		Assert.True(path.Count <= GovernmentAI.EarlyGovernmentMaxTechs);
+		for (int i = 0; i < all.Length; ++i) {
+			double on = DevelopmentAI.TechValue(gameData, player, all[i], beakers);
+			Assert.Equal(off[i] + (path.Contains(all[i]) ? GovernmentAI.EarlyGovernmentBonus : 0), on, 6);
+		}
+	}
+
+	[Fact]
+	public void EarlyGovernmentEndsOnceAGovernmentIsKnown() {
+		AiExperiments.Enable(player, GovernmentAI.EarlyGovernment);
+		LearnTechFor("Monarchy");
+		Assert.Empty(GovernmentAI.EarlyGovernmentPath(player, gameData));
+	}
+
+	// At war and losing, the AI stays in Despotism with the switch on; at
+	// peace it revolts as soon as it knows the government.
+	[Fact]
+	public void EarlyGovernmentWaitsOutALosingWar() {
+		AiExperiments.Enable(player, GovernmentAI.EarlyGovernment);
+		LearnTechFor("Monarchy");
+		Player enemy = gameData.players.First(p => p != player && !p.isBarbarians && !p.IsIndependent);
+		player.DeclareWarOn(enemy, gameData.turn);
+		Tile spot = enemy.cities.Count > 0 ? enemy.cities[0].location : player.cities[0].location;
+		UnitPrototype strong = gameData.unitPrototypes.OrderByDescending(u => u.attack).First(u => u.IsLandUnit());
+		for (int i = 0; i < 30; ++i) {
+			gameData.SpawnUnit(enemy, strong, spot);
+		}
+		Assert.True(PeaceAI.Assess(player, enemy) <= PeaceAI.WarOutlook.Losing);
+		GovernmentAI.PlayTurn(player, gameData);
+		Assert.Equal("Despotism", player.government.name);
+
+		PlayerRelationship.SignPeaceAfterWar(player, enemy, gameData);
+		GovernmentAI.PlayTurn(player, gameData);
+		Assert.True(player.government.transitionType);
 	}
 
 	// Before GovernmentAI, the AI stayed in Despotism all game.

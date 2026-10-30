@@ -328,7 +328,10 @@ namespace C7Engine.AI {
 			}
 
 			double value = perTurn / TurnsNeeded(gameData, player, tech, beakersPerTurn) + flat;
-			return tech.RequiredForEraAdvancement ? value : value / OptionalDivisor;
+			value = tech.RequiredForEraAdvancement ? value : value / OptionalDivisor;
+			// After the divisor: the way out of Despotism is wanted whether
+			// or not the era needs it.
+			return GovernmentAI.EarlyGovernmentPath(player, gameData).Contains(tech) ? value + GovernmentAI.EarlyGovernmentBonus : value;
 		}
 
 		// "The AI needs 24 times the base cost of each technology in

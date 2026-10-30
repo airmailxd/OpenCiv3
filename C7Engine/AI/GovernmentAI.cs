@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
 using Serilog;
@@ -20,6 +21,17 @@ namespace C7Engine.AI {
 		// support) don't make it change back and forth.
 		internal const float RevolutionMargin = 10;
 		internal const float FavoriteGovernmentWeight = .125f;
+
+		// Suede (notes #23, #73) leaves Despotism as early as he can: the
+		// research goes to the best government within reach, and the AI
+		// revolts the moment it knows it, with no margin to clear. The
+		// bonus is added to the value of each tech on the way there.
+		// UNVERIFIED: the size; a guess, well above any unit's worth.
+		public const string EarlyGovernment = "early-government";
+		public const double EarlyGovernmentBonus = 400;
+
+		// HEURISTIC: a government more techs away than this isn't "early".
+		internal const int EarlyGovernmentMaxTechs = 4;
 
 		public static void PlayTurn(Player player, GameData gameData) {
 			if (player.isHuman || player.IsIndependent || player.cities.Count == 0) {
@@ -48,8 +60,12 @@ namespace C7Engine.AI {
 			}
 
 			Government candidate = BestGovernment(player, gameData, pressure);
+			bool early = AiExperiments.Has(player, EarlyGovernment) && player.government.hasTilePenalty;
+			if (early && IsLosingAWar(player)) {
+				return;
+			}
 			if (candidate == null || candidate == player.government
-					|| Score(player, candidate, pressure) < Score(player, player.government, pressure) + RevolutionMargin) {
+					|| Score(player, candidate, pressure) < Score(player, player.government, pressure) + (early ? 0 : RevolutionMargin)) {
 				return;
 			}
 
@@ -62,6 +78,56 @@ namespace C7Engine.AI {
 			player.government = anarchy;
 			player.ApplyGovernmentRateCap();
 			player.inAnarchyUntilTurn = gameData.turn + player.GetTurnsOfAnarchyForTransition(gameData);
+		}
+
+		private static bool IsLosingAWar(Player player) {
+			foreach (Player other in EngineStorage.gameData.players) {
+				if (other != player && !other.IsIndependent && !other.defeated && other.id != null && player.playerRelationships.TryGetValue(other.id, out PlayerRelationship pr) && pr.AtWar()
+						&& PeaceAI.Assess(player, other) <= PeaceAI.WarOutlook.Losing) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// The techs still to learn on the way to the best government (by
+		// Score) the player doesn't have yet but could soon, while in a
+		// government with the tile penalty and with the switch on; empty
+		// otherwise.
+		internal static HashSet<Tech> EarlyGovernmentPath(Player player, GameData gameData) {
+			HashSet<Tech> path = new();
+			if (!AiExperiments.Has(player, EarlyGovernment) || player.government == null || !player.government.hasTilePenalty) {
+				return path;
+			}
+			Government best = null;
+			float bestScore = float.MinValue;
+			foreach (Government g in gameData.governments) {
+				if (g.transitionType || g.hasTilePenalty || !gameData.rules.AllowsGovernment(g)) {
+					continue;
+				}
+				Tech tech = gameData.techs.Find(t => t.id == g.prerequisiteTech);
+				if (tech == null || player.HasTech(g.prerequisiteTech)) {
+					return new HashSet<Tech>();
+				}
+				HashSet<Tech> missing = new();
+				AddMissing(player, tech, missing);
+				float score = Score(player, g);
+				if (missing.Count <= EarlyGovernmentMaxTechs && score > bestScore) {
+					best = g;
+					bestScore = score;
+					path = missing;
+				}
+			}
+			return best == null ? new HashSet<Tech>() : path;
+		}
+
+		private static void AddMissing(Player player, Tech tech, HashSet<Tech> missing) {
+			if (tech == null || player.HasTech(tech.id) || !missing.Add(tech)) {
+				return;
+			}
+			foreach (Tech prereq in tech.Prerequisites) {
+				AddMissing(player, prereq, missing);
+			}
 		}
 
 		internal static Government BestGovernment(Player player, GameData gameData, int warPressure = 0) {
