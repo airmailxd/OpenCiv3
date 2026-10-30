@@ -1,0 +1,3829 @@
+{
+ "version": 1,
+ "source": "doc/ai-strategy-notes.md tips 1-127",
+ "facts": {
+  "expansionPhase": {
+   "engine_computable": true,
+   "how": "DevelopmentAI stats.InExpansionPhase"
+  },
+  "freeSettleSites": {
+   "engine_computable": true,
+   "how": "count of sites SettlerLocationAI would still accept"
+  },
+  "scarceLand": {
+   "engine_computable": true,
+   "how": "free settle sites per own city below a threshold"
+  },
+  "contestedLand": {
+   "engine_computable": true,
+   "how": "rival cities or settlers within about 8 tiles of the candidate site"
+  },
+  "invasionThreat": {
+   "engine_computable": true,
+   "how": "enemy strength near our border vs ours (ThreatStrengthRatio, ladder value 1.75)"
+  },
+  "atWar": {
+   "engine_computable": true,
+   "how": "player at war with any civ"
+  },
+  "difficulty": {
+   "engine_computable": true,
+   "how": "game difficulty level"
+  },
+  "corruptCity": {
+   "engine_computable": true,
+   "how": "city corruption share from the city's own numbers"
+  },
+  "strongestRival": {
+   "engine_computable": true,
+   "how": "rival with the highest score, and whether it borders us"
+  },
+  "targetCityCount": {
+   "engine_computable": true,
+   "how": "cities the target civ owns"
+  },
+  "enemyDefenderTech": {
+   "engine_computable": false,
+   "how": "engine sees only the units it has seen; the rival's tech list is not exposed to the AI"
+  },
+  "richestBuyer": {
+   "engine_computable": false,
+   "how": "rival treasuries are not visible without trade or embassy data the AI does not read today"
+  },
+  "mapWaterShare": {
+   "engine_computable": true,
+   "how": "water tiles over all tiles"
+  }
+ },
+ "rules": [
+  {
+   "id": 1,
+   "name": "Expand first: settlers, workers, warriors only until land is taken",
+   "category": "expansion",
+   "base_weight": 100,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "early: until free sites run out",
+   "conditions": [
+    "expansionPhase",
+    "freeSettleSites>0"
+   ],
+   "exceptions": [
+    "rival has no room left",
+    "invasionThreat high"
+   ],
+   "modifiers": [
+    {
+     "fact": "scarceLand",
+     "factor": 0.5,
+     "engine_computable": true
+    },
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "DevelopmentAI InExpansionPhase; wonder-timing, lean-military (off)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "city5turn",
+    "city10turn",
+    "cities50",
+    "cities100",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 68,
+     "decide": "Both put expansion before wonders; #68 is the wonder-side statement of #1."
+    },
+    {
+     "id": 98,
+     "decide": "Goody huts (#98) can give a free city, which supports #1, but popping one while a settler is in production wastes the reward. Decide per hut: pop at once if our city count is at or below the average and no settler is in production; otherwise delay until the settler is done or switch the box. Disputed (SvjbJ0 differs), so keep weight low until a trial."
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "Do not plant on bonus food; bonus commerce fine (not capital)",
+   "category": "expansion",
+   "base_weight": 90,
+   "weight_reason": "Site score decides every city; centre-tile rule is verified in compendium.",
+   "phase": "expansion",
+   "conditions": [
+    "candidate site centre tile has bonus food"
+   ],
+   "exceptions": [
+    "capital",
+    "site is only coastal or river site on the island"
+   ],
+   "modifiers": [
+    {
+     "fact": "scarceLand",
+     "factor": 0.7,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 02-city-economy §1 (city centre food fixed at 2, bonus food lost)",
+   "code": "site-food (ZUR-32), on by default for Advanced (ZUR-107)",
+   "implemented": "yes",
+   "evidence": "site-food, ZUR-61: leans helpful alone; with site-tight-7 (ZUR-62) cities +2.8 ± 0.8, score +158 ± 59. On for Advanced since ZUR-107.",
+   "metrics": [
+    "cities",
+    "size7",
+    "citizens",
+    "score"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 3,
+   "name": "Every land tile inside some city work area; cities 2-5 apart",
+   "category": "expansion",
+   "base_weight": 88,
+   "weight_reason": "Dense packing drives cities and score; contested by rank corruption.",
+   "phase": "expansion",
+   "conditions": [
+    "candidate site leaves no unreachable good tile"
+   ],
+   "exceptions": [
+    "far from capital with high corruption"
+   ],
+   "modifiers": [
+    {
+     "fact": "scarceLand",
+     "factor": 0.8,
+     "engine_computable": true
+    },
+    {
+     "fact": "contestedLand",
+     "factor": 1.1,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "compendium 02 notes work radius but the packing claim is judgement",
+   "code": "SettlerLocationAI.DistancePenalty; site-tight-7 (on), site-tight-12",
+   "implemented": "partly",
+   "evidence": "site-tight-7, ZUR-62: together with site-food cities +2.8 ± 0.8, score +158 ± 59. On for Advanced.",
+   "metrics": [
+    "cities",
+    "closeCities",
+    "citizens",
+    "unimproved"
+   ],
+   "conflicts": [
+    {
+     "id": 5,
+     "decide": "Packing versus distance from the capital: #5 sets the first ring, #3 fills later."
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "Settle coast and river or lake sites (harbour, no aqueduct)",
+   "category": "expansion",
+   "base_weight": 85,
+   "weight_reason": "Coast and fresh water save buildings.",
+   "phase": "expansion",
+   "conditions": [
+    "site is coastal or beside river or lake"
+   ],
+   "exceptions": [
+    "inland-only land"
+   ],
+   "modifiers": [
+    {
+     "fact": "scarceLand",
+     "factor": 0.8,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 02 §size limits (no aqueduct needed next to fresh water; 'town needs Aqueduct to pass 6 unless next to fresh water')",
+   "code": "SettlerLocationAI coast/water terms; river/lake term inside site-food",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "size7",
+    "citizens"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 5,
+   "name": "First extra cities high food 3-4 tiles from capital, never over 5",
+   "category": "expansion",
+   "base_weight": 95,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "early: cities 2-6",
+   "conditions": [
+    "food-rich site 3-5 tiles from capital"
+   ],
+   "exceptions": [
+    "no such site",
+    "contested site farther away is better (see #6)"
+   ],
+   "modifiers": [
+    {
+     "fact": "contestedLand",
+     "factor": 1.1,
+     "engine_computable": true
+    },
+    {
+     "fact": "scarceLand",
+     "factor": 0.6,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "SettlerLocationAI.DistancePenalty",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "city5turn",
+    "city10turn",
+    "cities50"
+   ],
+   "conflicts": [
+    {
+     "id": 3,
+     "decide": "Packing versus distance from the capital: #5 sets the first ring, #3 fills later."
+    },
+    {
+     "id": 6,
+     "decide": "#5 prefers a near, high-food site; #6 prefers contested land. If the contested site has food, take it; else near-food first, contested next."
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "Settle toward rivals and contested land first",
+   "category": "expansion",
+   "base_weight": 98,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "early to mid expansion",
+   "conditions": [
+    "rival cities or settlers within 8 tiles of the site"
+   ],
+   "exceptions": [
+    "no rival within reach"
+   ],
+   "modifiers": [
+    {
+     "fact": "contestedLand",
+     "factor": 1.2,
+     "engine_computable": true
+    },
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none (sites near rivals are penalised today)",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "cities100",
+    "land",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 5,
+     "decide": "#5 prefers a near, high-food site; #6 prefers contested land. If the contested site has food, take it; else near-food first, contested next."
+    },
+    {
+     "id": 8,
+     "decide": "Overlaps tip #8. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    },
+    {
+     "id": 91,
+     "decide": "Duplicate: #91 and #127 restate #6. Use one rule with the largest weight."
+    },
+    {
+     "id": 127,
+     "decide": "Duplicate of #6."
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "Take whole islands before moving on",
+   "category": "expansion",
+   "base_weight": 55,
+   "weight_reason": "Fewer borders means fewer wars but only matters on island maps.",
+   "phase": "expansion",
+   "conditions": [
+    "island map, landmass not yet full"
+   ],
+   "exceptions": [
+    "continent shared with rivals"
+   ],
+   "modifiers": [
+    {
+     "fact": "scarceLand",
+     "factor": 0.7,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "wars"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 8,
+   "name": "Plant close to the AI to pull its resources into your borders",
+   "category": "expansion",
+   "base_weight": 50,
+   "weight_reason": "Low priority, needs border-tile model.",
+   "phase": "expansion",
+   "conditions": [
+    "rival city has resource tile on its border"
+   ],
+   "exceptions": [
+    "invasionThreat high"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "land",
+    "luxuries"
+   ],
+   "conflicts": [
+    {
+     "id": 6,
+     "decide": "Overlaps tip #6. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "name": "Never build a courthouse in the capital",
+   "category": "infrastructure",
+   "base_weight": 80,
+   "weight_reason": "Capital has zero corruption so a courthouse is wasted upkeep.",
+   "phase": "any",
+   "conditions": [
+    "always for capital"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 02-city-economy (capital has zero corruption, fixed)",
+   "code": "ChooseProducible.cs:473-476",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 10,
+   "name": "More cities are always good if far from capital",
+   "category": "expansion",
+   "base_weight": 88,
+   "weight_reason": "Corruption by rank, not distance, so extra cities pay.",
+   "phase": "expansion to mid",
+   "conditions": [
+    "spare site exists"
+   ],
+   "exceptions": [
+    "site unprotected under invasionThreat"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none beyond keep-settling",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "cities100"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 11,
+   "name": "Build settler at size 3; finish it the turn the city grows",
+   "category": "expansion",
+   "base_weight": 85,
+   "weight_reason": "Speeds expansion, small code.",
+   "phase": "early",
+   "conditions": [
+    "city size 3 or growing this turn"
+   ],
+   "exceptions": [
+    "city is the capital under threat"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ChooseProducible.CityIsTooSmall",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "city5turn",
+    "city10turn"
+   ],
+   "conflicts": [
+    {
+     "id": 124,
+     "decide": "Same settler pump."
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "name": "Wall of cheap units blocks settling and landings",
+   "category": "military",
+   "base_weight": 45,
+   "weight_reason": "Hard to build, little measurable.",
+   "phase": "early to mid",
+   "conditions": [
+    "border chokepoint exists"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 13,
+   "name": "Despotism: mine green, irrigate brown",
+   "category": "workers",
+   "base_weight": 90,
+   "weight_reason": "Despotism tile penalty makes this a default rule.",
+   "phase": "Despotism",
+   "conditions": [
+    "government is Despotism"
+   ],
+   "exceptions": [
+    "Anarchy or Tribal etc."
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 05-governments (Despotism tile penalty)",
+   "code": "terraforms.lua yield_improvement",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "despotism",
+    "unimproved"
+   ],
+   "conflicts": [
+    {
+     "id": 14,
+     "decide": "#14 corrects #13 where the blanket rule fails."
+    },
+    {
+     "id": 95,
+     "decide": "Worker ordering."
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "name": "Worker edge cases: compute real yield after the penalty",
+   "category": "workers",
+   "base_weight": 95,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "Despotism and early",
+   "conditions": [
+    "any tile choice"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none (blanket refusal of two cases only)",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "unimproved",
+    "citizens",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 13,
+     "decide": "#14 corrects #13 where the blanket rule fails."
+    },
+    {
+     "id": 95,
+     "decide": "Worker ordering."
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "name": "Do not move workers as a stack; improve in-use tiles before roads",
+   "category": "workers",
+   "base_weight": 85,
+   "weight_reason": "Avoids idle labour.",
+   "phase": "early",
+   "conditions": [
+    "tile is worked by a city"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly in terraforms.lua",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "unimproved",
+    "citizens"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 16,
+   "name": "Do not hook up resources you do not need yet",
+   "category": "workers",
+   "base_weight": 80,
+   "weight_reason": "Saves worker turns early.",
+   "phase": "early to mid",
+   "conditions": [
+    "resource is neither luxury in use nor strategic needed"
+   ],
+   "exceptions": [
+    "resource enables a wonder or unit we are building"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none (ai_score.road adds 20 on any luxury or strategic tile)",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "unimproved"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 17,
+   "name": "Do not improve tiles outside any city reach",
+   "category": "workers",
+   "base_weight": 80,
+   "weight_reason": "Wasted turns.",
+   "phase": "any",
+   "conditions": [
+    "tile not in any city radius"
+   ],
+   "exceptions": [
+    "city planned there"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "unimproved"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 18,
+   "name": "Chop before roading; do not chop forest on tundra, fur or deer",
+   "category": "workers",
+   "base_weight": 78,
+   "weight_reason": "Small gain.",
+   "phase": "early",
+   "conditions": [
+    "forest tile blocks growth or is food-short"
+   ],
+   "exceptions": [
+    "forest on special resource"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ai_score.clear_forest",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "unimproved"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 19,
+   "name": "At least 1.5 workers per city; more at high difficulty; build in corrupt cities",
+   "category": "workers",
+   "base_weight": 90,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any",
+   "conditions": [
+    "workers per city below target"
+   ],
+   "exceptions": [
+    "owner ZUR-103 trial: lower worker count neutral (roadmap 'workers 0.8-0.9: neutral')"
+   ],
+   "modifiers": [
+    {
+     "fact": "difficulty",
+     "factor": 1.2,
+     "engine_computable": true
+    },
+    {
+     "fact": "corruptCity",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "conflicts with #92 on the early count; roadmap notes the 0.8-0.9 worker stop was neutral in a trial",
+   "code": "ChooseProducible.cs:382,390",
+   "implemented": "partly",
+   "evidence": "Roadmap: a worker target of 0.8-0.9 a city instead of 1.5 was neutral in a trial (no ticket cited).",
+   "metrics": [
+    "workersPerCity100",
+    "unimproved",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 92,
+     "decide": "Decide by phase and city count: while expansionPhase is on and we own fewer than 4 cities, #92 wins (first worker after the first settler, second after 3-4 cities). Once 4 or more cities, or the expansion phase ends, #19 wins (1.5 workers a city, more in corrupt cities, more at high difficulty). The roadmap's trial of a lower worker target (0.8-0.9 a city) was neutral, so keep #19's count a tuning knob, not a fixed 1.5."
+    },
+    {
+     "id": 97,
+     "decide": "Overlaps tip #97. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    },
+    {
+     "id": 125,
+     "decide": "Overlaps tip #125. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "name": "Rail or road the best work first",
+   "category": "workers",
+   "base_weight": 70,
+   "weight_reason": "Ordering only.",
+   "phase": "mid",
+   "conditions": [
+    "railroad tech known"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "railroad_transport_points",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "production"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 21,
+   "name": "Philosophy first (free tech) then trade",
+   "category": "research-economy",
+   "base_weight": 88,
+   "weight_reason": "Free tech worth a full tech.",
+   "phase": "early",
+   "conditions": [
+    "Philosophy not yet known by anyone"
+   ],
+   "exceptions": [
+    "Philosophy already taken by a rival"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 04-science-and-wonders (first civ to learn Philosophy gets a free tech)",
+   "code": "philosophy-first (ZUR-33, off, waits for trial)",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "philTurn",
+    "techs",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 22,
+     "decide": "Both change the tech order. Philosophy (#21) first while no rival has it; Steam Power (#22) next once it is the best available after Currency, Writing and Monarchy or Republic."
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "name": "Steam Power first (railroads), Replaceable Parts next",
+   "category": "research-economy",
+   "base_weight": 88,
+   "weight_reason": "Biggest production jump.",
+   "phase": "Industrial",
+   "conditions": [
+    "coal or iron available"
+   ],
+   "exceptions": [
+    "no railroads wanted (island map)"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "railroad-first (ZUR-33, off, waits for trial)",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "steamTurn",
+    "techs",
+    "midtechs",
+    "beakers",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 21,
+     "decide": "Both change the tech order. Philosophy (#21) first while no rival has it; Steam Power (#22) next once it is the best available after Currency, Writing and Monarchy or Republic."
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "name": "Play Republic (commerce), Monarchy fallback",
+   "category": "research-economy",
+   "base_weight": 88,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "early to mid",
+   "conditions": [
+    "peace or short wars"
+   ],
+   "exceptions": [
+    "long war with many units"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    },
+    {
+     "fact": "atWar",
+     "factor": 0.5,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "compendium 05 governments; Suede himself differs between videos (#75-76)",
+   "code": "GovernmentAI.Score",
+   "implemented": "yes",
+   "evidence": "Roadmap: favourite-government bonus of 12.5% was neutral in a trial (score unchanged).",
+   "metrics": [
+    "govTurn",
+    "despotism",
+    "gpt",
+    "beakers",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 73,
+     "decide": "Grow core cities to size 7 before Republic (#73) can delay #23's switch; delay no more than 20 turns."
+    },
+    {
+     "id": 73,
+     "decide": "See #23 vs #73."
+    },
+    {
+     "id": 75,
+     "decide": "Republic (#23) is the default only at peace. #75 overrides it: never switch government during a war, and stay out of Republic when atWar with invasionThreat above 1.0. After the war, switch."
+    },
+    {
+     "id": 76,
+     "decide": "#76 prefers Republic outright, #23 keeps Monarchy as a fallback. Decide from state: Republic when at peace with a short list of enemies and core cities at size 5 or more (#73); Monarchy when atWar, or when Republic is not yet known and Despotism has lasted past turn 60. Videos disagree, so the ladder should search this switch point."
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "name": "Under Republic keep few units; core cities need none",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "Saves support gold.",
+   "phase": "Republic",
+   "conditions": [
+    "core city with no enemy within 8 tiles"
+   ],
+   "exceptions": [
+    "border city or war"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ObsoleteUnits.DisbandOverSupport (obsolete only)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gpt",
+    "unitsLost",
+    "cities",
+    "lostCities"
+   ],
+   "conflicts": [
+    {
+     "id": 74,
+     "decide": "Support costs."
+    },
+    {
+     "id": 83,
+     "decide": "Keeping a full-health Army in border cities (#83) costs unit support, which #24 cuts. Decide by threat: keep the army only in border cities with invasionThreat above 1.0; elsewhere #24 wins."
+    }
+   ]
+  },
+  {
+   "id": 25,
+   "name": "Fix unhappiness with luxuries and slider, not entertainers",
+   "category": "research-economy",
+   "base_weight": 90,
+   "weight_reason": "Trial-proven.",
+   "phase": "any",
+   "conditions": [
+    "city in disorder risk"
+   ],
+   "exceptions": [
+    "slider already at cap"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "lux-slider-high (on for Advanced)",
+   "implemented": "yes",
+   "evidence": "lux-slider-high, ZUR-61 (16 paired games, 300 turns): score +204 ± 61, citizens +13 ± 6, gold per turn -9.6 ± 3.9. On for Advanced since ZUR-107.",
+   "metrics": [
+    "citizens",
+    "disorder",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 78,
+     "decide": "Same happiness ordering."
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "name": "Import luxuries from AIs for useless techs",
+   "category": "diplomacy",
+   "base_weight": 80,
+   "weight_reason": "Cheap happiness.",
+   "phase": "any",
+   "conditions": [
+    "contact with a civ owning a luxury we lack"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "DealProposalAI / PlayerAI.AttemptTrading",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "citizens",
+    "disorder"
+   ],
+   "conflicts": [
+    {
+     "id": 80,
+     "decide": "Overlaps tip #80. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "name": "Trade techs constantly, even cheap ones, with everyone",
+   "category": "diplomacy",
+   "base_weight": 90,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any",
+   "conditions": [
+    "contact and a tech they lack"
+   ],
+   "exceptions": [
+    "trading arms the strongest rival (#52)"
+   ],
+   "modifiers": [
+    {
+     "fact": "strongestRival",
+     "factor": 0.5,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "trade-gpt (ZUR-29, trial ZUR-66)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techsBought",
+    "techGold",
+    "techs",
+    "gold",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 50,
+     "decide": "#50 refines #27 for government techs: sell to the richest buyer first."
+    },
+    {
+     "id": 52,
+     "decide": "Trade techs with everyone (#27) but not war techs to the strongest neighbour (#52): apply #52 as an exclusion list inside #27."
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "name": "Pay and take gold per turn; drop science to show surplus",
+   "category": "diplomacy",
+   "base_weight": 85,
+   "weight_reason": "Large gold source; exploit of ai rule.",
+   "phase": "any",
+   "conditions": [
+    "buyer has surplus"
+   ],
+   "exceptions": [
+    "lump sum preferred (#51)"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "videos disagree (see #51); rule 'AI counts GPT up to surplus' unverified",
+   "code": "trade-gpt (lump gold only for techs today)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techGold",
+    "gold",
+    "gpt"
+   ],
+   "conflicts": [
+    {
+     "id": 51,
+     "decide": "Both state the same gold-per-turn trick; #51 adds the dispute (lump sum versus GPT). Decide from the buyer: when the buyer's surplus covers the price over 20 turns use GPT, otherwise take a lump sum. Measure both arms in the trade-gpt trial (techGold, gpt)."
+    },
+    {
+     "id": 53,
+     "decide": "Same split as #51 vs #53."
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "name": "Buy techs with GPT and resell them",
+   "category": "diplomacy",
+   "base_weight": 75,
+   "weight_reason": "Tech lead as income.",
+   "phase": "mid",
+   "conditions": [
+    "two or more civs lack the tech"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "techGold",
+    "techsBought"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 30,
+   "name": "Keep trade reputation: never break a 20-turn deal",
+   "category": "diplomacy",
+   "base_weight": 98,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any",
+   "conditions": [
+    "an active deal exists"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "TradeGuards.cs",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "wars"
+   ],
+   "conflicts": [
+    {
+     "id": 56,
+     "decide": "Overlaps tip #56. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 31,
+   "name": "Granaries only for expansion (1 per ~9 cities)",
+   "category": "infrastructure",
+   "base_weight": 65,
+   "weight_reason": "Saves upkeep.",
+   "phase": "expansion",
+   "conditions": [
+    "growing settler city"
+   ],
+   "exceptions": [
+    "after expansion"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "gold",
+    "gpt"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 32,
+   "name": "Forbidden Palace in a corrupt city with good land",
+   "category": "infrastructure",
+   "base_weight": 65,
+   "weight_reason": "Corruption fix.",
+   "phase": "mid",
+   "conditions": [
+    "very corrupt good-land city"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "corruptCity",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ChooseProducible.cs:594-597",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gpt",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 62,
+     "decide": "Courthouse rules."
+    },
+    {
+     "id": 82,
+     "decide": "Heroic Epic versus Forbidden Palace for the leader: use Heroic Epic unless the city is very corrupt."
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "name": "Turn science down when tech finishes anyway; no overflow waste",
+   "category": "research-economy",
+   "base_weight": 90,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any",
+   "conditions": [
+    "tech completes at minimum anyway"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "gold",
+    "gpt",
+    "beakers"
+   ],
+   "conflicts": [
+    {
+     "id": 60,
+     "decide": "Same idea; #60 gives the verified min and max research times, #33 says lower science when the tech finishes anyway."
+    },
+    {
+     "id": 60,
+     "decide": "Same idea."
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "name": "Culture beyond 10 for first border expansion does little",
+   "category": "infrastructure",
+   "base_weight": 50,
+   "weight_reason": "Skip temples for culture.",
+   "phase": "early",
+   "conditions": [
+    "new city"
+   ],
+   "exceptions": [
+    "culture victory plan"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 35,
+   "name": "Attack in expansion: AIs build settlers not defenders",
+   "category": "military",
+   "base_weight": 85,
+   "weight_reason": "Biggest swing claimed, but trial zur-65 shows rare firing at regent.",
+   "phase": "expansion",
+   "conditions": [
+    "target has weak defenders, our attack above their defence by tech"
+   ],
+   "exceptions": [
+    "invasionThreat",
+    "target has Pikemen or walls"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    },
+    {
+     "fact": "targetCityCount",
+     "factor": 1.0,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "early-rush (ZUR-30, off), archer-rush (off)",
+   "implemented": "yes",
+   "evidence": "early-rush, ZUR-65 (16 paired games, 300 turns): Chieftain captured +1.5 ± 0.3, Warlord +0.9 ± 0.4, Regent +0.7 ± 0.7 (no clear effect); most of the low-difficulty gain is Advanced beating weak AIs, not the rush. Stays off.",
+   "metrics": [
+    "captured",
+    "firstCap",
+    "wars",
+    "unitsLost",
+    "civCaps"
+   ],
+   "conflicts": [
+    {
+     "id": 81,
+     "decide": "Same war window: #81 says strike before Pikemen or Musketeers, #35 says strike during expansion. #81 is the timing test inside #35."
+    },
+    {
+     "id": 99,
+     "decide": "#99 is the concrete form of #35 (five archers against the nearest neighbour)."
+    }
+   ]
+  },
+  {
+   "id": 36,
+   "name": "Defeat in detail: attack only with enough to kill every defender",
+   "category": "military",
+   "base_weight": 95,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any war",
+   "conditions": [
+    "stack strong enough per CampaignStrongEnough"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "WarCampaign CampaignStrongEnough, ReadyHealth 0.7",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "attackWins",
+    "unitsLost",
+    "killRatio"
+   ],
+   "conflicts": [
+    {
+     "id": 83,
+     "decide": "#36 attacks only with enough to kill every defender; #83 keeps the Army home. Use the Army as the stack's escort when attacking, as a garrison when not."
+    }
+   ]
+  },
+  {
+   "id": 37,
+   "name": "Ancient era: take size 3+ cities; size 1-2 get razed",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "Capture rule.",
+   "phase": "Ancient",
+   "conditions": [
+    "target size"
+   ],
+   "exceptions": [
+    "size 1-2"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PickTarget favours size",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured",
+    "razed"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 38,
+   "name": "Retreating units give the enemy no promotions",
+   "category": "military",
+   "base_weight": 55,
+   "weight_reason": "Small.",
+   "phase": "any",
+   "conditions": [
+    "unit would retreat"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "attackWins",
+    "unitsLost"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 39,
+   "name": "Artillery plus railroads, bombard defenders to 1 hp",
+   "category": "military",
+   "base_weight": 95,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "Industrial",
+   "conditions": [
+    "railroads connect to front"
+   ],
+   "exceptions": [
+    "no railroad"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "siege units in stack (WarCampaign)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "attackWins",
+    "killRatio",
+    "captured"
+   ],
+   "conflicts": [
+    {
+     "id": 88,
+     "decide": "Same late-war doctrine."
+    }
+   ]
+  },
+  {
+   "id": 40,
+   "name": "Armies do not die to AI at full health; use Great Leader armies",
+   "category": "military",
+   "base_weight": 75,
+   "weight_reason": "Stack strength.",
+   "phase": "any",
+   "conditions": [
+    "army exists"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ArmyAI",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "armies",
+    "armylost",
+    "armycaps"
+   ],
+   "conflicts": [
+    {
+     "id": 83,
+     "decide": "Same Army ideas."
+    }
+   ]
+  },
+  {
+   "id": 41,
+   "name": "Many units in captured city for one turn to put down resistance",
+   "category": "military",
+   "base_weight": 60,
+   "weight_reason": "Keeps captures.",
+   "phase": "after capture",
+   "conditions": [
+    "city in resistance"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "lostCities",
+    "flipsOut"
+   ],
+   "conflicts": [
+    {
+     "id": 84,
+     "decide": "Resistance and flip, same city after capture."
+    }
+   ]
+  },
+  {
+   "id": 42,
+   "name": "Declare war before moving units into their land",
+   "category": "diplomacy",
+   "base_weight": 100,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "before war",
+   "conditions": [
+    "rival territory ahead"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "wars",
+    "rops"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 43,
+   "name": "Do not fight at sea; boats move land units",
+   "category": "military",
+   "base_weight": 60,
+   "weight_reason": "Keep fleets light.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "warships",
+    "shipKills"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 44,
+   "name": "Heal before pushing on; disband obsolete units after war",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "Keeps stack alive.",
+   "phase": "war",
+   "conditions": [
+    "stack hurt"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "RestAI; ObsoleteUnits",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "unitsLost",
+    "killRatio"
+   ],
+   "conflicts": [
+    {
+     "id": 83,
+     "decide": "A full-health Army deters the AI (#83), but #44 heals units before moving on. Both agree: hold at full health in a threatened city; never send a hurt Army forward."
+    }
+   ]
+  },
+  {
+   "id": 45,
+   "name": "War weariness from losses; keep wars short",
+   "category": "military",
+   "base_weight": 65,
+   "weight_reason": "Short wars.",
+   "phase": "war",
+   "conditions": [
+    "Republic or Democracy"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "GovernmentAI.WarPressure",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "anarchy",
+    "disorder"
+   ],
+   "conflicts": [
+    {
+     "id": 108,
+     "decide": "Short wars."
+    }
+   ]
+  },
+  {
+   "id": 46,
+   "name": "Ally against the runaway leader",
+   "category": "diplomacy",
+   "base_weight": 85,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "mid",
+   "conditions": [
+    "a rival's score is far above the rest"
+   ],
+   "exceptions": [
+    "no willing ally"
+   ],
+   "modifiers": [
+    {
+     "fact": "strongestRival",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PactAI (answers asks only)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "wars",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 54,
+     "decide": "#46 allies against the leader, #54 keeps weak neighbours alive; both weaken the leader and spare the weak."
+    },
+    {
+     "id": 115,
+     "decide": "Same idea, #115 asks an ally to declare war."
+    }
+   ]
+  },
+  {
+   "id": 47,
+   "name": "Sell excess strategic resources; give to weak civs",
+   "category": "diplomacy",
+   "base_weight": 60,
+   "weight_reason": "Gold.",
+   "phase": "any",
+   "conditions": [
+    "spare copies"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": [
+    {
+     "id": 49,
+     "decide": "Resource trade."
+    }
+   ]
+  },
+  {
+   "id": 48,
+   "name": "Contact every civ early",
+   "category": "diplomacy",
+   "base_weight": 90,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "early",
+   "conditions": [
+    "unmet civs known"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly (ExplorerAI)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techsBought",
+    "techs100"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 49,
+   "name": "Hold one copy of a resource to avoid demands",
+   "category": "diplomacy",
+   "base_weight": 40,
+   "weight_reason": "Low.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": [
+    {
+     "id": 47,
+     "decide": "Resource trade."
+    }
+   ]
+  },
+  {
+   "id": 50,
+   "name": "Sell government techs to rich AIs one after another; do not buy",
+   "category": "diplomacy",
+   "base_weight": 75,
+   "weight_reason": "Big gold in suede's games.",
+   "phase": "mid",
+   "conditions": [
+    "buyer treasury high"
+   ],
+   "exceptions": [
+    "buyer is strongest and near"
+   ],
+   "modifiers": [
+    {
+     "fact": "strongestRival",
+     "factor": 0.5,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "TechDeal, AiTechPricing; sell-to-all (ZUR-86 pending)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techGold",
+    "gold"
+   ],
+   "conflicts": [
+    {
+     "id": 27,
+     "decide": "#50 refines #27 for government techs: sell to the richest buyer first."
+    },
+    {
+     "id": 52,
+     "decide": "#50 sells government techs, #52 forbids arming the leader; sell government techs to non-leaders first."
+    },
+    {
+     "id": 111,
+     "decide": "Both sell one tech to many; #111 sells to all on the same turn, #50 in order of treasury."
+    }
+   ]
+  },
+  {
+   "id": 51,
+   "name": "GPT counts about 70% of face and only up to surplus; set science to 0 first",
+   "category": "diplomacy",
+   "base_weight": 70,
+   "weight_reason": "Disputed lump vs gpt.",
+   "phase": "any",
+   "conditions": [
+    "buyer has surplus"
+   ],
+   "exceptions": [
+    "lump sum cheaper than expected"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "b2QeCu says lump sums, 0zbT7V says GPT",
+   "code": "trade-gpt",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techGold",
+    "gpt"
+   ],
+   "conflicts": [
+    {
+     "id": 28,
+     "decide": "Both state the same gold-per-turn trick; #51 adds the dispute (lump sum versus GPT). Decide from the buyer: when the buyer's surplus covers the price over 20 turns use GPT, otherwise take a lump sum. Measure both arms in the trade-gpt trial (techGold, gpt)."
+    },
+    {
+     "id": 53,
+     "decide": "#53 prefers lump sums for resources; #51 prefers GPT for techs. Apply by item: lump for resources, GPT for techs."
+    }
+   ]
+  },
+  {
+   "id": 52,
+   "name": "Do not sell war techs or iron to the strongest neighbour",
+   "category": "diplomacy",
+   "base_weight": 75,
+   "weight_reason": "Avoid arming a rival.",
+   "phase": "mid",
+   "conditions": [
+    "buyer is strongest and a neighbour"
+   ],
+   "exceptions": [
+    "buyer is at war with a stronger enemy"
+   ],
+   "modifiers": [
+    {
+     "fact": "strongestRival",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none (resources refused only to disliked civs)",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "lostCities",
+    "wars"
+   ],
+   "conflicts": [
+    {
+     "id": 27,
+     "decide": "Trade techs with everyone (#27) but not war techs to the strongest neighbour (#52): apply #52 as an exclusion list inside #27."
+    },
+    {
+     "id": 50,
+     "decide": "#50 sells government techs, #52 forbids arming the leader; sell government techs to non-leaders first."
+    }
+   ]
+  },
+  {
+   "id": 53,
+   "name": "Sell resources for one-turn lumps, not per turn",
+   "category": "diplomacy",
+   "base_weight": 50,
+   "weight_reason": "Low.",
+   "phase": "any",
+   "conditions": [
+    "resource route can be cut"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "SellResource uses GPT",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": [
+    {
+     "id": 28,
+     "decide": "Same split as #51 vs #53."
+    },
+    {
+     "id": 51,
+     "decide": "#53 prefers lump sums for resources; #51 prefers GPT for techs. Apply by item: lump for resources, GPT for techs."
+    }
+   ]
+  },
+  {
+   "id": 54,
+   "name": "Keep weak neighbours alive as buffers; pit strong AIs against each other",
+   "category": "diplomacy",
+   "base_weight": 70,
+   "weight_reason": "Spare war cost.",
+   "phase": "mid",
+   "conditions": [
+    "weak neighbour borders strong rival"
+   ],
+   "exceptions": [
+    "we need the land"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PactAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "wars"
+   ],
+   "conflicts": [
+    {
+     "id": 46,
+     "decide": "#46 allies against the leader, #54 keeps weak neighbours alive; both weaken the leader and spare the weak."
+    }
+   ]
+  },
+  {
+   "id": 55,
+   "name": "Take 4-5 cities per war, then peace",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "War economy.",
+   "phase": "war",
+   "conditions": [
+    "cities taken this war below 5"
+   ],
+   "exceptions": [
+    "capital of target"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PeaceAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured",
+    "wars",
+    "flipsOut"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 56,
+   "name": "No war within 20 turns of peace deal that gave tech or city",
+   "category": "diplomacy",
+   "base_weight": 70,
+   "weight_reason": "Reputation.",
+   "phase": "post-peace",
+   "conditions": [
+    "recent deal"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "TradeGuards.cs",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "wars"
+   ],
+   "conflicts": [
+    {
+     "id": 30,
+     "decide": "Overlaps tip #30. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 57,
+   "name": "Say yes to early AI demands; let units cross land",
+   "category": "diplomacy",
+   "base_weight": 60,
+   "weight_reason": "Avoid early wars.",
+   "phase": "early",
+   "conditions": [
+    "demand is cheap"
+   ],
+   "exceptions": [
+    "demand is a city"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "YZDmln vs QnH_D6 differ on right of passage",
+   "code": "TerritoryDemands, TributeDemands, RightOfPassageAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "wars",
+    "lostCities"
+   ],
+   "conflicts": [
+    {
+     "id": 59,
+     "decide": "Both about right of passage; disputed. Default: grant when asked at peace unless the civ is stronger than us and bordering."
+    }
+   ]
+  },
+  {
+   "id": 58,
+   "name": "Keep Map Making and Republic until expanded; give cheap techs for gold",
+   "category": "research-economy",
+   "base_weight": 55,
+   "weight_reason": "Small.",
+   "phase": "early",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "techGold"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 59,
+   "name": "Avoid Right of Passage",
+   "category": "diplomacy",
+   "base_weight": 40,
+   "weight_reason": "Disputed.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "YZDmln grants it, QnH_D6 refuses",
+   "code": "RightOfPassageAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "rops"
+   ],
+   "conflicts": [
+    {
+     "id": 57,
+     "decide": "Both about right of passage; disputed. Default: grant when asked at peace unless the civ is stronger than us and bordering."
+    }
+   ]
+  },
+  {
+   "id": 60,
+   "name": "Set slider on turn 1; minimum science in expansion; full only for Philosophy",
+   "category": "research-economy",
+   "base_weight": 80,
+   "weight_reason": "Cheap, rule is verified.",
+   "phase": "expansion",
+   "conditions": [
+    "expansion phase"
+   ],
+   "exceptions": [
+    "race for a key tech"
+   ],
+   "modifiers": [
+    {
+     "fact": "expansionPhase",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 04-science-and-wonders §4.2 (research time 4-50 turns)",
+   "code": "min-tech E19 (notes: already holds)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gold",
+    "beakers",
+    "techs100"
+   ],
+   "conflicts": [
+    {
+     "id": 33,
+     "decide": "Same idea; #60 gives the verified min and max research times, #33 says lower science when the tech finishes anyway."
+    },
+    {
+     "id": 33,
+     "decide": "Same idea."
+    }
+   ]
+  },
+  {
+   "id": 61,
+   "name": "Building order: Marketplace, Library, Aqueduct, Courthouse, University, Harbor",
+   "category": "infrastructure",
+   "base_weight": 75,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "mid",
+   "conditions": [
+    "city size 5+"
+   ],
+   "exceptions": [
+    "few luxuries"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "compendium 02: marketplace raises luxury; numbers unverified",
+   "code": "ChooseProducible markets in big cities (:440)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "citizens",
+    "disorder",
+    "score"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 62,
+   "name": "Courthouse, aqueduct, harbour only when worth it",
+   "category": "infrastructure",
+   "base_weight": 65,
+   "weight_reason": "Saves upkeep.",
+   "phase": "mid",
+   "conditions": [
+    "city nears cap"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "corruptCity",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "NeedsRoomToGrow",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": [
+    {
+     "id": 32,
+     "decide": "Courthouse rules."
+    }
+   ]
+  },
+  {
+   "id": 63,
+   "name": "Never build Wealth with spare production",
+   "category": "infrastructure",
+   "base_weight": 60,
+   "weight_reason": "Simple.",
+   "phase": "any",
+   "conditions": [
+    "always"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ChooseProducible.cs:190",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "gold"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 64,
+   "name": "Great Library is the wonder to win",
+   "category": "wonders",
+   "base_weight": 50,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "mid",
+   "conditions": [
+    "rivals ahead in tech"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "WonderPlanner Great Library value",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "techs",
+    "midtechs",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 65,
+     "decide": "Both wonders in the same city: build the Great Library first."
+    },
+    {
+     "id": 67,
+     "decide": "#67 skips low-value wonders, #64 names the one to win. No clash: #67 removes others, #64 keeps the Great Library."
+    },
+    {
+     "id": 68,
+     "decide": "Great Library (#64) versus not delaying expansion for wonders (#68). #68 wins while expansionPhase is on. #64 applies after expansion, only when at least two rivals know techs we lack (the library gives techs two or more civs know) and the city has library and university."
+    },
+    {
+     "id": 68,
+     "decide": "See #64 vs #68."
+    }
+   ]
+  },
+  {
+   "id": 65,
+   "name": "Rush Theory of Evolution",
+   "category": "wonders",
+   "base_weight": 40,
+   "weight_reason": "Wonders category.",
+   "phase": "mid",
+   "conditions": [
+    "Medicine known"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "wonder-value",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techs",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 64,
+     "decide": "Both wonders in the same city: build the Great Library first."
+    }
+   ]
+  },
+  {
+   "id": 66,
+   "name": "Statue of Zeus and Sun Tzu better than they look",
+   "category": "wonders",
+   "base_weight": 40,
+   "weight_reason": "Wonders category.",
+   "phase": "mid",
+   "conditions": [
+    "ivory available"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "wonder-value",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "score"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 67,
+   "name": "Skip Oracle, Universal Suffrage, Colossus etc.",
+   "category": "wonders",
+   "base_weight": 40,
+   "weight_reason": "Wonders category.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "wonder-value",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 64,
+     "decide": "#67 skips low-value wonders, #64 names the one to win. No clash: #67 removes others, #64 keeps the Great Library."
+    }
+   ]
+  },
+  {
+   "id": 68,
+   "name": "Do not delay expansion for wonders; build in best city",
+   "category": "wonders",
+   "base_weight": 55,
+   "weight_reason": "Expansion first.",
+   "phase": "expansion",
+   "conditions": [
+    "expansionPhase"
+   ],
+   "exceptions": [
+    "free sites gone"
+   ],
+   "modifiers": [
+    {
+     "fact": "expansionPhase",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "wonder-timing",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 1,
+     "decide": "Both put expansion before wonders; #68 is the wonder-side statement of #1."
+    },
+    {
+     "id": 64,
+     "decide": "Great Library (#64) versus not delaying expansion for wonders (#68). #68 wins while expansionPhase is on. #64 applies after expansion, only when at least two rivals know techs we lack (the library gives techs two or more civs know) and the city has library and university."
+    },
+    {
+     "id": 64,
+     "decide": "See #64 vs #68."
+    }
+   ]
+  },
+  {
+   "id": 69,
+   "name": "Pop-rush only in corrupt cities, last 20-25 shields",
+   "category": "infrastructure",
+   "base_weight": 55,
+   "weight_reason": "Rule verified.",
+   "phase": "any",
+   "conditions": [
+    "corruptCity and shields already in box"
+   ],
+   "exceptions": [
+    "empty box doubles cost"
+   ],
+   "modifiers": [
+    {
+     "fact": "corruptCity",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "verified",
+   "validation_note": "compendium 02-city-economy (20 shields per citizen, doubled if box empty)",
+   "code": "onHurry; GovernorProduction",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "rushes",
+    "rushGold"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 70,
+   "name": "Pick builds that fit shield rate",
+   "category": "infrastructure",
+   "base_weight": 50,
+   "weight_reason": "Low.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "production"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 71,
+   "name": "Wartime production bonus trick",
+   "category": "infrastructure",
+   "base_weight": 30,
+   "weight_reason": "Conquests only?.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [
+    "default rules lack it"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "production"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 72,
+   "name": "When behind in tech, science 0 and buy with GPT",
+   "category": "research-economy",
+   "base_weight": 70,
+   "weight_reason": "Catch-up.",
+   "phase": "mid",
+   "conditions": [
+    "tech lag"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "AiTechPricing",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "techsBought",
+    "techs"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 73,
+   "name": "Grow core cities to size 7 before Republic",
+   "category": "research-economy",
+   "base_weight": 70,
+   "weight_reason": "Support.",
+   "phase": "early",
+   "conditions": [
+    "size 7"
+   ],
+   "exceptions": [
+    "war"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "GovernmentAI.UnitSupportCost",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "govTurn",
+    "size7"
+   ],
+   "conflicts": [
+    {
+     "id": 23,
+     "decide": "Grow core cities to size 7 before Republic (#73) can delay #23's switch; delay no more than 20 turns."
+    },
+    {
+     "id": 23,
+     "decide": "See #23 vs #73."
+    }
+   ]
+  },
+  {
+   "id": 74,
+   "name": "Disband early warriors on switching to Republic",
+   "category": "military",
+   "base_weight": 65,
+   "weight_reason": "Support.",
+   "phase": "Republic switch",
+   "conditions": [
+    "warriors obsolete"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ObsoleteUnits.DisbandOverSupport",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gpt"
+   ],
+   "conflicts": [
+    {
+     "id": 24,
+     "decide": "Support costs."
+    }
+   ]
+  },
+  {
+   "id": 75,
+   "name": "Switch government only at peace",
+   "category": "research-economy",
+   "base_weight": 75,
+   "weight_reason": "Anarchy.",
+   "phase": "any",
+   "conditions": [
+    "peace"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "anarchy"
+   ],
+   "conflicts": [
+    {
+     "id": 23,
+     "decide": "Republic (#23) is the default only at peace. #75 overrides it: never switch government during a war, and stay out of Republic when atWar with invasionThreat above 1.0. After the war, switch."
+    },
+    {
+     "id": 76,
+     "decide": "Government switching: #75 only at peace, #76 prefers Republic. #75 holds when at war."
+    }
+   ]
+  },
+  {
+   "id": 76,
+   "name": "Republic by default; Communism to close war",
+   "category": "research-economy",
+   "base_weight": 75,
+   "weight_reason": "Disputed with #23.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "Ntkw5o/YZDmln keep Monarchy",
+   "code": "GovernmentAI",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "govTurn",
+    "score"
+   ],
+   "conflicts": [
+    {
+     "id": 23,
+     "decide": "#76 prefers Republic outright, #23 keeps Monarchy as a fallback. Decide from state: Republic when at peace with a short list of enemies and core cities at size 5 or more (#73); Monarchy when atWar, or when Republic is not yet known and Despotism has lasted past turn 60. Videos disagree, so the ladder should search this switch point."
+    },
+    {
+     "id": 75,
+     "decide": "Government switching: #75 only at peace, #76 prefers Republic. #75 holds when at war."
+    }
+   ]
+  },
+  {
+   "id": 77,
+   "name": "Keep a rival at war to keep it out of Republic",
+   "category": "diplomacy",
+   "base_weight": 20,
+   "weight_reason": "Disputed, not for ai.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 78,
+   "name": "Military police in far cities; zero entertainers near capital",
+   "category": "research-economy",
+   "base_weight": 70,
+   "weight_reason": "Happiness.",
+   "phase": "mid",
+   "conditions": [
+    "far city"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PlayerAI slider loop",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "citizens"
+   ],
+   "conflicts": [
+    {
+     "id": 25,
+     "decide": "Same happiness ordering."
+    }
+   ]
+  },
+  {
+   "id": 79,
+   "name": "Renew lapsing luxury deals",
+   "category": "diplomacy",
+   "base_weight": 50,
+   "weight_reason": "Small.",
+   "phase": "any",
+   "conditions": [
+    "deal expires"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "disorder"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 80,
+   "name": "Cut slider by importing luxuries",
+   "category": "research-economy",
+   "base_weight": 70,
+   "weight_reason": "Gold.",
+   "phase": "any",
+   "conditions": [
+    "spare luxury"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "DealProposalAI",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "gpt"
+   ],
+   "conflicts": [
+    {
+     "id": 26,
+     "decide": "Overlaps tip #26. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 81,
+   "name": "Strike before Pikemen, Musketeers, Walls",
+   "category": "military",
+   "base_weight": 85,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "window",
+   "conditions": [
+    "target lacks Feudalism or Gunpowder"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "partly WarCampaign",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured",
+    "firstCap"
+   ],
+   "conflicts": [
+    {
+     "id": 35,
+     "decide": "Same war window: #81 says strike before Pikemen or Musketeers, #35 says strike during expansion. #81 is the timing test inside #35."
+    },
+    {
+     "id": 100,
+     "decide": "Same window."
+    }
+   ]
+  },
+  {
+   "id": 82,
+   "name": "Great Leader into an Army",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "Leader use.",
+   "phase": "war",
+   "conditions": [
+    "leader available"
+   ],
+   "exceptions": [
+    "Heroic Epic"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PlayerAI.cs:571,597",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "leaders",
+    "armies"
+   ],
+   "conflicts": [
+    {
+     "id": 32,
+     "decide": "Heroic Epic versus Forbidden Palace for the leader: use Heroic Epic unless the city is very corrupt."
+    }
+   ]
+  },
+  {
+   "id": 83,
+   "name": "AI will not attack a full-health Army; keep one with stacks",
+   "category": "military",
+   "base_weight": 75,
+   "weight_reason": "Owner conflict.",
+   "phase": "war",
+   "conditions": [
+    "armyHealth full"
+   ],
+   "exceptions": [
+    "AI has artillery"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "lostCities",
+    "unitsLost"
+   ],
+   "conflicts": [
+    {
+     "id": 24,
+     "decide": "Keeping a full-health Army in border cities (#83) costs unit support, which #24 cuts. Decide by threat: keep the army only in border cities with invasionThreat above 1.0; elsewhere #24 wins."
+    },
+    {
+     "id": 36,
+     "decide": "#36 attacks only with enough to kill every defender; #83 keeps the Army home. Use the Army as the stack's escort when attacking, as a garrison when not."
+    },
+    {
+     "id": 40,
+     "decide": "Same Army ideas."
+    },
+    {
+     "id": 44,
+     "decide": "A full-health Army deters the AI (#83), but #44 heals units before moving on. Both agree: hold at full health in a threatened city; never send a hurt Army forward."
+    }
+   ]
+  },
+  {
+   "id": 84,
+   "name": "Culture flips: handle after capture",
+   "category": "military",
+   "base_weight": 65,
+   "weight_reason": "Flip rules.",
+   "phase": "after capture",
+   "conditions": [
+    "city has foreign citizens"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "CultureFlip engine",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "flipsOut",
+    "flipsIn"
+   ],
+   "conflicts": [
+    {
+     "id": 41,
+     "decide": "Resistance and flip, same city after capture."
+    }
+   ]
+  },
+  {
+   "id": 85,
+   "name": "Road the line to the front before the war",
+   "category": "military",
+   "base_weight": 90,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "before war",
+   "conditions": [
+    "front is on our land"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "RestAI only",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "attackWins"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 86,
+   "name": "Hold captured cities cheaply; avoid fortified hills",
+   "category": "military",
+   "base_weight": 65,
+   "weight_reason": "Efficiency.",
+   "phase": "war",
+   "conditions": [
+    "city captured"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "finisher",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 87,
+   "name": "Wait for target to shrink below size 7",
+   "category": "military",
+   "base_weight": 50,
+   "weight_reason": "Defence.",
+   "phase": "war",
+   "conditions": [
+    "target size"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 88,
+   "name": "Late bombers and artillery as the core",
+   "category": "military",
+   "base_weight": 60,
+   "weight_reason": "Late war.",
+   "phase": "Industrial+",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "attackWins"
+   ],
+   "conflicts": [
+    {
+     "id": 39,
+     "decide": "Same late-war doctrine."
+    }
+   ]
+  },
+  {
+   "id": 89,
+   "name": "Capture unescorted AI settlers early",
+   "category": "military",
+   "base_weight": 60,
+   "weight_reason": "Opportunity.",
+   "phase": "war",
+   "conditions": [
+    "enemy settler exposed"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "snipe-workers (ZUR-84)",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "workersCaptured"
+   ],
+   "conflicts": [
+    {
+     "id": 105,
+     "decide": "Same: capture exposed settlers and workers."
+    }
+   ]
+  },
+  {
+   "id": 90,
+   "name": "AI judges strength by raw numbers",
+   "category": "diplomacy",
+   "base_weight": 20,
+   "weight_reason": "Stock ai rule.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 91,
+   "name": "Contested land first, four tiles apart, fill gaps later",
+   "category": "expansion",
+   "base_weight": 90,
+   "weight_reason": "Duplicate of #6.",
+   "phase": "expansion",
+   "conditions": [
+    "contestedLand"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "contestedLand",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "land"
+   ],
+   "conflicts": [
+    {
+     "id": 6,
+     "decide": "Duplicate: #91 and #127 restate #6. Use one rule with the largest weight."
+    },
+    {
+     "id": 127,
+     "decide": "Duplicate."
+    }
+   ]
+  },
+  {
+   "id": 92,
+   "name": "Delay first worker until first settler is out",
+   "category": "workers",
+   "base_weight": 70,
+   "weight_reason": "Conflict with #19.",
+   "phase": "early",
+   "conditions": [
+    "capital building first settler"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "differs from #19",
+   "code": "ChooseProducible.cs:382,390",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "workersPerCity100",
+    "city5turn"
+   ],
+   "conflicts": [
+    {
+     "id": 19,
+     "decide": "Decide by phase and city count: while expansionPhase is on and we own fewer than 4 cities, #92 wins (first worker after the first settler, second after 3-4 cities). Once 4 or more cities, or the expansion phase ends, #19 wins (1.5 workers a city, more in corrupt cities, more at high difficulty). The roadmap's trial of a lower worker target (0.8-0.9 a city) was neutral, so keep #19's count a tuning knob, not a fixed 1.5."
+    },
+    {
+     "id": 124,
+     "decide": "Capital pump (#124) needs workers later than #92 allows; #92 wins for the first 3 cities."
+    },
+    {
+     "id": 125,
+     "decide": "Specialist pump cities refine #92."
+    }
+   ]
+  },
+  {
+   "id": 93,
+   "name": "Capture or plant on coal, iron etc. you lack",
+   "category": "expansion",
+   "base_weight": 95,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "any",
+   "conditions": [
+    "resource missing"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities",
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 94,
+   "name": "Plant denser on 80% water maps",
+   "category": "expansion",
+   "base_weight": 50,
+   "weight_reason": "Low.",
+   "phase": "expansion",
+   "conditions": [
+    "mapWaterShare"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 95,
+   "name": "Irrigate before road; mine only when surplus",
+   "category": "workers",
+   "base_weight": 75,
+   "weight_reason": "Worker ordering.",
+   "phase": "Despotism and early",
+   "conditions": [
+    "food surplus"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "terraforms.lua",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "unimproved",
+    "citizens"
+   ],
+   "conflicts": [
+    {
+     "id": 13,
+     "decide": "Worker ordering."
+    },
+    {
+     "id": 14,
+     "decide": "Worker ordering."
+    }
+   ]
+  },
+  {
+   "id": 96,
+   "name": "Railroad N-S and E-W first",
+   "category": "workers",
+   "base_weight": 50,
+   "weight_reason": "Low.",
+   "phase": "Industrial",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "production"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 97,
+   "name": "Never automate workers",
+   "category": "workers",
+   "base_weight": 85,
+   "weight_reason": "Owner's value (ZUR-103).",
+   "phase": "not for AI",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "the AI automates by design; the tip is for a human player",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": [
+    {
+     "id": 19,
+     "decide": "Overlaps tip #19. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    }
+   ]
+  },
+  {
+   "id": 98,
+   "name": "Goody huts: check city count and production before popping",
+   "category": "expansion",
+   "base_weight": 50,
+   "weight_reason": "Disputed.",
+   "phase": "early",
+   "conditions": [
+    "hut seen"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "SvjbJ0 says otherwise",
+   "code": "ExplorerAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "cities"
+   ],
+   "conflicts": [
+    {
+     "id": 1,
+     "decide": "Goody huts (#98) can give a free city, which supports #1, but popping one while a settler is in production wastes the reward. Decide per hut: pop at once if our city count is at or below the average and no settler is in production; otherwise delay until the settler is done or switch the box. Disputed (SvjbJ0 differs), so keep weight low until a trial."
+    }
+   ]
+  },
+  {
+   "id": 99,
+   "name": "Five archers against nearest neighbour capital",
+   "category": "military",
+   "base_weight": 75,
+   "weight_reason": "Owner lead.",
+   "phase": "early",
+   "conditions": [
+    "target has 2 cities or fewer"
+   ],
+   "exceptions": [
+    "target has spearmen"
+   ],
+   "modifiers": [
+    {
+     "fact": "invasionThreat",
+     "factor": 0.4,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "archer-rush (off)",
+   "implemented": "yes",
+   "evidence": "archer-rush, ZUR-67: rarely fires, no measurable gain at Chieftain, Warlord or Regent. Stays off.",
+   "metrics": [
+    "captured",
+    "firstCap",
+    "razed"
+   ],
+   "conflicts": [
+    {
+     "id": 35,
+     "decide": "#99 is the concrete form of #35 (five archers against the nearest neighbour)."
+    }
+   ]
+  },
+  {
+   "id": 100,
+   "name": "Strike before Bronze Working or spearmen",
+   "category": "military",
+   "base_weight": 70,
+   "weight_reason": "Window.",
+   "phase": "early",
+   "conditions": [
+    "target lacks defender tech"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": [
+    {
+     "id": 81,
+     "decide": "Same window."
+    }
+   ]
+  },
+  {
+   "id": 101,
+   "name": "Stage on best defence tile near enemy city",
+   "category": "military",
+   "base_weight": 65,
+   "weight_reason": "Survive counterattack.",
+   "phase": "war",
+   "conditions": [
+    "stack near enemy city"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "WarCampaign.cs:439-477 fortifies",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "unitsLost"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 102,
+   "name": "Follow up quickly after field army dies",
+   "category": "military",
+   "base_weight": 60,
+   "weight_reason": "Tempo.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "CampaignStrongEnough",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 103,
+   "name": "Keep size 2+ cities from autoraze",
+   "category": "military",
+   "base_weight": 50,
+   "weight_reason": "Captures.",
+   "phase": "war",
+   "conditions": [
+    "captured size small"
+   ],
+   "exceptions": [
+    "unwanted city"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "unknown",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "razed"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 104,
+   "name": "Rush reputation penalty",
+   "category": "diplomacy",
+   "base_weight": 40,
+   "weight_reason": "Disputed.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disputed",
+   "validation_note": "",
+   "code": "Attitudes.cs:258",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "wars"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 105,
+   "name": "Snipe workers and settlers at war",
+   "category": "military",
+   "base_weight": 75,
+   "weight_reason": "Clear gain.",
+   "phase": "war",
+   "conditions": [
+    "unguarded rival worker"
+   ],
+   "exceptions": [
+    "enemy fighters nearby"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "snipe-workers (ZUR-84, trial ZUR-99)",
+   "implemented": "yes",
+   "evidence": "",
+   "metrics": [
+    "workersCaptured"
+   ],
+   "conflicts": [
+    {
+     "id": 89,
+     "decide": "Same: capture exposed settlers and workers."
+    }
+   ]
+  },
+  {
+   "id": 106,
+   "name": "Coast workers cannot be attacked from boats",
+   "category": "military",
+   "base_weight": 20,
+   "weight_reason": "Unverified.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 107,
+   "name": "AI disbands captured workers",
+   "category": "military",
+   "base_weight": 20,
+   "weight_reason": "Stock ai.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 108,
+   "name": "Short wars with Mounted Warriors then Cavalry",
+   "category": "military",
+   "base_weight": 55,
+   "weight_reason": "War length.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "warTurns"
+   ],
+   "conflicts": [
+    {
+     "id": 45,
+     "decide": "Short wars."
+    }
+   ]
+  },
+  {
+   "id": 109,
+   "name": "Raze wonder cities",
+   "category": "military",
+   "base_weight": 40,
+   "weight_reason": "Doubtful.",
+   "phase": "after capture",
+   "conditions": [
+    "wonder city"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "score",
+    "flipsOut"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 110,
+   "name": "Peace squeeze when winning",
+   "category": "diplomacy",
+   "base_weight": 60,
+   "weight_reason": "Gold and cities.",
+   "phase": "war",
+   "conditions": [
+    "outlook winning"
+   ],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PeaceAI.TributeDemanded",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gold",
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 111,
+   "name": "Sell each tech to all civs on the same turn",
+   "category": "diplomacy",
+   "base_weight": 70,
+   "weight_reason": "Gold.",
+   "phase": "any",
+   "conditions": [
+    "new tech"
+   ],
+   "exceptions": [
+    "dead-end only when ahead"
+   ],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "sell-to-all (ZUR-86 pending)",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "techGold"
+   ],
+   "conflicts": [
+    {
+     "id": 50,
+     "decide": "Both sell one tech to many; #111 sells to all on the same turn, #50 in order of treasury."
+    }
+   ]
+  },
+  {
+   "id": 112,
+   "name": "GPT price floor",
+   "category": "diplomacy",
+   "base_weight": 55,
+   "weight_reason": "Gold.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "AiTechPricing",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "gpt"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 113,
+   "name": "Probe GPT limit step by step",
+   "category": "diplomacy",
+   "base_weight": 55,
+   "weight_reason": "Gold.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "gpt"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 114,
+   "name": "Pay AI to ally then sell a tech",
+   "category": "diplomacy",
+   "base_weight": 20,
+   "weight_reason": "Possible bug.",
+   "phase": "any",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 115,
+   "name": "Incite AI wars",
+   "category": "diplomacy",
+   "base_weight": 60,
+   "weight_reason": "Leader.",
+   "phase": "mid",
+   "conditions": [
+    "leader known"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "strongestRival",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "wars"
+   ],
+   "conflicts": [
+    {
+     "id": 46,
+     "decide": "Same idea, #115 asks an ally to declare war."
+    }
+   ]
+  },
+  {
+   "id": 116,
+   "name": "War-time AI builds happiness wonders",
+   "category": "diplomacy",
+   "base_weight": 20,
+   "weight_reason": "Observation.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 117,
+   "name": "Stop three tiles away then strike",
+   "category": "military",
+   "base_weight": 50,
+   "weight_reason": "Unverified.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "WarCampaign :882",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 118,
+   "name": "Bait stack with empty square",
+   "category": "military",
+   "base_weight": 40,
+   "weight_reason": "Large.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "kills"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 119,
+   "name": "Split incoming stack with cheap units",
+   "category": "military",
+   "base_weight": 20,
+   "weight_reason": "Skip.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 120,
+   "name": "Cut AI land into pockets",
+   "category": "military",
+   "base_weight": 40,
+   "weight_reason": "Large.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 121,
+   "name": "Land boats together",
+   "category": "military",
+   "base_weight": 55,
+   "weight_reason": "Check ferryai.",
+   "phase": "war",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "FerryAI",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "shipKills"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 122,
+   "name": "Defenders sally out",
+   "category": "military",
+   "base_weight": 20,
+   "weight_reason": "Stock ai.",
+   "phase": "none",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "disabled",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [],
+   "conflicts": []
+  },
+  {
+   "id": 123,
+   "name": "Blitz past border to core",
+   "category": "military",
+   "base_weight": 45,
+   "weight_reason": "Late.",
+   "phase": "Industrial",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "PickTarget",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "captured"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 124,
+   "name": "Capital pumps a settler every 4 turns",
+   "category": "expansion",
+   "base_weight": 85,
+   "weight_reason": "Speed.",
+   "phase": "early",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "ChooseProducible",
+   "implemented": "partly",
+   "evidence": "",
+   "metrics": [
+    "city5turn"
+   ],
+   "conflicts": [
+    {
+     "id": 11,
+     "decide": "Same settler pump."
+    },
+    {
+     "id": 92,
+     "decide": "Capital pump (#124) needs workers later than #92 allows; #92 wins for the first 3 cities."
+    }
+   ]
+  },
+  {
+   "id": 125,
+   "name": "Settler and worker pump cities",
+   "category": "expansion",
+   "base_weight": 70,
+   "weight_reason": "Specialisation.",
+   "phase": "early",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "workersPerCity100"
+   ],
+   "conflicts": [
+    {
+     "id": 19,
+     "decide": "Overlaps tip #19. Apply the rule with the higher base_weight; the lower one only adds its conditions."
+    },
+    {
+     "id": 92,
+     "decide": "Specialist pump cities refine #92."
+    }
+   ]
+  },
+  {
+   "id": 126,
+   "name": "Settle behind the army",
+   "category": "expansion",
+   "base_weight": 70,
+   "weight_reason": "Claims land.",
+   "phase": "war",
+   "conditions": [
+    "conquered land"
+   ],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "contestedLand",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities"
+   ],
+   "conflicts": []
+  },
+  {
+   "id": 127,
+   "name": "Claim contested land before AI settlers",
+   "category": "expansion",
+   "base_weight": 85,
+   "weight_reason": "Same as #6.",
+   "phase": "expansion",
+   "conditions": [],
+   "exceptions": [],
+   "modifiers": [
+    {
+     "fact": "contestedLand",
+     "factor": 1.2,
+     "engine_computable": true
+    }
+   ],
+   "not_computable_today": [],
+   "validation": "unverified",
+   "validation_note": "",
+   "code": "none",
+   "implemented": "no",
+   "evidence": "",
+   "metrics": [
+    "cities"
+   ],
+   "conflicts": [
+    {
+     "id": 6,
+     "decide": "Duplicate of #6."
+    },
+    {
+     "id": 91,
+     "decide": "Duplicate."
+    }
+   ]
+  }
+ ]
+}
