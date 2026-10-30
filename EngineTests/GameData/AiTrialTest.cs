@@ -422,8 +422,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		try {
 			string state = Path.Combine(dir, "state.jsonl"), json = Path.Combine(dir, "trial.json");
 			Dictionary<string, string> set = new() {
-				["C7_TRIAL_OUT"] = Path.Combine(dir, "out.txt"), ["C7_TRIAL_STATE"] = state, ["C7_TRIAL_JSON"] = json,
-				["C7_TRIAL_GAMES"] = "1", ["C7_TRIAL_SIZE"] = "40", ["C7_TRIAL_CIVS"] = "4", ["C7_TRIAL_TURNS"] = "30",
+				["C7_TRIAL_OUT"] = Path.Combine(dir, "out.txt"),
+				["C7_TRIAL_STATE"] = state,
+				["C7_TRIAL_JSON"] = json,
+				["C7_TRIAL_GAMES"] = "1",
+				["C7_TRIAL_SIZE"] = "40",
+				["C7_TRIAL_CIVS"] = "4",
+				["C7_TRIAL_TURNS"] = "30",
 				["C7_TRIAL_EXPERIMENTS"] = "cheap-maintenance",
 			};
 			foreach (string n in names) {
@@ -1240,7 +1245,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 		if (stateRun == "main") {
 			govNames = civs.Select(p => new Dictionary<string, object> {
-				["civ"] = p.civilization.name, ["trial"] = trialCivs.Contains(p), ["govName"] = p.government?.name,
+				["civ"] = p.civilization.name,
+				["trial"] = trialCivs.Contains(p),
+				["govName"] = p.government?.name,
 			}).ToList();
 		}
 		List<Measures> trial = civs.Where(trialCivs.Contains).Select(Measure).ToList();
