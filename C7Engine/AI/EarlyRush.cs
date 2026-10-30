@@ -45,7 +45,7 @@ namespace C7Engine.AI {
 			return new ChooseProducible.ProducibleStats(player.cities[0], player).InExpansionPhase;
 		}
 
-		private static IEnumerable<UnitPrototype> LandUnitsBuildable(Player player) {
+		internal static IEnumerable<UnitPrototype> LandUnitsBuildable(Player player) {
 			City city = player.cities.OrderByDescending(c => c.residents.Count).FirstOrDefault();
 			if (city == null) {
 				return Enumerable.Empty<UnitPrototype>();

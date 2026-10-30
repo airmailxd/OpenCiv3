@@ -78,6 +78,9 @@ namespace C7Engine.AI {
 			// Whether this is an early rush (see EarlyRush): a small stack
 			// at a weakly held city while the civ is still expanding.
 			public bool rush;
+			// Whether this rush is an archer rush (see ArcherRush): a
+			// rush that also goes on to the rival's next near city.
+			public bool archer;
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -174,6 +177,17 @@ namespace C7Engine.AI {
 		// Whether the player has an early rush planned or under way.
 		public static bool HasRush(Player player) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.rush;
+		}
+
+		// Whether the player has an archer rush planned or under way.
+		public static bool HasArcherRush(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.archer;
+		}
+
+		// Whether an archer rush is short of its defender, counting none
+		// being built (see ChooseProducible).
+		public static bool WantsEscort(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.archer && c.units.Count(IsEscort) < ArcherRush.Escorts;
 		}
 
 		// The city an early rush gathers in, or null without one (see
@@ -411,7 +425,11 @@ namespace C7Engine.AI {
 				if (c.target.owner == player) {
 					Garrison(player, c, c.target);
 				}
-				City next = PickTarget(player, c.enemy);
+				City next = c.archer ? PickArcherTarget(player, c.enemy) : PickTarget(player, c.enemy);
+				// An archer rush goes on only with attackers left to do it.
+				if (c.archer && c.units.Count(u => IsAttacker(u) && Health(u) >= ReadyHealth) < ArcherRush.AttackersToContinue) {
+					next = null;
+				}
 				if (next == null) {
 					// Nothing more to take from them within reach: done, not
 					// failed.
@@ -528,6 +546,11 @@ namespace C7Engine.AI {
 			}
 
 			bool rush = false;
+			bool archer = false;
+			if (enemy == null && !coolingDown && ArcherRush.On(player)) {
+				enemy = PickArcherRushTarget(player, gameData, out target);
+				rush = archer = enemy != null;
+			}
 			if (enemy == null && !coolingDown && EarlyRush.On(player) && EarlyRush.Expanding(player)) {
 				enemy = PickRushTarget(player, gameData, out target);
 				rush = enemy != null;
@@ -552,7 +575,7 @@ namespace C7Engine.AI {
 				return null;
 			}
 			log.Information("{Player} plans a campaign against {Enemy}, starting with {City}", player, enemy, target.name);
-			Campaign c = new() { enemy = enemy, target = target, rush = rush };
+			Campaign c = new() { enemy = enemy, target = target, rush = rush, archer = archer };
 			SetPhase(c, Phase.Gather);
 			return c;
 		}
@@ -649,6 +672,36 @@ namespace C7Engine.AI {
 				}
 			}
 			return enemy;
+		}
+
+		// For an archer rush (see ArcherRush), the civ with a city near us
+		// that our best attack beats the defence of, and the nearest such
+		// city of the civ nearest to us. Null if there is none.
+		private static Player PickArcherRushTarget(Player player, GameData gameData, out City target) {
+			target = null;
+			Player enemy = null;
+			int best = int.MaxValue;
+			foreach (Player p in gameData.players) {
+				if (!ArcherRush.Wants(gameData, player, p) || !CanDeclareWarOn(player, p)) {
+					continue;
+				}
+				City city = PickArcherTarget(player, p);
+				int distance = city == null ? int.MaxValue : ArcherRush.DistanceTo(player, city);
+				if (distance < best) {
+					best = distance;
+					enemy = p;
+					target = city;
+				}
+			}
+			return enemy;
+		}
+
+		// The city of theirs an archer rush takes: the capital if it is
+		// within the radius, else the nearest one that is. No city is too
+		// small: it is taken or razed (see ArcherRush).
+		private static City PickArcherTarget(Player player, Player enemy) {
+			return enemy.cities.Where(c => AIFogOfWar.KnowsTile(player, c.location) && ArcherRush.DistanceTo(player, c) <= ArcherRush.Radius)
+				.OrderByDescending(c => c.IsCapital()).ThenBy(c => ArcherRush.DistanceTo(player, c)).ThenBy(c => c.id.ToString()).FirstOrDefault();
 		}
 
 		private static City PickTarget(Player player, Player enemy) {
@@ -776,6 +829,9 @@ namespace C7Engine.AI {
 		// How many attackers to gather: enough to expect to wear down every
 		// defender, by our best attacker's odds against their best defender.
 		private static int NeededAttackers(Player player, Campaign c) {
+			if (c.archer) {
+				return ArcherRush.Attackers;
+			}
 			Tile city = c.target.location;
 			double hitsEach = 3;
 			double defenderHitPoints = 3 * Math.Max(1, EstimateDefenders(player, c.target));
@@ -941,6 +997,10 @@ namespace C7Engine.AI {
 			// wait for more (see TideAI.FightsForTheHeart).
 			if (TideAI.FightsForTheHeart(player) && waited >= HeartGatherTurns && readyAttackers >= enough) {
 				go = true;
+			}
+			// An archer rush waits a while for its defender.
+			if (c.archer && go && ready.Count(IsEscort) < ArcherRush.Escorts && waited < ArcherRush.EscortWaitTurns) {
+				go = false;
 			}
 			if (!go) {
 				foreach (MapUnit u in c.units) {

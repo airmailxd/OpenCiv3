@@ -273,6 +273,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"techsBought",
 			// Cities of size 7 and more, and 12 and more, at the end.
 			"size7", "size12",
+			// Enemy cities the civ destroyed by taking them (a size 1 city
+			// with no culture is razed on capture), and civs it finished
+			// off (the civ that took the last city, or the one at war with
+			// the fallen civ that took a city that turn).
+			"razed", "eliminated",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -840,6 +845,37 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> armyCaptures = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> freeCaptures = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> fellTurn = civs.ToDictionary(p => p, _ => turns);
+		Dictionary<Player, int> razed = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> eliminated = civs.ToDictionary(p => p, _ => 0);
+		// Last turn's tallies and wars, to tell what this turn's captures,
+		// razings and downfalls were.
+		Dictionary<Player, int> lastEngineCaptures = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> lastCaptured = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> lastFlipsIn = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, HashSet<Player>> lastWars = civs.ToDictionary(p => p, _ => new HashSet<Player>());
+		void CountRazingsAndDownfalls(int turn) {
+			Dictionary<Player, int> tookThisTurn = new();
+			foreach (Player p in civs) {
+				// The engine counts every city taken, destroyed or not; the
+				// tally above counts those that changed hands (flips too).
+				int engineTook = p.citiesCaptured - lastEngineCaptures[p];
+				int handedOver = (captured[p] - lastCaptured[p]) - (flipsIn[p] - lastFlipsIn[p]);
+				razed[p] += Math.Max(0, engineTook - handedOver);
+				tookThisTurn[p] = engineTook;
+				lastEngineCaptures[p] = p.citiesCaptured;
+				lastCaptured[p] = captured[p];
+				lastFlipsIn[p] = flipsIn[p];
+			}
+			foreach (Player fallen in civs.Where(c => c.defeated && fellTurn[c] == turns)) {
+				Player killer = civs.FirstOrDefault(c => c != fallen && tookThisTurn[c] > 0 && lastWars[c].Contains(fallen));
+				if (killer != null) {
+					++eliminated[killer];
+				}
+			}
+			foreach (Player p in civs) {
+				lastWars[p] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).ToHashSet();
+			}
+		}
 		void CountCaptures() {
 			foreach (Player p in civs) {
 				foreach (MapUnit u in p.units) {
@@ -906,6 +942,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				WaitForTurnOrGameOver();
 				CountCaptures();
+				CountRazingsAndDownfalls(turn + 1);
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
 				LogState(turn + 1);
@@ -1075,6 +1112,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = techsBought[p];
 			m.values[i++] = p.cities.Count(c => c.residents.Count >= 7);
 			m.values[i++] = p.cities.Count(c => c.residents.Count >= 12);
+			m.values[i++] = razed[p];
+			m.values[i++] = eliminated[p];
 			return m;
 		}
 

@@ -273,6 +273,10 @@ namespace C7Engine.AI {
 				if (offense) {
 					flat += needsResource ? AttackerNeedingResource : Attacker;
 				}
+				// The attacker an archer rush lacks (see ArcherRush).
+				if (unit.attack >= ArcherRush.WantedAttack && !needsResource && ArcherRush.NeedsAttacker(gameData, player)) {
+					flat += ArcherRush.TechBonus;
+				}
 				if (transport) {
 					flat += NavalTransport;
 				}

@@ -242,8 +242,8 @@ namespace C7Engine {
 			score -= populationCostPenalty;
 
 			// On trial: the productive cities arm a war campaign that needs it.
-			if (AiExperiments.Has(player, "war-production") || (EarlyRush.On(player) && WarCampaign.HasRush(player))) {
-				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack);
+			if (AiExperiments.Has(player, "war-production") || ((EarlyRush.On(player) || ArcherRush.On(player)) && WarCampaign.HasRush(player))) {
+				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack, stats.bestDefense);
 			}
 
 			////////////////////////////////////////////////////////////////////
@@ -796,15 +796,23 @@ namespace C7Engine {
 		// WarCampaign): attackers while the campaign is short of them, in
 		// cities producing at least as much as our average, and a couple of
 		// siege engines.
-		private static float WarCampaignUnitBonus(City city, Player player, UnitPrototype unit, float bestAttack) {
+		private static float WarCampaignUnitBonus(City city, Player player, UnitPrototype unit, float bestAttack, float bestDefense) {
 			if (!unit.IsLandUnit() || unit.isArmy || bestAttack <= 0) {
 				return 0;
 			}
 			if (unit.attack > unit.defense && WarCampaign.WantsAttackers(player)) {
 				float average = (float)player.cities.Average(c => c.CurrentProductionYield().useful);
 				if (city.CurrentProductionYield().useful >= average) {
+					// An archer rush takes the best attack per shield (a
+					// little for the best attack, to break ties).
+					if (WarCampaign.HasArcherRush(player)) {
+						return 20 * ArcherRush.AttackPerShield(unit) / ArcherRush.BestAttackPerShield(player) + 5 * unit.attack / bestAttack;
+					}
 					return 20 * unit.attack / bestAttack;
 				}
+			} else if (unit.defense > unit.attack && bestDefense > 0 && WarCampaign.WantsEscort(player)) {
+				// The defender an archer rush marches with.
+				return 20 * unit.defense / bestDefense;
 			} else if (unit.bombard > 0 && unit.attack == 0 && WarCampaign.WantsBombarders(player)) {
 				return 30;
 			}
