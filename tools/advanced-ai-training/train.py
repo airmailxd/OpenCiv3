@@ -31,6 +31,9 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import benchmarks  # noqa: E402
+
 # Step sizes for the numeric knobs (see C7Engine/AI/Advanced/AdvancedTuning.cs).
 STEPS = {
     "FocusPoints": 5,
@@ -81,7 +84,7 @@ def spec(knobs):
 
 # Paired trials (the default) cancel map luck for comparing knobs; the exam
 # is unpaired, so its "first" column is the Advanced civs' own wins.
-def run_trial(args, knobs, difficulty, seed, tag, paired=True):
+def run_trial(args, knobs, difficulty, seed, tag, paired=True, detail=False):
     out = os.path.join(args.out, "runs", f"{tag}.txt")
     if os.path.exists(out) and "total ms" in open(out, encoding="utf-8").read():
         return parse(out)
@@ -89,12 +92,27 @@ def run_trial(args, knobs, difficulty, seed, tag, paired=True):
                C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1" if paired else "0",
                C7_TRIAL_GAMES=str(args.games), C7_TRIAL_DIFFICULTY=str(difficulty), C7_TRIAL_SEED=str(seed),
                C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs))
+    if detail:
+        # The exam also writes the JSON and the state log that benchmarks.py reads.
+        env.update(C7_TRIAL_JSON=out[:-4] + ".json", C7_TRIAL_STATE=out[:-4] + "-state.jsonl")
+        if os.path.exists(env["C7_TRIAL_STATE"]):
+            os.remove(env["C7_TRIAL_STATE"])
     with open(out + ".log", "w", encoding="utf-8") as log:
         subprocess.run(["dotnet", "test", "EngineTests", "--no-build", "--filter", "FullyQualifiedName~AiTrialTest"],
                        env=env, stdout=log, stderr=subprocess.STDOUT, check=False)
     if not os.path.exists(out):
         raise RuntimeError(f"trial {tag} wrote no results; see {out}.log")
     return parse(out)
+
+
+def write_report(args, tag):
+    """The exam's benchmarks report, linked from log.md. A failure here must not stop the ladder."""
+    base = os.path.join(args.out, "runs", tag)
+    try:
+        path = benchmarks.report(base + ".json", base + "-state.jsonl", args.targets)
+        note(args, f"- benchmarks report: [{os.path.relpath(path, args.out)}]({os.path.relpath(path, args.out).replace(os.sep, '/')})")
+    except Exception as e:  # noqa: BLE001
+        note(args, f"- benchmarks report not written: {e}")
 
 
 def parse(path):
@@ -156,6 +174,8 @@ def main():
     ap.add_argument("--parallel", type=int, default=8)
     ap.add_argument("--train-seed", type=int, default=1000)
     ap.add_argument("--holdout-seed", type=int, default=7000)
+    ap.add_argument("--targets", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "suede-benchmarks.md"),
+                    help="Suede's figures for the benchmarks report (see benchmarks.py)")
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung")
     args = ap.parse_args()
     os.makedirs(os.path.join(args.out, "runs"), exist_ok=True)
@@ -216,7 +236,8 @@ def main():
             save(args, state)
 
         # The rung's exam, on held-out seeds.
-        exam = run_trial(args, knobs, difficulty, args.holdout_seed + 500, f"{name}-exam", paired=False)
+        exam = run_trial(args, knobs, difficulty, args.holdout_seed + 500, f"{name}-exam", paired=False, detail=True)
+        write_report(args, f"{name}-exam")
         if bar is None:
             note(args, f"\n**{name} exam** (last rung): {summary(exam)}")
             state.setdefault("exams", []).append({"rung": name, "knobs": dict(knobs), "result": exam, "passed": None})

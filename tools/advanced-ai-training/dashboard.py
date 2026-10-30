@@ -68,13 +68,52 @@ def line_chart(points, target, rounds):
     return "".join(s)
 
 
-def build(state, log_text, mtime):
+def latest_report(out):
+    """-> (file name, text) of the newest benchmarks report under out/runs, or None."""
+    runs = os.path.join(out, "runs")
+    found = [os.path.join(runs, f) for f in os.listdir(runs) if f.endswith("-report.md")] if os.path.isdir(runs) else []
+    if not found:
+        return None
+    path = max(found, key=os.path.getmtime)
+    with open(path, encoding="utf-8") as f:
+        return os.path.basename(path), f.read()
+
+
+def benchmarks_html(report):
+    """The newest benchmarks report's scorecard (and its loss autopsy) as HTML."""
+    if not report:
+        return '<p class="empty">No benchmarks report yet: one is written after each exam.</p>'
+    name, text = report
+    out = [f'<p class="note">From <code>runs/{E(name)}</code>.</p>']
+    table, in_autopsy = [], False
+    for line in text.splitlines():
+        if line.startswith("|"):
+            table.append([c.strip() for c in line.strip("|").split("|")])
+        elif line.startswith("**"):
+            out.append(f"<p><b>{E(line.strip('*'))}</b></p>")
+        elif line.startswith("## Loss autopsy"):
+            in_autopsy = True
+            out.append("<h3>Loss autopsy</h3>")
+        elif in_autopsy and line.startswith("### "):
+            out.append(f"<h4>{E(line[4:])}</h4>")
+        elif in_autopsy and line.startswith("- "):
+            out.append(f"<div>{E(line[2:])}</div>")
+        elif in_autopsy and line.strip():
+            out.append(f"<p>{E(line)}</p>")
+    if table:
+        head, rows = table[0], [r for r in table[2:]]
+        out.insert(2, "<table><tr>" + "".join(f"<th>{E(h)}</th>" for h in head) + "</tr>"
+                   + "".join("<tr>" + "".join(f"<td>{E(c)}</td>" for c in r) + "</tr>" for r in rows) + "</table>")
+    return "".join(out)
+
+
+def build(state, log_text, mtime, report=None):
     kn_by_round, held = parse_log(log_text)
     hist, exams = state.get("history", []), state.get("exams", [])
     cur_idx = state.get("rung", 0)
     cur_name = RUNGS[cur_idx][0] if cur_idx < len(RUNGS) else "finished"
     knobs = state.get("knobs", {})
-    tabs = [("Overview", "overview")] + [(n, n.lower()) for n, _, _ in RUNGS]
+    tabs = [("Overview", "overview")] + [(n, n.lower()) for n, _, _ in RUNGS] + [("Benchmarks", "benchmarks")]
 
     per = {}
     for name, _, target in RUNGS:
@@ -150,6 +189,7 @@ def build(state, log_text, mtime):
 <h3>Knobs in force at each round</h3>
 <table><tr><th>Round</th><th>Base win rate</th><th>Knobs (non-default)</th><th>Kept after round</th></tr>{krows}</table>"""
 
+    parts["benchmarks"] = benchmarks_html(report)
     nav = "".join(f'<button data-t="{i}"{" class=on" if k == 0 else ""}>{E(t)}</button>' for k, (t, i) in enumerate(tabs))
     body = "".join(f'<section id="{i}"{"" if k == 0 else " hidden"}><h2>{E(t)}</h2>{parts[i]}</section>' for k, (t, i) in enumerate(tabs))
     return PAGE.replace("@NAV@", nav).replace("@BODY@", body)
@@ -195,7 +235,7 @@ def main():
     log = open(lp, encoding="utf-8").read() if os.path.exists(lp) else ""
     out = a.html or os.path.join(a.out, "dashboard.html")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
-        f.write(build(state, log, os.path.getmtime(sp)))
+        f.write(build(state, log, os.path.getmtime(sp), latest_report(a.out)))
     print(out)
 
 
