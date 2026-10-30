@@ -24,6 +24,14 @@ namespace C7Engine.AI {
 		// a trial.
 		internal static Action<MapUnit, MapUnit, CombatResult> onCombat;
 		internal static Action<Player, Player> onWarDeclared;
+		// And techs sold for gold: the seller, the buyer, the gold paid at
+		// once and the gold per turn promised, and the turn.
+		internal static Action<Player, Player, int, int> onTechSold;
+		internal static void TechSold(Player seller, Player buyer, TradeOffer gives, TradeOffer gets) {
+			if (onTechSold != null && gives.techs.Count > 0) {
+				onTechSold(seller, buyer, gets.gold ?? 0, gets.goldPerTurn);
+			}
+		}
 		// And the AI's hurried production: the city and the gold it paid.
 		internal static Action<City, int> onHurry;
 		// And culture flips: the city (already the new owner's), the civ

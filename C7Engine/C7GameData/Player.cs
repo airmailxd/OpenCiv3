@@ -1069,6 +1069,9 @@ namespace C7GameData {
 				other.gold -= theirOffer.gold.Value;
 			}
 
+			C7Engine.AI.AiExperiments.TechSold(this, other, ourOffer, theirOffer);
+			C7Engine.AI.AiExperiments.TechSold(other, this, theirOffer, ourOffer);
+
 			// Gold per turn and resources are sent for the deal's length.
 			EnsureRelationshipExists(other);
 			other.EnsureRelationshipExists(this);

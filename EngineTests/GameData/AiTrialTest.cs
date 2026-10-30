@@ -122,6 +122,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		return "?";
 	}
 
+	// For C7_TRIAL_JSON, the government each civ of the game being played
+	// ended in (govName; the measures are numbers only).
+	private List<Dictionary<string, object>> govNames = new();
+	private readonly List<List<Dictionary<string, object>>> gameGovNames = new();
+
 	// For C7_TRIAL_STATE: the game being played, as it is labelled in the log.
 	private int stateGame;
 	private int stateSeed;
@@ -280,6 +285,14 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"razed", "eliminated",
 			// Workers and settlers the civ took from rivals (ZUR-84).
 			"workersCaptured",
+			// Benchmarks (see tools/advanced-ai-training/benchmarks.py):
+			// the turn the civ first left its starting government (the
+			// game's length if it never did), its cities at turns 50 and 100
+			// and techs at turn 100 (at the last turn if the game was
+			// shorter), its workers per city at turn 100 x10, the gold it
+			// received for techs it sold (at once, and the per-turn payments
+			// while they ran), and its kills per unit lost x10.
+			"govTurn", "cities50", "cities100", "techs100", "workersPerCity100", "techGold", "killRatio",
 		];
 
 		public readonly double[] values = new double[Names.Length];
@@ -342,6 +355,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private sealed class Development {
 		public int steamTurn, philTurn, city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
 		public int midCityStates, cityStateGold, workerTurnsOut, workerTurnsOutAlone;
+		public int govTurn, cities50, cities100, techs100, workersPerCity100, techGold;
+		public string startGovernment;
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
@@ -394,37 +409,74 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
-	// A short run with C7_TRIAL_STATE and C7_TRIAL_JSON set: both files come
-	// out and parse.
-	[Fact]
-	public async Task StateLogAndJsonAreWritten() {
+	// Runs a short game (4 civs, 30 turns, cheap-maintenance on) with the
+	// state log and JSON on, with every other C7_TRIAL_ setting cleared so
+	// that one left in the environment (say C7_TRIAL_PAIRED) can't change
+	// what is expected, and hands the log and JSON to check.
+	private async Task RunShortTrial(Action<string[], JsonDocument> check) {
 		string dir = Path.Combine(Path.GetTempPath(), "c7trial" + Guid.NewGuid().ToString("N"));
 		Directory.CreateDirectory(dir);
-		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_STATE", "C7_TRIAL_JSON", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS"];
+		string[] names = Environment.GetEnvironmentVariables().Keys.Cast<string>()
+			.Where(n => n.StartsWith("C7_TRIAL_") || n == "C7_ADVANCED_TUNING").Union(["C7_TRIAL_OUT", "C7_TRIAL_STATE", "C7_TRIAL_JSON", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS"]).ToArray();
 		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
 		try {
 			string state = Path.Combine(dir, "state.jsonl"), json = Path.Combine(dir, "trial.json");
-			string[] values = [Path.Combine(dir, "out.txt"), state, json, "1", "40", "4", "30", "cheap-maintenance"];
-			for (int i = 0; i < names.Length; ++i) {
-				Environment.SetEnvironmentVariable(names[i], values[i]);
+			Dictionary<string, string> set = new() {
+				["C7_TRIAL_OUT"] = Path.Combine(dir, "out.txt"), ["C7_TRIAL_STATE"] = state, ["C7_TRIAL_JSON"] = json,
+				["C7_TRIAL_GAMES"] = "1", ["C7_TRIAL_SIZE"] = "40", ["C7_TRIAL_CIVS"] = "4", ["C7_TRIAL_TURNS"] = "30",
+				["C7_TRIAL_EXPERIMENTS"] = "cheap-maintenance",
+			};
+			foreach (string n in names) {
+				Environment.SetEnvironmentVariable(n, set.GetValueOrDefault(n));
 			}
 			await CompareAiWithAndWithoutExperiments();
-
-			string[] rows = File.ReadAllLines(state);
-			Assert.Equal(30 * 4, rows.Length);
-			foreach (string row in rows) {
-				using JsonDocument r = JsonDocument.Parse(row);
-				Assert.True(r.RootElement.TryGetProperty("atWarWith", out _));
-			}
 			using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(json));
-			Assert.Equal(1, doc.RootElement.GetProperty("gamesPlayed").GetInt32());
-			Assert.Equal(Measures.Names.Length, doc.RootElement.GetProperty("summary").GetArrayLength());
+			check(File.ReadAllLines(state), doc);
 		} finally {
 			for (int i = 0; i < names.Length; ++i) {
 				Environment.SetEnvironmentVariable(names[i], saved[i]);
 			}
 			Directory.Delete(dir, true);
 		}
+	}
+
+	// A short run with C7_TRIAL_STATE and C7_TRIAL_JSON set: both files come
+	// out and parse.
+	[Fact]
+	public async Task StateLogAndJsonAreWritten() {
+		await RunShortTrial((rows, doc) => {
+			Assert.Equal(30 * 4, rows.Length);
+			foreach (string row in rows) {
+				using JsonDocument r = JsonDocument.Parse(row);
+				Assert.True(r.RootElement.TryGetProperty("atWarWith", out _));
+			}
+			Assert.Equal(1, doc.RootElement.GetProperty("gamesPlayed").GetInt32());
+			Assert.Equal(Measures.Names.Length, doc.RootElement.GetProperty("summary").GetArrayLength());
+		});
+	}
+
+	// The benchmark measures, on a game too short to reach turn 100: they
+	// hold the figures as of the last turn, and each civ has a government name.
+	[Fact]
+	public async Task BenchmarkMeasuresAreRecorded() {
+		await RunShortTrial((_, doc) => {
+			Dictionary<string, JsonElement> summary = doc.RootElement.GetProperty("summary").EnumerateArray()
+				.ToDictionary(e => e.GetProperty("measure").GetString());
+			double Mean(string name) => (summary[name].GetProperty("trialMean").GetDouble() + summary[name].GetProperty("othersMean").GetDouble()) / 2;
+			Assert.InRange(Mean("govTurn"), 1, 30);
+			Assert.InRange(Mean("cities50"), 1, 30);
+			Assert.Equal(Mean("cities50"), Mean("cities100"));
+			Assert.True(Mean("techs100") > 0);
+			Assert.InRange(Mean("workersPerCity100"), 0, 100);
+			Assert.True(Mean("techGold") >= 0);
+			Assert.True(Mean("killRatio") >= 0);
+			JsonElement game = doc.RootElement.GetProperty("games")[0];
+			JsonElement govs = game.GetProperty("govName");
+			Assert.Equal(4, govs.GetArrayLength());
+			foreach (JsonElement g in govs.EnumerateArray()) {
+				Assert.False(string.IsNullOrEmpty(g.GetProperty("govName").GetString()));
+			}
+		});
 	}
 
 	[Fact]
@@ -524,6 +576,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				["games"] = differences.Select((d, g) => new Dictionary<string, object> {
 					["game"] = g,
 					["seed"] = gameSeeds[g],
+					["govName"] = gameGovNames[g],
 					["differences"] = Measures.Names.Select((name, m) => (name, v: d[m])).ToDictionary(x => x.name, x => x.v),
 				}).ToList(),
 				["summary"] = summary,
@@ -578,6 +631,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			warLines.Clear();
 			differences.Add(difference);
 			gameSeeds.Add(seed);
+			gameGovNames.Add(govNames);
 			allTechs[game] = averageTechs;
 			string line = $"game {game} seed {seed}: " + string.Join(" ", Measures.Names.Select((n, m) => $"{n}={difference[m]:+0.0;-0.0}"));
 			lines.Add(line);
@@ -643,13 +697,43 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		C7Engine.AI.Advanced.AdvancedAI.onPlan = p => { if (plans.ContainsKey(p)) { plans[p]++; } };
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
-		Dictionary<Player, Development> development = civs.ToDictionary(p => p, _ => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns });
+		Dictionary<Player, Development> development = civs.ToDictionary(p => p, p => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns, govTurn = turns, startGovernment = p.government?.name });
 		// Null under rules without these techs (the turns stay at the game's length).
 		ID steamPower = gameData.techs.FirstOrDefault(t => t.Name == "Steam Power")?.id;
 		ID philosophy = gameData.techs.FirstOrDefault(t => t.Name == "Philosophy")?.id;
+		// Techs sold for gold: who sold, who bought, the gold per turn
+		// promised and the turn.
+		List<(Player seller, Player buyer, int perTurn, int turn)> sales = new();
+		C7Engine.AI.AiExperiments.onTechSold = (seller, buyer, lump, perTurn) => {
+			if (development.TryGetValue(seller, out Development sd)) {
+				sd.techGold += lump;
+				if (perTurn > 0) {
+					sales.Add((seller, buyer, perTurn, gameData.turn));
+				}
+			}
+		};
 		void RecordDevelopment(int turn) {
+			foreach ((Player seller, Player buyer, int perTurn, int saleTurn) in sales) {
+				if (seller.playerRelationships.TryGetValue(buyer.id, out PlayerRelationship r)
+						&& r.multiTurnDeals.Any(m => m != null && m.dealSubType == DealSubType.GoldPerTurn
+							&& m.dealDetails == DealDetails.Inbound && m.turnStartDeal == saleTurn && m.goldPerTurn == perTurn)) {
+					development[seller].techGold += perTurn;
+				}
+			}
 			foreach (Player p in civs) {
 				Development d = development[p];
+				if (!p.defeated && d.govTurn == turns && p.government?.name != d.startGovernment) {
+					d.govTurn = turn;
+				}
+				if (turn <= 100) {
+					d.cities100 = p.cities.Count;
+					d.techs100 = p.knownTechs.Count;
+					int workers = p.units.Count(u => u.unitType.isWorker && !u.unitType.isSettler);
+					d.workersPerCity100 = p.cities.Count == 0 ? 0 : 10 * workers / p.cities.Count;
+					if (turn <= 50) {
+						d.cities50 = p.cities.Count;
+					}
+				}
 				if (d.steamTurn == turns && steamPower != null && p.knownTechs.Contains(steamPower)) {
 					d.steamTurn = turn;
 				}
@@ -1001,6 +1085,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		} finally {
 			gameData.observerMode = false;
 			AiExperiments.onWarDeclared = null;
+			C7Engine.AI.AiExperiments.onTechSold = null;
 			AiExperiments.onCombat = null;
 			AiExperiments.onHurry = null;
 			AiExperiments.onTechsBought = null;
@@ -1143,9 +1228,21 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = razed[p];
 			m.values[i++] = eliminated[p];
 			m.values[i++] = workersCaptured[p];
+			m.values[i++] = d.govTurn;
+			m.values[i++] = d.cities50;
+			m.values[i++] = d.cities100;
+			m.values[i++] = d.techs100;
+			m.values[i++] = d.workersPerCity100;
+			m.values[i++] = d.techGold;
+			m.values[i++] = 10.0 * kills[p] / Math.Max(1, unitsLost[p]);
 			return m;
 		}
 
+		if (stateRun == "main") {
+			govNames = civs.Select(p => new Dictionary<string, object> {
+				["civ"] = p.civilization.name, ["trial"] = trialCivs.Contains(p), ["govName"] = p.government?.name,
+			}).ToList();
+		}
 		List<Measures> trial = civs.Where(trialCivs.Contains).Select(Measure).ToList();
 		List<Measures> others = trialHalf < 0 ? trial : civs.Where(p => !trialCivs.Contains(p)).Select(Measure).ToList();
 		return (trial, others, civs.Average(p => p.knownTechs.Count), wonders, trialCivs);
