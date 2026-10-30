@@ -496,20 +496,34 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				double sd = n > 1 ? Math.Sqrt(differences.Sum(d => (d[m] - mean) * (d[m] - mean)) / (n - 1)) : 0;
 				double se = sd / Math.Sqrt(n);
 				summary.Add(new Dictionary<string, object> {
-					["measure"] = Measures.Names[m], ["trialMean"] = trialSums[m] / n, ["othersMean"] = otherSums[m] / n,
-					["difference"] = mean, ["standardError"] = se, ["significant"] = se > 0 && Math.Abs(mean) > 2 * se,
+					["measure"] = Measures.Names[m],
+					["trialMean"] = trialSums[m] / n,
+					["othersMean"] = otherSums[m] / n,
+					["difference"] = mean,
+					["standardError"] = se,
+					["significant"] = se > 0 && Math.Abs(mean) > 2 * se,
 				});
 			}
 			var doc = new Dictionary<string, object> {
 				["settings"] = new Dictionary<string, object> {
-					["games"] = games, ["size"] = size, ["civs"] = civs, ["turns"] = turns, ["difficulty"] = difficulty,
-					["landform"] = landform.ToString(), ["firstSeed"] = firstSeed, ["seeds"] = Enumerable.Range(0, games).Select(g => firstSeed + g).ToList(),
+					["games"] = games,
+					["size"] = size,
+					["civs"] = civs,
+					["turns"] = turns,
+					["difficulty"] = difficulty,
+					["landform"] = landform.ToString(),
+					["firstSeed"] = firstSeed,
+					["seeds"] = Enumerable.Range(0, games).Select(g => firstSeed + g).ToList(),
 					["scenario"] = Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None",
-					["experiments"] = experiments, ["advanced"] = experiments.Length > 0, ["paired"] = paired, ["all"] = all,
+					["experiments"] = experiments,
+					["advanced"] = experiments.Length > 0,
+					["paired"] = paired,
+					["all"] = all,
 				},
 				["gamesPlayed"] = n,
 				["games"] = differences.Select((d, g) => new Dictionary<string, object> {
-					["game"] = g, ["seed"] = gameSeeds[g],
+					["game"] = g,
+					["seed"] = gameSeeds[g],
 					["differences"] = Measures.Names.Select((name, m) => (name, v: d[m])).ToDictionary(x => x.name, x => x.v),
 				}).ToList(),
 				["summary"] = summary,
@@ -687,18 +701,25 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			foreach (Player p in civs) {
 				bool dead = p.defeated;
 				rows.Add(JsonSerializer.Serialize(new Dictionary<string, object> {
-					["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = turn,
+					["game"] = stateGame,
+					["seed"] = stateSeed,
+					["run"] = stateRun,
+					["turn"] = turn,
 					["civ"] = p.civilization.name,
 					["ai"] = experiments.Any(e => AiExperiments.Has(p, e)) ? "Advanced" : "Standard",
-					["trial"] = trialCivs.Contains(p), ["defeated"] = dead,
-					["cities"] = p.cities.Count, ["citizens"] = p.cities.Sum(c => c.residents.Count),
+					["trial"] = trialCivs.Contains(p),
+					["defeated"] = dead,
+					["cities"] = p.cities.Count,
+					["citizens"] = p.cities.Sum(c => c.residents.Count),
 					["units"] = p.units.Count,
 					["military"] = p.units.Count(u => u.unitType.attack > 0 && !u.unitType.isWorker && !u.unitType.isSettler),
 					["workers"] = p.units.Count(u => u.unitType.isWorker && !u.unitType.isSettler),
 					["settlers"] = p.units.Count(u => u.unitType.isSettler),
 					["ships"] = p.units.Count(u => u.unitType.IsSeaUnit()),
-					["techs"] = p.knownTechs.Count, ["government"] = p.government?.name,
-					["gold"] = p.gold, ["score"] = dead ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
+					["techs"] = p.knownTechs.Count,
+					["government"] = p.government?.name,
+					["gold"] = p.gold,
+					["score"] = dead ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
 					["culture"] = p.cities.Sum(c => c.GetCulture()),
 					["atWarWith"] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).Select(o => o.civilization.name).ToList(),
 				}));
