@@ -149,11 +149,14 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 	}
 
 	[Fact]
-	public void RepublicRouteEndsOnceAnotherCivHasPhilosophy() {
+	public void RepublicRouteGoesStraightToRepublicOnceAnotherCivHasPhilosophy() {
 		AiExperiments.Enable(player, GovernmentAI.RepublicRoute);
 		Player rival = gameData.players.First(p => p != player && !p.IsIndependent);
 		rival.knownTechs.Add(TechNamed("Philosophy").id);
-		Assert.Empty(GovernmentAI.RepublicRoutePath(player, gameData));
+		HashSet<Tech> path = GovernmentAI.RepublicRoutePath(player, gameData);
+		Tech republic = gameData.techs.First(t => t.id == gameData.governments.First(g => g.name == "Republic").prerequisiteTech);
+		Assert.Contains(republic, path);
+		Assert.Contains(TechNamed("Code of Laws"), path);
 	}
 
 	[Fact]

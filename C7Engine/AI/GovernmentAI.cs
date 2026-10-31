@@ -127,7 +127,8 @@ namespace C7Engine.AI {
 		// researchable then). With the switch on, while in Despotism and
 		// before anyone has Philosophy, the techs still to learn for
 		// Philosophy and for Republic's prerequisites count for more; when
-		// a free tech is due, Republic's does. The revolt itself stays with
+		// a free tech is due, Republic's does. Once Philosophy is known to
+		// anyone, the route is Republic and what it needs. The revolt itself stays with
 		// early-government.
 		public const string RepublicRoute = "republic-route";
 		public const double RepublicRouteBonus = 400;
@@ -152,6 +153,10 @@ namespace C7Engine.AI {
 				foreach (Tech prereq in republicTech.Prerequisites) {
 					AddMissing(player, prereq, path);
 				}
+			} else {
+				// Philosophy is gone to someone else (or this civ has it):
+				// go straight for Republic.
+				AddMissing(player, republicTech, path);
 			}
 			return path;
 		}
