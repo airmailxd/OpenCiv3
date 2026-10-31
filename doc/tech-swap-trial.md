@@ -34,5 +34,5 @@ All-civs = every civ Advanced, same seeds, switch on vs off.
 
 ## Reading
 
-The switch does what it is meant to: about 3.5-4 more techs bought, 0.4-0.7 more techs by turn 100 and an earlier government (about 9 turns across all civs, 2 in the paired view). Score and rank move the right way but not beyond noise. The world stays sane with it on (no more wars to speak of, techs and score up). Contact is late on this map (turn ~140), so swapping "at first contact" has little time to matter before turn 100; the gain comes from later swaps.
+The switch does what it is meant to: 1.5 more techs bought paired (3.8 with all civs on), 0.4-0.7 more techs by turn 100 and an earlier government (9 turns with all civs on, 2 in the paired view). Score and rank move the right way but not beyond noise. The world stays sane with it on (no more wars to speak of, techs and score up). Contact is late on this map (turn ~140), so swapping "at first contact" has little time to matter before turn 100; the gain comes from later swaps.
 Raw results: not committed (runs in .paperclip/runs-zur199).
