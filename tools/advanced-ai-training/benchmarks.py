@@ -2,7 +2,7 @@
 """Say where the Advanced AI falls short, from one trial's output.
 
     python tools/advanced-ai-training/benchmarks.py --json exam.json --state exam-state.jsonl \\
-        [--targets doc/suede-benchmarks.md] [--out <dir>]
+        [--targets doc/suede-benchmarks.md] [--out <dir>] [--ledger <file>]
 
 --json and --state are AiTrialTest's C7_TRIAL_JSON and C7_TRIAL_STATE files.
 Writes <name>-report.md (name = the JSON file's name without .json; next to
@@ -12,7 +12,11 @@ it unless --out) with:
   where the targets file has one (blank otherwise);
 * a loss autopsy: for each game no Advanced civ won, the winner and the
   three largest gaps between the best Advanced civ and the winner at turns
-  50, 100 and 150.
+  50, 100 and 150;
+* the biggest gaps: the six measures where Advanced is furthest behind
+  Standard (in standard errors), each with up to three changes from the
+  benchmark ledger (ledger.py) that moved it. The ledger is --ledger, else
+  <out>/ledger.jsonl, else doc/benchmark-ledger.jsonl.
 
 The targets file is read line by line: a line that starts (after any
 "|", "-", "*" or backticks) with a measure's name and then a number gives
@@ -119,6 +123,56 @@ def scorecard(summary, targets):
     return lines
 
 
+LEDGER_DEFAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "benchmark-ledger.jsonl")
+GAPS = 6
+MOVERS = 3
+
+
+def gaps(summary, targets):
+    """-> [(gap in SE, measure, label, advanced, standard, suede or None)], worst first, top GAPS.
+
+    A gap is how far Advanced is on the wrong side of Standard, in standard errors.
+    """
+    by_name = {s["measure"]: s for s in summary}
+    out = []
+    for name, label, lower in ROWS:
+        s = by_name.get(name)
+        if s is None or not s.get("standardError"):
+            continue
+        behind = s["difference"] if lower else -s["difference"]
+        if behind > 0:
+            out.append((behind / s["standardError"], name, label, s["trialMean"], s["othersMean"], targets.get(name)))
+    return sorted(out, key=lambda g: -g[0])[:GAPS]
+
+
+def gaps_section(summary, targets, ledger_paths):
+    import ledger
+    entries = []
+    for p in ledger_paths:
+        entries = ledger.load(p)
+        if entries:
+            break
+    top = gaps(summary, targets)
+    if not top:
+        return ["Advanced is level with or ahead of Standard on every measure."]
+    lines = ["Measures where Advanced is furthest behind Standard, in standard errors; "
+             "the changes listed are the latest the ledger says moved that measure at 2 SE.", ""]
+    for gap, name, label, adv, std, suede in top:
+        vs = f"; Suede {num(suede)}" if suede is not None else ""
+        lines.append(f"### {label} (`{name}`): {gap:.1f} SE behind")
+        lines.append(f"Advanced {num(adv)}, Standard {num(std)}{vs}.")
+        found = ledger.movers(entries, name)[:MOVERS]
+        if not found:
+            lines.append("- No ledger entry moved this measure." if entries else "- The ledger has no entries yet.")
+        for e in found:
+            ch = e.get("change", {}).get("label") or "?"
+            kept = {True: ", kept", False: ", not kept"}.get(e.get("kept"), "")
+            lines.append(f"- {e.get('date', '?')} {e.get('ticket') or ''} {ch}: {e['verdict'][name]}{kept} (commit {e.get('commit') or '?'})"
+                         .replace("  ", " "))
+        lines.append("")
+    return lines
+
+
 def final_turn(turns):
     return max(turns)
 
@@ -172,7 +226,7 @@ def autopsy(games):
     return won, len(games), lost_lines
 
 
-def report(json_path, state_path, targets_path=None, out_dir=None):
+def report(json_path, state_path, targets_path=None, out_dir=None, ledger_path=None):
     """Write the report; -> its path."""
     with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
@@ -191,6 +245,11 @@ def report(json_path, state_path, targets_path=None, out_dir=None):
     text += ["## Scorecard", ""] + scorecard(data.get("summary", []), targets) + [""]
     if not targets:
         text += ["_No Suede figures yet (no targets file, or none of its lines name a measure)._", ""]
+    out_folder = out_dir or os.path.dirname(os.path.abspath(json_path))
+    text += ["## Biggest gaps", ""]
+    text += gaps_section(data.get("summary", []), targets,
+                         [ledger_path or os.path.join(out_folder, "ledger.jsonl"), LEDGER_DEFAULT])
+    text += [""]
     text += ["## Loss autopsy", ""]
     text += lost_lines if lost_lines else ["Advanced won every game." if played else "No state log rows."]
     with open(out, "w", encoding="utf-8", newline="\n") as f:
@@ -204,8 +263,9 @@ def main():
     ap.add_argument("--state", required=True, help="the trial's C7_TRIAL_STATE file")
     ap.add_argument("--targets", help="Suede's figures, e.g. doc/suede-benchmarks.md")
     ap.add_argument("--out", help="folder for the report (default: next to the JSON)")
+    ap.add_argument("--ledger", help="benchmark ledger (default: <out>/ledger.jsonl, then doc/benchmark-ledger.jsonl)")
     a = ap.parse_args()
-    print(report(a.json, a.state, a.targets, a.out))
+    print(report(a.json, a.state, a.targets, a.out, a.ledger))
 
 
 if __name__ == "__main__":

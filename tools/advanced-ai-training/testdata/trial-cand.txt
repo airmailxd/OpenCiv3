@@ -1,0 +1,19 @@
+scenario=None experiments= games=16 size=100 civs=8 turns=200 difficulty=2 landform=Continents paired advanced
+game 0 seed 1100: score=+1
+
+score       1146.1 vs   1003.9   +180.75 +- 36.83  *
+cities        16.3 vs     15.6   +1.30 +- 0.74
+techs         28.5 vs     24.9   +2.03 +- 0.37  *
+lost           0.4 vs      0.7   -0.22 +- 0.28
+gold         402.7 vs     65.4   +305.73 +- 120.85  *
+city5turn     63.1 vs     62.9   +0.56 +- 1.44
+anarchy        7.7 vs      6.8   +0.41 +- 1.22
+despotism    115.7 vs    135.7   -10.06 +- 3.00  *
+beakers       85.8 vs     73.4   +3.89 +- 15.67
+kills          6.5 vs      7.9   -1.28 +- 2.06
+warships       0.0 vs      0.0   +0.00 +- 0.00
+bombarders      0.8 vs      1.3   -0.61 +- 0.37
+rank           4.3 vs      4.9   -1.16 +- 0.30  *
+govTurn      119.6 vs    136.5   -6.97 +- 2.76  *
+techs known per civ at the end, all civs: 27.8
+total ms 1

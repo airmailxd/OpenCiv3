@@ -27,7 +27,7 @@ code and call it again. An exam also follows every kept change. Tuning
 specs in <dir>/ideas.txt (one per line, # for comments) are tried as extra
 candidates, once per cycle.
 
-Results: <dir>/state.json (the knobs and every run), <dir>/log.md and one
+Results: <dir>/ledger.jsonl (what each held-out check did to every measure; see ledger.py), <dir>/state.json (the knobs and every run), <dir>/log.md and one
 line per round or exam in <dir>/progress.txt.
 While it runs, <dir>/heartbeat.json says it is alive and <dir>/dashboard.html
 is rebuilt every --dashboard-every seconds (see dashboard.py).
@@ -44,6 +44,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import benchmarks  # noqa: E402
+import ledger  # noqa: E402
 
 # Step sizes for the numeric knobs (see C7Engine/AI/Advanced/AdvancedTuning.cs).
 STEPS = {
@@ -139,10 +140,24 @@ def write_report(args, tag):
     """The exam's benchmarks report, linked from log.md. A failure here must not stop the ladder."""
     base = os.path.join(args.out, "runs", tag)
     try:
-        path = benchmarks.report(base + ".json", base + "-state.jsonl", args.targets)
+        path = benchmarks.report(base + ".json", base + "-state.jsonl", args.targets,
+                                 ledger_path=os.path.join(args.out, "ledger.jsonl"))
         note(args, f"- benchmarks report: [{os.path.relpath(path, args.out)}]({os.path.relpath(path, args.out).replace(os.sep, '/')})")
     except Exception as e:  # noqa: BLE001
         note(args, f"- benchmarks report not written: {e}")
+
+
+def record(args, prefix, label, before, after, difficulty, seed, kept):
+    """Append the held-out check of one candidate to <out>/ledger.jsonl. A failure here must not stop the ladder."""
+    try:
+        runs = os.path.join(args.out, "runs")
+        texts = [open(os.path.join(runs, f"{prefix}-holdout-{t}.txt"), encoding="utf-8").read() for t in ("base", label)]
+        meta = {"ticket": args.ticket, "change": {"label": label, "before": spec(before), "after": spec(after)},
+                "difficulty": difficulty, "seed": seed, "games": args.games, "turns": args.turns,
+                "mode": "paired", "kept": kept}
+        ledger.append(os.path.join(args.out, "ledger.jsonl"), ledger.entry_from_trial(texts[0], texts[1], meta))
+    except Exception as e:  # noqa: BLE001
+        note(args, f"- ledger entry not written: {e}")
 
 
 def parse(path):
@@ -308,6 +323,7 @@ def main():
                     help=f"a failed exam starts a new cycle (new seeds) and exits with code {NONSTOP_EXIT}, never stops")
     ap.add_argument("--targets", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "suede-benchmarks.md"),
                     help="Suede's figures for the benchmarks report (see benchmarks.py)")
+    ap.add_argument("--ticket", default="", help="ticket id recorded in ledger.jsonl entries")
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung and cycle")
     ap.add_argument("--dashboard-every", type=int, default=60, help="seconds between dashboard rebuilds, 0 = off")
     args = ap.parse_args()
@@ -389,6 +405,7 @@ def ladder(args):
                     hc = run_trial(args, k, difficulty, holdout_seed, f"{prefix}-holdout-{label}")
                     hgain = objective(hc) - objective(hb)
                     note(args, f"- held-out {label}: gain {hgain:+.2f} ({summary(hc)})")
+                    record(args, prefix, label, knobs, k, difficulty, holdout_seed, hgain > 0)
                     if hgain > 0:
                         kept = (label, k)
                         break
