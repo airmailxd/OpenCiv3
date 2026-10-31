@@ -319,6 +319,8 @@ namespace C7Engine {
 				score += DevelopmentAI.LeanMilitaryAdjustment(stats, unit);
 			}
 
+			score += GranaryPump.UnitAdjustment(stats, city, player, unit);
+
 			score += StockGarrisonBonus(player, unit);
 			// Kings & Nomads: defenders, settlers from captured cities, and
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
@@ -591,6 +593,8 @@ namespace C7Engine {
 			if (AiExperiments.Has(player, DevelopmentAI.LeanMilitary)) {
 				score += DevelopmentAI.LeanMilitaryAdjustment(stats, building);
 			}
+
+			score += GranaryPump.BuildingBonus(stats, city, player, building);
 
 			// What the improvement's effect is worth here (see
 			// BuildingEffects).

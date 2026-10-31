@@ -27,6 +27,7 @@ namespace C7Engine.AI.Advanced {
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
 			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment, RuleWeights.ByState,
+			GranaryPump.Name,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -114,6 +115,8 @@ namespace C7Engine.AI.Advanced {
 				"Category weight (50 = no change): production priority."),
 			new("WeightWonders", 50, 5, 0, 100,
 				"Category weight (50 = no change): how much great wonders are wanted."),
+			new(GranaryPump.Name, 0, 1, 0, 1,
+				"1: while expanding, a Granary in the best food city (one per 9 cities), which then pumps settlers and workers."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);
