@@ -170,7 +170,15 @@ namespace C7Engine.AI {
 
 		// Whether a city should build more attackers for a campaign.
 		public static bool WantsAttackers(Player player) {
-			return campaigns.TryGetValue(player, out Campaign c) && c.units.Count(IsAttacker) < NeededAttackers(player, c) + Spare(c);
+			if (!campaigns.TryGetValue(player, out Campaign c)) {
+				return false;
+			}
+			// Total war builds until the stack outweighs the victim's
+			// defence, and goes on refilling it.
+			if (TotalWar.On(player) && c.target != null && StagingCity(player, c) is City base_) {
+				return TotalWar.WantsMoreStack(player, c.units, base_.location) || c.units.Count(IsAttacker) < NeededAttackers(player, c) + Spare(c);
+			}
+			return c.units.Count(IsAttacker) < NeededAttackers(player, c) + Spare(c);
 		}
 
 		// The attackers beyond the number needed that a campaign takes: none
@@ -275,6 +283,11 @@ namespace C7Engine.AI {
 				return;
 			}
 			AIFogOfWar.Refresh(player);
+			TotalWar.Update(player, gameData);
+			if (campaigns.TryGetValue(player, out Campaign existing) && TotalWar.On(player) && TotalWar.Victim(player) != existing.enemy) {
+				// The war it fought to the end is over (or given up).
+				EndCampaign(player, existing, false);
+			}
 			if (!campaigns.TryGetValue(player, out Campaign campaign)) {
 				campaign = MaybeStartCampaign(player, gameData);
 				if (campaign == null) {
@@ -299,7 +312,7 @@ namespace C7Engine.AI {
 			if (campaign.rush) {
 				// Won or lost, back to settlers for a good while.
 				nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + EarlyRush.CooldownTurns));
-			} else if (cooldown) {
+			} else if (cooldown && !TotalWar.On(player)) {
 				StartCooldown(player);
 			}
 		}
@@ -402,6 +415,11 @@ namespace C7Engine.AI {
 
 		private static bool AtWarWith(Player player, Player other) {
 			return player.playerRelationships.TryGetValue(other.id, out PlayerRelationship r) && r.AtWar();
+		}
+
+		// Whether we are at war with them or may declare it.
+		internal static bool CanFight(Player player, Player other) {
+			return AtWarWith(player, other) || CanDeclareWarOn(player, other);
 		}
 
 		private static bool CanDeclareWarOn(Player player, Player other) {
@@ -553,8 +571,11 @@ namespace C7Engine.AI {
 			// Civ3's logic on AI war starting").
 			bool coolingDown = nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value
 				&& !TideAI.FightsForTheHeart(player);
+			// Total war fights its victim and nobody else, with no cooldown.
+			Player victim = TotalWar.Victim(player);
+			bool totalWar = TotalWar.On(player);
 			foreach (Player p in gameData.players) {
-				if (coolingDown || p == player || p.IsIndependent || p.defeated || !AtWarWith(player, p)) {
+				if (totalWar ? p != victim || !AtWarWith(player, p) : coolingDown || p == player || p.IsIndependent || p.defeated || !AtWarWith(player, p)) {
 					continue;
 				}
 				City t = PickTarget(player, p, out float score);
@@ -567,21 +588,25 @@ namespace C7Engine.AI {
 
 			bool rush = false;
 			bool archer = false;
-			if (enemy == null && !coolingDown && ArcherRush.On(player)) {
+			if (enemy == null && !coolingDown && !totalWar && ArcherRush.On(player)) {
 				enemy = PickArcherRushTarget(player, gameData, out target);
 				rush = archer = enemy != null;
 			}
-			if (enemy == null && !coolingDown && EarlyRush.On(player) && EarlyRush.Expanding(player)) {
+			if (enemy == null && !coolingDown && !totalWar && EarlyRush.On(player) && EarlyRush.Expanding(player)) {
 				enemy = PickRushTarget(player, gameData, out target);
 				rush = enemy != null;
 			}
 			bool script = false;
-			if (enemy == null && !coolingDown && PhasePlan.Mustering(player)) {
+			if (enemy == null && !coolingDown && !totalWar && PhasePlan.Mustering(player)) {
 				enemy = PickScriptTarget(player, gameData, out target);
 				rush = archer = script = enemy != null;
 			}
 
-			if (enemy == null) {
+			if (enemy == null && totalWar && victim != null && CanDeclareWarOn(player, victim)) {
+				// Not at war yet: the stack gathers first, then declares.
+				enemy = victim;
+				target = PickTarget(player, victim);
+			} else if (enemy == null && !totalWar) {
 				enemy = PlotWar(player, gameData, out target);
 				if (enemy != null && target == null) {
 					// No city of theirs our land units can march on (they
@@ -596,7 +621,7 @@ namespace C7Engine.AI {
 				}
 			}
 
-			if (enemy == null) {
+			if (enemy == null || target == null) {
 				return null;
 			}
 			log.Information("{Player} plans a campaign against {Enemy}, starting with {City}", player, enemy, target.name);
@@ -1060,6 +1085,19 @@ namespace C7Engine.AI {
 			// An archer rush waits a while for its defender.
 			if (c.archer && go && ready.Count(IsEscort) < ArcherRush.Escorts && waited < ArcherRush.EscortWaitTurns) {
 				go = false;
+			}
+			// Total war holds the declaration, and the march, until the
+			// stack is the multiple of the victim's defence it asks for.
+			if (TotalWar.On(player)) {
+				go = go && TotalWar.StackReady(player, c.enemy, ready, staging.location);
+				if (!go) {
+					foreach (MapUnit u in c.units) {
+						if (u.location == staging.location && !u.isFortified) {
+							u.Fortify();
+						}
+					}
+					return true;
+				}
 			}
 			if (!go) {
 				foreach (MapUnit u in c.units) {

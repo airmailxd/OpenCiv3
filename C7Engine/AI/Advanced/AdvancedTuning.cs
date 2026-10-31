@@ -27,7 +27,7 @@ namespace C7Engine.AI.Advanced {
 			PlayerAI.LuxSliderHigh, SettlerLocationAI.SiteFood, SettlerLocationAI.SiteTight7, SettlerLocationAI.SiteTight12,
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
 			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment, RuleWeights.ByState,
-			GranaryPump.Name, GovernmentAI.RepublicRoute, TechSwap.Switch,
+			GranaryPump.Name, GovernmentAI.RepublicRoute, TechSwap.Switch, TotalWar.Switch,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -121,6 +121,16 @@ namespace C7Engine.AI.Advanced {
 				"1: while expanding, a Granary in the best food city (one per 9 cities), which then pumps settlers and workers."),
 			new(TechSwap.Switch, 0, 1, 0, 1,
 				"1: swap techs for techs with AIs on first contact and on a new tech, cheap ones as bait, government route first."),
+			new(TotalWar.Switch, 0, 1, 0, 1,
+				"1: pick one victim, build a big stack, declare, and fight on with no peace until that civ is dead."),
+			new(TotalWar.Ratio, 2, .5, 1, 4,
+				"Total war: the stack's attack must be this many times the victim's defence near our border before we declare."),
+			new(TotalWar.MaxTurns, 120, 20, 40, 300,
+				"Total war: turns the war may last before it can be given up (when no city was taken for 30 turns)."),
+			new(TotalWar.Rest, 10, 5, 0, 40,
+				"Total war: turns of consolidating after a civ is destroyed before the next victim."),
+			new(TotalWar.VictimChoice, 0, 1, 0, 1,
+				"Total war: 0 picks the nearest rival we out-produce, 1 the weakest."),
 		];
 
 		private static readonly Dictionary<string, Knob> byName = Knobs.ToDictionary(k => k.name);

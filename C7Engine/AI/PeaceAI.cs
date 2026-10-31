@@ -215,6 +215,10 @@ namespace C7Engine.AI {
 		// given gold equivalents to us (cities count for nothing).
 		public static bool WouldAcceptPeace(Player us, Player them, TradeOffer theirOffer, TradeOffer ourOffer,
 				int theirValue, int ourValue) {
+			// Total war: no peace until the victim is dead.
+			if (TotalWar.RefusesPeace(us, them)) {
+				return false;
+			}
 			WarOutlook outlook = Assess(us, them);
 			if (ourOffer.cities.Count > MaxCitiesToCede(outlook)) {
 				return false;
@@ -241,6 +245,9 @@ namespace C7Engine.AI {
 		// or null if we wouldn't propose one: losing, we offer techs and
 		// (losing badly) a city; dominating, we demand a city.
 		public static (TradeOffer weGive, TradeOffer weWant)? BuildPeaceOffer(GameData gameData, Player us, Player them) {
+			if (TotalWar.RefusesPeace(us, them)) {
+				return null;
+			}
 			WarOutlook outlook = Assess(us, them);
 			TradeOffer weGive = new() { partOfPeaceTreaty = true };
 			TradeOffer weWant = new() { partOfPeaceTreaty = true };

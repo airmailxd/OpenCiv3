@@ -243,7 +243,7 @@ namespace C7Engine {
 			score -= populationCostPenalty;
 
 			// On trial: the productive cities arm a war campaign that needs it.
-			if (AiExperiments.Has(player, "war-production") || ((EarlyRush.On(player) || ArcherRush.On(player) || PhasePlan.On(player)) && WarCampaign.HasRush(player))) {
+			if (AiExperiments.Has(player, "war-production") || TotalWar.On(player) || ((EarlyRush.On(player) || ArcherRush.On(player) || PhasePlan.On(player)) && WarCampaign.HasRush(player))) {
 				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack, stats.bestDefense);
 			}
 
