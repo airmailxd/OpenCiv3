@@ -230,13 +230,29 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	}
 
 	[Fact]
-	public void TheTuningSpecEarlyGovernmentTurnsItOnForAnAdvancedPlayerOnly() {
+	public void AnAdvancedPlayerPlaysWithWorkersOneTwoAndTheTuningSpecCanTurnTheOthersOn() {
 		player.aiType = AiType.Advanced;
+		string[] on = [DevelopmentAI.WorkersOneTwo];
 		try {
-			AdvancedTuning.Override("early-government=1");
 			AdvancedAI.PlayTurn(player, gameData);
-			Assert.True(AiExperiments.Has(player, GovernmentAI.EarlyGovernment));
-			Assert.False(AiExperiments.Has(rival, GovernmentAI.EarlyGovernment));
+			AdvancedAI.PlayTurn(rival, gameData);
+			foreach (string name in on) {
+				Assert.True(AiExperiments.Has(player, name), name);
+				Assert.False(AiExperiments.Has(rival, name), name);
+			}
+			Assert.False(AiExperiments.Has(player, GovernmentAI.EarlyGovernment));
+			Assert.False(AiExperiments.Has(player, TechSwap.Switch));
+			Assert.False(AiExperiments.Has(player, GovernmentAI.RepublicRoute));
+			Assert.False(AiExperiments.Has(player, GranaryPump.Name));
+			Assert.False(AiExperiments.Has(player, TotalWar.Switch));
+			Assert.False(AiExperiments.Has(player, PhasePlan.Switch));
+
+			AdvancedTuning.Override("early-government=1,tech-swap=1");
+			Assert.Contains(GovernmentAI.EarlyGovernment, AdvancedTuning.BehavioursOn(player));
+			Assert.Contains(TechSwap.Switch, AdvancedTuning.BehavioursOn(player));
+			Assert.DoesNotContain(GovernmentAI.RepublicRoute, AdvancedTuning.BehavioursOn(player));
+			AdvancedTuning.Override("republic-route=1");
+			Assert.Contains(GovernmentAI.RepublicRoute, AdvancedTuning.BehavioursOn(player));
 		} finally {
 			AdvancedTuning.Override("");
 		}
