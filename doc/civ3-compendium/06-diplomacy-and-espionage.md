@@ -1102,6 +1102,10 @@ In this study a negative number is good.
   screenshot. `AIBORDERWARNING` and `AIDONTTEST` are marked "#civ 1 #mood 1"
   and have about 93 lines, three per civ, so Civ3 seems to pick a line by
   the AI's civ and mood (UNVERIFIED reading of the header).
+- **Engine ruling (owner, 2026-10-31): the AI makes these demands of humans,
+  in Civ3's form** (warning, then leave or declare war the next turn; the AI
+  never declares war over it itself). This reverses the owner's ruling of
+  2026-10-22, under which an AI never told a human to leave.
 - **When the "leave or declare war" option appears is unknown.** Apolyton
   55198 (Jul 2002, 1.21f) has guesses only. Hurricane: "The exact number of
   units required is still unresolved, AFAIK." Fitz: "Contacting a

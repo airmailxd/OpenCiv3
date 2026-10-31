@@ -26,6 +26,10 @@ namespace C7Engine.AI {
 	// second turn" (Erlend Philip Wood, C3X thread, post-16132380). The AI
 	// itself never goes to war over it: a civ planning a war declares it
 	// when it's ready.
+	//
+	// Owner's ruling, 2026-10-31: AIs make these demands of humans, in
+	// Civ3's form as above. This reverses the ruling of 2026-10-22, under
+	// which an AI never told a human to leave.
 	public static class TerritoryDemands {
 		private static ILogger log = Log.ForContext(typeof(TerritoryDemands));
 

@@ -136,7 +136,8 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 
 	// As in Civ3: a warning first, which the human may promise to heed;
 	// then, if their units are still there next turn, leave or declare war,
-	// and leaving moves them out.
+	// and leaving moves them out. (Owner's ruling, 2026-10-31, reversing
+	// that of 2026-10-22 that a human was never told to leave.)
 	[Fact]
 	public async Task AHumanIsWarnedThenToldToLeaveOrDeclareWar() {
 		MapUnit intruder = MakeUnit(them, row[1]);
