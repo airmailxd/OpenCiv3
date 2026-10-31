@@ -28,7 +28,7 @@ specs in <dir>/ideas.txt (one per line, # for comments) are tried as extra
 candidates, once per cycle. Unless --no-steer, each round tries first the
 candidates that the benchmark ledger says helped one of the 3 worst measures
 of the latest exam (the keep rule is unchanged), and after each exam a kept
-ledger entry whose Advanced/Standard ratio on a measure it moved has shifted
+ledger entry whose Advanced/Standard ratio on a measure it moved has shifted from the ratio the change produced
 by more than 2 exam SE is marked stale (a "recheck_of" ledger line) and its
 reversal queued in ideas.txt as "# recheck <id>" (at most 2 per cycle).
 
@@ -365,9 +365,10 @@ def reversal(change):
 
 
 def stale_entries(entries, exam, difficulty):
-    """Kept entries whose Advanced/Standard ratio, on a measure they moved, is now more than 2 exam SE from their basis.
+    """Kept entries whose Advanced/Standard ratio, on a measure they moved, is now more than 2 exam SE from
+    the ratio the change itself produced (the entry's measures adv / std; basis is the ratio before it).
 
-    -> [(entry, [(measure, basis, ratio, shift in SE)])], largest shift first. Entries from another
+    -> [(entry, [(measure, produced ratio, ratio now, shift in SE)])], largest shift first. Entries from another
     difficulty and ones already marked stale are left out.
     """
     marked = {e["recheck_of"] for e in entries if e.get("recheck_of") and "reason" in e}
@@ -377,15 +378,32 @@ def stale_entries(entries, exam, difficulty):
             continue
         shifts = []
         for m, v in e.get("verdict", {}).items():
-            r, basis = exam.get(m), e.get("basis", {}).get(m)
-            if v not in ("helps", "harms") or basis is None or r is None or not r["std"] or r["se"] <= 0:
+            r, got = exam.get(m), e.get("measures", {}).get(m)
+            if v not in ("helps", "harms") or not got or not got.get("std") or r is None or not r["std"] or r["se"] <= 0:
                 continue
+            basis = got["adv"] / got["std"]
             ratio, se = r["adv"] / r["std"], r["se"] / abs(r["std"])
             if abs(ratio - basis) > ledger.SIGMAS * se:
                 shifts.append((m, basis, ratio, abs(ratio - basis) / se))
         if shifts:
             out.append((e, shifts))
     return sorted(out, key=lambda t: -max(s[3] for s in t[1]))
+
+
+def self_test():
+    def entry(**kw):
+        return dict({"date": "2026-10-30", "commit": "abc", "change": {"label": "X"}, "difficulty": 2, "kept": True,
+                     "verdict": {"techs": "helps", "gold": "helps"}, "basis": {"techs": 1.0, "gold": 1.0},
+                     "measures": {"techs": {"adv": 12.0, "std": 10.0}, "gold": {"adv": 5.0, "std": 0}}}, **kw)
+    at = lambda adv: {"techs": {"adv": adv, "std": 10.0, "se": 0.5}, "gold": {"adv": 5.0, "std": 0, "se": 1.0}}
+    e = entry()
+    assert stale_entries([e], at(12.0), 2) == []  # (a) at the post-change ratio: not stale
+    got = stale_entries([e], at(10.0), 2)  # (b) back at basis: stale; gold (std 0) skipped
+    assert len(got) == 1 and [s[0] for s in got[0][1]] == ["techs"], got
+    marked = {"recheck_of": ledger.entry_id(e), "reason": "x"}
+    assert stale_entries([e, marked], at(10.0), 2) == []  # (c) already marked
+    assert stale_entries([e], at(10.0), 1) == []  # other difficulty
+    print("train self-test passed")
 
 
 def queue_rechecks(args, state, exam, difficulty, key):
@@ -435,6 +453,8 @@ def last_exam(state, name, cycle, knobs):
 
 
 def main():
+    if "--self-test" in sys.argv:
+        return self_test()
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--resume", action="store_true")
