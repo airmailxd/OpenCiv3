@@ -108,6 +108,21 @@ public partial class Diplomacy : CenterContainer {
 		dealScreen?.OnDealResult(opponent, accepted);
 	}
 
+	// An AI's answer to our asking what it wants for peace: its terms put
+	// on the table ("How about this?", Conquests diplomacy.txt
+	// #AICOUNTERPEACE), or none ("Regrettably, we don't see how a deal
+	// could be worked out...", #AINOCOUNTERPEACE).
+	public void OnPeaceTerms(ID human, ID opponent, TradeOffer humanGives, TradeOffer humanWants) {
+		if (dealScreen == null || !dealScreen.IsFor(opponent)) {
+			return;
+		}
+		if (humanGives == null || humanWants == null) {
+			dealScreen.ShowResponse("Regrettably, we don't see how a deal could be worked out...");
+			return;
+		}
+		ShowDealScreenForPlayer(human, opponent, humanGives, humanWants, "How about this?");
+	}
+
 	public void OnWithdrawalDemandResult(ID opponent, bool withdrew) {
 		talkScreen?.OnWithdrawalDemandResult(opponent, withdrew);
 	}

@@ -123,6 +123,19 @@ public class PlayerRelationship {
 	// this was recorded).
 	public int warStartTurn = -1;
 
+	// p1.playerRelationships[p2].warUnitsLost and warCitiesLost are how
+	// many units p1 has lost in battle to p2, and cities p2 has taken from
+	// it, in the current war (0 at peace, and in saves made before this was
+	// recorded). The AI judges a war by them (see PeaceAI.PeaceOutlook).
+	public int warUnitsLost = 0;
+	public int warCitiesLost = 0;
+
+	// p1.playerRelationships[p2].warHappinessAtStart is the war weariness
+	// points p1 was given when p2 declared the current war on it
+	// (Player.WarWearinessWhenWarIsDeclaredOnUs, negative), or 0, so the
+	// peace judgement can leave them out (see PeaceAI.PeaceOutlook).
+	public int warHappinessAtStart = 0;
+
 	// p1.playerRelationships[p2].peaceSignedTurn is the turn p1 and p2 last
 	// made peace after a war, or -1 if they never have (or the save predates
 	// this). The AI plots no war on p2 for a while after (see
@@ -294,6 +307,8 @@ public class PlayerRelationship {
 		int warTurn = currentTurn ?? EngineStorage.gameData?.turn ?? 0;
 		defenderRelationshipToAggressor.warStartTurn = warTurn;
 		aggressorRelationshipToDefender.warStartTurn = warTurn;
+		ResetWarRecord(defenderRelationshipToAggressor);
+		ResetWarRecord(aggressorRelationshipToDefender);
 
 		// Set for how many turns the defender will refuse contact from the aggressor
 		defenderRelationshipToAggressor.refuseContactUntilTurn = refuseContactUntilTurn;
@@ -458,6 +473,25 @@ public class PlayerRelationship {
 		return false;
 	}
 
+	private static void ResetWarRecord(PlayerRelationship view) {
+		view.warUnitsLost = 0;
+		view.warCitiesLost = 0;
+		view.warHappinessAtStart = 0;
+	}
+
+	// Records, for the current war between them, that the loser lost units
+	// in battle to the winner, or cities to it. Nothing if they aren't at
+	// war (a city taken by a civ at peace, a scenario's units).
+	public static void RecordWarLoss(Player loser, Player winner, int units = 0, int cities = 0) {
+		if (loser == null || winner == null || loser == winner || loser.IsIndependent || winner.IsIndependent
+			|| winner.id == null || !loser.playerRelationships.TryGetValue(winner.id, out PlayerRelationship view)
+			|| !view.AtWar()) {
+			return;
+		}
+		view.warUnitsLost += units;
+		view.warCitiesLost += cities;
+	}
+
 	public static void SignPeaceAfterWar(Player left, Player right, GameData gameData) {
 		if (left.IsIndependent || left.defeated || right.IsIndependent || right.defeated || left.id == right.id)
 			throw new Exception($"Can't sign peace between {left} and {right}");
@@ -493,6 +527,8 @@ public class PlayerRelationship {
 		right.playerRelationships[left.id].warStartTurn = -1;
 		left.playerRelationships[right.id].peaceSignedTurn = gameData.turn;
 		right.playerRelationships[left.id].peaceSignedTurn = gameData.turn;
+		ResetWarRecord(left.playerRelationships[right.id]);
+		ResetWarRecord(right.playerRelationships[left.id]);
 
 		log.Information("{Left} signed a peace treaty with {Right}", left, right);
 	}

@@ -679,6 +679,9 @@ namespace C7GameData {
 			if (!IsIndependent && !provoked && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
 				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
 				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
+				if (other.playerRelationships.TryGetValue(id, out PlayerRelationship theirView)) {
+					theirView.warHappinessAtStart = WarWearinessWhenWarIsDeclaredOnUs;
+				}
 			}
 
 			C7Engine.AI.AiExperiments.onWarDeclared?.Invoke(this, other);
@@ -1015,7 +1018,7 @@ namespace C7GameData {
 			}
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
-				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
+				return C7Engine.AI.PeaceAI.WouldAcceptPeace(gameData, this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
 			}
 			if (ourOffer.cities.Count > 0) {
 				return false;

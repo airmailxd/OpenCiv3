@@ -1639,6 +1639,11 @@ public partial class Game : Node {
 					showProposal();
 				}
 				break;
+			case MsgPeaceTerms mPT:
+				if (diplomacy.Visible) {
+					diplomacy.OnPeaceTerms(mPT.recipient.id, mPT.opponent.id, mPT.humanGives, mPT.humanWants);
+				}
+				break;
 			case MsgDealResult mDR:
 				if (diplomacy.Visible) {
 					diplomacy.OnDealResult(mDR.opponent.id, mDR.accepted);

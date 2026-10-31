@@ -56,7 +56,7 @@ public class TotalWarTest : IClassFixture<SaveGameFixture> {
 
 		Assert.True(TotalWar.RefusesPeace(ai, victim));
 		Assert.False(TotalWar.RefusesPeace(ai, other));
-		Assert.False(PeaceAI.WouldAcceptPeace(ai, victim, new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true }, 1000, 0));
+		Assert.False(PeaceAI.WouldAcceptPeace(gameData, ai, victim, new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true }, 1000, 0));
 		Assert.Null(PeaceAI.BuildPeaceOffer(gameData, ai, victim));
 	}
 

@@ -206,6 +206,19 @@ public partial class DealScreen : TextureRect {
 			acceptDeal.Pressed += AttemptDeal;
 			AddChild(acceptDeal);
 
+			// At war, Civ3 lets the human ask an AI what it wants for peace
+			// (Conquests diplomacy.txt, #USERASKFORCOUNTER: "What do you want
+			// for $GIVE0?").
+			if (playersAtWar && !opponentPlayer.isHuman) {
+				Button askTerms = new();
+				askTerms.Text = "\"What do you want for a peace treaty?\"";
+				askTerms.SetPosition(new Vector2(512 - 205, 610));
+				askTerms.Theme = fontTheme;
+				askTerms.Pressed += () => { new MsgAskForPeaceTerms(opponentPlayer) { playerID = humanPlayerId }.send(); };
+				AddChild(askTerms);
+				negotiationControls.Add(askTerms);
+			}
+
 			Button goodbye = new();
 			goodbye.Text = "\"Never mind...\"";
 			goodbye.SetPosition(new Vector2(512 - 205, 650));
@@ -403,6 +416,13 @@ public partial class DealScreen : TextureRect {
 			$"In return they want: {Describe(proposerWants)}";
 	}
 
+	public bool IsFor(ID opponent) => opponent == opponentPlayerId;
+
+	// Shows what the opponent says, in quotes.
+	public void ShowResponse(string text) {
+		opponentResponse.Text = $"\"{text}\"";
+	}
+
 	// The engine's answer to a deal we proposed.
 	public void OnDealResult(ID opponent, bool accepted) {
 		if (opponent != opponentPlayerId) {
@@ -416,7 +436,7 @@ public partial class DealScreen : TextureRect {
 				if (opponentPlayer.isHuman) {
 					opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} refused the offer.\"";
 				} else if ((humanOffer.partOfPeaceTreaty || opponentOffer.partOfPeaceTreaty)
-						&& C7Engine.AI.PeaceAI.Assess(opponentPlayer, gD.GetPlayer(humanPlayerId)) >= C7Engine.AI.PeaceAI.WarOutlook.Winning) {
+						&& C7Engine.AI.PeaceAI.PeaceOutlook(gD, opponentPlayer, gD.GetPlayer(humanPlayerId)) >= C7Engine.AI.PeaceAI.WarOutlook.Winning) {
 					// Peace turned down by an AI that thinks it's winning,
 					// which wants more for it (see PeaceAI.WouldAcceptPeace).
 					// Civ3's words (diplomacy.txt, #AINOPEACETREATY).

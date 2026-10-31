@@ -261,7 +261,7 @@ public class CityTradeAndPeaceTest : IClassFixture<SaveGameFixture> {
 		Assert.Empty(offer.Value.weGive.techs);
 		Assert.Empty(offer.Value.weGive.cities);
 		Assert.Empty(offer.Value.weWant.cities);
-		Assert.True(PeaceAI.WouldAcceptPeace(ai, human, offer.Value.weWant, offer.Value.weGive, 0, 0));
+		Assert.True(PeaceAI.WouldAcceptPeace(gameData, ai, human, offer.Value.weWant, offer.Value.weGive, 0, 0));
 	}
 
 	// A war across the sea, which neither side's land units can fight, is
@@ -300,6 +300,156 @@ public class CityTradeAndPeaceTest : IClassFixture<SaveGameFixture> {
 		Pacts.SignMilitaryAlliance(gameData, ai, ally, human);
 
 		Assert.True(PeaceAI.AlliedAgainst(ai, human));
-		Assert.False(PeaceAI.WouldAcceptPeace(ai, human, new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true }, 0, 0));
+		Assert.False(PeaceAI.WouldAcceptPeace(gameData, ai, human, new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true }, 0, 0));
+	}
+
+	// (a) What each side has lost in the current war is recorded, and
+	// cleared when the war ends or a new one starts.
+	[Fact]
+	public void WarLossesAreRecordedForTheCurrentWarOnly() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		PlayerRelationship.RecordWarLoss(ai, human, units: 3);
+		Assert.Equal(0, PeaceAI.WarLosses(ai, human));
+
+		human.DeclareWarOn(ai, gameData.turn);
+		PlayerRelationship.RecordWarLoss(ai, human, units: 3, cities: 1);
+		Assert.Equal(3 + PeaceAI.CityLossWeight, PeaceAI.WarLosses(ai, human));
+		Assert.Equal(0, PeaceAI.WarLosses(human, ai));
+
+		PlayerRelationship.SignPeaceAfterWar(ai, human, gameData);
+		Assert.Equal(0, PeaceAI.WarLosses(ai, human));
+		PlayerRelationship.RecordWarLoss(ai, human, units: 2);
+		gameData.turn += 20;
+		human.DeclareWarOn(ai, gameData.turn);
+		Assert.Equal(0, PeaceAI.WarLosses(ai, human));
+	}
+
+	// (a) An AI with the bigger army that keeps losing battles is losing
+	// the war, and asks for peace.
+	[Fact]
+	public void AnAiLosingItsBattlesIsLosingWhateverItsArmy() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		LetThemTalk(ai, human);
+		RemoveAllUnits(gameData, human);
+		SpawnArmy(gameData, ai, 20);
+		Assert.Equal(PeaceAI.WarOutlook.Dominating, PeaceAI.Assess(ai, human));
+
+		PlayerRelationship.RecordWarLoss(ai, human, units: 15);
+
+		Assert.True(PeaceAI.PeaceOutlook(gameData, ai, human) <= PeaceAI.WarOutlook.Losing);
+		Assert.NotNull(PeaceAI.BuildPeaceOffer(gameData, ai, human));
+		TradeOffer peace = new() { partOfPeaceTreaty = true };
+		Assert.True(ai.WouldAcceptDealFrom(gameData, human, peace, new TradeOffer { partOfPeaceTreaty = true }));
+	}
+
+	// (a) A fight that's even in losses is tipped only by a far bigger
+	// army, and only to winning.
+	[Fact]
+	public void EvenLossesAreTippedOnlyByAFarBiggerArmy() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		RemoveAllUnits(gameData, ai);
+		RemoveAllUnits(gameData, human);
+		PlayerRelationship.RecordWarLoss(ai, human, units: 5);
+		PlayerRelationship.RecordWarLoss(human, ai, units: 5);
+		Assert.Equal(PeaceAI.WarOutlook.Even, PeaceAI.PeaceOutlook(gameData, ai, human));
+
+		SpawnArmy(gameData, ai, 20);
+		Assert.Equal(PeaceAI.WarOutlook.Winning, PeaceAI.PeaceOutlook(gameData, ai, human));
+	}
+
+	// (b) A long war wears down a winner: a step every LongWarTurns, until
+	// it takes plain peace.
+	[Fact]
+	public void ALongWarEndsInPlainPeaceEvenForAWinner() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		ai.DeclareWarOn(human, gameData.turn);
+		LetThemTalk(ai, human);
+		RemoveAllUnits(gameData, human);
+		SpawnArmy(gameData, ai, 20);
+		TradeOffer Peace() => new() { partOfPeaceTreaty = true };
+		Assert.Equal(PeaceAI.WarOutlook.Dominating, PeaceAI.PeaceOutlook(gameData, ai, human));
+		Assert.False(ai.WouldAcceptDealFrom(gameData, human, Peace(), Peace()));
+
+		gameData.turn += PeaceAI.LongWarTurns;
+		LetThemTalk(ai, human);
+		Assert.Equal(PeaceAI.WarOutlook.Winning, PeaceAI.PeaceOutlook(gameData, ai, human));
+
+		gameData.turn += PeaceAI.LongWarTurns;
+		Assert.Equal(PeaceAI.WarOutlook.Even, PeaceAI.PeaceOutlook(gameData, ai, human));
+		Assert.True(ai.WouldAcceptDealFrom(gameData, human, Peace(), Peace()));
+		// And proposes it.
+		(TradeOffer weGive, TradeOffer weWant)? offer = PeaceAI.BuildPeaceOffer(gameData, ai, human);
+		Assert.NotNull(offer);
+		Assert.Empty(offer.Value.weWant.cities);
+		Assert.Null(offer.Value.weWant.gold);
+	}
+
+	// (c) Asked what it wants for peace, a winning AI names the least gold
+	// that will do, and the deal goes through.
+	[Fact]
+	public void AWinningAiNamesItsPriceForPeace() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		ai.DeclareWarOn(human, gameData.turn);
+		LetThemTalk(ai, human);
+		RemoveAllUnits(gameData, human);
+		SpawnArmy(gameData, ai, 20);
+		human.gold = 1000;
+
+		(TradeOffer humanGives, TradeOffer humanWants)? terms = PeaceAI.PeaceTermsFor(gameData, ai, human);
+		Assert.NotNull(terms);
+		int gold = terms.Value.humanGives.gold ?? 0;
+		Assert.InRange(gold, 1, 1000);
+		Assert.True(ai.WouldAcceptDealFrom(gameData, human, terms.Value.humanGives, terms.Value.humanWants));
+		// One less won't do.
+		TradeOffer less = new() { partOfPeaceTreaty = true, gold = gold - 1 };
+		Assert.False(ai.WouldAcceptDealFrom(gameData, human, less, terms.Value.humanWants));
+		Assert.True(ai.ExecuteDeal(gameData, human, terms.Value.humanGives, terms.Value.humanWants));
+		Assert.False(AtWar(ai, human));
+	}
+
+	// (c) With nothing the AI would take, there are no terms; the human
+	// asks with MsgAskForPeaceTerms and hears back with MsgPeaceTerms.
+	[Fact]
+	public void AnAiWithNoTermsSaysSo() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		ai.DeclareWarOn(human, gameData.turn);
+		LetThemTalk(ai, human);
+		RemoveAllUnits(gameData, human);
+		SpawnArmy(gameData, ai, 20);
+		human.gold = 0;
+		human.knownTechs.Clear();
+		Assert.Null(PeaceAI.PeaceTermsFor(gameData, ai, human));
+
+		EngineStorage.messagesToUI.Clear();
+		EngineStorage.activePlayerID = human.id;
+		new MsgAskForPeaceTerms(ai) { playerID = human.id }.send();
+		EngineStorage.ProcessNextMessageToEngine();
+		MsgPeaceTerms answer = null;
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			answer ??= msg as MsgPeaceTerms;
+		}
+		Assert.NotNull(answer);
+		Assert.Same(human, answer.recipient);
+		Assert.Same(ai, answer.opponent);
+		Assert.Null(answer.humanGives);
+	}
+
+	// (d) The war happiness an AI got when the human declared war doesn't
+	// hold back its war weariness when it weighs up peace.
+	[Fact]
+	public void WarHappinessDoesNotHoldBackPeace() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		RemoveAllUnits(gameData, human);
+		SpawnArmy(gameData, ai, 20);
+		Assert.Equal(Player.WarWearinessWhenWarIsDeclaredOnUs, ai.playerRelationships[human.id].warHappinessAtStart);
+		// 70 points of weariness since the war began, less the 30 of war
+		// happiness: level 1 as it stands, level 2 for peace.
+		ai.AddWarWeariness(human, 70);
+
+		Assert.Equal(PeaceAI.WarOutlook.Dominating, PeaceAI.Assess(ai, human));
+		Assert.Equal(PeaceAI.WarOutlook.Winning, PeaceAI.PeaceOutlook(gameData, ai, human));
 	}
 }

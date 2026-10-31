@@ -173,6 +173,89 @@ namespace C7Engine.AI {
 			return outlook;
 		}
 
+		// How a war looks to us when weighing up peace. Civ3: "The AI's
+		// willingness to discuss peace terms depends on a) how long the war
+		// has lasted and b) how much it is winning or losing the war. In
+		// other words, the longer the war has lasted and the more
+		// battles/cities/whatever the AI has lost relative to you, the more
+		// willing it will be to go to the negotiating table" (Soren Johnson,
+		// Firaxis, https://codehappy.net/apolyton/threads/41866-1.htm #27).
+		// So, unlike Assess:
+		// - winning or losing is judged by what each side has lost in this
+		//   war (see WarLosses), the armies' sizes only breaking a tie or
+		//   standing in before there has been much fighting;
+		// - the war happiness we were given when they declared war doesn't
+		//   count as part of our people's weariness (owner, 2026-10-31);
+		// - each LongWarTurns of war takes a winning side's outlook a step
+		//   down, so a long war ends in peace on plain terms.
+		// How the two factors combine isn't given; the sizes are ours.
+		public static WarOutlook PeaceOutlook(GameData gameData, Player us, Player them) {
+			if (!CanFightEachOther(us, them)) {
+				return WarOutlook.Even;
+			}
+			WarOutlook army = ByRatio(us.CalculateMilitaryStrength() / Math.Max(1f, them.CalculateMilitaryStrength()));
+			int ours = WarLosses(us, them), theirs = WarLosses(them, us);
+			WarOutlook outlook;
+			if (ours + theirs >= MinWarLosses) {
+				outlook = ByRatio((theirs + LossSmoothing) / (float)(ours + LossSmoothing));
+				// An even fight is tipped only by a far bigger army.
+				if (outlook == WarOutlook.Even && army == WarOutlook.Dominating) {
+					outlook = WarOutlook.Winning;
+				} else if (outlook == WarOutlook.Even && army == WarOutlook.LosingBadly) {
+					outlook = WarOutlook.Losing;
+				}
+			} else {
+				outlook = army;
+			}
+
+			// A people tired of the war push for peace.
+			TryGetRelationship(us, them, out PlayerRelationship view);
+			int points = us.WarWearinessPointsAgainst(them) - (view?.warHappinessAtStart ?? 0);
+			int weariness = Player.WarWearinessLevel(points);
+			if (weariness >= WearyLevel && outlook > WarOutlook.LosingBadly) {
+				--outlook;
+			}
+			if (weariness >= VeryWearyLevel && outlook > WarOutlook.LosingBadly) {
+				--outlook;
+			}
+
+			// A long war wears down a winner's demands.
+			int steps = Math.Min(MaxLongWarSteps, WarTurns(gameData, us, them) / LongWarTurns);
+			for (int i = 0; i < steps && outlook > WarOutlook.Even; ++i) {
+				--outlook;
+			}
+			return outlook;
+		}
+
+		// UNVERIFIED (our sizes, no Civ3 source gives any): a lost city
+		// counts as CityLossWeight lost units; until the two sides have lost
+		// MinWarLosses between them, the armies' sizes decide; and
+		// LossSmoothing is added to each side's losses before comparing, so
+		// a handful of early battles doesn't make a side "dominating".
+		public const int CityLossWeight = 4;
+		public const int MinWarLosses = 6;
+		public const int LossSmoothing = 5;
+
+		// UNVERIFIED (ours): each LongWarTurns of war, up to MaxLongWarSteps
+		// times, takes a winning side's outlook a step toward even.
+		public const int LongWarTurns = StalemateTurns;
+		public const int MaxLongWarSteps = 2;
+
+		// What we have lost to them in the current war (see
+		// PlayerRelationship.warUnitsLost).
+		public static int WarLosses(Player us, Player them) {
+			return TryGetRelationship(us, them, out PlayerRelationship view)
+				? view.warUnitsLost + CityLossWeight * view.warCitiesLost : 0;
+		}
+
+		private static WarOutlook ByRatio(float ratio) {
+			return ratio >= DominatingStrengthRatio ? WarOutlook.Dominating
+				: ratio >= WinningStrengthRatio ? WarOutlook.Winning
+				: ratio * WinningStrengthRatio > 1f ? WarOutlook.Even
+				: ratio * DominatingStrengthRatio > 1f ? WarOutlook.Losing
+				: WarOutlook.LosingBadly;
+		}
+
 		// How much, in gold equivalent, we'd give for peace.
 		public static int ConcessionBudget(Player us, WarOutlook outlook) {
 			int perCity = outlook switch {
@@ -213,13 +296,13 @@ namespace C7Engine.AI {
 		// Whether we, an AI at war with them, would make peace on these
 		// terms, where they give theirOffer and we give ourOffer, worth the
 		// given gold equivalents to us (cities count for nothing).
-		public static bool WouldAcceptPeace(Player us, Player them, TradeOffer theirOffer, TradeOffer ourOffer,
+		public static bool WouldAcceptPeace(GameData gameData, Player us, Player them, TradeOffer theirOffer, TradeOffer ourOffer,
 				int theirValue, int ourValue) {
 			// Total war: no peace until the victim is dead.
 			if (TotalWar.RefusesPeace(us, them)) {
 				return false;
 			}
-			WarOutlook outlook = Assess(us, them);
+			WarOutlook outlook = PeaceOutlook(gameData, us, them);
 			if (ourOffer.cities.Count > MaxCitiesToCede(outlook)) {
 				return false;
 			}
@@ -248,7 +331,7 @@ namespace C7Engine.AI {
 			if (TotalWar.RefusesPeace(us, them)) {
 				return null;
 			}
-			WarOutlook outlook = Assess(us, them);
+			WarOutlook outlook = PeaceOutlook(gameData, us, them);
 			TradeOffer weGive = new() { partOfPeaceTreaty = true };
 			TradeOffer weWant = new() { partOfPeaceTreaty = true };
 			// Kings & Nomads: a war for a goal that has been met ends in a
@@ -293,6 +376,55 @@ namespace C7Engine.AI {
 			return (weGive, weWant);
 		}
 
+		// Our answer, as an AI, when a human at war with us asks what we'd
+		// want for peace, as Civ3's deal screen lets them ("What do you want
+		// for $GIVE0?", Conquests diplomacy.txt #USERASKFORCOUNTER): terms we
+		// would accept, as what the human gives and what we give, or null if
+		// there are none ("Regrettably, we don't see how a deal could be
+		// worked out...", #AINOCOUNTERPEACE). They start from the peace we'd
+		// offer (BuildPeaceOffer), or plain peace; if that isn't enough we
+		// ask for the least gold that is, and failing that all their gold
+		// and their techs, cheapest first, until it is.
+		public static (TradeOffer humanGives, TradeOffer humanWants)? PeaceTermsFor(GameData gameData, Player ai, Player human) {
+			if (ai.isHuman || !AtWar(ai, human) || gameData.AreInLockedWar(ai, human)
+				|| !ai.WillAcceptCommunicationFrom(human, gameData.turn)) {
+				return null;
+			}
+			(TradeOffer weGive, TradeOffer weWant) = BuildPeaceOffer(gameData, ai, human)
+				?? (new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true });
+			bool Accepts() => ai.WouldAcceptDealFrom(gameData, human, weWant, weGive);
+			if (Accepts()) {
+				return (weWant, weGive);
+			}
+			int baseGold = weWant.gold ?? 0;
+			int spare = human.gold - baseGold;
+			if (spare > 0) {
+				weWant.gold = baseGold + spare;
+				if (Accepts()) {
+					// The least that will do.
+					int low = 0, high = spare;
+					while (high - low > 1) {
+						int mid = (low + high) / 2;
+						weWant.gold = baseGold + mid;
+						if (Accepts()) {
+							high = mid;
+						} else {
+							low = mid;
+						}
+					}
+					weWant.gold = baseGold + high;
+					return (weWant, weGive);
+				}
+			}
+			foreach (Tech t in human.GetTechsTradableTo(ai, gameData.techs).OrderBy(t => gameData.TechCostFor(t, human))) {
+				weWant.techs.Add(t);
+				if (Accepts()) {
+					return (weWant, weGive);
+				}
+			}
+			return null;
+		}
+
 		// Asks the civs we're at war with for peace, if the war is going
 		// badly for us (or demands a city for it, if it's going very well).
 		// A human is shown the offer and may accept it on the deal screen.
@@ -310,7 +442,7 @@ namespace C7Engine.AI {
 					continue;
 				}
 				// Not while allied against them, unless losing badly.
-				if (AlliedAgainst(us, them) && Assess(us, them) > WarOutlook.LosingBadly) {
+				if (AlliedAgainst(us, them) && PeaceOutlook(gameData, us, them) > WarOutlook.LosingBadly) {
 					continue;
 				}
 				// Both sides must be willing to talk.

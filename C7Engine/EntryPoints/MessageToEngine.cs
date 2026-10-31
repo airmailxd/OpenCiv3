@@ -1291,6 +1291,24 @@ namespace C7Engine {
 		}
 	}
 
+	// A human at war with an AI asks what it wants for peace ("What do you
+	// want for $GIVE0?", Conquests diplomacy.txt #USERASKFORCOUNTER). The AI
+	// answers at once with MsgPeaceTerms (see PeaceAI.PeaceTermsFor).
+	public class MsgAskForPeaceTerms : MessageToEngine {
+		public Player opponent;
+
+		public MsgAskForPeaceTerms(Player opponent) {
+			this.opponent = opponent;
+		}
+
+		protected override void ProcessAllowed() {
+			GameData gD = EngineStorage.gameData;
+			if (opponent == null || opponent == Sender || opponent.isHuman || Sender == null) return;
+			(TradeOffer humanGives, TradeOffer humanWants)? terms = PeaceAI.PeaceTermsFor(gD, opponent, Sender);
+			new MsgPeaceTerms(Sender, opponent, terms?.humanGives, terms?.humanWants).send();
+		}
+	}
+
 	// A human tells an AI to take its units out of the human's territory or
 	// prepare for war. The AI answers at once with MsgWithdrawalDemandResult.
 	public class MsgDemandWithdrawal : MessageToEngine {

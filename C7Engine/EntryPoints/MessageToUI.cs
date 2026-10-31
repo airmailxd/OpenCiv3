@@ -625,6 +625,22 @@ namespace C7Engine {
 		}
 	}
 
+	// An AI's answer to a human who asked what it wants for peace (see
+	// MsgAskForPeaceTerms): the terms, or none (both null) if it sees no
+	// deal.
+	public class MsgPeaceTerms : MessageToUI {
+		public Player opponent;
+		public TradeOffer humanGives;
+		public TradeOffer humanWants;
+
+		public MsgPeaceTerms(Player recipient, Player opponent, TradeOffer humanGives, TradeOffer humanWants) {
+			this.recipient = recipient;
+			this.opponent = opponent;
+			this.humanGives = humanGives;
+			this.humanWants = humanWants;
+		}
+	}
+
 	// Tells the player who proposed a deal whether it was accepted.
 	public class MsgDealResult : MessageToUI {
 		public Player opponent;

@@ -98,6 +98,7 @@ public partial class MapUnit {
 				City city = tile.cityAtTile;
 				Player formerOwner = city.owner;
 				Player.AddWarWearinessForLostCity(formerOwner, owner, city.residents.Count);
+				PlayerRelationship.RecordWarLoss(formerOwner, owner, cities: 1);
 				CityInteractions.CaptureCity(city, owner);
 				// A city that survived being taken may resist its new owner.
 				if (tile.cityAtTile == city && city.owner == owner) {
@@ -1051,6 +1052,7 @@ public partial class MapUnit {
 			VictoryPoints.OnUnitDefeated(alive.owner, dead, EngineStorage.gameData.victoryConditions);
 			if (alive.owner != dead.owner) {
 				alive.owner.unitsKilled++;
+				PlayerRelationship.RecordWarLoss(dead.owner, alive.owner, units: 1);
 			}
 
 			// In an army, the member that won the last round gets the chance
