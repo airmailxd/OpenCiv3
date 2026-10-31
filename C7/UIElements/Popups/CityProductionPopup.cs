@@ -15,6 +15,9 @@ public partial class CityProductionPopup : Popup {
 
 	// The options in the dropdown, in order.
 	private readonly List<IProducible> options = new();
+	// What the city builds as far as the popup knows: what it had, then
+	// whatever was last picked.
+	private IProducible chosen;
 
 	public CityProductionPopup(City city, string completed, Action onZoom, Action onDone) {
 		alignment = BoxContainer.AlignmentMode.Center;
@@ -44,17 +47,14 @@ public partial class CityProductionPopup : Popup {
 		AddChild(optionButton);
 
 		AddButton($"Zoom to {city.name}", 150, () => {
-			Choose(optionButton);
 			Close();
 			onZoom();
 		});
 		AddButton("OK. Sounds good.", 180, () => {
-			Choose(optionButton);
 			Close();
 			onDone();
 		});
 		AddConfirmButton(new Vector2(width - 40, height - 40), () => {
-			Choose(optionButton);
 			Close();
 			onDone();
 		});
@@ -64,14 +64,17 @@ public partial class CityProductionPopup : Popup {
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 	}
 
-	// Changes production if the player picked something other than what the
-	// city is already building.
-	private void Choose(OptionButton optionButton) {
-		int selected = optionButton.Selected;
-		if (selected < 0 || selected >= options.Count || options[selected] == city.itemBeingProduced) {
+	// The item picked in the dropdown changes production at once, as in
+	// Civ3, so it holds however the popup is closed: Escape used to close it
+	// without sending the choice, and the city went back to what it had
+	// (owner's report). Closing without picking anything leaves the city
+	// building what it already was.
+	private void Choose(int selected) {
+		if (selected < 0 || selected >= options.Count || options[selected] == chosen) {
 			return;
 		}
-		new MsgChooseProduction(city.id, options[selected].name).send();
+		chosen = options[selected];
+		new MsgChooseProduction(city.id, chosen.name).send();
 	}
 
 	private OptionButton MakeOptionButton() {
@@ -114,6 +117,8 @@ public partial class CityProductionPopup : Popup {
 			popup.SetItemAsRadioCheckable(i, false);
 			popup.SetItemAsCheckable(i, false);
 		}
+		chosen = city.itemBeingProduced;
+		optionButton.ItemSelected += index => Choose((int)index);
 		return optionButton;
 	}
 }
