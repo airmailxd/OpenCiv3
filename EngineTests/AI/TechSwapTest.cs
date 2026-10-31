@@ -69,4 +69,29 @@ public sealed class TechSwapTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(0, TechSwap.Swap(gameData, us, them));
 		Assert.DoesNotContain(theirs.id, us.knownTechs);
 	}
+
+	// With republic-route on, a tech on Republic's route is asked for ahead
+	// of a dearer one off it. (TechValue already adds the route bonus, so this
+	// guards the order rather than proving the helper alone.)
+	[Fact]
+	public void RepublicRouteTechIsAskedForBeforeADearerOne() {
+		AiExperiments.Enable(us, TechSwap.Switch);
+		AiExperiments.Enable(us, GovernmentAI.RepublicRoute);
+		us.government = gameData.governments.First(g => g.hasTilePenalty);
+		var path = GovernmentAI.RepublicRoutePath(us, gameData);
+		int beakers = us.BeakersPerTurn();
+		Tech route = gameData.techs.First(t => path.Contains(t) && t.Prerequisites.All(p => us.HasTech(p.id)) && !t.CannotBeTraded);
+		them.knownTechs.Add(route.id);
+		Tech dearer = gameData.techs.Where(t => !path.Contains(t) && t != route && t != ours && t != theirs && !us.HasTech(t.id))
+			.OrderByDescending(t => DevelopmentAI.TechValue(gameData, us, t, beakers))
+			.First(t => { them.knownTechs.Add(t.id); return them.GetTechsTradableTo(us, gameData.techs).Contains(t) || !them.knownTechs.Remove(t.id); });
+		Assert.True(DevelopmentAI.TechValue(gameData, us, dearer, beakers) > DevelopmentAI.TechValue(gameData, us, route, beakers) - GovernmentAI.RepublicRouteBonus);
+		Assert.Contains(route, them.GetTechsTradableTo(us, gameData.techs));
+		Assert.Contains(dearer, them.GetTechsTradableTo(us, gameData.techs));
+
+		Assert.Equal(1, TechSwap.Swap(gameData, us, them));
+
+		Assert.Contains(route.id, us.knownTechs);
+		Assert.DoesNotContain(dearer.id, us.knownTechs);
+	}
 }

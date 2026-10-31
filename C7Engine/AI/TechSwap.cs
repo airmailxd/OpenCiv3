@@ -65,7 +65,7 @@ namespace C7Engine.AI {
 			if (wanted.Count == 0 || baits.Count == 0) {
 				return false;
 			}
-			HashSet<Tech> route = GovernmentAI.RoutePath(us, gD);
+			HashSet<Tech> route = GovernmentAI.AskFirstPath(us, gD);
 			int ourBeakers = us.BeakersPerTurn();
 			// Techs on the government route first, then the most valuable.
 			IEnumerable<Tech> asks = wanted

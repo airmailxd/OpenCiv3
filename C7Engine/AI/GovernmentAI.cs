@@ -166,6 +166,12 @@ namespace C7Engine.AI {
 			return path;
 		}
 
+		// The techs worth asking another civ for first: Republic's route
+		// with republic-route on, early-government's route otherwise.
+		internal static HashSet<Tech> AskFirstPath(Player player, GameData gameData) {
+			return AiExperiments.Has(player, RepublicRoute) ? RepublicRoutePath(player, gameData) : RoutePath(player, gameData);
+		}
+
 		private static void AddMissing(Player player, Tech tech, HashSet<Tech> missing) {
 			if (tech == null || player.HasTech(tech.id) || !missing.Add(tech)) {
 				return;
