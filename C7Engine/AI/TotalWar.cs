@@ -33,6 +33,9 @@ namespace C7Engine.AI {
 		// once it has gone total-war-max-turns.
 		private const int NoGainTurns = 30;
 		// HEURISTIC: losing this many cities of our own during the war ends it.
+		// On purpose, any loss counts, including a city the victim takes back:
+		// the engine does not record who took a city, and a victim that wins
+		// cities off us is not one we are beating.
 		private const int CitiesLostToQuit = 2;
 		// HEURISTIC: only victims whose cities lie this close to one of ours
 		// count as near for the gathered stack's measure.
