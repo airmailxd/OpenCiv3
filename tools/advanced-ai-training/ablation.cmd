@@ -27,6 +27,6 @@ set C7_TRIAL_TURNS=200
 set C7_TRIAL_CIVS=8
 set C7_ADVANCED_TUNING=%~2
 set C7_TRIAL_MODEL=
-"C:\Program Files\dotnet\dotnet.exe" test EngineTests --no-build --filter "FullyQualifiedName~AiTrialTest&FullyQualifiedName!~EngineTests.Network." > "%OUT%\%1\test.log" 2>&1
+"C:\Program Files\dotnet\dotnet.exe" test EngineTests --no-build --filter "FullyQualifiedName~AiTrialTest.CompareAiWithAndWithoutExperiments&FullyQualifiedName!~EngineTests.Network." > "%OUT%\%1\test.log" 2>&1
 if not errorlevel 1 echo done > "%OUT%\%1\done.flag"
 exit /b 0

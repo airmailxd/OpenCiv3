@@ -635,11 +635,18 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	public async Task ProgressFileIsWritten() {
 		string dir = Path.Combine(Path.GetTempPath(), "c7trial" + Guid.NewGuid().ToString("N"));
 		Directory.CreateDirectory(dir);
-		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS"];
+		// C7_TRIAL_JSON and C7_TRIAL_STATE are cleared, as the exam's file
+		// belongs to the exam: with them left in the environment this 2-game
+		// run overwrote the exam's results (ZUR-234). The ambient JSON is a
+		// file this test checks it leaves alone.
+		string jsonFile = Path.Combine(dir, "exam.json");
+		string ambientJson = Environment.GetEnvironmentVariable("C7_TRIAL_JSON");
+		Environment.SetEnvironmentVariable("C7_TRIAL_JSON", jsonFile);
+		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS", "C7_TRIAL_JSON", "C7_TRIAL_STATE", "C7_TRIAL_MAP"];
 		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
 		try {
 			string outFile = Path.Combine(dir, "out.txt");
-			string[] values = [outFile, "2", "40", "4", "5", "cheap-maintenance"];
+			string[] values = [outFile, "2", "40", "4", "5", "cheap-maintenance", null, null, null];
 			for (int i = 0; i < names.Length; ++i) {
 				Environment.SetEnvironmentVariable(names[i], values[i]);
 			}
@@ -653,10 +660,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Assert.Equal(JsonValueKind.Null, root.GetProperty("playing").ValueKind);
 			Assert.Equal(2, root.GetProperty("finished").GetArrayLength());
 			Assert.False(File.Exists(outFile + ".progress.json.tmp"));
+			Assert.False(File.Exists(jsonFile));
 		} finally {
 			for (int i = 0; i < names.Length; ++i) {
 				Environment.SetEnvironmentVariable(names[i], saved[i]);
 			}
+			Environment.SetEnvironmentVariable("C7_TRIAL_JSON", ambientJson);
 			Directory.Delete(dir, true);
 		}
 	}

@@ -135,7 +135,7 @@ def run_trial(args, knobs, difficulty, seed, tag, paired=True, detail=False):
         if os.path.exists(env["C7_TRIAL_STATE"]):
             os.remove(env["C7_TRIAL_STATE"])
     with open(out + ".log", "w", encoding="utf-8") as log:
-        subprocess.run(["dotnet", "test", "EngineTests", "--no-build", "--filter", "FullyQualifiedName~AiTrialTest"],
+        subprocess.run(["dotnet", "test", "EngineTests", "--no-build", "--filter", "FullyQualifiedName~AiTrialTest.CompareAiWithAndWithoutExperiments"],
                        env=env, stdout=log, stderr=subprocess.STDOUT, check=False)
     if not os.path.exists(out):
         raise RuntimeError(f"trial {tag} wrote no results; see {out}.log")
