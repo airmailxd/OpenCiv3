@@ -415,6 +415,12 @@ public partial class DealScreen : TextureRect {
 				Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 				if (opponentPlayer.isHuman) {
 					opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} refused the offer.\"";
+				} else if ((humanOffer.partOfPeaceTreaty || opponentOffer.partOfPeaceTreaty)
+						&& C7Engine.AI.PeaceAI.Assess(opponentPlayer, gD.GetPlayer(humanPlayerId)) >= C7Engine.AI.PeaceAI.WarOutlook.Winning) {
+					// Peace turned down by an AI that thinks it's winning,
+					// which wants more for it (see PeaceAI.WouldAcceptPeace).
+					// Civ3's words (diplomacy.txt, #AINOPEACETREATY).
+					opponentResponse.Text = $"\"Not likely! {opponentPlayer.civilization.name} is winning!\"";
 				} else {
 					// A computer player says no, so the deal isn't left
 					// looking unanswered. Civ3's words (diplomacy.txt,
