@@ -202,6 +202,8 @@ public partial class PopupOverlay : HBoxContainer {
 		if (wav != null) {
 			PlaySound(wav);
 		}
+
+		(child as Popup)?.OnShown?.Invoke();
 	}
 
 	private void ShowChild(Control child) {

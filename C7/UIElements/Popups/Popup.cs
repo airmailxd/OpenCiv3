@@ -56,6 +56,11 @@ public partial class Popup : TextureRect {
 	// front. Nothing on the map can be clicked either way.
 	public virtual bool LetsMapMove => false;
 
+	// Run when the popup comes to the front, which may be well after it was
+	// asked for if others were waiting ahead of it: e.g. to centre the map
+	// on what it tells of then, rather than while another popup is up.
+	public Action OnShown;
+
 	protected void AddButton(string label, int verticalPosition, Action action) {
 		const int HORIZONTAL_POSITION = 30;
 

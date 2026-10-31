@@ -1382,7 +1382,7 @@ public partial class Game : Node {
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
 			case MsgShowScienceSelection mSSS:
-				popupOverlay.ShowPopup(new ScienceSelection(controller, mSSS.discovered), PopupOverlay.PopupCategory.Info);
+				ShowScienceSelection(mSSS);
 				// Research something even if the player dismisses the popup.
 				new MsgPickDefaultResearch().send();
 				break;
@@ -1877,6 +1877,10 @@ public partial class Game : Node {
 			return;
 		}
 		LinkedList<MsgCityProductionCompleted> pending = PendingProductionPopupsFor(controller.id);
+		if (pending.Count == 0 || !MayShowTurnStartPopup()) {
+			// Tried again each frame (see _Process) until it may.
+			return;
+		}
 		while (shownProductionPopup == null && !cityScreen.Visible && pending.Count > 0) {
 			MsgCityProductionCompleted msg = pending.First.Value;
 			pending.RemoveFirst();
@@ -1892,6 +1896,8 @@ public partial class Game : Node {
 					&& EngineStorage.gameData.unitPrototypes.Exists(p => p.name == msg.completed)) {
 				continue;
 			}
+			// Nothing else is up (see MayShowTurnStartPopup), so the map
+			// can go to the city now.
 			mapView?.centerCameraOnTile(city.location);
 			// A wonder is first celebrated with Civ3's splash; the city asks
 			// what to build next once it's gone.
@@ -1918,6 +1924,45 @@ public partial class Game : Node {
 			};
 			popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
 		}
+	}
+
+	// Whether a city may ask what to build next now. The production popups
+	// move the map to their city, and the player answers them one after
+	// another, so they wait until nothing else is up or on its way: not
+	// behind another popup, which they used to join the queue of, moving
+	// the map from under it; and not while the engine has yet to answer
+	// something the player just did. Choosing a free tech (such as
+	// Philosophy's) is answered by asking what to research next, which
+	// otherwise came only after the next city's popup had taken its place.
+	// News held for the player (see ReplayHeldMessage) is shown first.
+	private bool MayShowTurnStartPopup() {
+		return !popupOverlay.Visible
+			&& !cityScreen.Visible
+			&& !EngineStorage.HasPendingMessagesToEngine()
+			&& researchQuestionDueSeconds <= 0
+			&& !(heldMessages.TryGetValue(controller.id, out Queue<MessageToUI> held) && held.Count > 0);
+	}
+
+	// A LAN client's choice of research goes to the host, whose next question
+	// takes a moment to come back, so after a free tech is chosen the
+	// production popups wait for it this long at most (see
+	// MayShowTurnStartPopup); a single machine's engine answers in the next
+	// frame, while the choice is still a pending message.
+	private const double ResearchQuestionWaitSeconds = 3.0;
+	private double researchQuestionDueSeconds = 0;
+
+	// Shows the science advisor's question of what to research (or, with a
+	// free tech to come, which tech to take).
+	private void ShowScienceSelection(MsgShowScienceSelection msg) {
+		// The question the production popups were waiting for has come.
+		researchQuestionDueSeconds = 0;
+		bool freeTech = controller.freeTechsRemaining > 0;
+		ScienceSelection selection = new(controller, msg.discovered);
+		if (freeTech && LanSession.IsClient) {
+			// Once the free tech is chosen the host asks what's next.
+			selection.TreeExiting += () => researchQuestionDueSeconds = ResearchQuestionWaitSeconds;
+		}
+		popupOverlay.ShowPopup(selection, PopupOverlay.PopupCategory.Info);
 	}
 
 	// Takes down the production popup on screen (or waiting behind another
@@ -1986,6 +2031,12 @@ public partial class Game : Node {
 		}
 		if (!handledMessage)
 			ReplayHeldMessage();
+
+		if (researchQuestionDueSeconds > 0) {
+			researchQuestionDueSeconds -= delta;
+		}
+		// Cities with news wait until nothing else is up.
+		ShowNextProductionPopup();
 
 		EndTurnIfNothingToDo(delta);
 		UpdateMusic();
