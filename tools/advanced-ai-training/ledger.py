@@ -21,6 +21,10 @@ Schema of one entry (entry_from_trial):
                 read with the row's lower-is-better flag
     basis       {name: baseline adv / std} (null if std is 0)
 
+A line with "recheck_of" (an entry_id) and "reason" instead of measures marks
+that entry stale; an entry with "recheck_of" next to its measures is the
+re-check's own result (train.py).
+
 meta keys (all optional): ticket, change, difficulty, seed, games, turns, mode,
 kept, date, commit. Those given override what is read from the trial files.
 
@@ -132,6 +136,11 @@ def load(path):
                 except ValueError:
                     pass
     return out
+
+
+def entry_id(e):
+    """A stable name for an entry: date, commit and change label (what recheck_of points at)."""
+    return f"{e.get('date', '')}-{e.get('commit') or ''}-{e.get('change', {}).get('label', '')}"
 
 
 def movers(entries, measure):

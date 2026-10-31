@@ -25,7 +25,12 @@ cycle on the same rung (new training and held-out seeds, +100 per cycle)
 and exits with code 75, so run-training.ps1 -Nonstop can move to the latest
 code and call it again. An exam also follows every kept change. Tuning
 specs in <dir>/ideas.txt (one per line, # for comments) are tried as extra
-candidates, once per cycle.
+candidates, once per cycle. Unless --no-steer, each round tries first the
+candidates that the benchmark ledger says helped one of the 3 worst measures
+of the latest exam (the keep rule is unchanged), and after each exam a kept
+ledger entry whose Advanced/Standard ratio on a measure it moved has shifted
+by more than 2 exam SE is marked stale (a "recheck_of" ledger line) and its
+reversal queued in ideas.txt as "# recheck <id>" (at most 2 per cycle).
 
 Results: <dir>/ledger.jsonl (what each held-out check did to every measure; see ledger.py), <dir>/state.json (the knobs and every run), <dir>/log.md and one
 line per round or exam in <dir>/progress.txt.
@@ -148,7 +153,7 @@ def write_report(args, tag):
         note(args, f"- benchmarks report not written: {e}")
 
 
-def record(args, prefix, label, before, after, difficulty, seed, kept):
+def record(args, prefix, label, before, after, difficulty, seed, kept, recheck_of=None):
     """Append the held-out check of one candidate to <out>/ledger.jsonl. A failure here must not stop the ladder."""
     try:
         runs = os.path.join(args.out, "runs")
@@ -156,6 +161,8 @@ def record(args, prefix, label, before, after, difficulty, seed, kept):
         meta = {"ticket": args.ticket, "change": {"label": label, "before": spec(before), "after": spec(after)},
                 "difficulty": difficulty, "seed": seed, "games": args.games, "turns": args.turns,
                 "mode": "paired", "kept": kept}
+        if recheck_of:
+            meta["recheck_of"] = recheck_of
         ledger.append(os.path.join(args.out, "ledger.jsonl"), ledger.entry_from_trial(texts[0], texts[1], meta))
     except Exception as e:  # noqa: BLE001
         note(args, f"- ledger entry not written: {e}")
@@ -303,6 +310,123 @@ def read_ideas(args, knobs, tried):
     return found
 
 
+STEER_WORST = 3
+RECHECKS_PER_CYCLE = 2
+
+
+def exam_summary(result):
+    """An exam's parsed rows in the shape benchmarks.gaps reads."""
+    return [{"measure": m, "trialMean": r["adv"], "othersMean": r["std"], "difference": r["diff"], "standardError": r["se"]}
+            for m, r in result.items()]
+
+
+def ledger_entries(args):
+    """The kept history first, then this run's own ledger."""
+    return ledger.load(benchmarks.LEDGER_DEFAULT) + ledger.load(os.path.join(args.out, "ledger.jsonl"))
+
+
+def steer_order(plan, entries, exam):
+    """plan: [(label, knobs)] in today's order -> (plan with the candidates that helped a worst measure first, one log line)."""
+    worst = [g for g in benchmarks.gaps(exam_summary(exam["result"]), {})][:STEER_WORST]
+    if not worst:
+        return plan, "- order: default (Advanced is level with Standard on every measure of the latest exam)"
+    names = [g[1] for g in worst]
+    helped = {}
+    for e in entries:
+        label = e.get("change", {}).get("label")
+        for m in names:
+            if label and e.get("verdict", {}).get(m) == "helps" and m not in helped.setdefault(label, []):
+                helped[label].append(m)
+    plan = sorted(plan, key=lambda p: p[0] not in helped)  # stable: the rest keep today's order
+    first = [f"{l} (helped {'/'.join(helped[l])})" for l, _ in plan if l in helped]
+    gaps_text = ", ".join(f"{g[1]} {g[0]:.1f} SE" for g in worst)
+    return plan, (f"- order: steered by the latest exam's worst gaps ({gaps_text}); first: "
+                  + (", ".join(first) if first else "none, no ledger entry helped them; today's order"))
+
+
+def spec_dict(text):
+    out = {}
+    for part in text.split(","):
+        if "=" in part:
+            k, v = part.split("=", 1)
+            out[k.strip()] = float(v)
+    return out
+
+
+def reversal(change):
+    """The idea-queue spec that undoes a ledger change: each knob it moved goes back to its value before."""
+    before, after = spec_dict(change.get("before", "")), spec_dict(change.get("after", ""))
+    parts = []
+    for k in sorted(set(before) | set(after)):
+        b, a = before.get(k, DEFAULTS.get(k)), after.get(k, DEFAULTS.get(k))
+        if k in DEFAULTS and b != a:
+            parts.append(f"{k}={b:g}")
+    return ",".join(parts)
+
+
+def stale_entries(entries, exam, difficulty):
+    """Kept entries whose Advanced/Standard ratio, on a measure they moved, is now more than 2 exam SE from their basis.
+
+    -> [(entry, [(measure, basis, ratio, shift in SE)])], largest shift first. Entries from another
+    difficulty and ones already marked stale are left out.
+    """
+    marked = {e["recheck_of"] for e in entries if e.get("recheck_of") and "reason" in e}
+    out = []
+    for e in entries:
+        if "recheck_of" in e or not e.get("kept") or ledger.entry_id(e) in marked or e.get("difficulty") != difficulty:
+            continue
+        shifts = []
+        for m, v in e.get("verdict", {}).items():
+            r, basis = exam.get(m), e.get("basis", {}).get(m)
+            if v not in ("helps", "harms") or basis is None or r is None or not r["std"] or r["se"] <= 0:
+                continue
+            ratio, se = r["adv"] / r["std"], r["se"] / abs(r["std"])
+            if abs(ratio - basis) > ledger.SIGMAS * se:
+                shifts.append((m, basis, ratio, abs(ratio - basis) / se))
+        if shifts:
+            out.append((e, shifts))
+    return sorted(out, key=lambda t: -max(s[3] for s in t[1]))
+
+
+def queue_rechecks(args, state, exam, difficulty, key):
+    """After an exam: mark stale entries in the ledger and put their reversals in ideas.txt (at most 2 per cycle)."""
+    if args.no_steer:
+        return
+    try:
+        room = RECHECKS_PER_CYCLE - state.setdefault("rechecks", {}).get(key, 0)
+        for e, shifts in stale_entries(ledger_entries(args), exam, difficulty)[:max(room, 0)]:
+            rev = reversal(e.get("change", {}))
+            if not rev:
+                continue
+            eid = ledger.entry_id(e)
+            why = "; ".join(f"{m} ratio {b:.2f} -> {r:.2f} ({s:.1f} SE)" for m, b, r, s in shifts)
+            ledger.append(os.path.join(args.out, "ledger.jsonl"),
+                          {"date": time.strftime("%Y-%m-%d"), "commit": ledger.git_commit(), "ticket": args.ticket,
+                           "recheck_of": eid, "reason": f"ratios shifted past 2 exam SE since the entry: {why}"})
+            with open(os.path.join(args.out, "ideas.txt"), "a", encoding="utf-8", newline="\n") as f:
+                f.write(f"{rev}  # recheck {eid}\n")
+            state["rechecks"][key] += 1
+            note(args, f"- recheck queued for {eid}: {why}; reversal {rev}")
+    except Exception as ex:  # noqa: BLE001
+        note(args, f"- recheck not queued: {ex}")
+
+
+def recheck_ids(args):
+    """{idea spec: ledger entry id} for the ideas.txt lines marked '# recheck <id>'."""
+    path = os.path.join(args.out, "ideas.txt")
+    out = {}
+    if os.path.exists(path):
+        for line in open(path, encoding="utf-8"):
+            text, _, comment = line.partition("#")
+            m = re.match(r"\s*recheck\s+(\S+)", comment)
+            if m:
+                try:
+                    out[",".join(f"{k}={v:g}" for k, v in sorted(spec_dict(text).items()))] = m[1]
+                except ValueError:
+                    pass
+    return out
+
+
 def last_exam(state, name, cycle, knobs):
     for e in reversed(state.get("exams", [])):
         if e["rung"] == name and e.get("cycle", 0) == cycle and e["knobs"] == knobs:
@@ -325,6 +449,8 @@ def main():
     ap.add_argument("--targets", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "doc", "suede-benchmarks.md"),
                     help="Suede's figures for the benchmarks report (see benchmarks.py)")
     ap.add_argument("--ticket", default="", help="ticket id recorded in ledger.jsonl entries")
+    ap.add_argument("--no-steer", action="store_true",
+                    help="today's behaviour: candidates in fixed order, no stale-entry re-checks")
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung and cycle")
     ap.add_argument("--dashboard-every", type=int, default=60, help="seconds between dashboard rebuilds, 0 = off")
     args = ap.parse_args()
@@ -378,11 +504,18 @@ def ladder(args):
                 note(args, f"\n## {name}, cycle {cycle}, round {rnd} — knobs: {spec(knobs) or 'defaults'}")
                 started = time.time()
                 ideas = read_ideas(args, knobs, tried_ideas)
+                plan = list(candidates(knobs)) + [(label, k) for label, _, k in ideas]
+                if not args.no_steer:
+                    if state.get("exams"):
+                        plan, why = steer_order(plan, ledger_entries(args), state["exams"][-1])
+                    else:
+                        why = "- order: default (no exam yet)"
+                    note(args, why)
                 base = pool.submit(run_trial, args, knobs, difficulty, train_seed, f"{prefix}-base")
                 tries = [(label, k, pool.submit(run_trial, args, k, difficulty, train_seed, f"{prefix}-{label}"))
-                         for label, k in candidates(knobs)]
-                tries += [(label, k, pool.submit(run_trial, args, k, difficulty, train_seed, f"{prefix}-{label}"))
-                          for label, _, k in ideas]
+                         for label, k in plan]
+                idea_specs = {label: canon for label, canon, _ in ideas}
+                rechecks = recheck_ids(args)
                 base = base.result()
                 note(args, f"- current (training seeds): {summary(base)}")
                 scored = []
@@ -406,7 +539,8 @@ def ladder(args):
                     hc = run_trial(args, k, difficulty, holdout_seed, f"{prefix}-holdout-{label}")
                     hgain = objective(hc) - objective(hb)
                     note(args, f"- held-out {label}: gain {hgain:+.2f} ({summary(hc)})")
-                    record(args, prefix, label, knobs, k, difficulty, holdout_seed, hgain > 0)
+                    record(args, prefix, label, knobs, k, difficulty, holdout_seed, hgain > 0,
+                           rechecks.get(idea_specs.get(label)))
                     if hgain > 0:
                         kept = (label, k)
                         break
@@ -437,6 +571,7 @@ def ladder(args):
                 note(args, f"\n**{name} exam, cycle {cycle} round {done}** ({needs}): {summary(exam)}{verdict}")
                 state.setdefault("exams", []).append({"rung": name, "cycle": cycle, "round": done, "knobs": dict(knobs),
                                                       "result": exam, "passed": passed})
+                queue_rechecks(args, state, exam, difficulty, f"{name}-c{cycle}")
                 save(args, state)
                 last = state["history"][-1] if state["history"] else {}
                 progress(args, state, name, f"{done} exam", last.get("kept") if last.get("rung") == name and last.get("cycle", 0) == cycle else None)
