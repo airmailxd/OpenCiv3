@@ -537,21 +537,28 @@ namespace C7Engine {
 		public override Player NetworkRecipient => humanPlayer;
 	}
 
-	// An AI tells a human to take their units out of its territory or face
-	// war. The human answers with MsgRespondToTerritoryDemand.
+	// An AI tells a human to take their units out of its territory: a
+	// warning, or, if they were warned last turn and are still there, leave
+	// or declare war (see TerritoryDemands). The human answers with
+	// MsgRespondToTerritoryDemand.
 	public class MsgShowTerritoryDemand : MessageToUI {
 		public Player aiPlayer;
 		public Player humanPlayer;
 		public int unitCount;
 
-		// The human already promised to leave once and came back.
-		public bool repeatOffense;
+		// Leave or declare war, rather than the first warning.
+		public bool ultimatum;
 
-		public MsgShowTerritoryDemand(Player aiPlayer, Player humanPlayer, int unitCount, bool repeatOffense) {
+		// The AI's city the units are near, for Civ3's "near $CITY3", or
+		// null.
+		public string cityName;
+
+		public MsgShowTerritoryDemand(Player aiPlayer, Player humanPlayer, int unitCount, bool ultimatum, string cityName = null) {
 			this.aiPlayer = aiPlayer;
 			this.humanPlayer = humanPlayer;
 			this.unitCount = unitCount;
-			this.repeatOffense = repeatOffense;
+			this.ultimatum = ultimatum;
+			this.cityName = cityName;
 		}
 
 		// Like a trade offer, this goes to the human's own machine on a LAN.

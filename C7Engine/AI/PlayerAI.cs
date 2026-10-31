@@ -42,7 +42,7 @@ namespace C7Engine {
 			// (Each step may take a while on a big map, so the window gets to
 			// draw between them.)
 			await EngineStorage.YieldIfFrameBudgetSpent();
-			TerritoryDemands.MakeDemands(player, gameData);
+			await TerritoryDemands.MakeDemands(player, gameData);
 			// And demand tribute of humans weaker than us.
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await TributeDemands.MakeDemands(player, gameData);

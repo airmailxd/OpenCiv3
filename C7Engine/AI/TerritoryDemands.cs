@@ -1,24 +1,42 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using C7GameData;
 using Serilog;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine.AI {
-	// As in Civ3, a civ doesn't put up with another civ's units in its
-	// territory. Each turn it tells every AI civ it is at peace with, and
-	// that has no right of passage, to take its units out of its borders, if
-	// they are enough of a threat (see IsThreatening). Unlike Civ3, humans
-	// are never told (see MakeDemands). The other civ withdraws them, and
-	// they are moved out at once. Military allies are welcome.
+	// As in Civ3, a civ doesn't put up with another civ's military units in
+	// its territory: "You can eject rival military units from your
+	// territory during diplomatic negotiations" (Civilopedia,
+	// GCON_Territory), and a peace treaty means not to "even enter the
+	// other's territory with military units. Units that violate this
+	// agreement may be asked to leave" (manual p.~158). Each turn an AI
+	// tells every civ it is at peace with, and that has no right of
+	// passage, to take its units out of its borders, if they are enough of
+	// a threat (see IsThreatening). Military allies are welcome.
+	//
+	// An AI told to leave withdraws, and its units are moved out at once.
+	// A human is asked as Civ3 asks (Conquests diplomacy.txt): first a
+	// warning (#AIBORDERWARNING), which they may promise to heed
+	// (#USERWILLRETREAT) or answer with war (#USERWAR); then, if their
+	// units are still there on our next turn, "leave or declare war"
+	// (#AIBORDERWAR), which they answer by having their units moved out
+	// (#USERWILLRETURNHOME, "<Your troops will move automatically.>") or
+	// with war. "You are _always_ asked to leave or declare war on the
+	// second turn" (Erlend Philip Wood, C3X thread, post-16132380). The AI
+	// itself never goes to war over it: a civ planning a war declares it
+	// when it's ready.
 	public static class TerritoryDemands {
 		private static ILogger log = Log.ForContext(typeof(TerritoryDemands));
 
 		// How long a civ's promises to keep out are remembered.
 		public const int MEMORY_TURNS = 20;
 
-		public static void MakeDemands(Player us, GameData gameData) {
+		public static async Task MakeDemands(Player us, GameData gameData) {
 			Dictionary<Player, List<MapUnit>> trespassers = FindTrespassers(us, gameData);
-			// With the AI fog of war, only the trespassers we can see.
+			// "The AI will only ask them to leave if it can see them"
+			// (Erlend Philip Wood, C3X thread, post-16823338): with the AI
+			// fog of war, only the trespassers we can see.
 			if (AIFogOfWar.EnabledFor(us)) {
 				AIFogOfWar.Refresh(us);
 				foreach (Player them in new List<Player>(trespassers.Keys)) {
@@ -38,17 +56,15 @@ namespace C7Engine.AI {
 
 			foreach (KeyValuePair<Player, List<MapUnit>> trespass in trespassers) {
 				Player them = trespass.Key;
-				// Not Civ3: an AI never tells a human to leave, nor goes to
-				// war over their units in its territory (owner's decision,
-				// 2026-10-22). AIs still warn each other.
-				if (them.isHuman) {
-					continue;
-				}
 				// Units with nowhere to go can't be told to leave, so they
 				// neither count against their civ nor give us a reason for war.
 				List<MapUnit> units = trespass.Value.FindAll(u => u.CanWithdraw());
 				PlayerRelationship ourView = us.playerRelationships[them.id];
-				if (!IsThreatening(units, ourView, gameData.turn)) {
+				// A human we warned on our last turn, whose units are still
+				// here, is told to leave or declare war, however few they are.
+				bool ultimatum = them.isHuman && units.Count > 0 && ourView.lastWithdrawalDemandTurn >= 0
+					&& ourView.lastWithdrawalDemandTurn == gameData.turn - 1;
+				if (!ultimatum && !IsThreatening(units, ourView, gameData.turn)) {
 					continue;
 				}
 
@@ -59,14 +75,84 @@ namespace C7Engine.AI {
 				}
 				ourView.lastWithdrawalDemandTurn = gameData.turn;
 
-				// AIs back down rather than start a war over it. A civ
-				// planning a war will declare it when it's ready.
-				int withdrawn = Withdraw(units);
-				if (withdrawn > 0) {
-					++ourView.recentWithdrawals;
+				if (!them.isHuman) {
+					// AIs back down rather than start a war over it.
+					int withdrawn = Withdraw(units);
+					if (withdrawn > 0) {
+						++ourView.recentWithdrawals;
+					}
+					log.Information("{Them} withdrew {Count} units from {Us}'s territory", them, withdrawn, us);
+					continue;
 				}
-				log.Information("{Them} withdrew {Count} units from {Us}'s territory", them, withdrawn, us);
+
+				bool agreed = await AskHuman(us, them, units, ultimatum);
+				if (!agreed) {
+					// "Remove your forces from our territory or declare WAR!":
+					// they chose war, and declare it, openly, having been
+					// warned (so it is no sneak attack).
+					log.Information("{Them} refused to leave {Us}'s territory and declares war", them, us);
+					them.DeclareWarOn(us, gameData.turn, afterWarning: true);
+					MsgWarDeclaration.Announce(them, us);
+				} else if (ultimatum) {
+					// "<Your troops will move automatically.>"
+					int withdrawn = Withdraw(units);
+					if (withdrawn > 0) {
+						++ourView.recentWithdrawals;
+					}
+					log.Information("{Them} withdrew {Count} units from {Us}'s territory", them, withdrawn, us);
+				} else {
+					// They promised to move their troops out themselves; if
+					// they haven't by our next turn, the ultimatum follows.
+					log.Information("{Them} promised to take its units out of {Us}'s territory", them, us);
+				}
 			}
+		}
+
+		// Puts the demand to a human, and waits for their answer: true if
+		// they agree to leave, false if they choose war. A human who can't
+		// be reached, or closes the screen without answering, is taken to
+		// agree, so a stray key press can't start a war.
+		private static async Task<bool> AskHuman(Player us, Player them, List<MapUnit> units, bool ultimatum) {
+			// A LAN guest who has left can't answer.
+			if (!EngineStorage.IsPlayerReachable(them.id)) {
+				return true;
+			}
+			// The human answering takes the UI. In a hotseat game they may
+			// not be the player at the screen.
+			if (EngineStorage.uiFollowsActivePlayer) {
+				EngineStorage.uiControllerID = them.id;
+			}
+			EngineStorage.diplomacyPlayerID = them.id;
+			EngineStorage.diplomacyAIPlayerID = us.id;
+			EngineStorage.territoryDemandAnswer = null;
+			new MsgShowTerritoryDemand(us, them, units.Count, ultimatum, NearestCityName(us, units)).send();
+			// A LAN host closes the screen for a guest who leaves or rejoins
+			// while it is up, so this always ends.
+			await EngineStorage.WaitForDiplomacyCompleted(them.id);
+			EngineStorage.diplomacyPlayerID = null;
+			EngineStorage.diplomacyAIPlayerID = null;
+
+			bool answer = EngineStorage.territoryDemandAnswer ?? true;
+			EngineStorage.territoryDemandAnswer = null;
+			return answer;
+		}
+
+		// The name of our city nearest the first of the units, for Civ3's
+		// "your troops near $CITY3", or null if we have none.
+		private static string NearestCityName(Player us, List<MapUnit> units) {
+			Tile at = units.Count > 0 ? units[0].location : null;
+			City nearest = at?.owningCity is City c && c.owner == us ? c : null;
+			if (nearest == null && at != null) {
+				int best = int.MaxValue;
+				foreach (City city in us.cities) {
+					int d = city.location.DistanceTo(at);
+					if (d < best) {
+						best = d;
+						nearest = city;
+					}
+				}
+			}
+			return nearest?.name;
 		}
 
 		// How many turns a lone combat unit may stay in our territory before
@@ -113,7 +199,13 @@ namespace C7Engine.AI {
 			return result;
 		}
 
-		// Like FindTrespassers, for a single civ.
+		// Like FindTrespassers, for a single civ. Only military units: "You
+		// can eject rival military units from your territory" (Civilopedia,
+		// GCON_Territory), and "they never boot you if you only move
+		// workers" (creamcheese, CFC "Right of Passage agreements",
+		// https://forums.civfanatics.com/threads/right-of-passage-agreements.427477).
+		// Nor hidden nationality units, which "are no longer forcibly
+		// removed from enemy territory via diplomacy" (PTW readme, 1.21f).
 		private static List<MapUnit> TrespassersOf(Player us, Player them, GameData gameData) {
 			List<MapUnit> result = new();
 			if (!MustStayOutOf(them, us, gameData)) {
@@ -122,6 +214,9 @@ namespace C7Engine.AI {
 			foreach (MapUnit unit in them.units) {
 				Tile tile = unit.location;
 				if (unit.IsLoaded() || tile == null || tile == Tile.NONE || tile.OwningPlayer() != us) {
+					continue;
+				}
+				if (!unit.IsCombatUnit() || unit.unitType.hasHiddenNationality) {
 					continue;
 				}
 				result.Add(unit);

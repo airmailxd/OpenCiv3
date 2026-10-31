@@ -112,10 +112,10 @@ public partial class Diplomacy : CenterContainer {
 		talkScreen?.OnWithdrawalDemandResult(opponent, withdrew);
 	}
 
-	public void ShowTerritoryDemand(ID humanPlayer, ID opponentPlayer, int unitCount, bool repeatOffense) {
+	public void ShowTerritoryDemand(ID humanPlayer, ID opponentPlayer, int unitCount, bool ultimatum, string cityName) {
 		RemoveOtherScreens();
 
-		territoryDemandScreen = new TerritoryDemandScreen(humanPlayer, opponentPlayer, unitCount, repeatOffense);
+		territoryDemandScreen = new TerritoryDemandScreen(humanPlayer, opponentPlayer, unitCount, ultimatum, cityName);
 		AddChild(territoryDemandScreen);
 		PlayMusic(humanPlayer, opponentPlayer);
 		this.Show();

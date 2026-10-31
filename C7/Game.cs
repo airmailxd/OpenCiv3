@@ -1452,7 +1452,7 @@ public partial class Game : Node {
 				break;
 			case MsgShowTerritoryDemand mSTD:
 				Action showDemand = () => diplomacy.ShowTerritoryDemand(
-					mSTD.humanPlayer.id, mSTD.aiPlayer.id, mSTD.unitCount, mSTD.repeatOffense);
+					mSTD.humanPlayer.id, mSTD.aiPlayer.id, mSTD.unitCount, mSTD.ultimatum, mSTD.cityName);
 				if (mSTD.humanPlayer.id != controller.id) {
 					ShowHotseatHandoff(mSTD.humanPlayer,
 						$"The {mSTD.aiPlayer.civilization.noun} demand to speak with you.",

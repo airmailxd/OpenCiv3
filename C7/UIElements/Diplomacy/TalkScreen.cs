@@ -55,13 +55,14 @@ public partial class TalkScreen : TextureRect {
 		offset += gap;
 
 		// As in Civ3, an AI with units in our territory can be told to take
-		// them out or face war.
+		// them out or face war, in Civ3's words (diplomacy.txt,
+		// #USERBORDERWAR).
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player human = gD.GetPlayer(humanPlayerId);
 			Player opponent = gD.GetPlayer(opponentPlayerId);
 			if (!opponent.isHuman && TerritoryDemands.UnitsToWithdraw(human, opponent, gD).Count > 0) {
 				Button demandWithdrawal = new();
-				demandWithdrawal.Text = "Remove your troops from our territory, or prepare for war!";
+				demandWithdrawal.Text = "Remove your forces from our territory or declare WAR!";
 				demandWithdrawal.SetPosition(new Vector2(512 - 205, offset));
 				demandWithdrawal.Theme = fontTheme;
 				demandWithdrawal.Pressed += () => { new MsgDemandWithdrawal(opponent).send(); };
@@ -121,7 +122,8 @@ public partial class TalkScreen : TextureRect {
 		reply.SetPosition(new Vector2(0, 400));
 		AddChild(reply);
 		reply.SetTextAndCenterLabel(withdrew
-			? "Very well. We will withdraw our forces from your lands."
+			// Civ3's #AIWILLRETURNHOME.
+			? "We will withdraw immediately. My apologies."
 			: $"You dare threaten us? The {adjective} forces go where they please. Prepare for war!");
 	}
 
