@@ -1164,7 +1164,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					defender = defender,
 					start = gameData.turn,
 					overseas = !defender.cities.Any(c => land.Contains(c.location.continent)),
-					via = DeclaredBy(),
+					via = DeclaredBy() + (TotalWar.On(aggressor) && TotalWar.Victim(aggressor) == defender ? "(total-war)" : ""),
 				});
 			}
 		};
