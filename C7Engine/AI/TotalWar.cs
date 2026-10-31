@@ -95,6 +95,8 @@ namespace C7Engine.AI {
 			return AttackOf(ready) >= Ratio_(player) * DefenceNear(player, victim, staging);
 		}
 
+		internal static double WantedAttack(Player player, Player victim, Tile staging) => Ratio_(player) * DefenceNear(player, victim, staging);
+
 		private static double Ratio_(Player player) => AdvancedTuning.Get(player, Ratio);
 
 		private static double AttackOf(IEnumerable<MapUnit> units) {

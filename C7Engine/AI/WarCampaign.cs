@@ -989,6 +989,7 @@ namespace C7Engine.AI {
 			int bombarders = c.units.Count(IsBombarder);
 			int escorts = c.units.Count(IsEscort);
 			int armies = c.units.Count(IsFightingArmy);
+			City stackBase = TotalWar.On(player) ? StagingCity(player, c) : null;
 			foreach (MapUnit u in player.units.ToList()) {
 				if (u.currentAI is MemberAI || u.location.continent != continent || u.IsLoaded()
 					|| u.currentAI is EscortAI || u.currentAI is FerryAI || IsJoiningArmy(u, player)) {
@@ -1011,7 +1012,10 @@ namespace C7Engine.AI {
 					continue;
 				}
 				if (IsAttacker(u)) {
-					take = attackers < needed + Spare(c);
+					// Total war takes attackers until the stack outweighs the
+					// victim's defence, not just the number a siege needs.
+					take = attackers < needed + Spare(c)
+						|| (stackBase != null && TotalWar.WantsMoreStack(player, c.units, stackBase.location));
 				} else if (IsBombarder(u)) {
 					take = bombarders < 3;
 				} else if (IsEscort(u)) {
@@ -1091,6 +1095,9 @@ namespace C7Engine.AI {
 			if (TotalWar.On(player)) {
 				go = go && TotalWar.StackReady(player, c.enemy, ready, staging.location);
 				if (!go) {
+					if (Turn % 10 == 0) {
+						log.Information("{Player} total war: {Ready} ready ({Attackers} attackers) at {Staging} against {Enemy}, needs {Needed} attackers, wants {Want:0.#} attack for {Defence:0.#} defence", player, ready.Count, readyAttackers, staging.name, c.enemy, needed, TotalWar.WantedAttack(player, c.enemy, staging.location), TotalWar.DefenceNear(player, c.enemy, staging.location));
+					}
 					foreach (MapUnit u in c.units) {
 						if (u.location == staging.location && !u.isFortified) {
 							u.Fortify();
