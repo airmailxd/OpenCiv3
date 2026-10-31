@@ -1223,15 +1223,42 @@ public partial class Game : Node {
 			&& (!LanSession.IsActive || LanSession.IsLocalPlayer(msg.recipient))
 			&& msg is not MsgShowDealProposal && msg is not MsgShowStaging
 			&& msg is not MsgShowMarket && msg is not MsgShowMarketResults) {
-			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
-				held = new();
-				heldMessages[msg.recipient.id] = held;
-			}
-			held.Enqueue(msg);
+			HoldMessage(msg.recipient.id, msg);
+			return;
+		}
+
+		// News of a loss at a place, like a city taken (see LossNews), that
+		// comes while others play waits for the player's turn to start, to
+		// be shown one popup at a time with the map centred on the place.
+		if (msg is MsgShowMilitaryAdvisorPopup { location: not null } && controller != null
+			&& (msg.recipient == null || msg.recipient.id == controller.id)
+			&& (CurrentState != GameState.PlayerTurn || hotseatHandoff != null)
+			&& !LanSession.IsSpectator && !WatchingAiGame) {
+			HoldMessage(controller.id, msg);
 			return;
 		}
 
 		ShowEngineMessage(msg);
+	}
+
+	// Keeps the message for the player until their turn is underway (see
+	// ReplayHeldMessage).
+	private void HoldMessage(ID playerID, MessageToUI msg) {
+		if (!heldMessages.TryGetValue(playerID, out Queue<MessageToUI> held)) {
+			held = new();
+			heldMessages[playerID] = held;
+		}
+		// Such as a city razed after it was taken: the news of its capture
+		// is no longer worth telling.
+		if (msg is MsgShowMilitaryAdvisorPopup { supersedesNewsHere: true, location: Tile place }) {
+			List<MessageToUI> kept = held.Where(m => !(m is MsgShowMilitaryAdvisorPopup { location: Tile there }
+				&& there.XCoordinate == place.XCoordinate && there.YCoordinate == place.YCoordinate)).ToList();
+			held.Clear();
+			foreach (MessageToUI m in kept) {
+				held.Enqueue(m);
+			}
+		}
+		held.Enqueue(msg);
 	}
 
 	// What a message changes on the map, done when the message arrives.
@@ -1328,6 +1355,12 @@ public partial class Game : Node {
 					// turn behind any popup already showing, rather than being lost.
 					var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
 					var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
+					// News of a place, like a city lost, centres the map on it
+					// as it comes up (Civ3's "#map_center").
+					if (mSMAP.location is Tile place && place != Tile.NONE) {
+						pop.OnShown = () => mapView?.centerCameraOnTile(place);
+						InterestingEvent();
+					}
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 					break;
 				}
