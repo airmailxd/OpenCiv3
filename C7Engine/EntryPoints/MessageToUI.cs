@@ -332,6 +332,14 @@ namespace C7Engine {
 	public class MsgShowMilitaryAdvisorPopup : MessageToUI {
 		public string message;
 		public bool happy;
+		// Where it happened, for news of a loss such as a city taken (see
+		// LossNews), or null. The map is centred there as the popup comes
+		// up, and news with a place that comes during others' turns waits
+		// for the player's own (Civ3's "#map_center" news).
+		public Tile location;
+		// Whether this replaces news of the same place the player has yet to
+		// see, as a city's razing replaces the news of its capture.
+		public bool supersedesNewsHere;
 		public MsgShowMilitaryAdvisorPopup(Player recipient, string message, bool happy) {
 			this.recipient = recipient;
 			this.message = message;

@@ -687,6 +687,8 @@ public partial class MapUnit {
 	// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
 	private void CaptureDefencelessUnits(Tile tile) {
 		GameData gameData = EngineStorage.gameData;
+		// The units each player lost to capture, for their news.
+		Dictionary<Player, List<string>> captured = new();
 		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
 			// Taking the last of a civ's units destroys the civ, removing the
 			// rest of its units, these too: one already gone isn't taken.
@@ -697,12 +699,27 @@ public partial class MapUnit {
 			C7Engine.AI.AiExperiments.onUnitTaken?.Invoke(enemy, owner);
 			if (owner.IsIndependent) {
 				gameData.RemoveUnit(enemy);
-			} else if (enemy.unitType.isSettler) {
-				gameData.CaptureSettler(enemy, owner);
-			} else if (enemy.unitType.isWorker || enemy.unitType.CanBeCapturedBy(owner)) {
-				gameData.CaptureUnit(enemy, owner);
+			} else if (enemy.unitType.isSettler || enemy.unitType.isWorker || enemy.unitType.CanBeCapturedBy(owner)) {
+				Player loser = enemy.owner;
+				if (!captured.TryGetValue(loser, out List<string> names)) {
+					names = new();
+					captured[loser] = names;
+				}
+				names.Add(enemy.unitType.name);
+				if (enemy.unitType.isSettler) {
+					gameData.CaptureSettler(enemy, owner);
+				} else {
+					gameData.CaptureUnit(enemy, owner);
+				}
 			} else {
 				gameData.RemoveUnit(enemy);
+			}
+		}
+		// Civ3's UNITCAPTURED and UNITSCAPTURED (script.txt), where it
+		// happened (see LossNews).
+		foreach ((Player loser, List<string> names) in captured) {
+			if (loser.IsToldNews) {
+				new MsgShowMilitaryAdvisorPopup(loser, LossNews.UnitsCaptured(names), happy: false) { location = tile }.send();
 			}
 		}
 	}

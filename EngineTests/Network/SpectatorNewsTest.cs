@@ -269,8 +269,8 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal([$"We have captured {city.name}"],
 			Heard(asCaptor, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message[..p.message.IndexOf(" and")] : m.GetType().Name));
 		SpectatorViewInfo asLoser = new(SpectatorViewMode.OneCiv, loser.id);
-		Assert.Equal([$"{city.name} has fallen to the {captor.civilization.noun}!"],
-			Heard(asLoser, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message : m.GetType().Name));
+		Assert.Equal([$"{city.name} was captured by the evil {captor.civilization.noun}!"],
+			Heard(asLoser, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message.Split('\n')[1] : m.GetType().Name));
 	}
 
 	// What asks a player to decide something, or only redraws their

@@ -45,7 +45,12 @@ namespace C7Engine {
 	//   man-made improvements (roads, mines, irrigation, fortresses,
 	//   outposts, colonies); the tile is left polluted.
 	// - Who is told: VLC_ERUPTS goes to every civ that has explored the
-	//   volcano.
+	//   volcano, as a passing note there. Those who lost a city or units
+	//   get VLC_KILLS_CITY and VLC_KILLS_UNIT as popups that centre the map
+	//   on the place, at the start of their turn (the owner's request,
+	//   2026-10-31: popups "focusing the screen on the unit/city and
+	//   displaying text"); the script gives them no advisor, so the military
+	//   advisor tells them.
 	// - The "Volcano is now active!" (VLC_ACTIVE) smoking warning a few
 	//   turns before ("You usually get a warning before eruption, but...
 	//   it can also go off without warning", the volcanos-why thread) isn't
@@ -181,7 +186,7 @@ namespace C7Engine {
 					result.citiesDestroyed.Add(city.name);
 					log.Information("{City} is destroyed by the eruption", city.name);
 					if (owner != null && owner.IsToldNews) {
-						new MsgShowTemporaryPopup($"{city.name} is torched by the volcanic eruption!", t, owner).send();
+						new MsgShowMilitaryAdvisorPopup(owner, $"{city.name} is torched by the volcanic eruption!", happy: false) { location = t }.send();
 					}
 					CityInteractions.DestroyCity(city);
 				}
@@ -197,7 +202,7 @@ namespace C7Engine {
 
 			foreach (Player player in lostUnits) {
 				if (player.IsToldNews) {
-					new MsgShowTemporaryPopup("Our units were burned to a crisp by a lava flow!", volcano, player).send();
+					new MsgShowMilitaryAdvisorPopup(player, "Our units were burned to a crisp by a lava flow!", happy: false) { location = volcano }.send();
 				}
 			}
 			return result;

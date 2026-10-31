@@ -39,6 +39,108 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		return city;
 	}
 
+	private static List<MsgShowMilitaryAdvisorPopup> MilitaryNewsFor(Player player) {
+		List<MsgShowMilitaryAdvisorPopup> news = new();
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			if (msg is MsgShowMilitaryAdvisorPopup n && n.recipient == player) {
+				news.Add(n);
+			}
+		}
+		return news;
+	}
+
+	// The news is addressed by one of the government's ruler titles, picked
+	// at random; these tests give it just the one.
+	private string Title() {
+		defender.government.maleRulerTitles = ["Your Majesty"];
+		defender.government.femaleRulerTitles = ["Your Majesty"];
+		return "Your Majesty";
+	}
+
+	// Civ3's THEY_CAPTURE_CITY_GOLD (script.txt), with "#map_center 1": the
+	// player who lost the city is told where it is (see LossNews).
+	[Fact]
+	public void ThePlayerWhoLostACityIsToldWhereItIs() {
+		defender.isHuman = true;
+		string title = Title();
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 3);
+		defender.gold = 100;
+		int plunder = CityInteractions.CaptureGold(city, defender);
+		Assert.True(plunder > 0);
+		MilitaryNewsFor(defender);
+
+		CityInteractions.CaptureCity(city, attacker);
+
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNewsFor(defender));
+		Assert.Equal($"Terrible news, {title}!\n{city.name} was captured by the evil {attacker.civilization.noun}!\n"
+			+ $"They have stolen {plunder} gold from its vaults.", news.message);
+		Assert.Equal(city.location, news.location);
+		Assert.False(news.supersedesNewsHere);
+	}
+
+	// CITY_LOST_WITH_WONDER: a great wonder survives the capture, and the
+	// news names it.
+	[Fact]
+	public void TheNewsOfACityLostWithAWonderNamesIt() {
+		defender.isHuman = true;
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 3);
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
+		city.AddBuilding(wonder);
+		MilitaryNewsFor(defender);
+
+		CityInteractions.CaptureCity(city, attacker);
+
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNewsFor(defender));
+		Assert.Contains($"The evil {attacker.civilization.noun} have captured {city.name} -- along with {wonder.name}!", news.message);
+		Assert.EndsWith("We must make them pay!", news.message);
+	}
+
+	// THEY_DESTROY_CITY_GOLD, for a city destroyed as it is taken.
+	[Fact]
+	public void ThePlayerWhoseCityIsDestroyedAsItsTakenIsToldSo() {
+		defender.isHuman = true;
+		string title = Title();
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 1);
+		Assert.False(CityInteractions.SurvivesCapture(city));
+		Tile tile = city.location;
+		MilitaryNewsFor(defender);
+
+		CityInteractions.CaptureCity(city, attacker);
+
+		Assert.False(tile.HasCity());
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNewsFor(defender));
+		Assert.Equal($"Terrible news, {title}!\nThe evil {attacker.civilization.noun} have stolen 0 gold from {city.name} and burned it to the ground!\n"
+			+ "They should pay dearly for this atrocity!", news.message);
+		Assert.Equal(tile, news.location);
+	}
+
+	// THEY_RAZE_CITY_GOLD: razing a city just taken tells the civ it was
+	// taken from, with the gold taken with it, and replaces the news of the
+	// capture if they've yet to see it.
+	[Fact]
+	public void ThePlayerWhoseCityIsRazedIsToldSo() {
+		defender.isHuman = true;
+		string title = Title();
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 3);
+		defender.gold = 100;
+		int plunder = CityInteractions.CaptureGold(city, defender);
+		CityInteractions.CaptureCity(city, attacker);
+		Tile tile = city.location;
+		MilitaryNewsFor(defender);
+
+		CityInteractions.RazeCity(city);
+
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNewsFor(defender));
+		Assert.StartsWith($"Terrible news, {title}!\n", news.message);
+		Assert.Contains($"The evil {attacker.civilization.noun} have stolen {plunder} gold from {city.name} and burned it to the ground!", news.message);
+		Assert.Equal(tile, news.location);
+		Assert.True(news.supersedesNewsHere);
+	}
+
 	[Fact]
 	public void CapturedCityChangesHandsAndShrinks() {
 		FoundCity(attacker, 1);

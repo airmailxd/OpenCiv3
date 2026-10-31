@@ -158,6 +158,9 @@ namespace C7GameData {
 		// to raze in the same turn; after a load razing falls back to the
 		// citizens' own nationality.
 		internal Civilization capturedFrom;
+		// The gold taken from its old owner when it was taken, for the news
+		// if it's then razed (see LossNews). Not saved, like capturedFrom.
+		internal int plunderedOnCapture;
 
 		// A culture flip of this city that the human it would go to has yet
 		// to accept or refuse, and the turn it was offered, -1 if none; the

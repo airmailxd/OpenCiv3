@@ -44,6 +44,8 @@ public class VolcanoTest : IClassFixture<SaveGameFixture>, IDisposable {
 		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
 			if (msg is MsgShowTemporaryPopup popup) {
 				result.Add(popup.message);
+			} else if (msg is MsgShowMilitaryAdvisorPopup news) {
+				result.Add(news.message);
 			}
 		}
 		return result;
@@ -113,6 +115,31 @@ public class VolcanoTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Contains("Volcano has erupted!", popups);
 		Assert.Contains($"{city.name} is torched by the volcanic eruption!", popups);
 		Assert.Contains("Our units were burned to a crisp by a lava flow!", popups);
+	}
+
+	// What was lost is told as a popup that centres the map on it (see
+	// LossNews), to the player who lost it.
+	[Fact]
+	public void TheLossesAreToldWhereTheyHappened() {
+		Tile cityTile = city.location;
+		Tile field = Volcano.TilesInReach(volcano).First(t => !t.HasCity());
+		gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Warrior"), field);
+		Popups();
+
+		Volcano.Erupt(gameData, volcano, new List<Tile> { field, cityTile });
+
+		List<MsgShowMilitaryAdvisorPopup> news = new();
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			if (msg is MsgShowMilitaryAdvisorPopup n) {
+				news.Add(n);
+			}
+		}
+		MsgShowMilitaryAdvisorPopup torched = Assert.Single(news, n => n.message == $"{city.name} is torched by the volcanic eruption!");
+		Assert.Equal(cityTile, torched.location);
+		Assert.Equal(player, torched.recipient);
+		MsgShowMilitaryAdvisorPopup burned = Assert.Single(news, n => n.message == "Our units were burned to a crisp by a lava flow!");
+		Assert.Equal(volcano, burned.location);
+		Assert.Equal(player, burned.recipient);
 	}
 
 	[Fact]

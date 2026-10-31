@@ -291,6 +291,8 @@ namespace C7Engine {
 			captor.citiesCaptured++;
 
 			if (!SurvivesCapture(city)) {
+				// No gold is taken from a city destroyed as it's taken.
+				LossNews.TellCityLost(oldOwner, city, captor, gold: 0, razed: true, wonder: LossNews.GreatWonderIn(city));
 				DestroyCity(city);
 				return;
 			}
@@ -341,6 +343,7 @@ namespace C7Engine {
 			}
 
 			city.capturedFrom = oldOwner.civilization;
+			city.plunderedOnCapture = plunder;
 			bool wasCapital = city.capital;
 			city.capital = false;
 			oldOwner.cities.Remove(city);
@@ -376,8 +379,9 @@ namespace C7Engine {
 			if (captor.isHuman && MayAbandon(captor, city, gameData)) {
 				new MsgDisplayRazeCityPopup(captor, city).send();
 			}
+			// The great wonders survive the capture (see above).
 			if (oldOwner.IsToldNews) {
-				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false) { newsEvent = capture }.send();
+				LossNews.TellCityLost(oldOwner, city, captor, plunder, razed: false, wonder: LossNews.GreatWonderIn(city), capture);
 			}
 
 			gameData.CheckForCivDestructionAndNotifyUi(oldOwner, captor);
@@ -536,6 +540,12 @@ namespace C7Engine {
 					.GroupBy(n => n).OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault()
 				?? razer.civilization;
 			log.Information("{Razer} razes {City}, taking {Slaves} slave workers", razer, city, slaves);
+			// The civ it was taken from hears of it, with the gold taken with
+			// it and the wonder lost.
+			if (city.capturedFrom != null) {
+				Player victim = gameData.players.FirstOrDefault(p => p.civilization == city.capturedFrom && p != razer);
+				LossNews.TellCityLost(victim, city, razer, city.plunderedOnCapture, razed: true, wonder: LossNews.GreatWonderIn(city));
+			}
 			DestroyCity(city);
 
 			List<MapUnit> workers = new();

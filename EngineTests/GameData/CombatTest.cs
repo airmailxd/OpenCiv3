@@ -232,6 +232,53 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.All(us.units, u => Assert.Contains(u, u.location.unitsOnTile));
 	}
 
+	private static List<MsgShowMilitaryAdvisorPopup> MilitaryNews() {
+		List<MsgShowMilitaryAdvisorPopup> news = new();
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			if (msg is MsgShowMilitaryAdvisorPopup n) {
+				news.Add(n);
+			}
+		}
+		return news;
+	}
+
+	// Civ3's UNITCAPTURED (script.txt), told where it happened, so the
+	// map is centred there as it's shown (see LossNews).
+	[Fact]
+	public async Task APlayerIsToldTheirUnitWasCapturedWhereItWas() {
+		GoToWar();
+		them.isHuman = true;
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		Spawn(them, "Worker", to);
+		MilitaryNews();
+
+		Assert.True(await warrior.Move(dir));
+
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNews(), n => n.recipient == them);
+		Assert.Equal("Our Worker was captured!", news.message);
+		Assert.Equal(to, news.location);
+		Assert.False(news.happy);
+	}
+
+	// UNITSCAPTURED, for more than one.
+	[Fact]
+	public async Task SeveralUnitsCapturedAreToldTogether() {
+		GoToWar();
+		them.isHuman = true;
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		Spawn(them, "Worker", to);
+		Spawn(them, "Settler", to);
+		MilitaryNews();
+
+		Assert.True(await warrior.Move(dir));
+
+		MsgShowMilitaryAdvisorPopup news = Assert.Single(MilitaryNews(), n => n.recipient == them);
+		Assert.Equal("Our units were captured!", news.message);
+		Assert.Equal(to, news.location);
+	}
+
 	[Fact]
 	public async Task CapturedSettlerBecomesTwoSlaveWorkers() {
 		GoToWar();
