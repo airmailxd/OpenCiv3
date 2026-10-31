@@ -1114,7 +1114,7 @@ namespace C7Engine.AI {
 
 			if (!atWar) {
 				player.DeclareWarOn(c.enemy, gameData.turn);
-				log.Information("{Player} declared war on {Enemy} to take {City}", player, c.enemy, c.target.name);
+				log.Information("{Player} declared war on {Enemy} to take {City}{Total}", player, c.enemy, c.target.name, TotalWar.On(player) ? " (total war)" : "");
 				MsgWarDeclaration.Announce(player, c.enemy);
 			}
 			log.Information("{Player} marches {Count} units ({Attackers} attackers) from {From} on {City}", player, ready.Count, readyAttackers, staging.name, c.target.name);

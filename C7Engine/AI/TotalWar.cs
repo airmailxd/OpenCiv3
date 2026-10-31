@@ -37,6 +37,9 @@ namespace C7Engine.AI {
 		// the engine does not record who took a city, and a victim that wins
 		// cities off us is not one we are beating.
 		private const int CitiesLostToQuit = 2;
+		// HEURISTIC: a civ with fewer cities is still expanding, and has no
+		// production to build a stack with.
+		private const int MinCitiesToPick = 4;
 		// HEURISTIC: only victims whose cities lie this close to one of ours
 		// count as near for the gathered stack's measure.
 		private const int BorderRadius = 10;
@@ -46,6 +49,7 @@ namespace C7Engine.AI {
 		private sealed class State {
 			public Player victim;
 			public int warStart;
+			public int pickedTurn;
 			public int lastGainTurn;
 			public int victimCities;
 			public int mostCities;
@@ -132,6 +136,19 @@ namespace C7Engine.AI {
 						s.lastGainTurn = gameData.turn;
 					}
 					s.victimCities = s.victim.cities.Count;
+					bool atWar = player.playerRelationships.TryGetValue(s.victim.id, out PlayerRelationship rel) && rel.AtWar();
+					if (!atWar) {
+						// Still gathering the stack: the war's clock has not
+						// started, but the gathering may not go on forever.
+						s.warStart = s.lastGainTurn = gameData.turn;
+						s.mostCities = player.cities.Count;
+						if (gameData.turn - s.pickedTurn >= AdvancedTuning.GetInt(player, MaxTurns)) {
+							log.Information("{Player} gives up total war on {Victim}: no war declared in {Turns} turns", player, s.victim, gameData.turn - s.pickedTurn);
+							s.victim = null;
+							s.restUntil = gameData.turn;
+						}
+						return s.victim;
+					}
 					s.mostCities = Math.Max(s.mostCities, player.cities.Count);
 					int turns = gameData.turn - s.warStart;
 					if (s.mostCities - player.cities.Count >= CitiesLostToQuit) {
@@ -147,7 +164,7 @@ namespace C7Engine.AI {
 					s.restUntil = gameData.turn + RestTurns(player);
 				}
 			}
-			if (s.victim == null && gameData.turn >= s.restUntil && player.cities.Count > 0) {
+			if (s.victim == null && gameData.turn >= s.restUntil && player.cities.Count >= MinCitiesToPick) {
 				PickVictim(player, gameData, s);
 			}
 			return s.victim;
@@ -194,6 +211,7 @@ namespace C7Engine.AI {
 		private static void Begin(Player player, State s, Player victim, int turn) {
 			s.victim = victim;
 			s.warStart = turn;
+			s.pickedTurn = turn;
 			s.lastGainTurn = turn;
 			s.victimCities = victim.cities.Count;
 			s.mostCities = player.cities.Count;
