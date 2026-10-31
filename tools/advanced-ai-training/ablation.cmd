@@ -2,7 +2,8 @@
 rem ZUR-119 ablation: 9 exam runs (defaults, each of 7 categories at 0, all at 50) on the ZUR-108 Regent seeds.
 rem Run only when no other long run is going and the owner's hours allow. Usage: ablation.cmd <outdir>
 rem Skips any run that already has done.flag, so it can be restarted.
-setlocal enabledelayedexpansion
+setlocal
+cd /d "%~dp0..\.."
 set OUT=%~1
 if "%OUT%"=="" set OUT=C:\Dev\ladder-runs\zur119
 set CATS=Expansion Workers Research Military Diplomacy Infrastructure Wonders
@@ -27,5 +28,5 @@ set C7_TRIAL_CIVS=8
 set C7_ADVANCED_TUNING=%~2
 set C7_TRIAL_MODEL=
 "C:\Program Files\dotnet\dotnet.exe" test EngineTests --no-build --filter "FullyQualifiedName~AiTrialTest&FullyQualifiedName!~EngineTests.Network." > "%OUT%\%1\test.log" 2>&1
-echo done > "%OUT%\%1\done.flag"
+if not errorlevel 1 echo done > "%OUT%\%1\done.flag"
 exit /b 0
