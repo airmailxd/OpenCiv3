@@ -405,7 +405,7 @@ def queue_rechecks(args, state, exam, difficulty, key):
                            "recheck_of": eid, "reason": f"ratios shifted past 2 exam SE since the entry: {why}"})
             with open(os.path.join(args.out, "ideas.txt"), "a", encoding="utf-8", newline="\n") as f:
                 f.write(f"{rev}  # recheck {eid}\n")
-            state["rechecks"][key] += 1
+            state["rechecks"][key] = state["rechecks"].get(key, 0) + 1
             note(args, f"- recheck queued for {eid}: {why}; reversal {rev}")
     except Exception as ex:  # noqa: BLE001
         note(args, f"- recheck not queued: {ex}")
