@@ -446,9 +446,16 @@ How to read this section:
   does the AI ask for peace (Soren?)",
   https://codehappy.net/apolyton/threads/41866-1.htm, post #27, Feb 11 2002,
   vanilla): "The AI's willingness to discuss peace terms depends on" "how long
-  the war has lasted" and "how much it is winning or losing the war." Also:
-  "the length of time factor is there to prevent people from war-jacking the
-  AI". The minimum length is not given.
+  the war has lasted" and "how much it is winning or losing the war." He
+  goes on: "In other words, the longer the war has lasted and the more
+  battles/cities/whatever the AI has lost relative to you, the more willing it
+  will be to go to the negotiating table." Also: "the length of time factor is
+  there to prevent people from war-jacking the AI". So winning and losing is
+  judged by what each side has lost in the war, not by the size of the
+  armies. The minimum length, and how the two factors combine, are not given.
+  Players in the same thread: Harovan (#3), the AI often asks for peace "when
+  it has no offensive units left"; solo (#10), "The number of turns since a
+  war starts is definitely a factor." (re-read 2026-10-31)
 - **The AI accepts peace under threat only if it is losing.** `diplomacy.txt`
   `AIPEACETREATYTHREAT` (reply to "Our troops approach your cities"): "Fool! Do
   you think we are frightened of your puny soldiers? Well, as fate would have
@@ -1077,6 +1084,24 @@ In this study a negative number is good.
   SayHayKid (post-16605848, page-101 #2017): (paraphrase from a summarised fetch) "In standard game you
   can enter, but the other Civ will ask you to remove your forces." These are
   play reports, not tests.
+- **The whole exchange, in Civ3's words (C3C `diplomacy.txt`, read
+  2026-10-31).** The AI's warning is `AIBORDERWARNING` (lines naming the
+  AI's city near the troops, "$CITY3"); its "leave or declare war" is
+  `AIBORDERWAR` (three lines; there "$CIVNAME1" and "$CIVADJ2" are the
+  AI's own, per the file's comment). The human's answers: `USERWILLRETREAT`
+  ("We apologize for the mistake. We will move our troops out of your
+  territory."), `USERWILLRETURNHOME` ("Our mistake." "<Your troops will move
+  automatically.>") and `USERWAR` ("That's it! Prepare for WAR!"). The AI's
+  replies on compliance are `AIDONTTEST` and `AIOVERLOOK` ("Good. $CIVNAME1
+  shall overlook your blunder for now."). The human's own demands are
+  `USERBORDERWARNING` ("Your forces are within our borders! You must
+  withdraw them.") and `USERBORDERWAR`, answered by `AIWILLRETREAT` and
+  `AIWILLRETURNHOME`. Which answers go with which prompt is inferred from the
+  pairing of the names (WARNING/RETREAT, WAR/RETURNHOME) and the
+  "<Your troops will move automatically.>" note: UNVERIFIED against a
+  screenshot. `AIBORDERWARNING` and `AIDONTTEST` are marked "#civ 1 #mood 1"
+  and have about 93 lines, three per civ, so Civ3 seems to pick a line by
+  the AI's civ and mood (UNVERIFIED reading of the header).
 - **When the "leave or declare war" option appears is unknown.** Apolyton
   55198 (Jul 2002, 1.21f) has guesses only. Hurricane: "The exact number of
   units required is still unresolved, AFAIK." Fitz: "Contacting a

@@ -192,3 +192,8 @@ https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bom
 - Pages used for this section: 5, 16, 21, 36, 39, 44, 47, 69, 91, 101, 123, 131, 133, 136, 140, 141, 147, 156, 158, 160, 177, 188, 190, 191.
 - Posts cited: post-16055720 (p5 #91), post-16132380 (p16 #313), post-16132702 (p16 #318), post-16154963 (p21 #405), post-16275461 (p36 #709), post-16291863 (p39 #771), post-16310981 (p44 #876), post-16322889 (p47 #938), post-16428036 (p69 #1369), post-16571523 (p91 #1812), post-16605848 (p101 #2017), post-16719849 (p123 #2448), post-16760037 (p131 #2614), post-16781598 (p133 #2646), post-16823338 (p136 #2722), post-16832498 (p140 #2794), post-16833692 (p141 #2810), post-16848926 (p147 #2930), post-16876177 (p156 #3105), post-16878439 (p156 #3119), post-16883917 (p158 #3141), post-16892444 (p160 #3198), post-16938325 (p177 #3539), post-16980354 (p188 #3741), post-16987435 (p190 #3796), post-16990905 (p191 #3807), post-16322917.
 - Pages 65-66: nothing new for section 6.
+
+## Re-read 2026-10-31 (peace and units in territory)
+
+- https://codehappy.net/apolyton/threads/41866-1.htm (fetched raw): Soren's full post #27 ("the more battles/cities/whatever the AI has lost relative to you"); Harovan #3, solo #10. Added to 6.5.
+- `Conquests/Text/diplomacy.txt`: AIBORDERWARNING, AIBORDERWAR (and its variable comment), AIDONTTEST, AIOVERLOOK, AIWILLRETREAT, AIWILLRETURNHOME, USERBORDERWARNING, USERBORDERWAR, USERWILLRETREAT, USERWILLRETURNHOME, USERWAR, AICOUNTERPEACE, AINOCOUNTERPEACE, AIPEACETREATY, AINOPEACETREATY. Added to 6.10.
