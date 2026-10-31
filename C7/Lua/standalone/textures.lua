@@ -373,6 +373,24 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_upgrade = own_button("unit_upgrade")
   c7_textures.ui.unit_control.unit_build_barricade = own_button("unit_build_barricade")
 
+  -- The asset pack's techboxes.png only has the small boxes of the Ancient
+  -- era, so a bigger box (an advance with more than one thing to show) or a
+  -- box of a later era was blank: the advance had no box, known or not, and
+  -- its "not required" sign floated where the box's corner should have been
+  -- (owner's report, 2026-10-31). Every box comes from a sheet of our own
+  -- instead (C7/ModernArt/Art/Advisors/TechBoxesAllSizes.png, made by
+  -- ArtGen/ui_buttons/tech_boxes.py from the pack's small boxes), laid out
+  -- like Civ3's, so the crop regions stay as they are.
+  for _, eras in pairs(c7_textures.tech_boxes) do
+    if type(eras) == "table" then
+      for _, sizes in pairs(eras) do
+        for _, box in pairs(sizes) do
+          box.path = "Art/Advisors/TechBoxesAllSizes.png"
+        end
+      end
+    end
+  end
+
   -- The asset pack's TerrainBuildings.png only has a placeholder where the
   -- colonies go. Named by Civ3's file, which the pack doesn't have, a colony
   -- comes from the remade sheet (C7/ModernArt/Art/Terrain/TerrainBuildings.png),

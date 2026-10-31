@@ -11,7 +11,8 @@ buttons at them.
 
 It also draws the air missions' and the airdrop's buttons (see
 air_missions.py), which are blank in the asset pack too, and the icons by a
-city for its barracks, airport and harbor (see city_icons.py).
+city for its barracks, airport and harbor (see city_icons.py), and the
+science advisor's tech boxes the pack has no art for (see tech_boxes.py).
 
 The buttons copy the asset pack's look: a golden ball with the order drawn on
 it in dark brown.
@@ -28,6 +29,7 @@ import civ3art  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import air_missions  # noqa: E402
 import city_icons  # noqa: E402
+import tech_boxes  # noqa: E402
 
 CELL = 64          # one button at 2x
 SS = 4             # supersampling
@@ -305,3 +307,4 @@ if __name__ == '__main__':
     build('unit_join_city', join_city_glyph)
     air_missions.main()
     city_icons.main()
+    tech_boxes.main()
