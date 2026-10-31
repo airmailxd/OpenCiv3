@@ -95,8 +95,13 @@ namespace C7Engine.AI {
 		// government with the tile penalty and with the switch on; empty
 		// otherwise.
 		internal static HashSet<Tech> EarlyGovernmentPath(Player player, GameData gameData) {
+			return AiExperiments.Has(player, EarlyGovernment) ? RoutePath(player, gameData) : new HashSet<Tech>();
+		}
+
+		// The same, whether or not early-government is on.
+		internal static HashSet<Tech> RoutePath(Player player, GameData gameData) {
 			HashSet<Tech> path = new();
-			if (!AiExperiments.Has(player, EarlyGovernment) || player.government == null || !player.government.hasTilePenalty) {
+			if (player.government == null || !player.government.hasTilePenalty) {
 				return path;
 			}
 			Government best = null;

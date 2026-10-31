@@ -66,8 +66,9 @@ namespace C7Engine {
 			// (With the trade-gpt switch, at once on meeting someone or
 			// learning a tech; see TradeGpt.)
 			bool tradeNow = TradeGpt.WantsToTradeNow(player);
-			if (tradeNow || GameData.rng.Next(100) < TradeChance(player)) {
-				await AttemptTrading(player, tradeNow);
+			bool swapNow = TechSwap.WantsToSwapNow(player);
+			if (tradeNow || swapNow || GameData.rng.Next(100) < TradeChance(player)) {
+				await AttemptTrading(player, tradeNow, swapNow);
 			}
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
@@ -1510,7 +1511,7 @@ namespace C7Engine {
 			return result;
 		}
 
-		private static async Task AttemptTrading(Player us, bool tradeNow = false) {
+		private static async Task AttemptTrading(Player us, bool tradeNow = false, bool swapNow = false) {
 			GameData gD = EngineStorage.gameData;
 
 			log.Information($"{us} is checking for trading opportunities");
@@ -1531,6 +1532,12 @@ namespace C7Engine {
 				// name with everyone.
 				if (WarCampaign.IsPlannedTarget(us, them)) {
 					continue;
+				}
+
+				// Trial switch tech-swap: a tech for a tech, at once when there's
+				// news (see TechSwap).
+				if (TechSwap.On(us, them) && (swapNow || RollsToNegotiate(them))) {
+					TechSwap.Swap(gD, us, them);
 				}
 
 				// Trial switch trade-gpt: techs for gold per turn with every AI
