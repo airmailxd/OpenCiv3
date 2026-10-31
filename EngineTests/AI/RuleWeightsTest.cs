@@ -5,6 +5,7 @@ using System.Text.Json;
 using C7Engine;
 using C7Engine.AI.Advanced;
 using C7GameData;
+using C7GameData.Save;
 using EngineTests.Utils;
 using Xunit;
 
@@ -140,6 +141,26 @@ public sealed class RuleWeightsTest : IClassFixture<SaveGameFixture>, IDisposabl
 			Assert.True(heavy.Focus(f) >= baseline.Focus(f) && baseline.Focus(f) >= light.Focus(f), f.ToString());
 		}
 		Assert.NotEmpty(RuleWeights.UseOf(player));
+	}
+
+	[Fact]
+	public void InfrastructureWeightChangesWhatACityBuilds() {
+		SaveBuilding sg = new() { name = "Granary" };
+		sg.flags.Add(SaveBuilding.Flag.DoublesCityGrowthRate);
+		SaveBuilding sb = new() { name = "Barracks" };
+		sb.flags.Add(SaveBuilding.Flag.VeteranGroundUnits);
+		Building granary = new(sg, gameData);
+		Building barracks = new(sb, gameData);
+		Assert.Equal(0, PlanEffects.InfrastructureAdjustment(player, granary));
+		AdvancedTuning.Override("WeightInfrastructure=0");
+		float low = PlanEffects.InfrastructureAdjustment(player, granary);
+		AdvancedTuning.Override("WeightInfrastructure=100");
+		float high = PlanEffects.InfrastructureAdjustment(player, granary);
+		Assert.True(low < 0 && high > 0);
+		Assert.Equal(0, PlanEffects.InfrastructureAdjustment(player, barracks));
+		Assert.True(RuleWeights.UseOf(player).ContainsKey("production:Infrastructure"));
+		// Enough to flip a close choice between the improvement and a rival option.
+		Assert.True(high - low >= PlanEffects.FocusPoints(player));
 	}
 
 	// The registry's modifier means, as used in RuleWeights.

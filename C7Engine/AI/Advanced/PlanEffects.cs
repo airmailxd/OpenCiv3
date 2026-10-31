@@ -32,8 +32,28 @@ namespace C7Engine.AI.Advanced {
 		// are small nudges on the same score. A plan can still outweigh the
 		// flags (FocusPoints is three times FlagPoints).
 		public static float ProductionAdjustment(Player player, IProducible option) {
-			return PlanAdjustment(player, option) + FlagAdjustment(player, option);
+			return PlanAdjustment(player, option) + FlagAdjustment(player, option) + InfrastructureAdjustment(player, option);
 		}
+
+		// The infrastructure weight (50 = nothing) leans the city
+		// improvements it stands for: those that add production, growth or
+		// content faces, or cut corruption. It acts on the build choice
+		// itself, so it reaches every city whatever the plan or phase set.
+		public static float InfrastructureAdjustment(Player player, IProducible option) {
+			if (option is not Building b || b.IsGreatWonder() || b.isSmallWonder || !IsInfrastructure(b)) {
+				return 0;
+			}
+			double w = RuleWeights.Effective(player, RuleCategory.Infrastructure);
+			if (w == RuleWeights.Neutral) {
+				return 0;
+			}
+			RuleWeights.Used(player, RuleCategory.Infrastructure, "production");
+			return (float)((w - RuleWeights.Neutral) / RuleWeights.Neutral * FocusPoints(player));
+		}
+
+		public static bool IsInfrastructure(Building b) => b.reducesCorruption || b.productionBonusPercent > 0
+			|| b.allowsCitySize2 || b.allowsCitySize3 || b.doublesCityGrowthRate
+			|| b.contentFacesInCity > 0 || b.contentFacesAllCities > 0;
 
 		private static float PlanAdjustment(Player player, IProducible option) {
 			StrategicPlan plan = Active(player);
