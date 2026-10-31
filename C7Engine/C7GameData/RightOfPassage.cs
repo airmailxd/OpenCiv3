@@ -32,13 +32,21 @@ namespace C7GameData {
 		// Why the proposer can't sign a right of passage with the other civ
 		// now, or null if it can.
 		//
-		// - The proposer must know Writing and have an embassy with the
-		//   other civ (owner's decision, 2026-10-11: "The deal creator must
-		//   have Writing and an embassy. Map making isnt needed"). The BIQ's
-		//   flag on Map Making (Tech.EnablesRightOfPassage, "Can now
-		//   negotiate right of passage agreements", Conquests Civilopedia,
-		//   TECH_Map_Making) is read but not used. Rules with no tech named
-		//   Writing need none.
+		// - Writing and an embassy (owner's decision, 2026-10-11: "The deal
+		//   creator must have Writing and an embassy. Map making isnt
+		//   needed"). The embassy may be either civ's, as for every
+		//   agreement: "When your civilization builds an embassy in a
+		//   rival's capital city, or when a rival builds one in your
+		//   capital, you can negotiate Diplomatic Agreements" (Conquests
+		//   Civilopedia, GCON_Agreements; see Pacts.HasEmbassyEitherWay).
+		//   Writing is enough on either side, so the gate is the same
+		//   whichever civ proposes: a civ accepting an offer proposes it
+		//   back (MsgProposeDeal), so a gate on the proposer alone turned
+		//   down a human's yes to an AI's offer when only the AI had the
+		//   embassy. The BIQ's flag on Map Making (Tech.EnablesRightOfPassage,
+		//   "Can now negotiate right of passage agreements", Conquests
+		//   Civilopedia, TECH_Map_Making) is read but not used. Rules with no
+		//   tech named Writing need none.
 		// - At peace: at war the only deal is peace (TradeOffer.ProblemWithDeal).
 		// - Not already in force.
 		public static string ProblemSigning(GameData gameData, Player a, Player b) {
@@ -55,10 +63,10 @@ namespace C7GameData {
 			if (PlayerRelationship.HaveActiveRightOfPassage(a, b)) {
 				return "the civs already have a right of passage";
 			}
-			if (!ab.hasEmbassy) {
-				return "a right of passage needs an embassy with the other civ";
+			if (!Pacts.HasEmbassyEitherWay(a, b)) {
+				return "a right of passage needs an embassy";
 			}
-			if (!KnowsWriting(gameData, a)) {
+			if (!KnowsWriting(gameData, a) && !KnowsWriting(gameData, b)) {
 				return "a right of passage needs Writing";
 			}
 			return null;

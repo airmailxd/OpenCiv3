@@ -81,6 +81,41 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		return city;
 	}
 
+	// The embassy is the builder's alone: the civ it is built with gets
+	// none (no report, no Foreign Advisor knowledge of the builder), but is
+	// told, and agreements open to both: "When your civilization builds an
+	// embassy in a rival's capital city, or when a rival builds one in your
+	// capital, you can negotiate" (Conquests Civilopedia, GCON_Agreements).
+	[Fact]
+	public void AnEmbassyIsTheBuildersAloneButOpensAgreementsToBoth() {
+		FoundCity(actor, 3);
+		FoundCity(target, 3);
+		Meet(actor, target);
+		target.isHuman = true;
+		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
+
+		Assert.True(Espionage.Perform(gameData, actor, EspionageMission.EstablishEmbassy, target, null, Fail).success);
+
+		Assert.True(Espionage.HasEmbassy(actor, target));
+		Assert.False(Espionage.HasEmbassy(target, actor));
+		Assert.True(ForeignReport.HasEmbassyWith(actor, target));
+		Assert.False(ForeignReport.HasEmbassyWith(target, actor));
+		Assert.DoesNotContain("We have: An Embassy", ForeignReport.Details(gameData, target, actor));
+		Assert.Null(target.playerRelationships[actor.id].embassyReport);
+
+		Assert.True(Pacts.HasEmbassyEitherWay(actor, target));
+		Assert.True(Pacts.HasEmbassyEitherWay(target, actor));
+		Assert.Null(RightOfPassage.ProblemSigning(gameData, actor, target));
+		Assert.Null(RightOfPassage.ProblemSigning(gameData, target, actor));
+
+		List<MessageToUI> messages = new();
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI m)) {
+			messages.Add(m);
+		}
+		Assert.Contains(messages, m => m is MsgShowForeignAdvisorPopup p && p.recipient == target
+			&& p.message.Contains("established an embassy in our capital city"));
+	}
+
 	[Fact]
 	public void EmbassyNeedsContactAndThenIsEstablished() {
 		FoundCity(actor, 3);

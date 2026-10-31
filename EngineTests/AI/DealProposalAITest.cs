@@ -196,6 +196,34 @@ public class DealProposalAITest : System.IDisposable {
 		Assert.True(PlayerRelationship.AtWar(them, third));
 	}
 
+	// Every agreement needs an embassy, on either side (Conquests
+	// Civilopedia, GCON_Agreements): with none the AI offers no alliance,
+	// pact or embargo; the other civ's embassy with it will do.
+	[Fact]
+	public void TheAIOffersNoAgreementWithoutAnEmbassyOnEitherSide() {
+		us.gold = 500;
+		them.playerRelationships[third.id].warDeclarationCount = 1;
+		us.playerRelationships[third.id].warDeclarationCount = 3;
+		Attitudes.RecordGift(us.playerRelationships[them.id], 10000, gameData.turn);
+		third.DeclareWarOn(us, gameData.turn);
+		// Embassies with third don't count for a deal with them.
+		us.playerRelationships[third.id].hasEmbassy = true;
+		them.playerRelationships[third.id].hasEmbassy = true;
+
+		Assert.Null(Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them)));
+		Assert.Null(Eventually(() => DealProposalAI.EmbargoDeal(gameData, us, them)));
+		Assert.Null(Eventually(() => DealProposalAI.PactDeal(gameData, us, them)));
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, them,
+			new TradeOffer { militaryAllianceAgainst = third.id }, new TradeOffer { militaryAllianceAgainst = third.id }));
+
+		// Their embassy with us opens it, though we have none with them.
+		them.playerRelationships[us.id].hasEmbassy = true;
+		Assert.False(Espionage.HasEmbassy(us, them));
+		(TradeOffer weGive, TradeOffer weWant)? deal = Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them));
+		Assert.NotNull(deal);
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, them, us, deal.Value.weWant, deal.Value.weGive));
+	}
+
 	[Fact]
 	public void NoAllianceFromACivThatBrokeADeal() {
 		GiveEmbassies();

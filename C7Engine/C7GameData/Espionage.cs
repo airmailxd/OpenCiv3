@@ -669,6 +669,25 @@ namespace C7Engine {
 						result.report = ours.embassyReport;
 						result.city = capital;
 						result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.";
+						// The embassy is the actor's alone: the target gets
+						// none with the actor, but is told, as agreements
+						// with the actor are now open to it too (see
+						// Pacts.HasEmbassyEitherWay). Civ3's words
+						// (script.txt, #ESPIONAGE_FOREIGN_EMBASSY_ESTABLISHED,
+						// "#advisor Foreign Happy"): "$TITLE0, $LEADER1 of the
+						// $CIVNOUN2 has established an embassy in our capital
+						// city."
+						if (target.IsToldNews) {
+							string title = target.civilization.leaderTitle;
+							string leader = actor.civilization.leader;
+							string who = string.IsNullOrEmpty(leader)
+								? $"the {actor.civilization.noun} have"
+								: $"{leader} of the {actor.civilization.noun} has";
+							string message = string.IsNullOrEmpty(title)
+								? $"{char.ToUpperInvariant(who[0])}{who[1..]} established an embassy in our capital city."
+								: $"{title}, {who} established an embassy in our capital city.";
+							new MsgShowForeignAdvisorPopup(target, message, happy: true) { newsEvent = result.newsEvent }.send();
+						}
 						break;
 					}
 				case EspionageMission.InvestigateCity:

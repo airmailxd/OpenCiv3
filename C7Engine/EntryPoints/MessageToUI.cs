@@ -379,6 +379,25 @@ namespace C7Engine {
 		protected override string OwnHeadline() => OneLine(message);
 	}
 
+	// News from the foreign advisor, such as a rival establishing an
+	// embassy in our capital.
+	public class MsgShowForeignAdvisorPopup : MessageToUI {
+		public string message;
+		public bool happy;
+		public MsgShowForeignAdvisorPopup(Player recipient, string message, bool happy) {
+			this.recipient = recipient;
+			this.message = message;
+			this.happy = happy;
+		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() => Whose(message);
+
+		protected override string OwnHeadline() => OneLine(message);
+	}
+
 	// Tells a human player that another civ has completed a great wonder.
 	// The wonder and city are named, so the news reads the same on a LAN
 	// guest that can't see the city.

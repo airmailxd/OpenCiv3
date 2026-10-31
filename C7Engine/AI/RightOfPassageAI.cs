@@ -24,8 +24,8 @@ namespace C7Engine.AI {
 	// owner: "AI should seek Rights of passage when at war with a civ and
 	// needing to run through 3rd civ's territory to get to the enemy. Value
 	// should scale off of each member's empire size" (owner's decision,
-	// 2026-10-11). Without the embassy it needs as the proposer, it
-	// establishes one first if it can spare the gold. Now and then it also
+	// 2026-10-11). Without an embassy on either side, which every agreement
+	// needs, it establishes one first if it can spare the gold. Now and then it also
 	// offers one to a civ it is at peace with, as Civ3's AI does to be
 	// friendly (owner's decision, 2026-10-11), with gold as the sizes say
 	// (below); the other civ signs if it is worth it to them. In paired AI
@@ -363,12 +363,12 @@ namespace C7Engine.AI {
 			return best;
 		}
 
-		// Proposing a right of passage needs our embassy with them (see
-		// RightOfPassage), so without one we establish one, as the AI does
-		// anyway when it can spare the gold (see EspionageAI), but keeping
-		// less in reserve, as we need it now.
+		// A right of passage needs an embassy, ours or theirs (see
+		// RightOfPassage), so without either we establish one, as the AI
+		// does anyway when it can spare the gold (see EspionageAI), but
+		// keeping less in reserve, as we need it now.
 		private static void EstablishEmbassyIfNeeded(GameData gameData, Player player, Player them) {
-			if (!TryGetRelationship(player, them, out PlayerRelationship ours) || ours.hasEmbassy) {
+			if (!TryGetRelationship(player, them, out _) || Pacts.HasEmbassyEitherWay(player, them)) {
 				return;
 			}
 			if (Espionage.Unavailable(gameData, player, EspionageMission.EstablishEmbassy, them, null) != null

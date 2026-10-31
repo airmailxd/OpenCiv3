@@ -111,26 +111,30 @@ public class RightOfPassageTest : MapBase {
 
 	// The rules
 
-	// The proposer needs an embassy with the other civ; theirs with the
-	// proposer doesn't do (owner's decision, 2026-10-11).
+	// It needs an embassy, and either civ's will do, whichever proposes:
+	// "When your civilization builds an embassy in a rival's capital city,
+	// or when a rival builds one in your capital, you can negotiate"
+	// (Conquests Civilopedia, GCON_Agreements).
 	[Fact]
-	public void TheProposerNeedsAnEmbassy() {
+	public void EitherCivsEmbassyWillDo() {
 		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
+		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, third, us));
 		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Passage(), Passage()));
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, third, us, Passage(), Passage()));
 
 		GiveEmbassy(third, us);
-		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
-		Assert.Null(RightOfPassage.ProblemSigning(gameData, third, us));
-
-		GiveEmbassy(us, third);
 		Assert.Null(RightOfPassage.ProblemSigning(gameData, us, third));
+		Assert.Null(RightOfPassage.ProblemSigning(gameData, third, us));
 		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Passage(), Passage()));
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, third, us, Passage(), Passage()));
+		// An embassy with someone else does nothing.
+		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, enemy));
 	}
 
-	// The proposer needs Writing, the other civ doesn't, and Map Making
-	// isn't needed (owner's decision, 2026-10-11).
+	// It needs Writing, on either side, and Map Making isn't needed
+	// (owner's decision, 2026-10-11).
 	[Fact]
-	public void TheProposerNeedsWriting() {
+	public void ItNeedsWritingOnEitherSide() {
 		GiveEmbassy(us, third);
 		Tech writing = new() { id = ID.FromString("tech-99"), Name = "Writing" };
 		Tech mapMaking = new() { id = ID.FromString("tech-15"), Name = "Map Making", EnablesRightOfPassage = true };
@@ -138,8 +142,49 @@ public class RightOfPassageTest : MapBase {
 		gameData.techs.Add(mapMaking);
 
 		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
+		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, third, us));
 		us.knownTechs.Add(writing.id);
 		Assert.Null(RightOfPassage.ProblemSigning(gameData, us, third));
+		Assert.Null(RightOfPassage.ProblemSigning(gameData, third, us));
+	}
+
+	// An AI with an embassy in a human's capital may offer the human a
+	// right of passage, and the human, who has none, can accept it: the
+	// human's yes proposes the deal back to the AI (MsgProposeDeal).
+	[Fact]
+	public void AHumanWithoutAnEmbassyCanAcceptAnAisOffer() {
+		third.isHuman = true;
+		GiveEmbassy(us, third);
+		Assert.False(Espionage.HasEmbassy(third, us));
+
+		(TradeOffer weGive, TradeOffer weWant) = RightOfPassageAI.MakeOffer(gameData, us, third);
+		Assert.NotNull(weGive);
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, weGive, weWant));
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, third, us, weWant, weGive));
+		Assert.True(us.ExecuteDeal(gameData, third, weWant, weGive));
+		Assert.True(HaveActiveRightOfPassage(us, third));
+		// Signing gives the human no embassy.
+		Assert.False(Espionage.HasEmbassy(third, us));
+	}
+
+	// The AI offers no right of passage in friendship while neither civ
+	// has an embassy with the other; their embassy with us opens it.
+	[Fact]
+	public async Task AnAiOffersOneInFriendshipOnlyWithAnEmbassyOnEitherSide() {
+		AddCities(us, 3);
+		third.gold = 50;
+		enemy.gold = 50;
+
+		await RightOfPassageAI.OfferFriendlyPassage(us, gameData);
+		Assert.False(HaveActiveRightOfPassage(us, third));
+		Assert.False(HaveActiveRightOfPassage(us, enemy));
+
+		GiveEmbassy(third, us);
+		await RightOfPassageAI.OfferFriendlyPassage(us, gameData);
+		Assert.True(HaveActiveRightOfPassage(us, third));
+		Assert.False(HaveActiveRightOfPassage(us, enemy));
+		// The embassy is still theirs alone.
+		Assert.False(Espionage.HasEmbassy(us, third));
 	}
 
 	[Fact]
