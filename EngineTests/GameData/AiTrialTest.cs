@@ -1041,6 +1041,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					["gold"] = p.gold,
 					["score"] = dead ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
 					["culture"] = p.cities.Sum(c => c.GetCulture()),
+					// Land tiles the civ has explored, and the open city sites
+					// it could reach from its first city: the count the AI's
+					// "room to expand" decisions use (ChooseProducible).
+					["knownLand"] = p.tileKnowledge.knownTiles.Count(t => t.IsLand()),
+					["openSites"] = dead || p.cities.Count == 0 ? 0 : ChooseProducible.NumberOfReachableOpenCitySpots(p.cities[0]),
 					["atWarWith"] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).Select(o => o.civilization.name).ToList(),
 				}));
 			}
