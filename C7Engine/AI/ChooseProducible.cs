@@ -98,8 +98,8 @@ namespace C7Engine {
 			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
 
 			// For the lean-garrison trial (see LeanGarrison).
-			private (int wanted, bool anyShort)? leanGarrisonNeed;
-			public (int wanted, bool anyShort) LeanGarrisonNeed => leanGarrisonNeed ??= LeanGarrison.Need(player, atWar);
+			private int? leanGarrisonNeed;
+			public int LeanGarrisonNeed => leanGarrisonNeed ??= LeanGarrison.Need(player, atWar);
 
 			// For the lean-military trial (see DevelopmentAI).
 			private (int have, int want)? militaryNeed;
@@ -916,8 +916,8 @@ namespace C7Engine {
 			}
 			int want = defensive ? 2 * cities : cities;
 			if (LeanGarrison.On(player)) {
-				int leanDefenders = stats?.LeanGarrisonNeed.wanted
-					?? LeanGarrison.Need(player, IsInAnyWar(player, EngineStorage.gameData.players)).wanted;
+				int leanDefenders = stats?.LeanGarrisonNeed
+					?? LeanGarrison.Need(player, IsInAnyWar(player, EngineStorage.gameData.players));
 				want = defensive ? leanDefenders : cities + System.Math.Max(0, 2 * cities - leanDefenders);
 			}
 			return have < want ? GarrisonShortBonus : 0;

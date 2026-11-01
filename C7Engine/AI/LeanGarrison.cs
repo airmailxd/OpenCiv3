@@ -38,8 +38,7 @@ namespace C7Engine.AI {
 		public const int BorderDefenders = 2;
 		public const int BorderDefendersThreatened = 3;
 		// What a defensive unit loses in a city that already has its
-		// defenders, while no city of ours is short of them (about a
-		// defender's worth of score).
+		// defenders (about a defender's worth of score).
 		public const float ExtraDefenderPenalty = 15;
 		// What being short of defenders adds to a city's pull on a
 		// defender with nowhere it must be (see
@@ -118,29 +117,26 @@ namespace C7Engine.AI {
 			return n;
 		}
 
-		// The garrison as a whole: the defenders all our cities want, and
-		// whether any city has fewer than it wants.
-		public static (int wanted, bool anyShort) Need(Player player, bool atWar) {
+		// The defenders all our cities want.
+		public static int Need(Player player, bool atWar) {
 			int wanted = 0;
-			bool anyShort = false;
 			foreach (City c in player.cities) {
-				int w = DefendersWanted(player, c, atWar);
-				wanted += w;
-				if (Defenders(player, c) < w) {
-					anyShort = true;
-				}
+				wanted += DefendersWanted(player, c, atWar);
 			}
-			return (wanted, anyShort);
+			return wanted;
 		}
 
-		// Production: a defender for a city that already holds its own
-		// while every other city does too goes to attackers or settlers
-		// instead.
+		// Production: a city that already holds the defenders it wants
+		// builds attackers or settlers instead. A city short of them
+		// builds its own (or a surplus defender walks in, see
+		// ShouldLeave). (Waiving this while any city of ours was short
+		// kept it from ever applying while the civ expands: a new city
+		// is always short.)
 		internal static float DefenderAdjustment(ChooseProducible.ProducibleStats stats, City city, Player player, UnitPrototype unit) {
 			if (!StockWarPlotting.IsDefensive(unit) || !On(player)) {
 				return 0;
 			}
-			if (Defenders(player, city) < DefendersWanted(player, city, stats.atWar) || stats.LeanGarrisonNeed.anyShort) {
+			if (Defenders(player, city) < DefendersWanted(player, city, stats.atWar)) {
 				return 0;
 			}
 			return -ExtraDefenderPenalty;
