@@ -97,7 +97,8 @@ BEHAVIOURS = ["wonder-timing", "wonder-value", "war-production", "war-no-peace",
               "lux-slider-high", "site-food", "site-tight-7", "site-tight-12", "trade-gpt",
               "railroad-first", "philosophy-first", "early-rush", "archer-rush", "phase-plan",
               "workers-1-2", "early-government", "weights-by-state",
-              "granary-pump", "republic-route", "tech-swap"]
+              "granary-pump", "republic-route", "tech-swap",
+              "lean-garrison", "grow-to-settle"]
 ON_BY_DEFAULT = {"lean-military", "lux-slider-high", "site-food", "site-tight-7",
                   "workers-1-2"}
 DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.75,

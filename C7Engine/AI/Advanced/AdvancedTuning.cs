@@ -28,6 +28,7 @@ namespace C7Engine.AI.Advanced {
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
 			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment, RuleWeights.ByState,
 			GranaryPump.Name, GovernmentAI.RepublicRoute, TechSwap.Switch, TotalWar.Switch,
+			LeanGarrison.Switch, GrowToSettle.Switch,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -101,6 +102,10 @@ namespace C7Engine.AI.Advanced {
 				"phase-plan: turns to consolidate after a war before mustering again."),
 			new(DevelopmentAI.WorkersOneTwo, 1, 1, 0, 1,
 				"1: one worker per city while expanding, 1.2 once expansion ends."),
+			new(LeanGarrison.Switch, 0, 1, 0, 1,
+				"1: interior cities keep 1 defender (2 at war or with an enemy close), border cities 2 (3); the rest go to attackers."),
+			new(GrowToSettle.Switch, 0, 1, 0, 1,
+				"1: while land is left, a city about to hit its size cap or happiness limit builds settlers and workers instead of growing."),
 			new(RuleWeights.ByState, 0, 1, 0, 1,
 				"1: the seven category weights change with the era, the land left, threats, tech position and missing resources."),
 			new("WeightExpansion", 50, 5, 0, 100,

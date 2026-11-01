@@ -246,6 +246,8 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 			Assert.False(AiExperiments.Has(player, GranaryPump.Name));
 			Assert.False(AiExperiments.Has(player, TotalWar.Switch));
 			Assert.False(AiExperiments.Has(player, PhasePlan.Switch));
+			Assert.False(AiExperiments.Has(player, LeanGarrison.Switch));
+			Assert.False(AiExperiments.Has(player, GrowToSettle.Switch));
 
 			AdvancedTuning.Override("early-government=1,tech-swap=1");
 			Assert.Contains(GovernmentAI.EarlyGovernment, AdvancedTuning.BehavioursOn(player));
@@ -253,6 +255,9 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 			Assert.DoesNotContain(GovernmentAI.RepublicRoute, AdvancedTuning.BehavioursOn(player));
 			AdvancedTuning.Override("republic-route=1");
 			Assert.Contains(GovernmentAI.RepublicRoute, AdvancedTuning.BehavioursOn(player));
+			AdvancedTuning.Override("lean-garrison=1,grow-to-settle=1");
+			Assert.Contains(LeanGarrison.Switch, AdvancedTuning.BehavioursOn(player));
+			Assert.Contains(GrowToSettle.Switch, AdvancedTuning.BehavioursOn(player));
 		} finally {
 			AdvancedTuning.Override("");
 		}

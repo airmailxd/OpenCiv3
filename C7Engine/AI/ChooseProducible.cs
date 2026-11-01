@@ -97,6 +97,10 @@ namespace C7Engine {
 			private WonderPlanner.Plan wonderPlan;
 			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
 
+			// For the lean-garrison trial (see LeanGarrison).
+			private (int wanted, bool anyShort)? leanGarrisonNeed;
+			public (int wanted, bool anyShort) LeanGarrisonNeed => leanGarrisonNeed ??= LeanGarrison.Need(player, atWar);
+
 			// For the lean-military trial (see DevelopmentAI).
 			private (int have, int want)? militaryNeed;
 			public (int have, int want) MilitaryNeed => militaryNeed ??= DevelopmentAI.MilitaryNeed(player);
@@ -320,8 +324,12 @@ namespace C7Engine {
 			}
 
 			score += GranaryPump.UnitAdjustment(stats, city, player, unit);
+			// grow-to-settle (Advanced only): a city about to outgrow its
+			// cap or its happiness sheds citizens as settlers and workers.
+			score += GrowToSettle.UnitAdjustment(stats, city, player, unit);
 
-			score += StockGarrisonBonus(player, unit);
+			score += StockGarrisonBonus(player, unit, stats);
+			score += LeanGarrison.DefenderAdjustment(stats, city, player, unit);
 			// Kings & Nomads: defenders, settlers from captured cities, and
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
 			score += KingsAndNomadsAI.UnitBonus(city, player, unit);
@@ -387,7 +395,9 @@ namespace C7Engine {
 				// reading the code), and was seen to build "a number of Workers
 				// equivalent to 80-90% of its number of cities at the peak"
 				// (Erlend Philip Wood); doc/civ3-compendium/08, section 3.2.
-				if (stats.NumWorkers >= EnoughWorkers(player, stats.InExpansionPhase)) {
+				// (grow-to-settle lets a city about to outgrow its limits
+				// build a few more; see GrowToSettle.)
+				if (stats.NumWorkers >= EnoughWorkers(player, stats.InExpansionPhase) + GrowToSettle.ExtraWorkers(stats, city, player)) {
 					return int.MinValue;
 				}
 				// If we have unworked tiles, boost the odds of producing a
@@ -887,7 +897,11 @@ namespace C7Engine {
 		// score: as much as the best attack or defence on offer.
 		private const float GarrisonShortBonus = 10;
 
-		internal static float StockGarrisonBonus(Player player, UnitPrototype unit) {
+		//
+		// lean-garrison (Advanced only, see LeanGarrison): the defenders
+		// wanted are what each city's place calls for, and those it saves
+		// on Civ3's two a city are wanted as attackers instead.
+		internal static float StockGarrisonBonus(Player player, UnitPrototype unit, ProducibleStats stats = null) {
 			bool defensive = StockWarPlotting.IsDefensive(unit);
 			bool offensive = StockWarPlotting.IsOffensive(unit);
 			if (!defensive && !offensive) {
@@ -901,6 +915,11 @@ namespace C7Engine {
 				}
 			}
 			int want = defensive ? 2 * cities : cities;
+			if (LeanGarrison.On(player)) {
+				int leanDefenders = stats?.LeanGarrisonNeed.wanted
+					?? LeanGarrison.Need(player, IsInAnyWar(player, EngineStorage.gameData.players)).wanted;
+				want = defensive ? leanDefenders : cities + System.Math.Max(0, 2 * cities - leanDefenders);
+			}
 			return have < want ? GarrisonShortBonus : 0;
 		}
 

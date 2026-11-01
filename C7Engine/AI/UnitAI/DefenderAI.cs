@@ -230,9 +230,20 @@ namespace C7Engine.AI.UnitAI {
 			// we want to send our unit to.
 			float bestScore = (float)int.MinValue;
 			City bestCity = null;
+			// lean-garrison (Advanced only): a defender with nowhere it must
+			// be goes to a city short of the defenders it wants (see
+			// LeanGarrison), not just the nearest; with none short, it
+			// stays nearest, as before.
+			bool lean = minDefenders == int.MaxValue && LeanGarrison.On(player) && StockWarPlotting.IsDefensive(unit);
+			bool atWar = lean && PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players);
 			for (int i = 0; i < snap.cities.Length; ++i) {
 				float score = 0;
-				if (snap.defenders[i] < minDefenders) {
+				if (lean) {
+					City c = snap.cities[i];
+					if (LeanGarrison.Defenders(player, c, except: unit) + snap.enRoute[i] < LeanGarrison.DefendersWanted(player, c, atWar)) {
+						score += LeanGarrison.ShortCityPull;
+					}
+				} else if (snap.defenders[i] < minDefenders) {
 					// Add to the score if there aren't many defenders, with a
 					// larger score for less defended cities.
 					score += 10f;

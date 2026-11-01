@@ -418,8 +418,10 @@ namespace C7Engine {
 				// land (with no city it can get to, or left behind after a
 				// war) is the exception: it would sit there until our
 				// priorities next change, so it thinks again each turn.
+				// lean-garrison (Advanced only): so is a defender one too many
+				// for its city while another city is short (see LeanGarrison).
 				if (unit.isFortified) {
-					if (!IsStrandedOutsideHome(unit, player)) {
+					if (!IsStrandedOutsideHome(unit, player) && !LeanGarrison.ShouldLeave(unit, player)) {
 						continue;
 					}
 					unit.Wake();
