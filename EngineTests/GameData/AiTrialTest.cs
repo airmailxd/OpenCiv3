@@ -642,13 +642,24 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		string jsonFile = Path.Combine(dir, "exam.json");
 		string ambientJson = Environment.GetEnvironmentVariable("C7_TRIAL_JSON");
 		Environment.SetEnvironmentVariable("C7_TRIAL_JSON", jsonFile);
-		string[] names = ["C7_TRIAL_OUT", "C7_TRIAL_GAMES", "C7_TRIAL_SIZE", "C7_TRIAL_CIVS", "C7_TRIAL_TURNS", "C7_TRIAL_EXPERIMENTS", "C7_TRIAL_JSON", "C7_TRIAL_STATE", "C7_TRIAL_MAP"];
+		// Every other trial setting is cleared too, as in MapSnapshotsAreWritten:
+		// a C7_TRIAL_PAIRED=1 left on by an exam made this a 4-game run.
+		string outFile = Path.Combine(dir, "out.txt");
+		Dictionary<string, string> set = new() {
+			["C7_TRIAL_OUT"] = outFile,
+			["C7_TRIAL_GAMES"] = "2",
+			["C7_TRIAL_SIZE"] = "40",
+			["C7_TRIAL_CIVS"] = "4",
+			["C7_TRIAL_TURNS"] = "5",
+			["C7_TRIAL_EXPERIMENTS"] = "cheap-maintenance",
+		};
+		string[] names = Environment.GetEnvironmentVariables().Keys.Cast<string>()
+			.Where(n => n.StartsWith("C7_TRIAL_") || n == "C7_ADVANCED_TUNING")
+			.Union(set.Keys).Union(["C7_TRIAL_JSON", "C7_TRIAL_STATE", "C7_TRIAL_MAP"]).ToArray();
 		string[] saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
 		try {
-			string outFile = Path.Combine(dir, "out.txt");
-			string[] values = [outFile, "2", "40", "4", "5", "cheap-maintenance", null, null, null];
-			for (int i = 0; i < names.Length; ++i) {
-				Environment.SetEnvironmentVariable(names[i], values[i]);
+			foreach (string n in names) {
+				Environment.SetEnvironmentVariable(n, set.GetValueOrDefault(n));
 			}
 			await CompareAiWithAndWithoutExperiments();
 
