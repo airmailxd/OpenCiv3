@@ -32,6 +32,10 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_DIFFICULTY   index into the difficulties (default 3, Monarch)
 //   C7_TRIAL_LANDFORM     Pangaea, Continents or Archipelago (default Continents)
 //   C7_TRIAL_SEED         seed of the first game (default 1000)
+//   C7_TRIAL_FIRST_GAME   index the first game had in its exam (default 0).
+//                         Which half of the civs is on trial alternates by
+//                         game index, so to replay game 3 of an exam that
+//                         started at seed 7500, set SEED=7503 and FIRST_GAME=3
 //   C7_TRIAL_SCENARIO     None, EternalWar, RisingTide or KingsAndNomads
 //                         (default None), to play the games as that scenario
 //   C7_TRIAL_PAIRED       1 to also play each game with no switches on and
@@ -735,6 +739,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		int turns = Setting("C7_TRIAL_TURNS", 200);
 		int difficulty = Setting("C7_TRIAL_DIFFICULTY", 3);
 		int firstSeed = Setting("C7_TRIAL_SEED", 1000);
+		int firstGame = Setting("C7_TRIAL_FIRST_GAME", 0);
 		WorldCharacteristics.Landform landform = Enum.TryParse(Environment.GetEnvironmentVariable("C7_TRIAL_LANDFORM"), out WorldCharacteristics.Landform l)
 			? l : WorldCharacteristics.Landform.Continents;
 		bool paired = Setting("C7_TRIAL_PAIRED", 0) != 0;
@@ -817,7 +822,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			stateRun = "main";
 			progressTurn = 0;
 			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
-				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2,
+				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : (firstGame + game) % 2,
 					advanced: Setting("C7_TRIAL_ADVANCED", 0) != 0);
 			int firstIndex = Array.IndexOf(Measures.Names, "first");
 			FinishRun(trial.Any(x => x.values[firstIndex] == 1) ? "won" : "lost");
@@ -843,7 +848,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				stateRun = "paired-baseline";
 				progressTurn = 0;
 				(List<Measures> baseTrial, List<Measures> baseOthers, _, _, _) =
-					await PlayGame(NewSave(size, civs, seed, difficulty, landform), [], turns, trialHalf: game % 2);
+					await PlayGame(NewSave(size, civs, seed, difficulty, landform), [], turns, trialHalf: (firstGame + game) % 2);
 				FinishRun("done");
 				for (int m = 0; m < Measures.Names.Length; ++m) {
 					double t = baseTrial.Average(x => x.values[m]);
