@@ -100,7 +100,9 @@ def load_state(path):
             if not line:
                 continue
             row = json.loads(line)
-            if row.get("run", "main") != "main":
+            # Only civ state rows: a play log's (doc/play-log.md) and the
+            # trial's "review" rows have a type.
+            if row.get("type") or row.get("run", "main") != "main":
                 continue
             games.setdefault(row["game"], {}).setdefault(row["turn"], []).append(row)
     return games
