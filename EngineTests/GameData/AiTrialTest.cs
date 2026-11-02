@@ -1051,6 +1051,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					// "room to expand" decisions use (ChooseProducible).
 					["knownLand"] = p.tileKnowledge.knownTiles.Count(t => t.IsLand()),
 					["openSites"] = dead || p.cities.Count == 0 ? 0 : ChooseProducible.NumberOfReachableOpenCitySpots(p.cities[0]),
+					// An Advanced AI's current plan, as its planner explained it.
+					["plan"] = p.IsAdvancedAi ? p.strategicPlan?.rationale : null,
 					["atWarWith"] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).Select(o => o.civilization.name).ToList(),
 				}));
 			}
