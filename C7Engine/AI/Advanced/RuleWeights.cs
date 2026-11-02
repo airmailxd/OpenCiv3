@@ -224,7 +224,7 @@ namespace C7Engine.AI.Advanced {
 		private static readonly Dictionary<Player, SortedDictionary<string, int>> use = new();
 
 		public static void Used(Player player, RuleCategory c, string decision) {
-			if (player == null || !player.IsAdvancedAi || Effective(player, c) == Neutral) {
+			if (player == null || !player.IsAdvancedAi || ShadowAdvanced.IsActive || Effective(player, c) == Neutral) {
 				return;
 			}
 			if (!use.TryGetValue(player, out SortedDictionary<string, int> counts)) {

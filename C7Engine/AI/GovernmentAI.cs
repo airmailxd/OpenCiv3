@@ -51,21 +51,8 @@ namespace C7Engine.AI {
 				return;
 			}
 
-			// Anarchy in the middle of a war is costly, so the AI waits for
-			// peace, except to get out of Despotism, which always pays, or
-			// when the war has worn its people down (see WarPressure).
-			int pressure = WarPressure(player, gameData);
-			if (!player.government.hasTilePenalty && pressure == 0 && PlayerRelationship.IsInAnyWar(player, gameData.players)) {
-				return;
-			}
-
-			Government candidate = BestGovernment(player, gameData, pressure);
-			bool early = AiExperiments.Has(player, EarlyGovernment) && player.government.hasTilePenalty;
-			if (early && IsLosingAWar(player)) {
-				return;
-			}
-			if (candidate == null || candidate == player.government
-					|| Score(player, candidate, pressure) < Score(player, player.government, pressure) + (early ? 0 : RevolutionMargin)) {
+			Government candidate = RevolutionTarget(player, gameData);
+			if (candidate == null) {
 				return;
 			}
 
@@ -78,6 +65,29 @@ namespace C7Engine.AI {
 			player.government = anarchy;
 			player.ApplyGovernmentRateCap();
 			player.inAnarchyUntilTurn = gameData.turn + player.GetTurnsOfAnarchyForTransition(gameData);
+		}
+
+		// The government the AI would start a revolution for now, or null to
+		// stay as it is.
+		internal static Government RevolutionTarget(Player player, GameData gameData) {
+			// Anarchy in the middle of a war is costly, so the AI waits for
+			// peace, except to get out of Despotism, which always pays, or
+			// when the war has worn its people down (see WarPressure).
+			int pressure = WarPressure(player, gameData);
+			if (!player.government.hasTilePenalty && pressure == 0 && PlayerRelationship.IsInAnyWar(player, gameData.players)) {
+				return null;
+			}
+
+			Government candidate = BestGovernment(player, gameData, pressure);
+			bool early = AiExperiments.Has(player, EarlyGovernment) && player.government.hasTilePenalty;
+			if (early && IsLosingAWar(player)) {
+				return null;
+			}
+			if (candidate == null || candidate == player.government
+					|| Score(player, candidate, pressure) < Score(player, player.government, pressure) + (early ? 0 : RevolutionMargin)) {
+				return null;
+			}
+			return candidate;
 		}
 
 		private static bool IsLosingAWar(Player player) {

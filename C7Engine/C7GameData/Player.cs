@@ -130,7 +130,10 @@ namespace C7GameData {
 		// Whether the Advanced AI plays this civ. Never for a human (aiType is
 		// kept, so observer mode's AI plays a human's civ the usual way), the
 		// barbarians or the city-states.
-		public bool IsAdvancedAi => aiType == AiType.Advanced && !isHuman && !IsIndependent;
+		// Also, for a moment, a human whose choices the play recorder asks the
+		// Advanced AI about (see C7Engine.AI.Advanced.ShadowAdvanced).
+		public bool IsAdvancedAi => (aiType == AiType.Advanced && !isHuman && !IsIndependent)
+			|| C7Engine.AI.Advanced.ShadowAdvanced.Covers(this);
 		// An Advanced AI's current strategy (see StrategicPlan), or null.
 		public StrategicPlan strategicPlan;
 		// An Advanced AI's place in the phase-plan script (see GamePhaseState), or null.

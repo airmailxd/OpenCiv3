@@ -13,8 +13,10 @@ namespace C7Engine.AI {
 	public static class AIFogOfWar {
 		public static bool Enabled => EngineStorage.aiFogOfWar;
 
+		// (A human asked about as an Advanced AI, see Advanced.ShadowAdvanced,
+		// plans with what they know too.)
 		public static bool EnabledFor(Player player) =>
-			player != null && !player.isHuman && (Enabled || player.IsAdvancedAi);
+			player != null && (!player.isHuman || Advanced.ShadowAdvanced.Covers(player)) && (Enabled || player.IsAdvancedAi);
 
 		// Whether the player's AI may plan with this tile: always without
 		// the fog, otherwise once the player has explored it. Humans aren't
@@ -37,8 +39,9 @@ namespace C7Engine.AI {
 		}
 
 		// Brings what the player can see up to date, with the fog on.
+		// A human's view the game keeps up to date itself.
 		public static void Refresh(Player player) {
-			if (EnabledFor(player)) {
+			if (EnabledFor(player) && !player.isHuman) {
 				player.tileKnowledge.RecomputeActiveTiles();
 			}
 		}

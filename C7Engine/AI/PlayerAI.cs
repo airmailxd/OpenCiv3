@@ -1851,7 +1851,10 @@ namespace C7Engine {
 				&& techs.All(t => player.knownTechs.Contains(t.id) || t.EraCivilopediaName == EraUtils.HIDDEN_CVLPD);
 		}
 
-		internal static void AdjustSliders(Player player) {
+		// Without reassignCitizens, the citizens stay where they are (for the
+		// play recorder's shadow rates, which mustn't change the game; see
+		// PlayLog.ShadowDecisions).
+		internal static void AdjustSliders(Player player, bool reassignCitizens = true) {
 			const int MAX_SLIDER_VALUE = 10;
 			const int MAX_AI_LUXURY_SLIDER = 5;
 
@@ -1879,7 +1882,9 @@ namespace C7Engine {
 			}
 
 			// Fix up any remaining unhappy cities.
-			FixRemainingUnhappyCities(player);
+			if (reassignCitizens) {
+				FixRemainingUnhappyCities(player);
+			}
 
 			// With every advance known (as in MDJ, see GameSetup.Mdj.cs)
 			// research buys nothing, so what science would take goes to

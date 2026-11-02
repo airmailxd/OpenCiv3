@@ -134,6 +134,23 @@ namespace C7Engine {
 		}
 
 		public static IProducible Choose(City city, Player player) {
+			IProducible best = null;
+			float bestScore = int.MinValue;
+			foreach ((IProducible option, float score) in ScoredOptions(city, player)) {
+				if (score > bestScore) {
+					bestScore = score;
+					best = option;
+				}
+			}
+			if (log.IsEnabled(LogEventLevel.Debug)) {
+				log.Debug("\t\tchose {Best}", best);
+			}
+			return best;
+		}
+
+		// Every option the city may build, in order, with the score Choose
+		// picks the highest of.
+		internal static List<(IProducible option, float score)> ScoredOptions(City city, Player player) {
 			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
 			// The city governor's production options (see
 			// GovernorProduction). If they rule out everything the city can
@@ -144,9 +161,7 @@ namespace C7Engine {
 				options = allowed;
 			}
 			ProducibleStats stats = CalculateStats(city, player, options);
-
-			IProducible best = null;
-			float bestScore = int.MinValue;
+			List<(IProducible option, float score)> scored = new(options.Count);
 
 			bool debugLogging = log.IsEnabled(LogEventLevel.Debug);
 			if (debugLogging) {
@@ -160,18 +175,12 @@ namespace C7Engine {
 				float score = (GovernorProduction.AdjustScore(governor, player, option, ScoreProducible(stats, city, player, option))
 					+ C7Engine.AI.Advanced.PlanEffects.ProductionAdjustment(player, option))
 					* (GameData.rng.Next(90, 110) / 100.0f);
-				if (score > bestScore) {
-					bestScore = score;
-					best = option;
-				}
+				scored.Add((option, score));
 				if (debugLogging) {
 					log.Debug("\t{Option}: {Score}", option, score);
 				}
 			}
-			if (debugLogging) {
-				log.Debug("\t\tchose {Best}", best);
-			}
-			return best;
+			return scored;
 		}
 
 		private static bool NeedsRoomToGrow(City city, int cap, ProducibleStats stats) {

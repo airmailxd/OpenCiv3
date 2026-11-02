@@ -13,6 +13,11 @@ namespace C7Engine.AI {
 		private static readonly ConditionalWeakTable<Player, HashSet<string>> enabled = new();
 
 		public static bool Has(Player player, string name) {
+			// A human asked about as an Advanced AI plays by its tuning's
+			// behaviours (see Advanced.ShadowAdvanced).
+			if (Advanced.ShadowAdvanced.Covers(player)) {
+				return Advanced.ShadowAdvanced.HasBehaviour(name);
+			}
 			return player != null && enabled.TryGetValue(player, out HashSet<string> names) && names.Contains(name);
 		}
 
