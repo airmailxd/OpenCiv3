@@ -89,6 +89,9 @@ namespace C7Engine.AI {
 			// Whether it is on the prey the plan named once land ran out
 			// (see PreyWar).
 			public bool prey;
+			// The units left to hold the prey's cities we took against a
+			// flip back, which the campaign doesn't take back (not saved).
+			public readonly HashSet<MapUnit> holding = new();
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -487,7 +490,8 @@ namespace C7Engine.AI {
 				if (c.target.owner == player) {
 					Garrison(player, c, c.target);
 				}
-				City next = c.script ? PickScriptCity(player, c.enemy) : c.archer ? PickArcherTarget(player, c.enemy) : PickTarget(player, c.enemy);
+				City next = c.script ? PickScriptCity(player, c.enemy) : c.archer ? PickArcherTarget(player, c.enemy)
+					: c.prey ? PickPreyTarget(player, c.enemy) : PickTarget(player, c.enemy);
 				// An archer rush goes on only with attackers left to do it.
 				if (c.archer && c.units.Count(u => IsAttacker(u) && Health(u) >= ReadyHealth) < (c.script ? PhasePlan.AttackersToContinue(player, gameData) : ArcherRush.AttackersToContinue)) {
 					next = null;
@@ -554,8 +558,16 @@ namespace C7Engine.AI {
 		}
 
 		// Leaves a defender in a city we took: our escort if there is one,
-		// or else an attacker.
+		// or else an attacker. A war on the plan's prey leaves enough to
+		// hold it against a flip back (see HoldAgainstFlip).
 		private static void Garrison(Player player, Campaign c, City city) {
+			KeepOne(player, c, city);
+			if (c.prey) {
+				HoldAgainstFlip(player, c, city);
+			}
+		}
+
+		private static void KeepOne(Player player, Campaign c, City city) {
 			if (city.location.unitsOnTile.Any(u => u.owner == player && u.CanDefendOnLand() && u.currentAI is not MemberAI)) {
 				return;
 			}
@@ -580,6 +592,43 @@ namespace C7Engine.AI {
 					second.Fortify();
 				}
 			}
+		}
+
+		// Units of a war on the plan's prey stay in a city it took until the
+		// garrison holds its chance of flipping back to them to
+		// PreyWar.MaxHeldFlipChance; if MaxFlipGarrison units wouldn't, it
+		// keeps PlannedGarrison (units in a city that flips are lost with
+		// it). On the replays, every capture that flipped back had been
+		// left with one unit as the stack went on, and flipped 2 to 4
+		// turns later. Defenders stay first, then the most hurt, then the
+		// weakest attackers; only units that count against a flip (with
+		// attack and defence, see CultureFlip.Garrison).
+		private static void HoldAgainstFlip(Player player, Campaign c, City city) {
+			int want = PreyWar.GarrisonAgainstFlip(EngineStorage.gameData, player, c.enemy, city);
+			if (want == int.MaxValue) {
+				want = PreyWar.PlannedGarrison;
+			}
+			// Those already holding it, the defender just left there among
+			// them, stay.
+			List<MapUnit> holders = city.location.unitsOnTile.Where(u => u.owner == player && u.currentAI is not MemberAI && CountsAgainstFlip(u)).ToList();
+			c.holding.UnionWith(holders);
+			int have = holders.Count;
+			List<MapUnit> spare = c.units.Where(u => u.location == city.location && CountsAgainstFlip(u))
+				.OrderByDescending(u => IsEscort(u) ? 1 : 0).ThenBy(Health).ThenBy(u => u.unitType.attack).ThenBy(u => u.id.ToString()).ToList();
+			foreach (MapUnit u in spare) {
+				if (have >= want) {
+					break;
+				}
+				c.units.Remove(u);
+				u.currentAI = new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(u, player));
+				u.Fortify();
+				c.holding.Add(u);
+				++have;
+			}
+		}
+
+		private static bool CountsAgainstFlip(MapUnit u) {
+			return u.IsLandUnit() && !u.IsArmy() && u.unitType.attack >= 1 && u.unitType.defense >= 1 && u.CanDefendOnLand();
 		}
 
 		// Starts a campaign against the enemy we are at war with, or, at
@@ -630,7 +679,7 @@ namespace C7Engine.AI {
 			// Civ3's plotting rolls (see PreyWar).
 			bool prey = false;
 			if (enemy == null && !coolingDown && !totalWar && PreyWar.Prey(player, gameData) is Player named) {
-				target = PickTarget(player, named);
+				target = PickPreyTarget(player, named);
 				if (target != null) {
 					enemy = named;
 					prey = true;
@@ -860,6 +909,41 @@ namespace C7Engine.AI {
 			return best;
 		}
 
+		// For a war on the plan's prey (see PreyWar), the city of theirs most
+		// worth taking and keeping: as PickTarget, but its defenders are
+		// weighed with the city's defence bonuses (walls, size, hills), and
+		// the city with the chance we keep it, given how likely it is to
+		// flip back (PreyWar.KeepChance). A city that would flip back too
+		// readily even with a full garrison isn't taken at all. Null if
+		// none is worth it.
+		private static City PickPreyTarget(Player player, Player enemy) {
+			GameData gameData = EngineStorage.gameData;
+			float bestScore = float.MinValue;
+			City best = null;
+			foreach (City city in enemy.cities) {
+				if (!AIFogOfWar.KnowsTile(player, city.location)) {
+					continue;
+				}
+				int distance = int.MaxValue;
+				foreach (City ours in player.cities) {
+					if (ours.location.continent == city.location.continent) {
+						distance = Math.Min(distance, ours.location.DistanceTo(city.location));
+					}
+				}
+				if (distance == int.MaxValue || !PreyWar.WorthKeeping(gameData, player, city)) {
+					continue;
+				}
+				float value = 2 + city.residents.Count;
+				float cost = 1 + EstimateDefenders(player, city) * (float)PreyWar.DefenceFactor(city);
+				float score = value / cost / (1 + distance / 4f) * (float)PreyWar.KeepChance(gameData, player, city);
+				if (score > bestScore) {
+					bestScore = score;
+					best = city;
+				}
+			}
+			return best;
+		}
+
 		private static int EstimateDefenders(Player player, City city) {
 			if (AIFogOfWar.SeesUnitsOn(player, city.location)) {
 				return city.location.unitsOnTile.Count(u => u.CanDefendOnLand());
@@ -980,10 +1064,11 @@ namespace C7Engine.AI {
 			// An army counts for (at least) as many attackers as it has
 			// members.
 			int armyMembers = c.units.Where(IsFightingArmy).Sum(a => a.PassengerCount());
-			// The plan's prey, before the war: we pick the time, so we wait
-			// for a stack that can take a city held better than we guess
-			// (see PreyWar).
-			if (c.prey && !AtWarWith(player, c.enemy)) {
+			// The plan's prey: we pick the time, so we wait for a stack that
+			// can take a city held better than we guess (see PreyWar), and
+			// after taking one, it waits in its new city for the stack to
+			// fill up again, which holds the city meanwhile.
+			if (c.prey) {
 				needed = Math.Max(needed, PreyWar.MinAttackers + armyMembers);
 			}
 			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : MaxAttackers);
@@ -1032,7 +1117,7 @@ namespace C7Engine.AI {
 			int armies = c.units.Count(IsFightingArmy);
 			City stackBase = TotalWar.On(player) ? StagingCity(player, c) : null;
 			foreach (MapUnit u in player.units.ToList()) {
-				if (u.currentAI is MemberAI || u.location.continent != continent || u.IsLoaded()
+				if (u.currentAI is MemberAI || u.location.continent != continent || u.IsLoaded() || c.holding.Contains(u)
 					|| u.currentAI is EscortAI || u.currentAI is FerryAI || IsJoiningArmy(u, player)) {
 					continue;
 				}
@@ -1130,6 +1215,12 @@ namespace C7Engine.AI {
 			// wait for more (see TideAI.FightsForTheHeart).
 			if (TideAI.FightsForTheHeart(player) && waited >= HeartGatherTurns && readyAttackers >= enough) {
 				go = true;
+			}
+			// The plan's prey, before the war: the stack waits a while for
+			// its siege engines on their way, rather than leave them behind.
+			if (c.prey && !atWar && go && waited < PreyWar.GoAfterTurns
+					&& c.units.Any(u => IsBombarder(u) && u.location != staging.location && PlayerAI.IsStillOurs(u, player))) {
+				go = false;
 			}
 			// An archer rush waits a while for its defender.
 			if (c.archer && go && ready.Count(IsEscort) < ArcherRush.Escorts && waited < ArcherRush.EscortWaitTurns) {

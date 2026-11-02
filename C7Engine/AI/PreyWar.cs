@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
@@ -25,6 +26,21 @@ namespace C7Engine.AI {
 	// prey a friend or names other prey, and given up (with the usual cooldown) once the war goes badly
 	// (PeaceAI.Assess Losing or worse); peace is left to PeaceAI. The peace
 	// cooldown and locked peace still bar a declaration.
+	//
+	// What it takes, and keeps: on replays of the first version, a quarter
+	// of the cities it took (4 of 17) flipped back to the prey 2 to 4 turns
+	// later, at 2% to 8% a turn by Civ3's flip formula: big cities full of
+	// the prey's people, near their capital, left with one unit as the
+	// stack went straight on. So the prey's cities are scored by the chance
+	// we keep them (FlipChanceIfTaken, KeepChance) and by their defence
+	// bonuses (walls, size, hills), and one that would flip back too readily
+	// even with MaxFlipGarrison units isn't a target at all
+	// (WarCampaign.PickPreyTarget). A city taken keeps enough of the stack
+	// to hold its flip chance to MaxHeldFlipChance, which the campaign then
+	// doesn't take back; the stack waits in it for MinAttackers again
+	// before the next city, and before the war it waits a while for its
+	// siege engines. On the same replays none of 16 cities taken flipped
+	// back.
 	public static class PreyWar {
 		public const string Switch = "prey-war";
 
@@ -70,5 +86,92 @@ namespace C7Engine.AI {
 		public static bool GoingBadly(Player player, Player enemy) {
 			return PeaceAI.Assess(player, enemy) <= PeaceAI.WarOutlook.Losing;
 		}
+
+		// The chance each turn that the prey's city, once ours and held by
+		// this many land combat units, flips back to them, by Civ3's flip
+		// formula (see CultureFlip):
+		//   P = [(F + T) * Cc * H - G * (Cty / Cte)] / (2000 * d)
+		// worked out for the city as it would be just after we take it:
+		// F, the prey's nationals living in it; T, the tiles of its radius
+		// that their other cities' borders hold (the borders of the city
+		// itself become ours); Cc 2 if they have made more culture in it
+		// than we have; the city's culture moving from their total to ours;
+		// d by the distances to the two capitals (to their capital itself,
+		// d is the least, as their palace will be rebuilt near). Resisters,
+		// who count twice, and disorder are left out (UNVERIFIED: our
+		// estimate, not Civ3 code).
+		// A city already ours (just taken) is taken as it is.
+		public static double FlipChanceIfTaken(GameData gameData, Player player, Player enemy, City city, int garrison) {
+			if (enemy == null || enemy == player || gameData.rules?.AllowCultureFlips == false) {
+				return 0;
+			}
+			bool ours = city.owner == player;
+			int foreigners = city.residents.Count(r => r.nationality == enemy.civilization);
+			int tiles = 0;
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(CultureFlip.FlipRadius(gameData))) {
+				if (t != city.location && t.owningCity != null && t.owningCity != city && t.owningCity.owner == enemy) {
+					++tiles;
+				}
+			}
+			int memory = city.GetCultureFor(enemy) > city.GetCultureFor(player) ? 2 : 1;
+			int theirCulture = Math.Max(1, CultureReport.TotalCulture(enemy) - (ours ? 0 : city.GetCultureFor(enemy)));
+			int ourCulture = Math.Max(1, CultureReport.TotalCulture(player) + (ours ? 0 : city.GetCultureFor(player)));
+			double cultureRatio = (double)theirCulture / ourCulture;
+			double d = CultureFlip.DistanceRatio(city, player, enemy);
+			double influence = (foreigners + tiles) * memory;
+			double resistance = garrison / cultureRatio;
+			return Math.Clamp((influence - resistance) / (CultureFlip.DistanceFactor * d), 0, 1);
+		}
+
+		// The land combat units that would hold the city to a flip chance of
+		// at most MaxHeldFlipChance (see FlipChanceIfTaken), or int.MaxValue
+		// if MaxFlipGarrison wouldn't.
+		public static int GarrisonAgainstFlip(GameData gameData, Player player, Player enemy, City city) {
+			for (int g = 1; g <= MaxFlipGarrison; ++g) {
+				if (FlipChanceIfTaken(gameData, player, enemy, city, g) <= MaxHeldFlipChance) {
+					return g;
+				}
+			}
+			return int.MaxValue;
+		}
+
+		// Whether the prey's city is worth taking: held by MaxFlipGarrison
+		// units, its flip chance would be at most MaxTargetFlipChance.
+		public static bool WorthKeeping(GameData gameData, Player player, City city) {
+			return FlipChanceIfTaken(gameData, player, city.owner, city, MaxFlipGarrison) <= MaxTargetFlipChance;
+		}
+
+		// The chance we still hold the prey's city KeepHorizonTurns after
+		// taking it, held by PlannedGarrison units, if flips were all that
+		// could take it back.
+		public static double KeepChance(GameData gameData, Player player, City city) {
+			return Math.Pow(1 - FlipChanceIfTaken(gameData, player, city.owner, city, PlannedGarrison), KeepHorizonTurns);
+		}
+
+		// The multiplier on a defender's strength in the city: its size and
+		// walls bonuses and its terrain's (fortifying and rivers left out).
+		public static double DefenceFactor(City city) {
+			return StrengthBonus.ListToMultiplier(city.GetDefenseBonuses().Append(city.location.overlayTerrainType.defenseBonus));
+		}
+
+		// UNVERIFIED (ours): the flip chance per turn, with a full garrison,
+		// above which a city isn't worth taking. On the replays three of the
+		// captures that flipped back (Antium, Rome, Ravenna) would have had
+		// 3.6% to 5% a turn even with 5 units; the fourth (Boston) 1.2%, and
+		// it flipped at 2.2% held by one; those kept had 0% to 1.5%.
+		public const double MaxTargetFlipChance = 0.02;
+		// UNVERIFIED (ours): the garrison and turns that KeepChance assumes.
+		public const int PlannedGarrison = 2;
+		public const int KeepHorizonTurns = 30;
+
+		// UNVERIFIED (ours): the flip chance per turn we accept in a city we
+		// took. At 1%, about three in four such cities are still ours 30
+		// turns on. On the replays, the captures that flipped back did so at
+		// 2% to 8% a turn, within 2 to 4 turns, each held by one unit.
+		public const double MaxHeldFlipChance = 0.01;
+		// UNVERIFIED (ours): the most units a campaign leaves in a city it
+		// took to hold it against a flip. Units in a city that flips are
+		// lost with it, so a city that would need more isn't worth taking.
+		public const int MaxFlipGarrison = 4;
 	}
 }

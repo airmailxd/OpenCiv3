@@ -238,7 +238,7 @@ namespace C7Engine {
 		}
 
 		// The radius of the city's tiles that count towards T.
-		private static int FlipRadius(GameData gameData) {
+		internal static int FlipRadius(GameData gameData) {
 			return Math.Max(1, gameData.rules?.MaxRankOfWorkableTiles ?? 2);
 		}
 
