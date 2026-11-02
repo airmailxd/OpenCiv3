@@ -1037,37 +1037,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 			List<string> rows = new();
 			foreach (Player p in civs) {
-				bool dead = p.defeated;
-				rows.Add(JsonSerializer.Serialize(new Dictionary<string, object> {
-					["game"] = stateGame,
-					["seed"] = stateSeed,
-					["run"] = stateRun,
-					["turn"] = turn,
-					["civ"] = p.civilization.name,
-					["ai"] = p.aiType.ToString(),
-					["trial"] = trialCivs.Contains(p),
-					["defeated"] = dead,
-					["cities"] = p.cities.Count,
-					["citizens"] = p.cities.Sum(c => c.residents.Count),
-					["units"] = p.units.Count,
-					["military"] = p.units.Count(u => u.unitType.attack > 0 && !u.unitType.isWorker && !u.unitType.isSettler),
-					["workers"] = p.units.Count(u => u.unitType.isWorker && !u.unitType.isSettler),
-					["settlers"] = p.units.Count(u => u.unitType.isSettler),
-					["ships"] = p.units.Count(u => u.unitType.IsSeaUnit()),
-					["techs"] = p.knownTechs.Count,
-					["government"] = p.government?.name,
-					["gold"] = p.gold,
-					["score"] = dead ? 0 : ScoreVictory.ComputeTurnScore(p, gameData),
-					["culture"] = p.cities.Sum(c => c.GetCulture()),
-					// Land tiles the civ has explored, and the open city sites
-					// it could reach from its first city: the count the AI's
-					// "room to expand" decisions use (ChooseProducible).
-					["knownLand"] = p.tileKnowledge.knownTiles.Count(t => t.IsLand()),
-					["openSites"] = dead || p.cities.Count == 0 ? 0 : ChooseProducible.NumberOfReachableOpenCitySpots(p.cities[0]),
-					// An Advanced AI's current plan, as its planner explained it.
-					["plan"] = p.IsAdvancedAi ? p.strategicPlan?.rationale : null,
-					["atWarWith"] = civs.Where(o => o != p && !o.defeated && AtWarWith(p, o)).Select(o => o.civilization.name).ToList(),
-				}));
+				// The same rows as a human's play log (see C7Engine.PlayLog).
+				rows.Add(JsonSerializer.Serialize(C7Engine.PlayLog.PlayerStateRow.Build(gameData, p, civs,
+					stateGame, stateSeed, stateRun, turn, trialCivs.Contains(p))));
 			}
 			File.AppendAllLines(statePath, rows);
 		}
