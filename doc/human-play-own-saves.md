@@ -79,3 +79,7 @@ We can't tell which civ in the multi-human games is the owner.
 - Units are sorted into kinds by their unit type's name (Settler, Worker, ship) and attack/defence; Civ3's unit strategy flags didn't separate settlers from workers.
 - Military counts every land or air unit with attack, defence or bombard, so it includes Warriors kept as police.
 - The saves were copied to a scratch folder first; the Steam folder was only read.
+
+## Correction: the gold comes mostly from the Great Library
+
+The owner pointed out that with the Great Library the science slider can be set to 0, since the Library hands over techs known to two other civs, so gold piles up. The summary tool now prints each civ's tax/science/luxury rates and its great wonders. Of the saves where the human held more than about 2,000 gold, four of five had the Great Library: cartwonder1 (4,445 gold, science 0), cartwonder2 (5,899), china continents (3,195) and FR good island (2,869); china OWN also ran science at 0 with it. The exception is netherlands (2,965 gold, no Great Library, science 70%). So the banked gold is mostly a side effect of the Great Library strategy, not money saved for a war; don't read "bank gold, then strike" into it. The conquest pattern (a third to two thirds of later cities captured, with armies a tech step ahead) still stands.

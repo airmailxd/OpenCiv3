@@ -117,6 +117,18 @@ class Program {
 			string civ = $"{i,2} {bic.Race[l.RaceID].Name}";
 			Console.WriteLine($"   {civ,-25} {(sav.Game.HumanPlayers[i] ? "H" : " ")}  {mine.Count,5}  {pop,4}  {max,4}  {avg,5:F1}  {sett,4} {work,4} {mil,4} {ship,4} {other,4}  {units.Count(u => u.OwnerID == i),3}({l.NumberOfUnits,3})  {govt,-18} {techs,4} {l.Gold,6}  {era,-4} {string.Join("/", wars)}");
 			Console.WriteLine($"        foreign-named (captured?) cities {foreign}, owned land tiles {ownedLand}{(mine.Count > 0 ? $" ({(double)ownedLand / mine.Count:F1} per city)" : "")}");
+			// The tax, science and luxury rates (tenths), and the great wonders in
+			// this civ's cities: a civ with the Great Library can run science at 0
+			// and bank the gold.
+			HashSet<int> myCityIds = mine.Select(c => c.ID).ToHashSet();
+			List<string> wonders = new();
+			for (int w = 0; w < (sav.GreatWonderCityIDs?.Length ?? 0); w++) {
+				if (sav.GreatWondersBuilt != null && w < sav.GreatWondersBuilt.Length && sav.GreatWondersBuilt[w]
+						&& myCityIds.Contains(sav.GreatWonderCityIDs[w]) && w < bic.Bldg.Length) {
+					wonders.Add(bic.Bldg[w].Name);
+				}
+			}
+			Console.WriteLine($"        rates tax {l.TaxRate} science {l.ScienceRate} luxury {l.LuxuryRate}; wonders: {(wonders.Count > 0 ? string.Join(", ", wonders) : "none")}");
 			if (!sav.Game.HumanPlayers[i]) {
 				ai.Add(new[] { mine.Count, pop, sett, work, mil, techs, foreign, ownedLand });
 			}
