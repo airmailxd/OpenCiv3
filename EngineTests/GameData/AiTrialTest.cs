@@ -361,6 +361,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"firstWar",
 			// 1 if the civ ends in Republic (the republic-route's goal).
 			"endRepublic",
+			// Benchmarks against strong humans (doc/human-benchmarks.md):
+			// its cities at turns 150 and 200 (at the last turn if the game
+			// was shorter), and the turn it had 20 cities (the game's length
+			// if it never did).
+			"cities150", "cities200", "city20turn",
 		];
 
 		public readonly double[] values = new double[Names.Length];
@@ -424,6 +429,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		public int steamTurn, philTurn, city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized, deathTurn;
 		public int midCityStates, cityStateGold, workerTurnsOut, workerTurnsOutAlone;
 		public int govTurn, cities50, cities100, techs100, workersPerCity100, techGold;
+		public int cities150, cities200, city20Turn;
 		public string startGovernment;
 	}
 
@@ -539,6 +545,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			Assert.InRange(Mean("govTurn"), 1, 30);
 			Assert.InRange(Mean("cities50"), 1, 30);
 			Assert.Equal(Mean("cities50"), Mean("cities100"));
+			Assert.Equal(Mean("cities100"), Mean("cities150"));
+			Assert.Equal(Mean("cities150"), Mean("cities200"));
+			Assert.Equal(30, Mean("city20turn"));
 			Assert.True(Mean("techs100") > 0);
 			Assert.InRange(Mean("workersPerCity100"), 0, 100);
 			Assert.True(Mean("techGold") >= 0);
@@ -951,7 +960,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		C7Engine.AI.Advanced.PhasePlan.onPhase = (p, from, to) => phaseLines.Add($"phase turn {gameData.turn}: {p.civilization.name} {from?.ToString() ?? "start"} -> {to}");
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
-		Dictionary<Player, Development> development = civs.ToDictionary(p => p, p => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, deathTurn = turns, govTurn = turns, startGovernment = p.government?.name });
+		Dictionary<Player, Development> development = civs.ToDictionary(p => p, p => new Development { steamTurn = turns, philTurn = turns, city5Turn = turns, city10Turn = turns, city20Turn = turns, deathTurn = turns, govTurn = turns, startGovernment = p.government?.name });
 		// Null under rules without these techs (the turns stay at the game's length).
 		ID steamPower = gameData.techs.FirstOrDefault(t => t.Name == "Steam Power")?.id;
 		ID philosophy = gameData.techs.FirstOrDefault(t => t.Name == "Philosophy")?.id;
@@ -979,6 +988,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				if (!p.defeated && d.govTurn == turns && p.government?.name != d.startGovernment) {
 					d.govTurn = turn;
 				}
+				if (turn <= 200) {
+					d.cities200 = p.cities.Count;
+					if (turn <= 150) {
+						d.cities150 = p.cities.Count;
+					}
+				}
 				if (turn <= 100) {
 					d.cities100 = p.cities.Count;
 					d.techs100 = p.knownTechs.Count;
@@ -999,6 +1014,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}
 				if (p.cities.Count >= 10 && d.city10Turn == turns) {
 					d.city10Turn = turn;
+				}
+				if (p.cities.Count >= 20 && d.city20Turn == turns) {
+					d.city20Turn = turn;
 				}
 				if (turn == turns / 2) {
 					d.midCityStates = p.defeated ? 0 : gameData.GetTradeNetwork().ConnectedCityStates(p).Count;
@@ -1572,6 +1590,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = 10.0 * kills[p] / Math.Max(1, unitsLost[p]);
 			m.values[i++] = p.gamePhase is { firstWarTurn: >= 0 } phaseState ? phaseState.firstWarTurn : turns;
 			m.values[i++] = p.government?.name == "Republic" ? 1 : 0;
+			m.values[i++] = d.cities150;
+			m.values[i++] = d.cities200;
+			m.values[i++] = d.city20Turn;
 			return m;
 		}
 
