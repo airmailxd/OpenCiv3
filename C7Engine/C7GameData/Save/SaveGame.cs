@@ -113,6 +113,8 @@ namespace C7GameData.Save {
 				RisingTide = data.rules.RisingTide ? data.risingTide : null,
 				// Left out of games that never had the tutorial on.
 				Tutorial = data.tutorial.enabled || data.tutorial.shown.Count > 0 ? data.tutorial : null,
+				// Left out of games that aren't recorded in a play log.
+				PlayLog = data.playLog?.Copy(),
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				VictoryBonus = data.victoryBonus,
 				NuclearEvents = data.nuclearEvents,
@@ -400,6 +402,7 @@ namespace C7GameData.Save {
 				staging = Staging ?? new StagingState(),
 				risingTide = RisingTide ?? new RisingTideState(),
 				tutorial = Tutorial ?? new TutorialState(),
+				playLog = PlayLog?.Copy(),
 			};
 			// A save without a seed has been given a random one.
 			data.random = CreateRandom(data.seed);
@@ -772,6 +775,10 @@ namespace C7GameData.Save {
 		// Civ3's tutorial (see Tutorial); null in games that never had it on,
 		// and in saves made before it was saved.
 		public TutorialState Tutorial;
+		// The game's name and folder for its play log (see PlayLogInfo); null
+		// in games that aren't recorded, and in saves made before it. Left out
+		// of LAN snapshots (LanProtocol.StripHostSecrets).
+		public PlayLogInfo PlayLog;
 		// What a LAN host worked out for a guest that isn't sent all of the
 		// game; null otherwise.
 		public HostFacts HostFacts;

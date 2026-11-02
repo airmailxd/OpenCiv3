@@ -39,6 +39,11 @@ namespace C7Engine.PlayLog {
 		// C7_PLAY_LOG_DIR records too, into that folder (for headless games).
 		public static bool enabled;
 		public static string directory;
+		// Set by the UI: a game with the setting on keeps its rows until the
+		// UI says which file is the game's log (UseLogFile, once the player
+		// has named the game, see PlayLogFolders) or that it isn't recorded
+		// (Close). Without it, each game writes a new file in `directory`.
+		public static bool waitForLogFile;
 
 		// The game being recorded, and its log file (opened with the first row
 		// written, so a game nothing is recorded in leaves no file).
@@ -46,6 +51,11 @@ namespace C7Engine.PlayLog {
 		private static string recordingDirectory;
 		private static StreamWriter writer;
 		public static string CurrentPath { get; private set; }
+		// The rows written while waiting for the game's log file.
+		private static List<string> pending;
+		// Rows are written from the engine's thread, the log file is given
+		// from the UI's.
+		private static readonly object writeLock = new();
 
 		private static readonly Dictionary<ID, ShadowAdvanced.State> shadowStates = new();
 		private static readonly HashSet<(int turn, ID player)> stateRowsWritten = new();
@@ -61,26 +71,72 @@ namespace C7Engine.PlayLog {
 		public static void OnGameCreated(GameData gameData) {
 			Close();
 			string envDirectory = Environment.GetEnvironmentVariable("C7_PLAY_LOG_DIR");
-			if (!string.IsNullOrEmpty(envDirectory)) {
-				recordingDirectory = envDirectory;
-			} else if (enabled && !string.IsNullOrEmpty(directory)) {
-				recordingDirectory = directory;
-			} else {
-				return;
+			lock (writeLock) {
+				if (!string.IsNullOrEmpty(envDirectory)) {
+					recordingDirectory = envDirectory;
+				} else if (enabled && waitForLogFile) {
+					recordingDirectory = null;
+					pending = new List<string>();
+				} else if (enabled && !string.IsNullOrEmpty(directory)) {
+					recordingDirectory = directory;
+				} else {
+					return;
+				}
+				game = gameData;
 			}
-			game = gameData;
+		}
+
+		// Whether the game is recorded once the UI says where (UseLogFile).
+		public static bool WaitingForLogFile {
+			get {
+				lock (writeLock) {
+					return game != null && pending != null;
+				}
+			}
+		}
+
+		// The game's log is the file at path: a new one starts with a
+		// "header" row, an existing one (the game's log from before it was
+		// saved) carries on after a "session" row. Then come the rows written
+		// while waiting.
+		public static void UseLogFile(string path, string saveLoaded = null) {
+			lock (writeLock) {
+				if (game == null || pending == null) {
+					return;
+				}
+				List<string> rows = pending;
+				pending = null;
+				try {
+					Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
+					bool carriesOn = File.Exists(path) && new FileInfo(path).Length > 0;
+					writer = new StreamWriter(path, append: true) { NewLine = "\n" };
+					CurrentPath = path;
+					log.Information(carriesOn ? "Carrying on the play log {Path}" : "Recording the play log to {Path}", path);
+					writer.WriteLine(JsonSerializer.Serialize(Header(game, carriesOn ? "session" : "header", saveLoaded), jsonOptions));
+					foreach (string row in rows) {
+						writer.WriteLine(row);
+					}
+					writer.Flush();
+				} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+					log.Warning("Can't write the play log {Path}, so it stops: {Error}", path, e.Message);
+					game = null;
+				}
+			}
 		}
 
 		public static void Close() {
-			try {
-				writer?.Dispose();
-			} catch (Exception e) when (e is IOException or ObjectDisposedException) {
+			lock (writeLock) {
+				try {
+					writer?.Dispose();
+				} catch (Exception e) when (e is IOException or ObjectDisposedException) {
+				}
+				writer = null;
+				pending = null;
+				game = null;
+				CurrentPath = null;
+				shadowStates.Clear();
+				stateRowsWritten.Clear();
 			}
-			writer = null;
-			game = null;
-			CurrentPath = null;
-			shadowStates.Clear();
-			stateRowsWritten.Clear();
 		}
 
 		// ---- what is recorded ----
@@ -302,18 +358,24 @@ namespace C7Engine.PlayLog {
 		// ---- writing ----
 
 		private static void Write(Dictionary<string, object> row) {
-			if (!Active) {
-				return;
-			}
-			try {
-				if (writer == null) {
-					Open();
+			lock (writeLock) {
+				if (!Active) {
+					return;
 				}
-				writer.WriteLine(JsonSerializer.Serialize(row, jsonOptions));
-				writer.Flush();
-			} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
-				log.Warning("Can't write the play log {Path}, so it stops: {Error}", CurrentPath, e.Message);
-				game = null;
+				try {
+					if (writer == null && pending != null) {
+						pending.Add(JsonSerializer.Serialize(row, jsonOptions));
+						return;
+					}
+					if (writer == null) {
+						Open();
+					}
+					writer.WriteLine(JsonSerializer.Serialize(row, jsonOptions));
+					writer.Flush();
+				} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+					log.Warning("Can't write the play log {Path}, so it stops: {Error}", CurrentPath, e.Message);
+					game = null;
+				}
 			}
 		}
 
@@ -330,21 +392,36 @@ namespace C7Engine.PlayLog {
 			writer = new StreamWriter(path, append: false) { NewLine = "\n" };
 			CurrentPath = path;
 			log.Information("Recording the play log to {Path}", path);
-			writer.WriteLine(JsonSerializer.Serialize(new Dictionary<string, object> {
-				["type"] = "header",
-				["version"] = 1,
-				["game"] = gameData.seed,
-				["seed"] = gameData.seed,
-				["recorded"] = DateTime.Now.ToString("s"),
-				["turn"] = gameData.turn,
-				["difficulty"] = gameData.gameDifficulty?.Name,
-				["map"] = $"{gameData.map?.numTilesWide}x{gameData.map?.numTilesTall}",
-				["simultaneousTurns"] = gameData.simultaneousTurns,
-				["civs"] = gameData.players.Where(p => !p.IsIndependent).Select(p => new Dictionary<string, object> {
-					["civ"] = p.civilization.name,
-					["ai"] = p.isHuman ? "Human" : p.aiType.ToString(),
-				}).ToList(),
-			}, jsonOptions));
+			writer.WriteLine(JsonSerializer.Serialize(Header(gameData, "header", null), jsonOptions));
+		}
+
+		// The row a log starts with ("header"), or that marks a session
+		// carrying on a log ("session"): the game as it stands when it
+		// starts or loads.
+		private static Dictionary<string, object> Header(GameData gameData, string type, string saveLoaded) {
+			Dictionary<string, object> row = new() {
+			["type"] = type,
+			["version"] = 1,
+			["game"] = gameData.seed,
+			["seed"] = gameData.seed,
+			["name"] = gameData.playLog?.name,
+			["recorded"] = DateTime.Now.ToString("s"),
+			["turn"] = gameData.turn,
+			["loaded"] = saveLoaded,
+			["difficulty"] = gameData.gameDifficulty?.Name,
+			["map"] = $"{gameData.map?.numTilesWide}x{gameData.map?.numTilesTall}",
+			["simultaneousTurns"] = gameData.simultaneousTurns,
+			["civs"] = gameData.players.Where(p => !p.IsIndependent).Select(p => new Dictionary<string, object> {
+				["civ"] = p.civilization.name,
+				["ai"] = p.isHuman ? "Human" : p.aiType.ToString(),
+			}).ToList(),
+			};
+			// What isn't known (the name of a game without one, the save of a
+			// new game) is left out.
+			foreach (string key in row.Where(e => e.Value == null).Select(e => e.Key).ToList()) {
+				row.Remove(key);
+			}
+			return row;
 		}
 
 		// Recording never stops the game: a failure is logged and the row

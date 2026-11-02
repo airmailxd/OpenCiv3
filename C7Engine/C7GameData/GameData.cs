@@ -170,6 +170,10 @@ namespace C7GameData {
 		// Tutorial).
 		public TutorialState tutorial = new();
 
+		// The game's name and folder, if it's recorded in a play log (see
+		// C7Engine.PlayLog.PlayLogFolders); null otherwise.
+		public PlayLogInfo playLog;
+
 		public BarbarianInfo barbarianInfo = new BarbarianInfo();
 
 		public StrengthBonus fortificationBonus;

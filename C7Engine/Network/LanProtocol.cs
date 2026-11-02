@@ -126,9 +126,11 @@ public static class LanProtocol {
 
 	// Takes out of a snapshot what no client may have, whatever it sees of
 	// the game: the state of the host's random numbers, from which a client
-	// could tell how combat and the like will turn out.
+	// could tell how combat and the like will turn out; and where the host
+	// keeps the game's play log (a folder on the host's machine).
 	internal static void StripHostSecrets(SaveGame save) {
 		save.RngState = null;
+		save.PlayLog = null;
 	}
 
 	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
