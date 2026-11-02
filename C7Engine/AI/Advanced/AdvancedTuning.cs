@@ -28,7 +28,7 @@ namespace C7Engine.AI.Advanced {
 			TradeGpt.Switch, DevelopmentAI.RailroadFirst, DevelopmentAI.PhilosophyFirst, EarlyRush.Switch, ArcherRush.Switch,
 			PhasePlan.Switch, DevelopmentAI.WorkersOneTwo, GovernmentAI.EarlyGovernment, RuleWeights.ByState,
 			GranaryPump.Name, GovernmentAI.RepublicRoute, TechSwap.Switch, TotalWar.Switch,
-			LeanGarrison.Switch, GrowToSettle.Switch, PreyWar.Switch, HordeWar.Switch,
+			LeanGarrison.Switch, GrowToSettle.Switch, PreyWar.Switch, HordeWar.Switch, FastExpand.Switch,
 		];
 
 		public static readonly IReadOnlyList<Knob> Knobs = [
@@ -106,6 +106,8 @@ namespace C7Engine.AI.Advanced {
 				"1: interior cities keep 1 defender (2 at war or with an enemy close), border cities 2 (3); the rest go to attackers."),
 			new(GrowToSettle.Switch, 0, 1, 0, 1,
 				"1: while land is left, a city about to hit its size cap or happiness limit builds settlers and workers instead of growing."),
+			new(FastExpand.Switch, 0, 1, 0, 1,
+				"1: while land is left and at peace, one defender a city, settlers before buildings, and settlers started before the city has grown for them."),
 			new(PreyWar.Switch, 0, 1, 0, 1,
 				"1: once land runs out and the plan names a much weaker neighbour as prey, gather a stack, declare and take its cities."),
 			new(HordeWar.Switch, 0, 1, 0, 1,

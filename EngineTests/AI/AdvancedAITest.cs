@@ -249,6 +249,7 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 			Assert.False(AiExperiments.Has(player, LeanGarrison.Switch));
 			Assert.False(AiExperiments.Has(player, GrowToSettle.Switch));
 			Assert.False(AiExperiments.Has(player, PreyWar.Switch));
+			Assert.False(AiExperiments.Has(player, FastExpand.Switch));
 
 			AdvancedTuning.Override("early-government=1,tech-swap=1");
 			Assert.Contains(GovernmentAI.EarlyGovernment, AdvancedTuning.BehavioursOn(player));
@@ -261,6 +262,8 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 			Assert.Contains(GrowToSettle.Switch, AdvancedTuning.BehavioursOn(player));
 			AdvancedTuning.Override("prey-war=1");
 			Assert.Contains(PreyWar.Switch, AdvancedTuning.BehavioursOn(player));
+			AdvancedTuning.Override("fast-expand=1");
+			Assert.Contains(FastExpand.Switch, AdvancedTuning.BehavioursOn(player));
 		} finally {
 			AdvancedTuning.Override("");
 		}

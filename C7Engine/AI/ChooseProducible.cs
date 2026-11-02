@@ -97,6 +97,13 @@ namespace C7Engine {
 			private WonderPlanner.Plan wonderPlan;
 			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
 
+			// For the fast-expand trial (see FastExpand): whether it shapes
+			// this decision, and the soldiers it wants.
+			private bool? fastExpandActive;
+			public bool FastExpandActive => fastExpandActive ??= FastExpand.Active(this, city, player);
+			private (int have, int want)? fastExpandSoldiers;
+			public (int have, int want) FastExpandSoldiers => fastExpandSoldiers ??= FastExpand.Soldiers(player);
+
 			// For the lean-garrison trial (see LeanGarrison).
 			private int? leanGarrisonNeed;
 			public int LeanGarrisonNeed => leanGarrisonNeed ??= LeanGarrison.Need(player, atWar);
@@ -330,7 +337,10 @@ namespace C7Engine {
 			///
 
 			// Don't built a worker or settler if we don't have enough population.
-			if (CityIsTooSmall(stats, city, unit)) {
+			// (fast-expand, Advanced only: a settler may be started a little
+			// before the city has grown enough for it; see FastExpand.)
+			if (CityIsTooSmall(stats, city, unit)
+					&& !(isSettler && FastExpand.On(player) && stats.FastExpandActive && FastExpand.MayPrebuild(stats, city, unit))) {
 				return int.MinValue;
 			}
 
@@ -343,7 +353,13 @@ namespace C7Engine {
 			// cap or its happiness sheds citizens as settlers and workers.
 			score += GrowToSettle.UnitAdjustment(stats, city, player, unit);
 
-			score += StockGarrisonBonus(player, unit, stats);
+			// fast-expand (Advanced only): while expanding at peace, one
+			// defender a city and settlers first (see FastExpand).
+			if (FastExpand.On(player) && stats.FastExpandActive) {
+				score += FastExpand.UnitAdjustment(stats, player, unit);
+			} else {
+				score += StockGarrisonBonus(player, unit, stats);
+			}
 			score += LeanGarrison.DefenderAdjustment(stats, city, player, unit);
 			// Kings & Nomads: defenders, settlers from captured cities, and
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
@@ -645,6 +661,12 @@ namespace C7Engine {
 			// Penalize buildings if economy is weak
 			if (HasWeakEconomy(player)) {
 				score -= 10 * maintenance;
+			}
+
+			// fast-expand (Advanced only): settlers before buildings while
+			// expanding at peace (see FastExpand).
+			if (FastExpand.On(player) && stats.FastExpandActive) {
+				score += FastExpand.BuildingAdjustment(building);
 			}
 
 			return score;

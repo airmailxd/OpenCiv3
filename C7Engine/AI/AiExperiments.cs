@@ -25,6 +25,13 @@ namespace C7Engine.AI {
 			enabled.GetOrCreateValue(player).Add(name);
 		}
 
+		// For tests: turns a switch off again.
+		internal static void Disable(Player player, string name) {
+			if (enabled.TryGetValue(player, out HashSet<string> names)) {
+				names.Remove(name);
+			}
+		}
+
 		// Lets AiTrialTest count battles and war declarations. Null outside
 		// a trial.
 		internal static Action<MapUnit, MapUnit, CombatResult> onCombat;
