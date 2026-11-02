@@ -63,7 +63,7 @@ def json_batches(runs_dir, ladder_dir):
         civs = s.get("civs", 8)
         # A paired run's other arm is all Standard, so the one-first-per-game
         # identity doesn't hold there; paired runs put half the civs on trial.
-        n = civs // 2 if s.get("paired") else trial_civs(first, civs)
+        n = s.get("trialCount") or (civs // 2 if s.get("paired") else trial_civs(first, civs))
         games = s.get("games") or d.get("gamesPlayed") or 0
         score = summary_measure(d["summary"], "score") or {}
         rank = summary_measure(d["summary"], "rank") or {}
@@ -81,6 +81,9 @@ def json_batches(runs_dir, ladder_dir):
             "experiments": exps,
             "games": games,
             "difficulty": s.get("difficulty"),
+            "landform": s.get("landform"),
+            "water": s.get("water", 70),
+            "world": s.get("world") or f"{s.get('size', 100)}x{s.get('size', 100)}",
             "firstSeed": s.get("firstSeed"),
             "mode": mode,
             "advancedPerGame": n,

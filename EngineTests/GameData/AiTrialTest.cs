@@ -31,6 +31,12 @@ namespace EngineTests.GameData;
 //   C7_TRIAL_TURNS        turns per game (default 200)
 //   C7_TRIAL_DIFFICULTY   index into the difficulties (default 3, Monarch)
 //   C7_TRIAL_LANDFORM     Pangaea, Continents or Archipelago (default Continents)
+//   C7_TRIAL_WATER        60, 70 or 80, percent of the map that is water (default 70)
+//   C7_TRIAL_WORLD        Tiny, Small, Standard, Large or Huge: the map's size,
+//                         distance between civs, optimal city count and tech
+//                         rate from the rules (default: C7_TRIAL_SIZE square
+//                         with the old fixed values). C7_TRIAL_CIVS still sets
+//                         the civ count (Civ3's defaults: 4, 6, 8, 12, 16)
 //   C7_TRIAL_SEED         seed of the first game (default 1000)
 //   C7_TRIAL_FIRST_GAME   index the first game had in its exam (default 0).
 //                         Which half of the civs is on trial alternates by
@@ -440,14 +446,36 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		SaveGame save = Environment.GetEnvironmentVariable("C7_TRIAL_RULES") == "mdj"
 			? GameSetup.LoadMdjRules(PathUtils.GameModesDir, new GameMode.Config("civ3"))
 			: SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		// C7_TRIAL_WATER: 60, 70 or 80 (percent of the map that is water).
+		WorldCharacteristics.OceanCoverage water = Setting("C7_TRIAL_WATER", 70) switch {
+			60 => WorldCharacteristics.OceanCoverage.Percent_60,
+			80 => WorldCharacteristics.OceanCoverage.Percent_80,
+			_ => WorldCharacteristics.OceanCoverage.Percent_70,
+		};
+		// C7_TRIAL_WORLD names one of the rules' world sizes (Tiny, Small,
+		// Standard, Large, Huge): its width, height, distance between civs,
+		// optimal city count and tech rate come from the BIQ, as in a real game.
+		// The civ count stays C7_TRIAL_CIVS, so a test can vary it.
+		string worldName = Environment.GetEnvironmentVariable("C7_TRIAL_WORLD");
+		WorldSize named = string.IsNullOrEmpty(worldName) ? null
+			: save.WorldSizes.FirstOrDefault(w => string.Equals(w.name, worldName, StringComparison.OrdinalIgnoreCase))
+				?? throw new ArgumentException($"C7_TRIAL_WORLD: no world size called {worldName}");
 		WorldCharacteristics wc = new(save) {
 			landform = landform,
-			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			oceanCoverage = water,
 			age = WorldCharacteristics.Age.Billion_4,
 			climate = WorldCharacteristics.Climate.Normal,
 			temperature = WorldCharacteristics.Temperature.Temperate,
 			barbarianActivity = BarbarianActivity.Roaming,
-			worldSize = new WorldSize() {
+			worldSize = named != null ? new WorldSize() {
+				name = named.name,
+				width = named.width,
+				height = named.height,
+				numberOfCivs = civs,
+				distanceBetweenCivs = named.distanceBetweenCivs,
+				techRate = named.techRate,
+				optimalNumberOfCities = named.optimalNumberOfCities,
+			} : new WorldSize() {
 				width = size,
 				height = size,
 				numberOfCivs = civs,
@@ -805,6 +833,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					["turns"] = turns,
 					["difficulty"] = difficulty,
 					["landform"] = landform.ToString(),
+					["water"] = Setting("C7_TRIAL_WATER", 70),
+					["world"] = Environment.GetEnvironmentVariable("C7_TRIAL_WORLD") ?? "",
+					["trialCount"] = Setting("C7_TRIAL_COUNT", 0),
 					["firstSeed"] = firstSeed,
 					["seeds"] = Enumerable.Range(0, games).Select(g => firstSeed + g).ToList(),
 					["scenario"] = Environment.GetEnvironmentVariable("C7_TRIAL_SCENARIO") ?? "None",
