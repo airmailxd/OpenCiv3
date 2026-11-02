@@ -6,9 +6,30 @@ The play log records a game played by a human: what they did each turn, and what
 
 Settings → Developer → **Record play log**. It's off by default and saved in C7.ini (`[developer] recordPlayLog`). It takes effect for the next game you start or load.
 
-Each game started or loaded then writes one file to the `play-logs` folder beside C7.ini. That's the game's folder when it can write there (playing from an extracted zip or the editor), otherwise `%APPDATA%\OpenCiv3\play-logs`. The name is `<date>-<time>-<civ>-<seed>.jsonl`. The game's log says where, on the line "Recording the play log to ...". A loaded game starts a new file. The seed is the same for every session of a game, so give the summary tool all of its files.
+### A game's name and folder
 
-Headless games and tests record too when `C7_PLAY_LOG_DIR` names a folder.
+With the setting on, a new game asks for its name as it starts ("Name This Game", before the first turn), offering the civilization and the date, such as `Rome 2026-11-02`. Cancel (or Escape) keeps that name. The game gets a folder of that name in the saves folder (`Saves` beside C7.ini: the game's own folder when it can write there, otherwise `%APPDATA%\OpenCiv3\Saves`), which holds everything of the game:
+
+```
+Saves/
+  Rome 2026-11-02/
+    Rome 2026-11-02.jsonl          the play log, one for the whole game
+    Rome 2026-11-02 Turn 41.json   saved from the game menu
+    Autosave Turn 40.json          the Auto-Save preference's autosaves
+    Autosave Turn 41.json
+```
+
+- The name is made fit for a folder on Windows, macOS and Linux (no `<>:"/\|?*`, trimmed, at most 60 characters). If the folder is there already, the game is `Rome 2026-11-02 (2)`.
+- **Save Game** opens in the game's folder with the name filled in as `<name> Turn <turn>`, as autosaves are `Autosave Turn <turn>`. Another folder or name can still be picked.
+- Autosaves go in the game's folder rather than `Saves/Auto`, named and kept (the last 10) as before. A LAN host's own `LAN Autosave` stays where it is, since resuming looks for it there.
+- The game remembers its name and folder in its saves (`playLog: { name, folder, logFile }`), so **loading any of its saves carries on the same log**: a `session` row marks where (the turn, the time and the save loaded), and the rows go on after it. If the game's folder has moved, the folder the save was loaded from counts when the log is beside it; if the log has gone, a new one starts.
+- Loading a save from an earlier turn than the log has got to warns that carrying on will break the log's sequence (the turns from the save on repeat in it): **Continue (keep logging)** or **Don't log this session**. Loading the latest save doesn't ask.
+- A save from before (or from a game played with the setting off) asks for a name as it loads, offering the save's file name, and the game gets its folder then.
+- With the setting off nothing asks and nothing changes: saves go where they did, and the name a save remembers is kept in it for a later game with the setting on.
+
+Logs written before games had names (0.12.1) are `play-logs/<date>-<time>-<civ>-<seed>.jsonl` beside C7.ini, one per session; the summary tool takes all of a game's files. The game's log says where it writes, on the line "Recording the play log to ..." (or "Carrying on the play log ...").
+
+Headless games and tests record when `C7_PLAY_LOG_DIR` names a folder, one file per session in it, as before.
 
 ### Hotseat and LAN
 
@@ -16,13 +37,14 @@ The log is written by the engine that plays the game:
 - in single player and hotseat, on that machine, for every human;
 - in a LAN game, on the **host**, for every human, whichever machine they play at. A guest's machine writes nothing, and the guest's own setting doesn't count.
 
-No new network messages and no save changes: recording only reads the game.
+No new network messages. The host's saves remember the game's name and folder, which LAN snapshots leave out (a folder on the host's machine is of no use to a guest). Recording only reads the game.
 
 ## What's in it
 
 One JSON object per line. Every row except the state rows has a `"type"`.
 
-- `header`: one when the file opens: game (the seed), turn, difficulty, map size, the civs and who plays them.
+- `header`: one when the file starts: game (the seed), the game's `name`, turn, difficulty, map size, the civs and who plays them.
+- `session`: the same, each time the game is loaded and its log carries on, with `loaded`, the save's file name. Rows after a `session` from an earlier turn than the rows before it repeat those turns (the player loaded an older save and chose to keep logging).
 - State rows (no `type`): each human's state at the start of each of their turns, in exactly the rows of the AI trials' state log (`C7_TRIAL_STATE`), with `"ai": "Human"`, `"run": "main"`, `"game"` and `"seed"` the game's seed. So `tools/advanced-ai-training/benchmarks.py` and the other trial scripts read them like an AI civ's rows.
 - `action`: every message a human sends the engine and the engine accepts (unit selection and the research prompt aside): the turn, the civ, the message (`msg`) and its fields readably (units as `Warrior@12,30`, tiles as `x,y`, cities and techs by name), plus, for some:
   - moves: `from` and `to`;
@@ -68,7 +90,7 @@ The shadow costs one AI evaluation per decision (a city's production when the hu
 ## Summarizing a log
 
 ```
-python tools/play-log/summarize.py play-logs/20261101-213759-Rome-4321.jsonl [more files of the game] [--bin 50] [--civ Rome]
+python tools/play-log/summarize.py "Saves/Rome 2026-11-02/Rome 2026-11-02.jsonl" [more files of the game] [--bin 50] [--civ Rome]
 ```
 
 Plain Python 3, no packages. For each range of turns (`--bin`, default 50) it prints:

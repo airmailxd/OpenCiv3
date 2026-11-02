@@ -140,8 +140,12 @@ def show(v):
 
 def report(rows, size, civ=None):
     if civ:
-        rows = [r for r in rows if r.get("civ") in (None, civ) or kind(r) == "header"]
-    headers = [r for r in rows if kind(r) == "header"]
+        rows = [r for r in rows if r.get("civ") in (None, civ) or kind(r) in ("header", "session")]
+    # A game's log starts with a "header"; each later session (the game
+    # loaded again) carries on the same file after a "session" row. Logs
+    # from before games had folders are one file per session, each with a
+    # header.
+    headers = [r for r in rows if kind(r) in ("header", "session")]
     actions = [r for r in rows if kind(r) == "action"]
     states = [r for r in rows if kind(r) == "state"]
     fights = [r for r in rows if kind(r) == "combat"]
@@ -149,7 +153,8 @@ def report(rows, size, civ=None):
 
     humans = sorted({s["civ"] for s in states if s.get("ai") == "Human"} | {a["civ"] for a in actions})
     turns = [r["turn"] for r in states + actions]
-    out.append(f"Play log: {len(headers)} session(s), game {', '.join(sorted({str(h.get('game')) for h in headers})) or '?'}, "
+    name = next((h["name"] for h in headers if h.get("name")), None)
+    out.append(f"Play log{' of ' + name if name else ''}: {len(headers)} session(s), game {', '.join(sorted({str(h.get('game')) for h in headers})) or '?'}, "
                f"human {', '.join(humans) or '?'}, turns {min(turns) if turns else '?'}-{max(turns) if turns else '?'}, "
                f"{len(actions)} actions, {len(fights)} fights.")
     if headers:
