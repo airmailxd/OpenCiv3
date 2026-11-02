@@ -204,6 +204,11 @@ namespace C7Engine.AI {
 			return campaigns.TryGetValue(player, out Campaign c) && c.horde;
 		}
 
+		// Whether the player's horde has massed and set out (see HordeWar).
+		public static bool HordeMassed(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.horde && c.massed;
+		}
+
 		public static bool HasHordeCampaignAgainst(Player player, Player enemy) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.horde && c.enemy == enemy;
 		}
@@ -1454,7 +1459,8 @@ namespace C7Engine.AI {
 				Tile next = path.PeekNext();
 				if (next.unitsOnTile.Any(u => !u.owner.IsAtPeaceWith(player))) {
 					// Someone is in the way: attack if the odds are good.
-					if (!await ClearTheWay(player, stack, next) || HasArmedEnemy(player, next)) {
+					if (!await (c.horde ? HordeAttack(player, stack, next, AssaultWorthwhile(player, stack, next)) : ClearTheWay(player, stack, next))
+							|| HasArmedEnemy(player, next)) {
 						break;
 					}
 					// The stack keeps together: if the attack used up a
@@ -1544,6 +1550,44 @@ namespace C7Engine.AI {
 			return true;
 		}
 
+		// A horde's attack on the tile (see HordeWar.DeathChance): the unit
+		// of the stack least likely to die, among those at SureOdds or, in
+		// an all-out assault the stack can expect to win, at no more than
+		// HordeWar.MaxDeathChance; the better odds among equals. An army
+		// also needs MinArmyOdds. Returns whether it attacked.
+		private static async Task<bool> HordeAttack(Player player, List<MapUnit> stack, Tile tile, bool allOut) {
+			MapUnit best = null;
+			double bestDeath = double.MaxValue;
+			double bestOdds = 0;
+			foreach (MapUnit u in stack) {
+				bool army = IsFightingArmy(u);
+				if (!PlayerAI.IsStillOurs(u, player) || !(IsAttacker(u) || army) || !u.movementPoints.canMove || !u.CanAttackAgainThisTurn()
+					|| !IsNeighbor(u.location, tile) || triedToAttack.Contains(u)) {
+					continue;
+				}
+				MapUnit defender = tile.FindTopDefender(u);
+				double odds = MapUnit.IsMapUnitValid(defender) ? CombatAI.EstimateChanceToWin(u, defender) : 1;
+				double death = MapUnit.IsMapUnitValid(defender) ? HordeWar.DeathChance(u, defender, odds) : 0;
+				if (army && odds < MinArmyOdds) {
+					continue;
+				}
+				if (odds < SureOdds && !(allOut && death <= HordeWar.MaxDeathChance)) {
+					continue;
+				}
+				if (death < bestDeath - 1e-9 || (Math.Abs(death - bestDeath) <= 1e-9 && odds > bestOdds)) {
+					best = u;
+					bestDeath = death;
+					bestOdds = odds;
+				}
+			}
+			if (best == null) {
+				return false;
+			}
+			triedToAttack.Add(best);
+			await best.Move(best.location.DirectionTo(tile));
+			return true;
+		}
+
 		// HEURISTIC: how many turns a stack too weak to take the city waits
 		// outside it for more attackers, and how many when more are on their
 		// way.
@@ -1571,7 +1615,8 @@ namespace C7Engine.AI {
 			// to win: trickling attackers in one at a time against a city we
 			// can't take only loses them.
 			while (HasArmedEnemy(player, city)
-				&& await AttackIfGoodOdds(player, stack, city, AssaultWorthwhile(player, stack, city) ? MinAssaultOdds : SureOdds)) {
+				&& await (c.horde ? HordeAttack(player, stack, city, AssaultWorthwhile(player, stack, city))
+					: AttackIfGoodOdds(player, stack, city, AssaultWorthwhile(player, stack, city) ? MinAssaultOdds : SureOdds))) {
 				stack.RemoveAll(u => !PlayerAI.IsStillOurs(u, player));
 			}
 

@@ -122,6 +122,19 @@ namespace C7Engine.AI.UnitAI {
 				}
 			}
 
+			// Switch horde-war: one step from a rival's city, which may have
+			// been chosen before we could see who holds it, look again (see
+			// ScoreTile) rather than attack whatever is there. On the replays
+			// (seeds 7100-7115) units outside the horde attacked cities at
+			// odds as low as 0.2, one after another, and lost 25 units.
+			// Not for barbarians' camps and units, found by the hunt (see
+			// PlayerAI.HuntBarbarians): looked at again too, the civ hunted
+			// a tenth as many, and had 0.8 cities fewer by turn 100.
+			if (HordeWar.On(player) && data.path.PathLength() == 1 && destinationHasEnemyCity && !dest.cityAtTile.owner.isBarbarians
+					&& ScoreTile(dest, unit, player, GetPlayersAtWarWith(player)) == int.MinValue) {
+				return C7GameData.UnitAI.Result.Done;
+			}
+
 			// Move along the path, initiating combat if we reach our target.
 			return this.TryToMoveAlongPath(unit, ref data.path);
 		}
@@ -349,6 +362,15 @@ namespace C7Engine.AI.UnitAI {
 			}
 			if (MapUnit.IsMapUnitValid(defender) && !player.isBarbarians
 					&& winChance < SURE_CHANCE && !EnoughForceNearby(unit, player, t, hasEnemyCity)) {
+				return int.MinValue;
+			}
+			// Switch horde-war: nor at too great a risk of dying (see
+			// HordeWar.DeathChance), short of sure odds. On the v1 replays
+			// (seeds 7100-7115) the civ's units outside the horde made 59
+			// attacks at under even odds (6 with the switch off) and lost
+			// 23 units attacking cities.
+			if (MapUnit.IsMapUnitValid(defender) && winChance < SURE_CHANCE && HordeWar.On(player)
+					&& HordeWar.DeathChance(unit, defender, winChance, t.DistanceTo(unit.location)) > HordeWar.MaxDeathChance) {
 				return int.MinValue;
 			}
 

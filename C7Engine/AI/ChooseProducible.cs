@@ -611,6 +611,11 @@ namespace C7Engine {
 				if (PhasePlan.WantsBarracks(player, city)) {
 					score += EarlyRush.BarracksBonus;
 				}
+				// Switch horde-war: the horde's builders, before it sets out
+				// (see HordeWar.BarracksScore).
+				if (HordeWar.On(player)) {
+					score += HordeWar.BarracksScore(city, player);
+				}
 				// Barracks in the core cities that raise the army (see
 				// CoreBarracksBonus).
 				if (!atWar && city.residents.Count >= CoreBarracksMinSize

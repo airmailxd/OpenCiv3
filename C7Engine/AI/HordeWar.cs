@@ -39,6 +39,15 @@ namespace C7Engine.AI {
 	// (MaySettleNextTo). It gives the campaign up when the war goes badly by
 	// PeaceAI's own measure (losses and length), and while it is winning it
 	// makes peace only for a city.
+	//
+	// v2 (it won its fights no better than it traded units: 12 lost a game
+	// to 2 off): the horde is of a fast unit only, and goes only for a
+	// victim it has the edge on (HasEdge); its builders put up a Barracks
+	// first (BarracksScore); its attacks, and those of the civ's other
+	// units at war, are made only when the unit is unlikely to die, a fast
+	// unit counting its withdrawal (DeathChance), so the stack attacks the
+	// turn after it arrives, with its full moves; and half its cities
+	// build it.
 	public static class HordeWar {
 		public const string Switch = "horde-war";
 
@@ -106,8 +115,10 @@ namespace C7Engine.AI {
 		public const float BuilderBonus = 150;
 		public const float EscortBonus = 20;
 		// HEURISTIC: the share of our cities, the most productive, that
-		// build the horde (at least two); the rest go on settling.
-		public const int BuilderShareDivisor = 3;
+		// build the horde (at least two); the rest go on settling. v2: half
+		// (v1 a third): on the smoke replays (seeds 7100-7115) a horde took
+		// 25-40 turns to mass, so that most wars began after turn 150.
+		public const int BuilderShareDivisor = 2;
 		public const int BuilderTurns = 20;
 		// HEURISTIC: what a city we would raze is worth as a target, as a
 		// share of one we would keep.
@@ -120,15 +131,34 @@ namespace C7Engine.AI {
 
 		// The fast attacker the horde is made of: the land unit with two or
 		// more moves and more attack than defence with the best attack the
-		// civ can build (mounted unique units among them), the cheapest
-		// among equals. Without one (no Horseback Riding yet), the best
-		// attacker it can build: the rushers among the humans began with
-		// archers and swordsmen. Null if it can build no attacker.
+		// civ can build in any of its cities (mounted unique units among
+		// them), the cheapest among equals. Null if it can build none: v1
+		// fell back on the best slow attacker, and on replays (seeds
+		// 7100-7103) the archer hordes lost every attack they made (6 of
+		// 6, against fortified spearmen), with no retreat to save them.
+		// Looked for in every city, the biggest first, as one without
+		// horses can't build it (on a replay the unit flickered between
+		// Horseman and Archer as the biggest city's road to horses came
+		// and went). Kept for the turn.
 		public static UnitPrototype HordeUnit(Player player) {
-			List<UnitPrototype> buildable = EarlyRush.LandUnitsBuildable(player).ToList();
-			return buildable.Where(IsFastAttacker).OrderByDescending(u => u.attack).ThenBy(u => u.shieldCost).ThenBy(u => u.name, StringComparer.Ordinal).FirstOrDefault()
-				?? buildable.Where(IsAttacker).OrderByDescending(u => u.attack).ThenBy(u => u.shieldCost).ThenBy(u => u.name, StringComparer.Ordinal).FirstOrDefault();
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (hordeUnits.TryGetValue(player, out Tuple<int, UnitPrototype> cached) && cached.Item1 == turn) {
+				return cached.Item2;
+			}
+			UnitPrototype best = null;
+			GameData gameData = EngineStorage.gameData;
+			foreach (City city in player.cities.OrderByDescending(c => c.residents.Count).ThenBy(c => c.id.ToString())) {
+				UnitPrototype here = city.ListProductionOptions(gameData).OfType<UnitPrototype>().Where(IsFastAttacker)
+					.OrderByDescending(u => u.attack).ThenBy(u => u.shieldCost).ThenBy(u => u.name, StringComparer.Ordinal).FirstOrDefault();
+				if (here != null && (best == null || here.attack > best.attack)) {
+					best = here;
+				}
+			}
+			hordeUnits.AddOrUpdate(player, Tuple.Create(turn, best));
+			return best;
 		}
+
+		private static readonly ConditionalWeakTable<Player, Tuple<int, UnitPrototype>> hordeUnits = new();
 
 		private static bool IsAttacker(UnitPrototype u) {
 			return u.IsLandUnit() && !u.isArmy && !u.isSettler && !u.isWorker && u.attack > u.defense && u.attack > 0;
@@ -148,6 +178,92 @@ namespace C7Engine.AI {
 		public static bool Outclasses(Player us, Player them) {
 			UnitPrototype u = HordeUnit(us);
 			return u != null && IsFastAttacker(u) && u.attack >= OutclassRatio * Math.Max(1, EarlyRush.BestDefense(them));
+		}
+
+		// v2: the odds of a round of our horde unit's against their best
+		// defender (by the techs they have) fortified in the city: its
+		// defence with the fortified bonus and the city's (size, walls,
+		// terrain) added up, as Civ3 adds them (compendium 01, 1.6:
+		// "Bonuses add up (they are not multiplied)"). 0 without a horde
+		// unit.
+		public static double EdgeOdds(Player us, City city) {
+			UnitPrototype unit = HordeUnit(us);
+			if (unit == null || unit.attack <= 0) {
+				return 0;
+			}
+			double defence = Math.Max(1, EarlyRush.BestDefense(city.owner)) * (PreyWar.DefenceFactor(city) + FortifiedBonus);
+			return unit.attack / (unit.attack + defence);
+		}
+
+		// v2: whether our horde unit has the edge on the city's defenders:
+		// whether a regular of ours, attacking with its full moves, would
+		// die no more often than MaxDeathChance against a regular of
+		// their best defender fortified there (see DeathChance; it loses
+		// with 1 - EdgeOdds, as the hit points are equal, and withdraws
+		// with an even chance from a slower defender). Horsemen (attack 2)
+		// against Spearmen (2) in a town on grassland: 0.29, in a city of 7:
+		// 0.33; against Pikemen (3) in a city of 7: 0.37, no edge; Knights
+		// (4) there: 0.29. The "tech step ahead" of the strong humans
+		// (doc/human-benchmarks.md) counts, but so does the withdrawal:
+		// asked for round odds of 0.45 instead, no horde set out in 16
+		// smoke games (seeds 7100-7115), as Horsemen never had them.
+		public static bool HasEdge(Player us, City city) {
+			UnitPrototype unit = HordeUnit(us);
+			UnitPrototype defender = EarlyRush.LandUnitsBuildable(city.owner).OrderByDescending(u => u.defense).ThenBy(u => u.name, StringComparer.Ordinal).FirstOrDefault();
+			if (unit == null) {
+				return false;
+			}
+			bool withdraws = defender == null || defender.movement <= 1;
+			return (1 - EdgeOdds(us, city)) * (withdraws ? RegularRetreatChance : 1) <= MaxDeathChance;
+		}
+
+		// A regular's chance to withdraw from a regular: its retreat bonus
+		// (50) over the other's plus 50 (compendium 01, 1.5).
+		private const double RegularRetreatChance = 0.5;
+		// The fortified bonus, added to the city's (Civilopedia
+		// GCON_Terrain_Combat: "Fortified Units +25%", compendium 01).
+		private const double FortifiedBonus = 0.25;
+
+		// v2: the chance the attacker dies attacking the defender, given
+		// the chance it wins: a fast unit that loses withdraws with its
+		// retreat chance (MapUnit.RetreatChance: only against a slower
+		// unit, by both experience levels), if it has the movement left
+		// for it after the attack (a third of a point, as Fight checks,
+		// compendium 01, 1.5) and more than one hit point to start with.
+		// So a horde attacks on the turn after it arrives, with its full
+		// moves: on the v1 replays not one of its horsemen withdrew, as
+		// they attacked off the march.
+		// From distance tiles away, it gets there with a move spent on
+		// each tile but the last (roughly: roads are cheaper, hills dearer).
+		public static double DeathChance(MapUnit attacker, MapUnit defender, double odds, int distance = 1) {
+			float movesThere = attacker.movementPoints.remaining - Math.Max(0, distance - 1);
+			bool canWithdraw = attacker.CompositeHitPoints() >= 2 && movesThere - 1 >= 1f / 3 - 0.0001f;
+			double retreat = canWithdraw ? attacker.RetreatChance(defender, true) : 0;
+			return (1 - odds) * (1 - retreat);
+		}
+
+		// UNVERIFIED (ours): the highest DeathChance an attack of the horde
+		// may have, in an assault the stack can expect to win; above it,
+		// only attacks at WarCampaign's sure odds. A regular horseman that
+		// can withdraw against a regular defender (an even retreat chance)
+		// attacks at odds of 0.3 or more; one that can't, at 0.65.
+		public const double MaxDeathChance = 0.35;
+
+		// v2: what a Barracks is worth in a horde builder before the war,
+		// so that the horde comes out veteran (4 hit points to 3, a retreat
+		// bonus of 58 to 50: compendium 01, 1.2 and 1.5), above
+		// BuilderBonus so that it comes first. Only in a builder making at
+		// least BarracksMinShields, where the 40 shields pay off over the
+		// horde's units. UNVERIFIED (ours).
+		public const float BarracksBonus = 200;
+		public const int BarracksMinShields = 5;
+
+		public static float BarracksScore(City city, Player player) {
+			if (!On(player) || !WarCampaign.HasHordeCampaign(player) || WarCampaign.HordeMassed(player) || !WarCampaign.WantsAttackers(player)
+					|| !Builders(player).Contains(city) || city.CurrentProductionYield().useful < BarracksMinShields) {
+				return 0;
+			}
+			return BarracksBonus;
 		}
 
 		// Whether it is time to mass a horde against them: from
@@ -232,6 +348,10 @@ namespace C7Engine.AI {
 				if (near.Count == 0 || !Reachable(player, near[0])) {
 					continue;
 				}
+				// v2: nor one whose near cities our horde unit has no edge on.
+				if (!near.Any(c => HasEdge(player, c))) {
+					continue;
+				}
 				double score = 0;
 				foreach (City city in near) {
 					score += CityScore(gameData, player, city, 6.0);
@@ -286,6 +406,10 @@ namespace C7Engine.AI {
 					continue;
 				}
 				double score = CityScore(gameData, player, city, 4.0);
+				// v2: a city our horde unit has the edge on first.
+				if (!HasEdge(player, city)) {
+					score -= NoEdgePenalty;
+				}
 				if (score > bestScore) {
 					bestScore = score;
 					best = city;
@@ -293,6 +417,10 @@ namespace C7Engine.AI {
 			}
 			return best;
 		}
+
+		// Below any city we have the edge on (CityScore is a few units at
+		// most).
+		private const double NoEdgePenalty = 1000;
 
 		// A city of theirs as a target: what it is worth (its size, by the
 		// chance we keep it, or RazeValue if we would raze it), over the
@@ -352,8 +480,11 @@ namespace C7Engine.AI {
 
 		// Whether a horde gathering on them before the war goes on: not once
 		// the plan calls them a friend or they have a protection pact with us.
+		// v2: nor once our horde unit has the edge on none of their near
+		// cities (they have a better defender, or we lost our horses).
 		public static bool StillVictim(Player player, Player enemy) {
-			return !Pacts.HasDeal(player, enemy, DealSubType.MutualProtectionPact);
+			return !Pacts.HasDeal(player, enemy, DealSubType.MutualProtectionPact)
+				&& NearestCities(player, enemy).Any(c => HasEdge(player, c));
 		}
 
 		// Whether to raze the city we just took: no garrison of at most

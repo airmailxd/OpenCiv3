@@ -201,6 +201,80 @@ public sealed class HordeWarTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.True(WarCampaign.HasHordeCampaignAgainst(us, them));
 	}
 
+	// v2: Horsemen (attack 2), even withdrawing half the time they lose,
+	// have no edge on Pikemen (defence 3) fortified behind walls: no
+	// horde, however late, until a better unit.
+	[Fact]
+	public async Task OnNoHordeWithoutAnEdge() {
+		Play(AiType.Advanced);
+		AiExperiments.Enable(us, HordeWar.Switch);
+		Army(HordeWar.MaxHorde);
+		Assert.True(HordeWar.HasEdge(us, theirs));
+		// Pikemen, which need Feudalism and iron.
+		UnitPrototype pikeman = gameData.unitPrototypes.First(p => p.name == "Pikeman");
+		them.knownTechs.Add(pikeman.requiredTech.id);
+		Resource iron = pikeman.requiredResources.First();
+		theirs.location.Resource = iron;
+		if (iron.Prerequisite != null) {
+			them.knownTechs.Add(iron.Prerequisite);
+		}
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.Equal(3, EarlyRush.BestDefense(them));
+		theirs.AddBuilding(gameData.Buildings.First(b => b.name == "Walls"));
+		Assert.False(HordeWar.HasEdge(us, theirs));
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.False(WarCampaign.HasCampaign(us));
+		Assert.False(AtWar());
+	}
+
+	// v2: no horde of slow attackers either (v1 fell back on archers).
+	[Fact]
+	public void TheHordeUnitIsFastOrNone() {
+		Play(AiType.Advanced);
+		ours.location.Resource = Resource.NONE;
+		gameData.InvalidateCachedTradeNetwork();
+		gameData.turn += 1;
+		Assert.Null(HordeWar.HordeUnit(us));
+	}
+
+	// v2: a horseman that loses withdraws with its retreat chance, if it
+	// has the moves left for it: with its full two, it is less likely to
+	// die than it is to lose; after a move, it dies whenever it loses.
+	[Fact]
+	public void AHorsemanWithItsMovesIsLessLikelyToDie() {
+		UnitPrototype spearman = gameData.unitPrototypes.First(p => p.name == "Spearman");
+		UnitPrototype horseman = gameData.unitPrototypes.First(p => p.name == "Horseman");
+		MapUnit h = gameData.SpawnUnit(us, horseman, ours.location);
+		MapUnit sp = gameData.SpawnUnit(them, spearman, theirs.location);
+		h.movementPoints.reset(h.MaxMovementPoints());
+		Assert.True(HordeWar.DeathChance(h, sp, 0.4) < 0.6 - 0.1);
+		h.movementPoints.onUnitMove(1);
+		Assert.Equal(0.6, HordeWar.DeathChance(h, sp, 0.4), 6);
+		// From three tiles away, it gets there without the moves.
+		h.movementPoints.reset(h.MaxMovementPoints());
+		Assert.Equal(0.6, HordeWar.DeathChance(h, sp, 0.4, 3), 6);
+	}
+
+	// v2: the horde's builders put up a Barracks first, so the horde comes
+	// out veteran; once it has set out, no more.
+	[Fact]
+	public async Task OnTheBuildersRaiseVeterans() {
+		Play(AiType.Advanced);
+		AiExperiments.Enable(us, HordeWar.Switch);
+		Army(3);
+		await WarCampaign.PlayTurn(us, gameData);
+		Assert.True(WarCampaign.HasHordeCampaignAgainst(us, them));
+		Assert.False(WarCampaign.HordeMassed(us));
+		float score = HordeWar.BarracksScore(ours, us);
+		if (ours.CurrentProductionYield().useful >= HordeWar.BarracksMinShields) {
+			Assert.Equal(HordeWar.BarracksBonus, score);
+		} else {
+			Assert.Equal(0, score);
+		}
+		AiExperiments.Enable(them, HordeWar.Switch);
+		Assert.Equal(0, HordeWar.BarracksScore(theirs, them));
+	}
+
 	[Fact]
 	public async Task OnNoHordeInThePeaceCooldown() {
 		Play(AiType.Advanced);
