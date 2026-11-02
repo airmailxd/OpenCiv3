@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Prints a summary of real Civ3 Conquests saves (cities, units, government,
+       techs per civ) to compare human play with OpenCiv3's AI. Not part of the
+       solution or any test run. Usage:
+       dotnet run -c Release (project tools/human-games), then the conquests.biq
+       path and the save folder as arguments. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\QueryCiv3\QueryCiv3.csproj" />
+  </ItemGroup>
+
+</Project>
