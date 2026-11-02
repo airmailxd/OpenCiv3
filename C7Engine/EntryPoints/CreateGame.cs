@@ -38,6 +38,8 @@ public class CreateGame {
 		GameData gameData = save.ToGameData(behaviors);
 
 		EngineStorage.gameData = gameData;
+		// The Advanced AI's map profile, once for the game.
+		AI.Advanced.AdvancedTuning.StartGame(gameData, behaviors?.advancedProfiles);
 		EngineStorage.gameData.onGameCreation();
 		Staging.FinishOnLoad(gameData);
 		// With the setting on, the game's play log (see PlayLog.PlayRecorder).

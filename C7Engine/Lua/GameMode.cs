@@ -90,7 +90,9 @@ internal class GameModeLoader {
 
 		return new() {
 			ruleset = LoadRuleset(),
-			behaviors = new(lua, behaviors),
+			behaviors = new(lua, behaviors) {
+				advancedProfiles = AI.Advanced.AdvancedProfiles.ForGameMode(gameModesDir, config.baseModeDir, config.rulesetDir),
+			},
 			textures = (lua, textures),
 			audio = (lua, audio)
 		};

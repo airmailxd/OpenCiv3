@@ -135,6 +135,13 @@ namespace C7Engine {
 			Civ3MapGenerator generator = new(SettingsOf(wc), RulesOf(wc));
 			generator.Generate();
 			GameMap gameMap = ToGameMap(wc, generator);
+			// What the map was generated as, for the Advanced AI's map profiles
+			// (see AI.Advanced.AdvancedProfiles).
+			gameMap.generation = new MapGeneration {
+				worldSize = string.IsNullOrEmpty(wc.worldSize.name) ? null : wc.worldSize.name,
+				landform = wc.landform.ToString(),
+				water = (int)wc.oceanCoverage,
+			};
 
 			problem = null;
 			if (wc.citiesPerCiv > 1) {

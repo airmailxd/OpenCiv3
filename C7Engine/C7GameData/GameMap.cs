@@ -16,6 +16,9 @@ namespace C7GameData {
 		public bool wrapHorizontally, wrapVertically;
 		public int techRate;
 		public int optimalNumberOfCities;
+		// What the game generated the map as; null for a map it didn't
+		// generate (see MapGeneration).
+		public MapGeneration generation;
 
 		public List<Tile> tiles { get; set; }
 		public List<Tile> barbarianCamps = new List<Tile>();

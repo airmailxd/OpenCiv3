@@ -20,6 +20,11 @@ public class BehaviorEngine {
 
 	private Dictionary<string, Delegate> funcCache = new Dictionary<string, Delegate>();
 
+	// The game mode's map profiles for the Advanced AI, which come with its
+	// behaviors to every game made from it (see
+	// AI.Advanced.AdvancedProfiles); none unless the game mode has any.
+	public AI.Advanced.AdvancedProfiles advancedProfiles { get; internal set; } = AI.Advanced.AdvancedProfiles.None;
+
 	public BehaviorEngine(Script script, Table rules) {
 		this.script = script;
 		this.rules = rules;

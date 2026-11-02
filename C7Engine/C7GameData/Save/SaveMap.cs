@@ -8,6 +8,9 @@ namespace C7GameData.Save {
 		public bool wrapHorizontally, wrapVertically;
 		public int techRate;
 		public int optimalNumberOfCities;
+		// Null for a map the game didn't generate, and in saves from before
+		// it was kept (see MapGeneration).
+		public MapGeneration generation;
 		public List<SaveTile> tiles = new List<SaveTile>();
 		public List<SaveTile> startingLocations = new();
 		public SaveMap() { }
@@ -30,6 +33,7 @@ namespace C7GameData.Save {
 			wrapVertically = map.wrapVertically;
 			techRate = map.techRate;
 			optimalNumberOfCities = map.optimalNumberOfCities;
+			generation = map.generation;
 			List<SaveTile> previous = before?.tiles.Count == map.tiles.Count ? before.tiles : null;
 			tiles = new List<SaveTile>(map.tiles.Count);
 			for (int i = 0; i < map.tiles.Count; ++i) {
@@ -47,6 +51,7 @@ namespace C7GameData.Save {
 				wrapVertically = wrapVertically,
 				techRate = techRate,
 				optimalNumberOfCities = optimalNumberOfCities,
+				generation = generation,
 			};
 			SaveTile.Lookups lookups = new(gd.terrainTypes, gd.Resources, gd.terrainImprovements);
 			gameMap.tiles = tiles.ConvertAll(tile => tile.ToTile(lookups));

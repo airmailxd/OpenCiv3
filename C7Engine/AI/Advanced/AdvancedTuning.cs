@@ -8,9 +8,11 @@ namespace C7Engine.AI.Advanced {
 	// The Advanced AI's tunable numbers, and the on-trial AI behaviours
 	// (AiExperiments switches) it plays with.
 	//
-	// Three layers, the later winning:
+	// Four layers, the later winning:
 	// - each knob's default, the values training settled on (see
 	//   tools/advanced-ai-training and doc/ai-roadmap.md);
+	// - the map's profile, the values training settled on for maps like the
+	//   game's (see AdvancedProfiles), set once as a game starts or loads;
 	// - AI trials' overrides, C7_ADVANCED_TUNING="name=value,...", which is
 	//   how training tries changes;
 	// - the player's own policy (see AdvancedPolicy), which the model
@@ -151,10 +153,34 @@ namespace C7Engine.AI.Advanced {
 		public static Knob KnobNamed(string name) => byName[name];
 
 		private static Dictionary<string, double> overrides = new();
+		private static IReadOnlyDictionary<string, double> profile = new Dictionary<string, double>();
 
-		// The game-wide value (default or trial override).
+		// The key of the map profile the game plays by, or null for none.
+		public static string ProfileKey { get; private set; }
+
+		// The game-wide value (trial override, else the map's profile's, else
+		// the default).
 		public static double Get(string name) =>
-			overrides.TryGetValue(name, out double v) ? v : byName.TryGetValue(name, out Knob k) ? k.defaultValue : throw new ArgumentException(name);
+			overrides.TryGetValue(name, out double v) ? v
+			: profile.TryGetValue(name, out v) ? v
+			: byName.TryGetValue(name, out Knob k) ? k.defaultValue : throw new ArgumentException(name);
+
+		// Sets the game-wide values for a game that is starting or loading:
+		// the profile that fits its map, if any. Called once per game (see
+		// CreateGame), not on every read.
+		public static void StartGame(GameData gameData, AdvancedProfiles profiles) {
+			(string key, Dictionary<string, double> knobs) = (profiles ?? AdvancedProfiles.None).Resolve(gameData?.map?.generation);
+			UseProfile(key, knobs);
+			if (key != null) {
+				Serilog.Log.ForContext(typeof(AdvancedTuning)).Information("The Advanced AI plays by the {Key} map profile on this {Map} map", key, gameData.map.generation.Key);
+			}
+		}
+
+		// Plays by the given profile; a null key for none.
+		public static void UseProfile(string key, IReadOnlyDictionary<string, double> knobs) {
+			ProfileKey = key;
+			profile = key == null ? new Dictionary<string, double>() : new Dictionary<string, double>(knobs ?? new Dictionary<string, double>());
+		}
 
 		// The value this player plays by: its own policy's, or the game-wide.
 		public static double Get(Player player, string name) =>

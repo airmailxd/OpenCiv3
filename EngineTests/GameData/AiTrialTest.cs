@@ -81,7 +81,13 @@ namespace EngineTests.GameData;
 //                         changes recorded for its (seed, civ, turn) at the
 //                         same turns, with no model and no cost
 //   C7_ADVANCED_TUNING    the Advanced AI's knobs, "name=value,..." (see
-//                         AdvancedTuning)
+//                         AdvancedTuning); they beat the map's profile
+//   C7_ADVANCED_PROFILE   the Advanced AI's map profile (see AdvancedProfiles):
+//                         unset, the one that fits each game's map, as in a
+//                         real game; "none" for none (the knobs' defaults
+//                         under C7_ADVANCED_TUNING, as training wants); a
+//                         key of C7/Lua/civ3/advanced-ai-profiles.json for
+//                         that profile whatever the map
 //   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
 //                         then no half to compare with, so the summary's two
 //                         columns are the same average over all civs, to
@@ -164,6 +170,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	// For C7_TRIAL_STATE: the game being played, as it is labelled in the log.
 	private int stateGame;
+	// The Advanced AI's map profile in the game being played, or null.
+	private string profilePlayed;
 	private int stateSeed;
 	private string stateRun = "main";
 
@@ -854,6 +862,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				["summary"] = summary,
 				["reviews"] = reviewDocs,
 			};
+			// The Advanced AI's map profile, when it played by one.
+			if (profilePlayed != null) {
+				((Dictionary<string, object>)doc["settings"])["profile"] = profilePlayed;
+			}
 			File.WriteAllText(jsonPath, JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true }));
 		}
 
@@ -952,6 +964,15 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		EngineStorage.ProcessNextMessageToEngine();
 		await CreateGame.createGame(save, (_) => fixture.behaviors);
 		C7GameData.GameData gameData = EngineStorage.gameData;
+		string forcedProfile = Environment.GetEnvironmentVariable("C7_ADVANCED_PROFILE");
+		if (forcedProfile == "none") {
+			C7Engine.AI.Advanced.AdvancedTuning.UseProfile(null, null);
+		} else if (!string.IsNullOrEmpty(forcedProfile)) {
+			C7Engine.AI.Advanced.AdvancedTuning.UseProfile(forcedProfile,
+				fixture.behaviors.advancedProfiles.profiles.TryGetValue(forcedProfile, out Dictionary<string, double> knobs) ? knobs
+					: throw new ArgumentException($"C7_ADVANCED_PROFILE: no profile {forcedProfile} in {C7Engine.AI.Advanced.AdvancedProfiles.FileName}"));
+		}
+		profilePlayed = C7Engine.AI.Advanced.AdvancedTuning.ProfileKey;
 
 		gameData.observerMode = true;
 		List<Player> civs = gameData.players.Where(p => !p.IsIndependent).ToList();
