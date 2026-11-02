@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using C7GameData;
 
 namespace C7Engine.AI {
@@ -26,7 +29,8 @@ namespace C7Engine.AI {
 	//   joined a city (Standard 3%), mostly after turn 85.
 	//
 	// So, while the civ is expanding (an open city site left that no
-	// settler is being built for), at peace and with no enemy near the city:
+	// settler is being built for, on the city's own landmass), at peace and
+	// with no enemy near the city:
 	// - the garrison is one soldier per city plus an escort for each
 	//   settler being built and a couple to spare, not Civ3's 2 + 1;
 	//   soldiers beyond it lose SoldierPenalty;
@@ -36,7 +40,8 @@ namespace C7Engine.AI {
 	//   shields will take about as long as the growth (the shields wait in
 	//   the box until the city is big enough, see City.ComputeTurnProduction);
 	// and always, nearer sites are preferred more strongly
-	// (TravelDiscountPerTile).
+	// (TravelDiscountPerTile), and once the landmass is full no settler is
+	// built while two already wait in port for a transport.
 	// Tried and dropped: working tiles to balance a settler's food and
 	// shields (10th city 2 turns later than without it in 8 games).
 	// The Standard AI and this switch off are unchanged.
@@ -74,6 +79,19 @@ namespace C7Engine.AI {
 		public const float TravelDiscountPerTile = .08f;
 		public const int FreeTravelTiles = 3;
 
+		// A site on another landmass counts as this many tiles further:
+		// in the replays a settler going by sea took a median 19-21 turns
+		// from being built to founding, against 5 on land (it waits in port
+		// for a transport). Without it, the steeper discount sent settlers
+		// to sites across a strait rather than to farther land, and at turn
+		// 130-150 twice as many settlers waited in port (29 against 14 in
+		// 32 civs) and the civs ended with fewer cities.
+		public const int OverseasExtraTiles = 12;
+
+		// The travel factor of a site for a settler at `from`.
+		public static float SiteTravelFactor(Tile from, Tile site) =>
+			TravelFactor(from.DistanceTo(site) + (site.continent != from.continent ? OverseasExtraTiles : 0));
+
 		public static float TravelFactor(int distance) {
 			int beyond = Math.Max(0, distance - FreeTravelTiles);
 			return Math.Max(0.05f, 1f - TravelDiscountPerTile * beyond);
@@ -82,7 +100,40 @@ namespace C7Engine.AI {
 		// Whether the switch shapes this city's build now: on, expanding,
 		// at peace, no hostile unit near.
 		internal static bool Active(ChooseProducible.ProducibleStats stats, City city, Player player) {
-			return On(player) && !stats.atWar && stats.InExpansionPhase && !LeanGarrison.EnemyNear(player, city);
+			return On(player) && !stats.atWar && stats.InExpansionPhase && LandSites(player, city.location.continent) > stats.SettlersUnderConstruction
+				&& !LeanGarrison.EnemyNear(player, city);
+		}
+
+		// Open sites on this landmass that no settler is heading for (see
+		// SettlerLocationAI.GetScoredSettlerCandidates), worked out once a
+		// turn per landmass. Sites overseas don't count: in a first 200-turn
+		// smoke the switch went on building settlers for them once the land
+		// was full, and at turn 150 the Advanced civs had twice the settlers
+		// (66 against 33 in 32 civs), most waiting in port for a transport.
+		private static readonly ConditionalWeakTable<Player, Dictionary<int, (int turn, int sites)>> landSites = new();
+
+		internal static int LandSites(Player player, int continent) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			Dictionary<int, (int turn, int sites)> byContinent = landSites.GetOrCreateValue(player);
+			if (byContinent.TryGetValue(continent, out var cached) && cached.turn == turn) {
+				return cached.sites;
+			}
+			City home = player.cities.Find(c => c.location.continent == continent);
+			int sites = 0;
+			if (home != null) {
+				// As ChooseProducible.NumberOfReachableOpenCitySpots counts
+				// them: the best tile, then the next not within 2 tiles of it.
+				List<Tile> taken = new();
+				foreach ((Tile t, float _) in SettlerLocationAI.GetScoredSettlerCandidates(home.location, player)
+						.Where(kv => kv.Key.continent == continent).OrderByDescending(kv => kv.Value)) {
+					if (taken.TrueForAll(o => o.DistanceTo(t) > 2)) {
+						taken.Add(t);
+					}
+				}
+				sites = taken.Count;
+			}
+			byContinent[continent] = (turn, sites);
+			return sites;
 		}
 
 		// The soldiers the expansion garrison wants, and those we have (or
@@ -119,6 +170,32 @@ namespace C7Engine.AI {
 			}
 			(int have, int want) = stats.FastExpandSoldiers;
 			return have >= want ? -SoldierPenalty : 0;
+		}
+
+		// Once the city's landmass has no site left, settlers for sites
+		// overseas wait in port for a transport: with the switch on, at
+		// turns 130-150 twice as many waited (22 against 11 in 32 civs, all
+		// but one with their escort, for a ferry). So no more are built
+		// while this many already wait (UNVERIFIED guess).
+		public const int MaxSettlersWaitingToSail = 2;
+		public const float WaitingToSailPenalty = 100;
+
+		internal static int SettlersWaitingToSail(Player player) {
+			int n = 0;
+			foreach (MapUnit u in player.units) {
+				if (u.currentAI is SettlerAI sa && sa.data.port != null && !u.IsLoaded()) {
+					++n;
+				}
+			}
+			return n;
+		}
+
+		// What a settler loses when the switch is on but not Active here.
+		internal static float OverseasSettlerAdjustment(City city, Player player) {
+			if (LandSites(player, city.location.continent) > 0 || SettlersWaitingToSail(player) < MaxSettlersWaitingToSail) {
+				return 0;
+			}
+			return -WaitingToSailPenalty;
 		}
 
 		// What the switch adds to a building's score (the caller has

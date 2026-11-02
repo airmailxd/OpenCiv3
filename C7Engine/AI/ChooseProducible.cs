@@ -359,6 +359,9 @@ namespace C7Engine {
 				score += FastExpand.UnitAdjustment(stats, player, unit);
 			} else {
 				score += StockGarrisonBonus(player, unit, stats);
+				if (isSettler && FastExpand.On(player)) {
+					score += FastExpand.OverseasSettlerAdjustment(city, player);
+				}
 			}
 			score += LeanGarrison.DefenderAdjustment(stats, city, player, unit);
 			// Kings & Nomads: defenders, settlers from captured cities, and

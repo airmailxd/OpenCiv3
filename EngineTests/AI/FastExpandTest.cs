@@ -135,5 +135,23 @@ public sealed class FastExpandTest : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.Equal(1f, FastExpand.TravelFactor(FastExpand.FreeTravelTiles));
 		Assert.Equal(1f - 5 * FastExpand.TravelDiscountPerTile, FastExpand.TravelFactor(FastExpand.FreeTravelTiles + 5), 4);
 		Assert.True(FastExpand.TravelDiscountPerTile > .04f);
+		Tile land = gameData.map.tiles.First(t => t.IsLand() && t.continent == city.location.continent && t.DistanceTo(city.location) == 6);
+		Assert.Equal(FastExpand.TravelFactor(6), FastExpand.SiteTravelFactor(city.location, land));
+		Tile overseas = gameData.map.tiles.FirstOrDefault(t => t.IsLand() && t.continent != city.location.continent);
+		if (overseas != null) {
+			Assert.Equal(FastExpand.TravelFactor(city.location.DistanceTo(overseas) + FastExpand.OverseasExtraTiles),
+				FastExpand.SiteTravelFactor(city.location, overseas));
+		}
+	}
+
+	// With land left on our landmass the switch is active, and a settler
+	// is never held back for the transports.
+	[Fact]
+	public void LandLeftKeepsTheSwitchActive() {
+		player.aiType = AiType.Advanced;
+		AiExperiments.Enable(player, FastExpand.Switch);
+		Assert.True(FastExpand.LandSites(player, city.location.continent) > 0);
+		Assert.Equal(0, FastExpand.SettlersWaitingToSail(player));
+		Assert.Equal(0, FastExpand.OverseasSettlerAdjustment(city, player));
 	}
 }

@@ -38,10 +38,10 @@ namespace C7Engine {
 			// would take) isn't worth the turns. The scores above measure
 			// distance from our nearest city, for every site, which is what
 			// counting open sites wants; this only picks among them.
-			// fast-expand (Advanced only): the walk counts for more (see
-			// FastExpand.TravelDiscountPerTile).
+			// fast-expand (Advanced only): the walk counts for more, and a
+			// voyage more still (see FastExpand.SiteTravelFactor).
 			if (FastExpand.On(player)) {
-				return scores.MaxBy(t => t.Value * FastExpand.TravelFactor(start.DistanceTo(t.Key))).Key;
+				return scores.MaxBy(t => t.Value * FastExpand.SiteTravelFactor(start, t.Key)).Key;
 			}
 			Tile result = scores.MaxBy(t => t.Value * TravelFactor(start.DistanceTo(t.Key))).Key;
 			return result;
