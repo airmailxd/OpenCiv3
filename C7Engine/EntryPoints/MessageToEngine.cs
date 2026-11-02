@@ -52,7 +52,11 @@ namespace C7Engine {
 				log.Warning("Ignoring {Message} from {Player}, who may not send it now", GetType().Name, playerID);
 				return null;
 			}
-			return ProcessAllowedAsync();
+			// The play log notes what humans do (see PlayLog.PlayRecorder).
+			PlayLog.PlayRecorder.Entry recorded = PlayLog.PlayRecorder.Active ? PlayLog.PlayRecorder.Begin(this) : null;
+			Task handling = ProcessAllowedAsync();
+			PlayLog.PlayRecorder.End(recorded, handling.IsCompleted);
+			return handling;
 		}
 
 		// Handles the message. Messages whose handling waits, for animations

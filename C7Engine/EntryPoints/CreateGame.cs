@@ -40,6 +40,8 @@ public class CreateGame {
 		EngineStorage.gameData = gameData;
 		EngineStorage.gameData.onGameCreation();
 		Staging.FinishOnLoad(gameData);
+		// With the setting on, the game's play log (see PlayLog.PlayRecorder).
+		PlayLog.PlayRecorder.OnGameCreated(gameData);
 
 		Player humanPlayer = TurnHandling.FirstHumanToPlay(gameData)
 			?? throw new Exception($"The provided save does not contain a human player");

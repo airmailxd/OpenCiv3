@@ -310,6 +310,8 @@ namespace C7Engine {
 
 		private static void StartHumanTurn(Player player, GameData gameData) {
 			if (player.isHuman) {
+				// The play log's row of the human's state (see PlayLog.PlayRecorder).
+				PlayLog.PlayRecorder.HumanTurnStarted(player, gameData);
 				// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.
 				// For example unless we have a good reason, as a human, receiving luxuries, gpt,
 				// or having an active RoP, doesn't hurt us.

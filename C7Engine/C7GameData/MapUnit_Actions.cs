@@ -884,6 +884,9 @@ public partial class MapUnit {
 		if (Double.IsNaN(attackerOdds))
 			return result;
 
+		// The play log notes fights a human is in (see PlayLog.PlayRecorder).
+		C7Engine.PlayLog.PlayRecorder.FightEntry recordedFight = C7Engine.PlayLog.PlayRecorder.BeginFight(attacker, defender, attackerOdds);
+
 		// When an army rotates in another member, the odds change with it.
 		void UpdateOdds() {
 			attackerStrength = (attackingMember.unitType.attack + attacker.ArmyStrengthBonus(CombatRole.Attack)) * attackMultiplier;
@@ -1096,6 +1099,7 @@ public partial class MapUnit {
 		// War weariness for the attack (see Player.WarWearinessForUnitAttacked).
 		Player.AddWarWearinessForAttack(attacker, defender, attackerDefeated: result == CombatResult.AttackerKilled);
 		C7Engine.AI.AiExperiments.onCombat?.Invoke(attacker, defender, result);
+		C7Engine.PlayLog.PlayRecorder.EndFight(recordedFight, result);
 
 		return result;
 	}
