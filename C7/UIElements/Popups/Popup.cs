@@ -195,6 +195,12 @@ public partial class Popup : TextureRect {
 	}
 
 	protected void AddCancelButton(Vector2 position) {
+		AddCancelButton(position, GetParent<PopupOverlay>().OnHidePopup);
+	}
+
+	// A cancel button that does what the popup says, rather than just
+	// closing it.
+	protected void AddCancelButton(Vector2 position, Action action) {
 		ImageTexture xTexture = TextureLoader.Load("ui.cancel.normal");
 		ImageTexture xHover = TextureLoader.Load("ui.cancel.hover");
 		ImageTexture xPressed = TextureLoader.Load("ui.cancel.pressed");
@@ -203,7 +209,7 @@ public partial class Popup : TextureRect {
 		cancelButton.TextureHover = xHover;
 		cancelButton.TexturePressed = xPressed;
 		cancelButton.SetPosition(position);
-		cancelButton.Pressed += GetParent<PopupOverlay>().OnHidePopup;
+		cancelButton.Pressed += action;
 		AddChild(cancelButton);
 	}
 }

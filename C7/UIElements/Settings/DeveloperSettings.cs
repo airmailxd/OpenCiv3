@@ -28,7 +28,8 @@ public static class DeveloperSettings {
 		}
 	}
 
-	// Where the play logs go: play-logs beside C7.ini.
+	// Where play logs went before games had their own folders, and still go
+	// for a game whose folder can't be made: play-logs beside C7.ini.
 	public static string PlayLogDirectory => System.IO.Path.Combine(C7Settings.WritableDirectory, "play-logs");
 
 	// Hands the settings to the engine as a game starts or loads.
@@ -36,5 +37,8 @@ public static class DeveloperSettings {
 		EngineStorage.aiFogOfWar = AIFogOfWar;
 		C7Engine.PlayLog.PlayRecorder.enabled = RecordPlayLog;
 		C7Engine.PlayLog.PlayRecorder.directory = PlayLogDirectory;
+		// The game asks for its name, and its log goes in its folder (see
+		// Game.StartPlayLog).
+		C7Engine.PlayLog.PlayRecorder.waitForLogFile = true;
 	}
 }

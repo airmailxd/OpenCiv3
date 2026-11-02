@@ -307,6 +307,80 @@ public partial class Game : Node {
 		InitializeAudio();
 	}
 
+	// ---- the play log's game folder (see C7Engine.PlayLog.PlayLogFolders) ----
+
+	private string loadedSavePath;
+
+	// With "Record play log" on, the engine keeps the game's rows until it's
+	// told where the game's log is. A game that was recorded before carries
+	// on its log, in its folder, after a warning if this save is older than
+	// the log; any other is named first, and gets its folder in the saves
+	// folder. Only an engine that plays the game records it, so a LAN guest
+	// isn't asked.
+	private void StartPlayLog() {
+		if (!C7Engine.PlayLog.PlayRecorder.WaitingForLogFile) {
+			return;
+		}
+		GameData gameData = EngineStorage.gameData;
+		if (LanSession.IsClient || gameData.observerMode || !gameData.players.Any(p => p.isHuman)) {
+			C7Engine.PlayLog.PlayRecorder.Close();
+			return;
+		}
+		if (gameData.playLog != null) {
+			C7Engine.PlayLog.PlayLogFolders.Locate(gameData, loadedSavePath);
+			if (C7Engine.PlayLog.PlayLogFolders.LogIsAhead(gameData)) {
+				int last = C7Engine.PlayLog.PlayLogFolders.LastLoggedTurn(C7Engine.PlayLog.PlayLogFolders.LogPath(gameData.playLog)) ?? 0;
+				popupOverlay.ShowPopup(new ChoicePopup("Play Log",
+					$"The play log of \"{gameData.playLog.name}\" already goes on to turn {last},\n"
+						+ $"and this save is from turn {gameData.turn}. Logging this game\n"
+						+ "will break the log's sequence: the turns from here repeat in it.",
+					[
+						new ChoicePopup.Choice("Continue (keep logging)", RecordPlayLogInFolder),
+						new ChoicePopup.Choice("Don't log this session", () => C7Engine.PlayLog.PlayRecorder.Close()),
+					], cancellable: false), PopupOverlay.PopupCategory.Advisor);
+			} else {
+				RecordPlayLogInFolder();
+			}
+			return;
+		}
+		// A saved game's file name is the name it has already; a new game's
+		// is its civilization and the date.
+		string defaultName = loadedSavePath != null && loadedSavePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+			? C7Engine.PlayLog.PlayLogFolders.Sanitize(System.IO.Path.GetFileNameWithoutExtension(loadedSavePath),
+				C7Engine.PlayLog.PlayLogFolders.DefaultName(gameData, DateTime.Now))
+			: C7Engine.PlayLog.PlayLogFolders.DefaultName(gameData, DateTime.Now);
+		popupOverlay.ShowPopup(new TextDialog("Name This Game", "Name: ", defaultName, BoxContainer.AlignmentMode.Begin,
+			name => NamePlayLogGame(string.IsNullOrWhiteSpace(name) ? defaultName : name),
+			() => NamePlayLogGame(defaultName)), PopupOverlay.PopupCategory.Advisor);
+	}
+
+	private void NamePlayLogGame(string name) {
+		GameData gameData = EngineStorage.gameData;
+		try {
+			PlayLogInfo info = C7Engine.PlayLog.PlayLogFolders.Start(gameData, Civ3FileDialog.SavesDirectory, name);
+			log.Information("The game is {Name}, in {Folder}", info.name, info.folder);
+		} catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or ArgumentException) {
+			// The log goes beside C7.ini, as before games had folders.
+			log.Warning(e, "Couldn't make a folder for the game {Name}", name);
+			gameData.playLog = null;
+			C7Engine.PlayLog.PlayRecorder.UseLogFile(System.IO.Path.Combine(DeveloperSettings.PlayLogDirectory,
+				C7Engine.PlayLog.PlayLogFolders.Sanitize(name) + ".jsonl"));
+			return;
+		}
+		RecordPlayLogInFolder();
+	}
+
+	private void RecordPlayLogInFolder() {
+		C7Engine.PlayLog.PlayRecorder.UseLogFile(C7Engine.PlayLog.PlayLogFolders.LogPath(EngineStorage.gameData.playLog),
+			loadedSavePath == null ? null : System.IO.Path.GetFileName(loadedSavePath));
+	}
+
+	// The game's folder, when it has one and the play log is on, for its
+	// saves and autosaves; null otherwise.
+	private static string GameFolder(GameData gameData) {
+		return DeveloperSettings.RecordPlayLog && !string.IsNullOrEmpty(gameData?.playLog?.folder) ? gameData.playLog.folder : null;
+	}
+
 	private void InitializeAudio() {
 		audioManager = GetNodeOrNull<AudioManager>("/root/GlobalAudioManager");
 		if (audioManager == null) {
@@ -365,6 +439,10 @@ public partial class Game : Node {
 		log.Information("Game scene load time: " + Convert.ToInt32(stopwatchElapsed.TotalMilliseconds) + " ms");
 
 		EmitSignal(SignalName.GameInitialized);
+
+		// With "Record play log" on, the game's name and folder, first of
+		// all the popups.
+		StartPlayLog();
 
 		if (ShouldShowScoreboard(EngineStorage.gameData)) {
 			ShowScoreboard();
@@ -445,6 +523,9 @@ public partial class Game : Node {
 		// The play log, likewise: only an engine that plays the game records it.
 		DeveloperSettings.Apply();
 		AdvancedAiSettings.Apply();
+
+		// The save being loaded, for its play log (see StartPlayLog).
+		loadedSavePath = Global.SaveGame == null ? Global.LoadGamePath : null;
 
 		// Initializes the game data and returns the "human" player
 		if (Global.SaveGame != null) {
@@ -2255,14 +2336,16 @@ public partial class Game : Node {
 	private int autosavedTurn = -1;
 
 	// The preferences' Auto-Save: saves the game as each of the player's
-	// turns begins (once a round in a hotseat game), to Saves/Auto. Not in a
+	// turns begins (once a round in a hotseat game), to Saves/Auto, or a
+	// recorded game's folder. Not in a
 	// LAN game, whose host keeps its own autosave, nor while watching the AIs.
 	private void AutosaveIfDue(GameData gameData) {
 		if (!Preferences.AutoSave || LanSession.IsActive || gameData.observerMode || gameData.turn == autosavedTurn) {
 			return;
 		}
 		autosavedTurn = gameData.turn;
-		string directory = System.IO.Path.Combine(Civ3FileDialog.SavesDirectory, "Auto");
+		// A recorded game's autosaves go in its folder (see StartPlayLog).
+		string directory = GameFolder(gameData) ?? System.IO.Path.Combine(Civ3FileDialog.SavesDirectory, "Auto");
 		string path = System.IO.Path.Combine(directory, $"{AutosavePrefix}{gameData.turn}.json");
 		try {
 			System.IO.Directory.CreateDirectory(directory);
@@ -2458,7 +2541,9 @@ public partial class Game : Node {
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 
-		FileDialog.SetDirectoryForSaving();
+		// A recorded game saves in its folder, as "<name> Turn <turn>".
+		GameData gameData = EngineStorage.gameData;
+		FileDialog.SetDirectoryForSaving(GameFolder(gameData), GameFolder(gameData) == null ? null : C7Engine.PlayLog.PlayLogFolders.SaveName(gameData));
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();

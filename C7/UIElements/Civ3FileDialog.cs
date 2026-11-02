@@ -70,10 +70,23 @@ public partial class Civ3FileDialog : FileDialog {
 		ShowSavesButtons(false);
 	}
 
-	public void SetDirectoryForSaving() {
+	// Opens on the saves folder, or on a recorded game's own folder (see
+	// C7Engine.PlayLog.PlayLogFolders) with the save's name filled in.
+	public void SetDirectoryForSaving(string folder = null, string fileName = null) {
 		EnsureSavesDirectory();
 		CurrentDir = SavesDirectory;
+		if (!string.IsNullOrEmpty(folder)) {
+			try {
+				System.IO.Directory.CreateDirectory(folder);
+				CurrentDir = folder;
+			} catch (System.Exception e) {
+				log.Warning(e, "Couldn't make the game's folder {Directory}", folder);
+			}
+		}
 		FileMode = FileDialog.FileModeEnum.SaveFile;
+		if (!string.IsNullOrEmpty(fileName)) {
+			CurrentFile = fileName + ".json";
+		}
 		ShowSavesButtons(false);
 	}
 

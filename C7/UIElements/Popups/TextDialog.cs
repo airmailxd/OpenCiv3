@@ -10,13 +10,17 @@ public partial class TextDialog : Popup {
 	// `alignment` is where the dialog itself sits on the screen.
 	private BoxContainer.AlignmentMode textAlignment;
 	Action<string> handleText;
-
+	// Run on Cancel or Escape, if given; otherwise they just close the
+	// dialog.
+	Action cancelled;
 
 	public TextDialog(string header,
 					  string prompt,
 					  string defaultText,
 					  BoxContainer.AlignmentMode alignment,
-					  Action<string> handleText) {
+					  Action<string> handleText,
+					  Action cancelled = null) {
+		this.cancelled = cancelled;
 		this.defaultText = defaultText;
 		this.prompt = prompt;
 		this.header = header;
@@ -61,7 +65,25 @@ public partial class TextDialog : Popup {
 		textEditBox.TextSubmitted += HandleTextInput;
 
 		AddConfirmButton(new Vector2(475, 213), () => { HandleTextInput(textEditBox.Text); });
-		AddCancelButton(new Vector2(500, 213));
+		if (cancelled == null) {
+			AddCancelButton(new Vector2(500, 213));
+		} else {
+			AddCancelButton(new Vector2(500, 213), Cancel);
+		}
+	}
+
+	public override bool OnEscape() {
+		if (cancelled == null) {
+			return true;
+		}
+		Cancel();
+		return false;
+	}
+
+	private void Cancel() {
+		GetViewport().SetInputAsHandled();
+		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+		cancelled();
 	}
 
 	private void HandleTextInput(string text) {
