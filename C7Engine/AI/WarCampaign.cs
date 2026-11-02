@@ -86,6 +86,9 @@ namespace C7Engine.AI {
 			// archer rush of the script's size, on any known city of the
 			// target on our landmass.
 			public bool script;
+			// Whether it is on the prey the plan named once land ran out
+			// (see PreyWar).
+			public bool prey;
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -200,6 +203,11 @@ namespace C7Engine.AI {
 		// Whether the player's campaign is the phase-plan script's.
 		public static bool HasPhaseCampaign(Player player) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.script;
+		}
+
+		// Whether the player's campaign is on the plan's prey (see PreyWar).
+		public static bool HasPreyCampaign(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.prey;
 		}
 
 		// Whether the phase-plan script's campaign has left its gathering
@@ -380,6 +388,9 @@ namespace C7Engine.AI {
 				rush = saved.script,
 				archer = saved.script,
 			};
+			// Not saved: a campaign not yet at war on the plan's prey is
+			// taken to be the prey's.
+			c.prey = !c.script && !AtWarWith(player, enemy) && PreyWar.Prey(player, gameData) == enemy;
 			// A stack whose tiles didn't load gathers again.
 			if ((c.phase != Phase.Gather && c.stackTile == null) || (c.phase == Phase.Retreat && c.retreatTo == null)) {
 				c.phase = Phase.Gather;
@@ -422,7 +433,7 @@ namespace C7Engine.AI {
 			return AtWarWith(player, other) || CanDeclareWarOn(player, other);
 		}
 
-		private static bool CanDeclareWarOn(Player player, Player other) {
+		internal static bool CanDeclareWarOn(Player player, Player other) {
 			return player != other && !other.IsIndependent && !other.defeated
 				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
 				&& !EngineStorage.gameData.AreInLockedPeace(player, other)
@@ -455,6 +466,19 @@ namespace C7Engine.AI {
 			// Before war, only a campaign we may still declare.
 			if (!atWar && !CanDeclareWarOn(player, c.enemy)) {
 				return false;
+			}
+			if (c.prey) {
+				// Before the war, the plan has turned away from them:
+				// dropped, no harm done.
+				if (!atWar && !PreyWar.StillPrey(player, gameData, c.enemy)) {
+					c.cooldown = false;
+					return false;
+				}
+				// The war goes badly: no more pressing it (the plan turns
+				// to defence, see RulePlanner.PlanWar).
+				if (atWar && PreyWar.GoingBadly(player, c.enemy)) {
+					return false;
+				}
 			}
 
 			// The target fell, to us or someone else: garrison it if ours,
@@ -602,6 +626,17 @@ namespace C7Engine.AI {
 				rush = archer = script = enemy != null;
 			}
 
+			// Switch prey-war: the prey the plan names, without waiting on
+			// Civ3's plotting rolls (see PreyWar).
+			bool prey = false;
+			if (enemy == null && !coolingDown && !totalWar && PreyWar.Prey(player, gameData) is Player named) {
+				target = PickTarget(player, named);
+				if (target != null) {
+					enemy = named;
+					prey = true;
+				}
+			}
+
 			if (enemy == null && totalWar && victim != null && CanDeclareWarOn(player, victim)) {
 				// Not at war yet: the stack gathers first, then declares.
 				enemy = victim;
@@ -625,7 +660,7 @@ namespace C7Engine.AI {
 				return null;
 			}
 			log.Information("{Player} plans a campaign against {Enemy}, starting with {City}", player, enemy, target.name);
-			Campaign c = new() { enemy = enemy, target = target, rush = rush, archer = archer, script = script };
+			Campaign c = new() { enemy = enemy, target = target, rush = rush, archer = archer, script = script, prey = prey };
 			SetPhase(c, Phase.Gather);
 			return c;
 		}
@@ -945,6 +980,12 @@ namespace C7Engine.AI {
 			// An army counts for (at least) as many attackers as it has
 			// members.
 			int armyMembers = c.units.Where(IsFightingArmy).Sum(a => a.PassengerCount());
+			// The plan's prey, before the war: we pick the time, so we wait
+			// for a stack that can take a city held better than we guess
+			// (see PreyWar).
+			if (c.prey && !AtWarWith(player, c.enemy)) {
+				needed = Math.Max(needed, PreyWar.MinAttackers + armyMembers);
+			}
 			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : MaxAttackers);
 		}
 
@@ -1081,6 +1122,10 @@ namespace C7Engine.AI {
 			// fewer are needed.
 			int enough = Math.Max(3, needed * 2 / 3);
 			bool go = readyAttackers >= needed || (atWar && waited >= MaxGatherTurns / 2 && readyAttackers >= enough);
+			// The plan's prey, likewise before the war (see PreyWar).
+			if (c.prey && !atWar && waited >= PreyWar.GoAfterTurns && readyAttackers >= enough) {
+				go = true;
+			}
 			// Fighting for the heart of a drowning land, there is no time to
 			// wait for more (see TideAI.FightsForTheHeart).
 			if (TideAI.FightsForTheHeart(player) && waited >= HeartGatherTurns && readyAttackers >= enough) {

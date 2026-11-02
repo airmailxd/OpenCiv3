@@ -103,6 +103,12 @@ namespace C7Engine.AI {
 			if (!IsMilitaryLandUnit(unit) || !stats.CityGuarded || stats.HasUnescortedSettler) {
 				return 0;
 			}
+			// Switch prey-war: the attackers a campaign on the plan's prey is
+			// short of are wanted too (see PreyWar).
+			if (unit.attack > unit.defense && PreyWar.On(stats.player) && WarCampaign.HasPreyCampaign(stats.player)
+					&& WarCampaign.WantsAttackers(stats.player)) {
+				return 0;
+			}
 			// While the empire is still expanding and its units cost nothing
 			// to support, soldiers are the cheapest use of shields a small
 			// city has: the alternatives cost citizens (workers) or upkeep
