@@ -117,6 +117,14 @@ namespace EngineTests.GameData;
 //                         summary. Rewritten after every game
 // For example:
 //   C7_TRIAL_OUT=trial.txt C7_TRIAL_EXPERIMENTS=cheap-maintenance dotnet test EngineTests --filter "FullyQualifiedName~AiTrialTest"
+// Some of these tests set the C7_TRIAL_* settings for a short run, and the
+// environment is shared by the whole process: run alongside, another test
+// (e.g. AdvancedAITest) read C7_TRIAL_STATE and wrote into this test's temp
+// folder after it was deleted. So this class runs on its own.
+[CollectionDefinition("TrialEnvironment", DisableParallelization = true)]
+public class TrialEnvironmentCollection { }
+
+[Collection("TrialEnvironment")]
 public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private readonly SaveGameFixture fixture;
 	private readonly ITestOutputHelper output;
