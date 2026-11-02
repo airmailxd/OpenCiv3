@@ -17,7 +17,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from train import CIVS, DEFAULTS, RUNGS, spec, won  # noqa: E402
+import train  # noqa: E402
+from train import DEFAULTS, RUNGS, spec, won  # noqa: E402
 
 HEADING = re.compile(r"^## (\w+), round (\d+) — knobs: (.*)$")
 HELD = re.compile(r"^- held-out (.+?): gain ([-+\d.]+)")
@@ -257,7 +258,7 @@ def build(state, log_text, mtime, report=None, findings="", hb_status=(False, "S
 <p class="note">Changed from defaults: {E(spec(knobs) or "nothing")}</p>
 <h3>Best win rate per difficulty</h3>
 <table><tr><th>Difficulty</th><th>Best win rate (any trial or exam)</th><th>Target</th><th>Exam</th></tr>{rows}</table>
-<p class="note">Win rate = share of games an Advanced civ won (50% by chance, {CIVS} civs per game, half Advanced).</p>"""}
+<p class="note">Win rate = share of games an Advanced civ won ({train.chance():.0%} by chance; {E(train.map_text(state.get('map')))}{'' if train.COUNT else ', half Advanced'}).</p>"""}
 
     for name, _, target in RUNGS:
         p = per[name]
@@ -368,6 +369,8 @@ def write_dashboard(out, html_path=None, now=None):
     if os.path.exists(sp):  # a fresh ladder has no state.json until its first round ends
         with open(sp, encoding="utf-8") as f:
             state = json.load(f)
+    # The win rate counts the ladder's Advanced civs per game (see train.won).
+    train.use_map(state.get("map"))
     lp = os.path.join(out, "log.md")
     log = open(lp, encoding="utf-8").read() if os.path.exists(lp) else ""
     fp = os.path.join(out, "findings.md")

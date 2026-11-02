@@ -36,6 +36,24 @@ Results: <dir>/ledger.jsonl (what each held-out check did to every measure; see 
 line per round or exam in <dir>/progress.txt.
 While it runs, <dir>/heartbeat.json says it is alive and <dir>/dashboard.html
 is rebuilt every --dashboard-every seconds (see dashboard.py).
+
+Map profiles (the Advanced AI's knobs for a kind of map; see
+C7Engine/AI/Advanced/AdvancedProfiles.cs and doc/ai-roadmap.md Track 2):
+--world (Tiny, Small, Standard, Large, Huge), --landform (Pangaea,
+Continents, Archipelago) and --water (60, 70, 80) play every trial on that
+kind of map (C7_TRIAL_WORLD, _LANDFORM, _WATER), with the world size's
+Civ3 default civ count (4, 6, 8, 12, 16) unless --civs; --count 1 measures
+a lone Advanced civ (C7_TRIAL_COUNT). --profile <key> (e.g. Huge/Pangaea/70)
+tunes that profile: the map comes from the key unless given, and a fresh
+ladder starts from the profile's values in the profiles file. Trials always
+run with C7_ADVANCED_PROFILE=none, so the knobs searched are the only
+tuning in play. A resumed ladder keeps the map it started with. Once the
+ladder has settled:
+    python tools/advanced-ai-training/train.py --out <dir> --export-profile Huge/Pangaea/70
+writes the ladder's kept knobs, where they differ from the defaults, into
+C7/Lua/civ3/advanced-ai-profiles.json (--profiles-file for another), in
+place of that key's profile; commit the file to ship it. Use a new --out
+for each kind of map: runs are cached by name in <dir>/runs.
 """
 import argparse
 import json
@@ -116,6 +134,133 @@ LINE = re.compile(r"^(\w+)\s+([-\d.]+) vs\s+([-\d.]+)\s+([-+\d.]+) \+- ([\d.]+)"
 
 NONSTOP_EXIT = 75
 
+REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+PROFILES_FILE = os.path.join(REPO, "C7", "Lua", "civ3", "advanced-ai-profiles.json")
+# Civ3's world sizes and the default number of civs on each (the BIQ's WSIZ;
+# doc/civ3-compendium/07-diplomacy-victory-misc.md section 10).
+WORLD_CIVS = {"Tiny": 4, "Small": 6, "Standard": 8, "Large": 12, "Huge": 16}
+LANDFORMS = ("Archipelago", "Continents", "Pangaea")
+WATERS = (60, 70, 80)
+
+
+def parse_key(key):
+    """A profile key, 'Huge/Pangaea/70' in any order and case -> {"world", "landform", "water"} (those it names)."""
+    out = {}
+    for part in (p.strip() for p in key.split("/")):
+        world = next((w for w in WORLD_CIVS if w.lower() == part.lower()), None)
+        landform = next((l for l in LANDFORMS if l.lower() == part.lower()), None)
+        if world:
+            field, value = "world", world
+        elif landform:
+            field, value = "landform", landform
+        elif part.isdigit() and int(part) in WATERS:
+            field, value = "water", int(part)
+        else:
+            raise ValueError(f"profile key {key!r}: {part!r} is no world size {tuple(WORLD_CIVS)}, landform {LANDFORMS} or water {WATERS}")
+        if field in out:
+            raise ValueError(f"profile key {key!r} names the {field} twice")
+        out[field] = value
+    return out
+
+
+def canonical_key(key):
+    """'70/pangaea/HUGE' -> 'Huge/Pangaea/70'."""
+    k = parse_key(key)
+    return "/".join(str(k[f]) for f in ("world", "landform", "water") if f in k)
+
+
+def map_settings(args):
+    """The ladder's map from --profile/--world/--landform/--water/--civs/--count: {} for today's default map."""
+    m = {}
+    try:
+        if args.profile:
+            m["profile"] = canonical_key(args.profile)
+            m.update(parse_key(args.profile))
+        if args.world:
+            m["world"] = parse_key(args.world)["world"]
+        if args.landform:
+            m["landform"] = parse_key(args.landform)["landform"]
+        if args.water:
+            m["water"] = parse_key(str(args.water))["water"]
+    except (ValueError, KeyError) as e:
+        raise SystemExit(f"bad map option: {e}")
+    if args.civs:
+        m["civs"] = args.civs
+    elif "world" in m:
+        m["civs"] = WORLD_CIVS[m["world"]]
+    if args.count:
+        m["count"] = args.count
+    return m
+
+
+def use_map(m):
+    """Sets CIVS and COUNT for the ladder's map ({}, or a state without "map": today's 8 civs, half Advanced)."""
+    global CIVS, COUNT
+    m = m or {}
+    CIVS = int(m.get("civs", 8))
+    COUNT = int(m.get("count", 0))
+
+
+def map_env(m):
+    """The trial settings for the ladder's map; none for today's default map."""
+    env = {}
+    for field, var in (("world", "C7_TRIAL_WORLD"), ("landform", "C7_TRIAL_LANDFORM"), ("water", "C7_TRIAL_WATER"), ("count", "C7_TRIAL_COUNT")):
+        if field in m:
+            env[var] = str(m[field])
+    return env
+
+
+def map_text(m):
+    if not m:
+        return "the default map, 8 civs"
+    parts = [str(m[f]) for f in ("world", "landform", "water") if f in m]
+    return (("/".join(parts) or "the default map") + f", {m.get('civs', 8)} civs"
+            + (f", {m['count']} Advanced" if m.get("count") else "") + (f", profile {m['profile']}" if m.get("profile") else ""))
+
+
+def same_key(a, b):
+    try:
+        return parse_key(a) == parse_key(b)
+    except ValueError:
+        return False
+
+
+def load_profiles(path):
+    if not os.path.exists(path):
+        return {"profiles": {}}
+    with open(path, encoding="utf-8") as f:
+        doc = json.load(f)
+    doc.setdefault("profiles", {})
+    return doc
+
+
+def profile_knobs(path, key):
+    """The knobs a fresh ladder for a profile starts from: the defaults, with the profile's values if it has any yet."""
+    found = next((v for k, v in load_profiles(path)["profiles"].items() if same_key(k, key)), {})
+    unknown = [k for k in found if k not in DEFAULTS]
+    if unknown:
+        raise SystemExit(f"profile {key} in {path} has knobs train.py doesn't search: {', '.join(unknown)}")
+    return {**DEFAULTS, **{k: int(v) if k in BEHAVIOURS else v for k, v in found.items()}}
+
+
+def number(v):
+    return int(v) if float(v).is_integer() else v
+
+
+def export_profile(path, key, knobs):
+    """Writes the knobs' differences from the defaults as profile `key`, in place of it -> (key written, its knobs)."""
+    key = canonical_key(key)
+    doc = load_profiles(path)
+    profiles = {k: v for k, v in doc["profiles"].items() if not same_key(k, key)}
+    profiles[key] = {k: number(v) for k, v in sorted(knobs.items()) if k in DEFAULTS and v != DEFAULTS[k]}
+    doc["profiles"] = dict(sorted(profiles.items()))
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(doc, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
+    return key, profiles[key]
+
 
 def spec(knobs):
     return ",".join(f"{k}={v:g}" for k, v in sorted(knobs.items()) if v != DEFAULTS[k])
@@ -127,13 +272,7 @@ def run_trial(args, knobs, difficulty, seed, tag, paired=True, detail=False):
     out = os.path.join(args.out, "runs", f"{tag}.txt")
     if os.path.exists(out) and "total ms" in open(out, encoding="utf-8").read():
         return parse(out)
-    env = dict(os.environ,
-               C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1" if paired else "0",
-               C7_TRIAL_GAMES=str(args.games), C7_TRIAL_DIFFICULTY=str(difficulty), C7_TRIAL_SEED=str(seed),
-               C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs),
-               # Every run writes its JSON: the .txt rounds each measure to one
-               # decimal, which made "first" (and so the win rate) step by 40%.
-               C7_TRIAL_JSON=out[:-4] + ".json")
+    env = dict(os.environ, **trial_env(args, knobs, difficulty, seed, out, paired))
     if detail:
         # The exam also writes the state log that benchmarks.py reads.
         env.update(C7_TRIAL_STATE=out[:-4] + "-state.jsonl")
@@ -145,6 +284,19 @@ def run_trial(args, knobs, difficulty, seed, tag, paired=True, detail=False):
     if not os.path.exists(out):
         raise RuntimeError(f"trial {tag} wrote no results; see {out}.log")
     return parse(out)
+
+
+def trial_env(args, knobs, difficulty, seed, out, paired):
+    return dict(C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1" if paired else "0",
+                C7_TRIAL_GAMES=str(args.games), C7_TRIAL_DIFFICULTY=str(difficulty), C7_TRIAL_SEED=str(seed),
+                C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs),
+                # The knobs searched are the only tuning: no map profile from
+                # advanced-ai-profiles.json underneath them.
+                C7_ADVANCED_PROFILE="none",
+                # Every run writes its JSON: the .txt rounds each measure to one
+                # decimal, which made "first" (and so the win rate) step by 40%.
+                C7_TRIAL_JSON=out[:-4] + ".json",
+                **map_env(getattr(args, "map", None) or {}))
 
 
 def write_report(args, tag):
@@ -223,18 +375,30 @@ def save(args, state):
         json.dump(state, f, indent=1)
 
 
-# "first" is per civ; half the civs are Advanced, so the share of games an
-# Advanced civ won is first x civs / 2 (a half by chance alone).
+# "first" is per civ, averaged over the Advanced civs. Half the civs are
+# Advanced, or --count of them, so the share of games an Advanced civ won is
+# first x the Advanced civs per game (a half by chance alone, with half).
+# use_map sets these for the ladder's map.
 CIVS = 8
+COUNT = 0
+
+
+def advanced_per_game():
+    return min(COUNT, CIVS / 2) if COUNT > 0 else CIVS / 2
 
 
 def won(r):
-    return r["first"]["adv"] * CIVS / 2
+    return r["first"]["adv"] * advanced_per_game()
+
+
+def chance():
+    """The share of games an Advanced civ wins by chance alone."""
+    return advanced_per_game() / CIVS
 
 
 def summary(r):
     return (f"rank {r['rank']['diff']:+.2f}±{r['rank']['se']:.2f}, score {r['score']['diff']:+.0f}±{r['score']['se']:.0f}, "
-            f"Advanced won {won(r):.0%} of games (50% by chance)")
+            f"Advanced won {won(r):.0%} of games ({chance():.0%} by chance)")
 
 
 class Monitor:
@@ -421,7 +585,72 @@ def self_test():
     marked = {"recheck_of": ledger.entry_id(e), "reason": "x"}
     assert stale_entries([e, marked], at(10.0), 2) == []  # (c) already marked
     assert stale_entries([e], at(10.0), 1) == []  # other difficulty
+    map_self_test()
     print("train self-test passed")
+
+
+def map_self_test():
+    import tempfile
+    from types import SimpleNamespace
+
+    def opts(**kw):
+        return SimpleNamespace(**{**dict(world=None, landform=None, water=None, civs=None, count=None, profile=None,
+                                         games=16, turns=200), **kw})
+
+    knobs = dict(DEFAULTS)
+    # No map options: today's trial settings, 8 civs, half Advanced, no map variables.
+    a = opts()
+    a.map = map_settings(a)
+    assert a.map == {}
+    use_map(a.map)
+    env = trial_env(a, knobs, 2, 1000, "x/t.txt", True)
+    assert env["C7_TRIAL_CIVS"] == "8" and env["C7_ADVANCED_PROFILE"] == "none" and env["C7_ADVANCED_TUNING"] == ""
+    assert not {"C7_TRIAL_WORLD", "C7_TRIAL_LANDFORM", "C7_TRIAL_WATER", "C7_TRIAL_COUNT"} & set(env), env
+    r = {"first": {"adv": 0.125}}
+    assert won(r) == 0.5 and chance() == 0.5
+    use_map(None)  # a state.json from before map options
+    assert CIVS == 8 and COUNT == 0
+    # A world size brings its Civ3 default civ count; --civs beats it.
+    a = opts(world="huge", landform="pangaea", water=80)
+    a.map = map_settings(a)
+    assert a.map == {"world": "Huge", "landform": "Pangaea", "water": 80, "civs": 16}, a.map
+    use_map(a.map)
+    env = trial_env(a, knobs, 2, 1000, "x/t.txt", True)
+    assert (env["C7_TRIAL_WORLD"], env["C7_TRIAL_LANDFORM"], env["C7_TRIAL_WATER"], env["C7_TRIAL_CIVS"]) == ("Huge", "Pangaea", "80", "16")
+    assert won(r) == 1.0  # 8 Advanced civs
+    assert map_settings(opts(world="Tiny", civs=6)) == {"world": "Tiny", "civs": 6}
+    # --count 1: one Advanced civ a game, whose "first" is the win rate.
+    a = opts(world="Small", count=1)
+    a.map = map_settings(a)
+    use_map(a.map)
+    assert trial_env(a, knobs, 2, 1000, "x/t.txt", False)["C7_TRIAL_COUNT"] == "1"
+    assert won({"first": {"adv": 0.4}}) == 0.4 and abs(chance() - 1 / 6) < 1e-9
+    # A profile key gives the map unless the options say otherwise.
+    a = opts(profile="70/archipelago", world="Large")
+    assert map_settings(a) == {"profile": "Archipelago/70", "landform": "Archipelago", "water": 70, "world": "Large", "civs": 12}
+    for bad in ("Pangaea/Continents", "Gigantic", "65", "Huge//Pangaea"):
+        try:
+            parse_key(bad)
+            raise AssertionError(bad)
+        except ValueError:
+            pass
+    assert canonical_key("70/pangaea/HUGE") == "Huge/Pangaea/70"
+    use_map({})
+    # Export: the differences from the defaults, replacing the key's profile
+    # whatever its spelling, other profiles kept; a fresh ladder starts from it.
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "profiles.json")
+        assert profile_knobs(path, "Pangaea") == DEFAULTS  # no file yet
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"profiles": {"pangaea": {"FocusPoints": 5}, "Huge": {"fast-expand": 1}}}, f)
+        assert profile_knobs(path, "PANGAEA") == {**DEFAULTS, "FocusPoints": 5}
+        key, diff = export_profile(path, "Pangaea", {**DEFAULTS, "FocusPoints": 20, "BehindInTechShare": 0.85, "fast-expand": 1})
+        assert key == "Pangaea" and diff == {"BehindInTechShare": 0.85, "FocusPoints": 20, "fast-expand": 1}, diff
+        doc = json.load(open(path, encoding="utf-8"))
+        assert doc["profiles"] == {"Huge": {"fast-expand": 1}, "Pangaea": diff}, doc
+        assert b"\r" not in open(path, "rb").read()
+        assert export_profile(path, "Huge", DEFAULTS)[1] == {}  # tuned back to the defaults
+        assert profile_knobs(path, "Pangaea")["fast-expand"] == 1 and isinstance(profile_knobs(path, "Pangaea")["fast-expand"], int)
 
 
 def queue_rechecks(args, state, exam, difficulty, key):
@@ -491,7 +720,20 @@ def main():
                     help="today's behaviour: candidates in fixed order, no stale-entry re-checks")
     ap.add_argument("--rounds", type=int, default=6, help="most search rounds per rung and cycle")
     ap.add_argument("--dashboard-every", type=int, default=60, help="seconds between dashboard rebuilds, 0 = off")
+    ap.add_argument("--world", help="Tiny, Small, Standard, Large or Huge (C7_TRIAL_WORLD); default: the trial's 100x100 map")
+    ap.add_argument("--landform", help="Pangaea, Continents or Archipelago (C7_TRIAL_LANDFORM); default Continents")
+    ap.add_argument("--water", type=int, help="60, 70 or 80 (C7_TRIAL_WATER); default 70")
+    ap.add_argument("--civs", type=int, help="civs per game; default the world size's Civ3 default (4, 6, 8, 12, 16), else 8")
+    ap.add_argument("--count", type=int, help="Advanced civs per game (C7_TRIAL_COUNT); default half the civs")
+    ap.add_argument("--profile", help="the map profile this ladder tunes, e.g. Huge/Pangaea/70: its map unless given, "
+                                      "and a fresh ladder starts from its values")
+    ap.add_argument("--export-profile", metavar="KEY",
+                    help="write the ladder's kept knobs (differences from the defaults) to the profiles file as KEY, and exit")
+    ap.add_argument("--profiles-file", default=PROFILES_FILE, help="the profiles file (default C7/Lua/civ3/advanced-ai-profiles.json)")
     args = ap.parse_args()
+    if args.export_profile:
+        return export_command(args)
+    args.map = map_settings(args)
     os.makedirs(os.path.join(args.out, "runs"), exist_ok=True)
     monitor = Monitor(args.out, args.dashboard_every)
     monitor.start()
@@ -509,6 +751,23 @@ def main():
         monitor.finish(error)
 
 
+def export_command(args):
+    state_path = os.path.join(args.out, "state.json")
+    if not os.path.exists(state_path):
+        sys.exit(f"no {state_path}: nothing to export")
+    with open(state_path, encoding="utf-8") as f:
+        state = json.load(f)
+    try:
+        key, knobs = export_profile(args.profiles_file, args.export_profile, state["knobs"])
+    except ValueError as e:
+        sys.exit(str(e))
+    m = state.get("map") or {}
+    trained = {f: m[f] for f in ("world", "landform", "water") if f in m}
+    if any(parse_key(key).get(f) != v for f, v in trained.items()) or not trained:
+        print(f"note: the ladder in {args.out} trained on {map_text(m)}, not exactly {key}")
+    print(f"profile {key} written to {args.profiles_file}: {', '.join(f'{k}={v:g}' for k, v in knobs.items()) or 'the defaults'}")
+
+
 def ladder(args):
 
     state_path = os.path.join(args.out, "state.json")
@@ -516,9 +775,20 @@ def ladder(args):
         state = json.load(open(state_path, encoding="utf-8"))
         for k, v in DEFAULTS.items():  # knobs added since the state was saved
             state["knobs"].setdefault(k, v)
+        # A resumed ladder keeps the map it started with.
+        if args.map and args.map != state.get("map"):
+            note(args, f"- the map options are ignored: this ladder plays on {map_text(state.get('map'))}")
+        args.map = state.get("map") or {}
     else:
-        state = {"knobs": dict(DEFAULTS), "rung": 0, "round": 0, "history": []}
+        knobs = profile_knobs(args.profiles_file, args.map["profile"]) if args.map.get("profile") else dict(DEFAULTS)
+        state = {"knobs": knobs, "rung": 0, "round": 0, "history": []}
+        # Only a ladder on another map says so: today's state.json is unchanged.
+        if args.map:
+            state["map"] = args.map
         open(os.path.join(args.out, "log.md"), "w", encoding="utf-8").write("# Advanced AI training\n\n")
+        if args.map:
+            note(args, f"Map: {map_text(args.map)}; starting knobs: {spec(knobs) or 'defaults'}\n")
+    use_map(args.map)
     state.setdefault("cycle", 0)
     if subprocess.run(["dotnet", "build", "EngineTests"], capture_output=True).returncode != 0:
         sys.exit("build failed")
