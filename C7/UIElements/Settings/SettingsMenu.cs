@@ -422,6 +422,25 @@ public partial class SettingsMenu : Control {
 			"For testing the AI. Off, the AI sees the whole map. On, it plans only with what it has explored " +
 			"and the units it can see now, as you must. Takes effect for the next game you start or load; " +
 			"in a network game, the host's setting counts."));
+
+		Civ3Checkbox recordPlayLog = new() {
+			Text = "Record play log",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = DeveloperSettings.RecordPlayLog,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		recordPlayLog.Toggled += (bool on) => {
+			PlayClick();
+			DeveloperSettings.RecordPlayLog = on;
+			log.Information("Play log recording turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(recordPlayLog);
+		column.AddChild(MakeNote(
+			"For tuning the AI. On, each game you start or load writes a log of what you do each turn, " +
+			"with what the Advanced AI would have done instead, to " + DeveloperSettings.PlayLogDirectory + ". " +
+			"Summarize it with tools/play-log/summarize.py. Takes effect for the next game you start or load; " +
+			"in a network game, the host records every human's play."));
 	}
 
 	private static Civ3HSlider MakeSlider(double min, double max, double step, double value) {
