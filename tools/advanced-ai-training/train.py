@@ -130,10 +130,13 @@ def run_trial(args, knobs, difficulty, seed, tag, paired=True, detail=False):
     env = dict(os.environ,
                C7_TRIAL_OUT=out, C7_TRIAL_EXPERIMENTS="", C7_TRIAL_ADVANCED="1", C7_TRIAL_PAIRED="1" if paired else "0",
                C7_TRIAL_GAMES=str(args.games), C7_TRIAL_DIFFICULTY=str(difficulty), C7_TRIAL_SEED=str(seed),
-               C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs))
+               C7_TRIAL_TURNS=str(args.turns), C7_TRIAL_CIVS=str(CIVS), C7_ADVANCED_TUNING=spec(knobs),
+               # Every run writes its JSON: the .txt rounds each measure to one
+               # decimal, which made "first" (and so the win rate) step by 40%.
+               C7_TRIAL_JSON=out[:-4] + ".json")
     if detail:
-        # The exam also writes the JSON and the state log that benchmarks.py reads.
-        env.update(C7_TRIAL_JSON=out[:-4] + ".json", C7_TRIAL_STATE=out[:-4] + "-state.jsonl")
+        # The exam also writes the state log that benchmarks.py reads.
+        env.update(C7_TRIAL_STATE=out[:-4] + "-state.jsonl")
         if os.path.exists(env["C7_TRIAL_STATE"]):
             os.remove(env["C7_TRIAL_STATE"])
     with open(out + ".log", "w", encoding="utf-8") as log:
@@ -177,6 +180,19 @@ def parse(path):
         if m:
             # The trial writes a tiny negative difference as "-+0.00".
             r[m[1]] = {"adv": float(m[2]), "std": float(m[3]), "diff": float(m[4].replace("-+", "-")), "se": float(m[5])}
+    # The run's JSON, when there is one, has the exact means: the .txt rounds
+    # them to one decimal, so "first" per civ read 0.2 for anything from 0.15
+    # to 0.25 and the win rate (first x 4) could only be 0, 40, 80 or 120%.
+    exact = path[:-4] + ".json"
+    if os.path.exists(exact):
+        try:
+            with open(exact, encoding="utf-8") as f:
+                summary_rows = json.load(f).get("summary") or []
+            for s in summary_rows:
+                if s.get("measure") in r:
+                    r[s["measure"]].update(adv=s["trialMean"], std=s["othersMean"], diff=s["difference"], se=s["standardError"])
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     return r
 
 
