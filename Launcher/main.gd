@@ -257,6 +257,11 @@ func _on_update() -> void:
 		needed.erase(local)
 	_show_installed()
 	status_label.text = "Version %s is installed. Have fun!" % latest.version
+	# A fresh launcher shortcut after every install or update, so one is
+	# always there and points at where the launcher is now.
+	var shortcut_error := Installer.make_desktop_shortcut()
+	if shortcut_error != "":
+		status_label.text += " The desktop shortcut couldn't be made: " + shortcut_error
 	_on_progress("", 0, 0)
 	_set_busy(false)
 	_get_intro()

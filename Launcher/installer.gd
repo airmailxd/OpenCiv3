@@ -124,6 +124,51 @@ func download_intro(dir: String) -> String:
 	return error
 
 
+## Puts a shortcut to this launcher on the desktop, replacing the one an
+## earlier install made, so it always opens the launcher where it is now.
+## Returns "" or what went wrong.
+static func make_desktop_shortcut() -> String:
+	var desktop := OS.get_system_dir(OS.SYSTEM_DIR_DESKTOP)
+	if desktop == "" or not DirAccess.dir_exists_absolute(desktop):
+		return "There's no desktop folder."
+	var launcher := launcher_path()
+	var dir := launcher.get_base_dir()
+	match platform():
+		"windows":
+			var quote := func(path: String) -> String:
+				return "'" + path.replace("/", "\\").replace("'", "''") + "'"
+			var script := "$s = (New-Object -ComObject WScript.Shell).CreateShortcut(%s); $s.TargetPath = %s; $s.WorkingDirectory = %s; $s.IconLocation = %s; $s.Save()" % [
+				quote.call(desktop.path_join("OpenCiv3 Launcher.lnk")), quote.call(launcher), quote.call(dir), quote.call(launcher + ",0")]
+			var code := OS.execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script])
+			return "" if code == 0 else "PowerShell error %d." % code
+		"mac":
+			# A Mac may run a freshly downloaded app from a hidden copy that
+			# goes away; a link to that would soon lead nowhere.
+			if launcher.contains("/AppTranslocation/"):
+				return "Move the launcher out of Downloads (to Applications, say) and open it from there."
+			# A link to the app, which Finder shows with the launcher's icon.
+			# Never over a real file or folder of that name.
+			var name := "OpenCiv3 Launcher"
+			var link := desktop.path_join(name)
+			var exists := FileAccess.file_exists(link) or DirAccess.dir_exists_absolute(link)
+			if exists and not DirAccess.open(desktop).is_link(name):
+				return "Something called %s is already on the desktop." % name
+			return "" if OS.execute("ln", ["-sfn", launcher, link]) == 0 else "Couldn't make the link."
+		_:
+			var escape := func(path: String) -> String:
+				return path.replace("\\", "\\\\").replace("\"", "\\\"").replace("`", "\\`").replace("$", "\\$")
+			var entry := desktop.path_join("OpenCiv3-Launcher.desktop")
+			var file := FileAccess.open(entry, FileAccess.WRITE)
+			if file == null:
+				return "Couldn't write in %s." % desktop
+			file.store_string("[Desktop Entry]\nType=Application\nName=OpenCiv3 Launcher\nExec=\"%s\"\nPath=%s\nTerminal=false\nCategories=Game;\n" % [escape.call(launcher), dir])
+			file.close()
+			OS.execute("chmod", ["+x", entry])
+			# GNOME won't start a desktop file until it's marked as trusted.
+			OS.execute("gio", ["set", entry, "metadata::trusted", "true"])
+			return ""
+
+
 ## Asks GitHub for the latest release and reads its manifest. Returns
 ## {"version": ..., "manifest": ..., "urls": {file name: url}} or, when that
 ## isn't possible, {"error": message}, plus "version" if the release was
@@ -467,14 +512,18 @@ static func _safe_path(name: String) -> bool:
 	return true
 
 
-## The launcher's own file (or app on a Mac), which a package must never
-## replace.
-static func _launcher_name() -> String:
+## The launcher's own file (or app on a Mac).
+static func launcher_path() -> String:
 	var exe := OS.get_executable_path()
 	var app := exe.find(".app/Contents/MacOS")
 	if app >= 0:
-		return exe.substr(0, app + 4).get_file()
-	return exe.get_file()
+		return exe.substr(0, app + 4)
+	return exe
+
+
+## The launcher's own name, which a package must never replace.
+static func _launcher_name() -> String:
+	return launcher_path().get_file()
 
 
 ## Deletes a file or folder. On Linux and Mac rm doesn't follow symbolic
