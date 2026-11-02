@@ -260,6 +260,11 @@ namespace C7Engine {
 					|| (PreyWar.On(player) && WarCampaign.HasPreyCampaign(player))) {
 				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack, stats.bestDefense);
 			}
+			// Switch horde-war: the most productive cities build the horde
+			// (see HordeWar).
+			if (HordeWar.On(player)) {
+				score += HordeWar.ProductionBonus(city, player, unit, stats.CityGuarded);
+			}
 
 			////////////////////////////////////////////////////////////////////
 			///

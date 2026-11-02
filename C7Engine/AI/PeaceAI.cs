@@ -316,6 +316,11 @@ namespace C7Engine.AI {
 				&& WarCampaign.HasCampaignAgainst(us, them)) {
 				return false;
 			}
+			// Switch horde-war: a horde that isn't losing makes peace only
+			// for a city (see HordeWar).
+			if (HordeWar.RefusesPeace(us, them, outlook, theirOffer)) {
+				return false;
+			}
 			// Dominating, a city of theirs is our price, whatever else is in
 			// the deal; failing that, tribute.
 			if (outlook == WarOutlook.Dominating && theirOffer.cities.Count > 0) {

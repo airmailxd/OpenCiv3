@@ -89,6 +89,12 @@ namespace C7Engine.AI {
 			// Whether it is on the prey the plan named once land ran out
 			// (see PreyWar).
 			public bool prey;
+			// Whether it is a horde (see HordeWar), and whether the horde has
+			// set out once (after which it presses on with fewer).
+			public bool horde;
+			public bool massed;
+			// The turn the horde last took (or razed) a city of theirs.
+			public int lastCaptureTurn = -1;
 			// The units left to hold the prey's cities we took against a
 			// flip back, which the campaign doesn't take back (not saved).
 			public readonly HashSet<MapUnit> holding = new();
@@ -191,6 +197,21 @@ namespace C7Engine.AI {
 		// for a rush, which is small and quick.
 		private static int Spare(Campaign c) {
 			return c.rush ? 0 : 2;
+		}
+
+		// Whether the player has a horde planned or under way (see HordeWar).
+		public static bool HasHordeCampaign(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.horde;
+		}
+
+		public static bool HasHordeCampaignAgainst(Player player, Player enemy) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.horde && c.enemy == enemy;
+		}
+
+		// Whether a horde is short of the defenders it marches with,
+		// counting none being built.
+		public static bool WantsHordeEscort(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.horde && c.units.Count(IsEscort) < HordeWar.Escorts;
 		}
 
 		// Whether the player has an early rush planned or under way.
@@ -320,6 +341,9 @@ namespace C7Engine.AI {
 			}
 			campaign.units.Clear();
 			campaigns.Remove(player);
+			if (campaign.horde && cooldown) {
+				HordeWar.StartCooldown(player);
+			}
 			if (campaign.rush) {
 				// Won or lost, back to settlers for a good while.
 				nextCampaignTurn.AddOrUpdate(player, new StrongBox<int>(Turn + EarlyRush.CooldownTurns));
@@ -394,6 +418,10 @@ namespace C7Engine.AI {
 			// Not saved: a campaign not yet at war on the plan's prey is
 			// taken to be the prey's.
 			c.prey = !c.script && !AtWarWith(player, enemy) && PreyWar.Prey(player, gameData) == enemy;
+			// Nor whether it is a horde: with the switch on, it is taken to
+			// be one, already massed once at war.
+			c.horde = !c.script && HordeWar.On(player);
+			c.massed = c.horde && AtWarWith(player, enemy);
 			// A stack whose tiles didn't load gathers again.
 			if ((c.phase != Phase.Gather && c.stackTile == null) || (c.phase == Phase.Retreat && c.retreatTo == null)) {
 				c.phase = Phase.Gather;
@@ -483,6 +511,21 @@ namespace C7Engine.AI {
 					return false;
 				}
 			}
+			if (c.horde) {
+				if (!atWar && !HordeWar.StillVictim(player, c.enemy)) {
+					c.cooldown = false;
+					return false;
+				}
+				// The war goes badly, by its losses and length: no more
+				// pressing it, unless it has just taken a city. A civ it
+				// took nothing from is left alone a while (HordeWar.Bar).
+				if (atWar && !HordeWar.JustTookACity(c.lastCaptureTurn, Turn) && HordeWar.GoingBadly(gameData, player, c.enemy)) {
+					if (c.lastCaptureTurn < 0) {
+						HordeWar.Bar(player, c.enemy);
+					}
+					return false;
+				}
+			}
 
 			// The target fell, to us or someone else: garrison it if ours,
 			// and go on to the next.
@@ -491,7 +534,7 @@ namespace C7Engine.AI {
 					Garrison(player, c, c.target);
 				}
 				City next = c.script ? PickScriptCity(player, c.enemy) : c.archer ? PickArcherTarget(player, c.enemy)
-					: c.prey ? PickPreyTarget(player, c.enemy) : PickTarget(player, c.enemy);
+					: c.horde ? HordeWar.PickTarget(player, c.enemy) : c.prey ? PickPreyTarget(player, c.enemy) : PickTarget(player, c.enemy);
 				// An archer rush goes on only with attackers left to do it.
 				if (c.archer && c.units.Count(u => IsAttacker(u) && Health(u) >= ReadyHealth) < (c.script ? PhasePlan.AttackersToContinue(player, gameData) : ArcherRush.AttackersToContinue)) {
 					next = null;
@@ -562,7 +605,7 @@ namespace C7Engine.AI {
 		// hold it against a flip back (see HoldAgainstFlip).
 		private static void Garrison(Player player, Campaign c, City city) {
 			KeepOne(player, c, city);
-			if (c.prey) {
+			if (c.prey || c.horde) {
 				HoldAgainstFlip(player, c, city);
 			}
 		}
@@ -647,6 +690,15 @@ namespace C7Engine.AI {
 			// Total war fights its victim and nobody else, with no cooldown.
 			Player victim = TotalWar.Victim(player);
 			bool totalWar = TotalWar.On(player);
+			// Switch horde-war: a horde on the best victim on our landmass,
+			// at war or not (see HordeWar).
+			if (!totalWar && HordeWar.On(player) && !HordeWar.CoolingDown(player)
+					&& HordeWar.PickVictim(player, gameData, out City first) is Player hordeVictim) {
+				log.Information("{Player} plans a horde against {Enemy}, starting with {City}", player, hordeVictim, first.name);
+				Campaign h = new() { enemy = hordeVictim, target = first, horde = true, massed = AtWarWith(player, hordeVictim) };
+				SetPhase(h, Phase.Gather);
+				return h;
+			}
 			foreach (Player p in gameData.players) {
 				if (totalWar ? p != victim || !AtWarWith(player, p) : coolingDown || p == player || p.IsIndependent || p.defeated || !AtWarWith(player, p)) {
 					continue;
@@ -944,7 +996,7 @@ namespace C7Engine.AI {
 			return best;
 		}
 
-		private static int EstimateDefenders(Player player, City city) {
+		internal static int EstimateDefenders(Player player, City city) {
 			if (AIFogOfWar.SeesUnitsOn(player, city.location)) {
 				return city.location.unitsOnTile.Count(u => u.CanDefendOnLand());
 			}
@@ -1071,6 +1123,13 @@ namespace C7Engine.AI {
 			if (c.prey) {
 				needed = Math.Max(needed, PreyWar.MinAttackers + armyMembers);
 			}
+			// A horde masses its full size before it first sets out, and
+			// then presses on, waiting in each city it takes for
+			// PressAttackers (see HordeWar).
+			if (c.horde) {
+				needed = Math.Max(needed, (c.massed ? HordeWar.PressAttackers : HordeWar.HordeSize(player, c.enemy)) + armyMembers);
+				return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, HordeWar.MaxHorde);
+			}
 			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : MaxAttackers);
 		}
 
@@ -1146,7 +1205,7 @@ namespace C7Engine.AI {
 					take = bombarders < 3;
 				} else if (IsEscort(u)) {
 					// The escort needs a real defender to stay behind.
-					take = escorts < 1 && u.location.cityAtTile?.owner == player
+					take = escorts < (c.horde ? HordeWar.Escorts : 1) && u.location.cityAtTile?.owner == player
 						&& u.location.unitsOnTile.Count(x => x != u && IsEscort(x) && x.owner == player && x.currentAI is not MemberAI) >= 1;
 				} else {
 					continue;
@@ -1211,6 +1270,10 @@ namespace C7Engine.AI {
 			if (c.prey && !atWar && waited >= PreyWar.GoAfterTurns && readyAttackers >= enough) {
 				go = true;
 			}
+			// A horde, before its war (see HordeWar).
+			if (c.horde && !atWar && waited >= HordeWar.GoAfterTurns && readyAttackers >= Math.Ceiling(HordeWar.GoShare * needed)) {
+				go = true;
+			}
 			// Fighting for the heart of a drowning land, there is no time to
 			// wait for more (see TideAI.FightsForTheHeart).
 			if (TideAI.FightsForTheHeart(player) && waited >= HeartGatherTurns && readyAttackers >= enough) {
@@ -1252,8 +1315,9 @@ namespace C7Engine.AI {
 				// needs in that time gives up for a while, so its attackers
 				// fight on their own (see CombatAI) rather than wait in the
 				// city all war.
-				return waited < MaxGatherTurns;
+				return waited < (c.horde && !atWar ? HordeWar.MaxGatherTurns : MaxGatherTurns);
 			}
+			c.massed = true;
 
 			if (!atWar) {
 				player.DeclareWarOn(c.enemy, gameData.turn);
@@ -1521,6 +1585,17 @@ namespace C7Engine.AI {
 				}
 			}
 
+			if (c.target.owner == player && c.horde) {
+				// A horde razes a city it couldn't hold against a flip back
+				// with what it has there (see HordeWar.ShouldRaze).
+				int there = c.units.Count(u => PlayerAI.IsStillOurs(u, player) && (u.location == c.stackTile || u.location == city) && CountsAgainstFlip(u));
+				c.lastCaptureTurn = Turn;
+				if (HordeWar.ShouldRaze(EngineStorage.gameData, player, c.enemy, c.target, there)) {
+					log.Information("{Player} razes {City}", player, c.target.name);
+					CityInteractions.RazeCity(c.target);
+					return;
+				}
+			}
 			if (c.target.owner == player) {
 				// Everyone moves in; PlayCampaign garrisons it next turn.
 				foreach (MapUnit u in c.units) {

@@ -109,6 +109,11 @@ namespace C7Engine.AI {
 					&& WarCampaign.WantsAttackers(stats.player)) {
 				return 0;
 			}
+			// Switch horde-war: likewise the horde's (see HordeWar).
+			if (HordeWar.On(stats.player) && WarCampaign.HasHordeCampaign(stats.player)
+					&& (unit.attack > unit.defense ? WarCampaign.WantsAttackers(stats.player) : WarCampaign.WantsHordeEscort(stats.player))) {
+				return 0;
+			}
 			// While the empire is still expanding and its units cost nothing
 			// to support, soldiers are the cheapest use of shields a small
 			// city has: the alternatives cost citizens (workers) or upkeep

@@ -68,7 +68,7 @@ namespace C7Engine {
 				return false;
 			}
 			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData?.players ?? new());
-			return !atWar || !NextToHostileTerritory(t, player);
+			return !atWar || !NextToHostileTerritory(t, player) || HordeWar.MaySettleNextTo(player, t);
 		}
 
 		// Scores the known tiles on the start tile's continent, and on the
@@ -125,7 +125,9 @@ namespace C7Engine {
 				// While at war, not on the enemy's doorstep, where the city
 				// (and the settler on its way) would be easy to take. (An AI
 				// heuristic.)
-				if (atWar && NextToHostileTerritory(t, player)) {
+				// Switch horde-war: near our cities, the razed sites and gaps
+				// a horde leaves (see HordeWar).
+				if (atWar && NextToHostileTerritory(t, player) && !HordeWar.MaySettleNextTo(player, t)) {
 					continue;
 				}
 
