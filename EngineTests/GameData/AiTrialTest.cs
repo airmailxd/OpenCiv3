@@ -36,6 +36,8 @@ namespace EngineTests.GameData;
 //                         Which half of the civs is on trial alternates by
 //                         game index, so to replay game 3 of an exam that
 //                         started at seed 7500, set SEED=7503 and FIRST_GAME=3
+//   C7_TRIAL_COUNT        trial civs per game (default 0, the whole half):
+//                         1 measures a lone trial civ among the others
 //   C7_TRIAL_SCENARIO     None, EternalWar, RisingTide or KingsAndNomads
 //                         (default None), to play the games as that scenario
 //   C7_TRIAL_PAIRED       1 to also play each game with no switches on and
@@ -914,17 +916,28 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		gameData.observerMode = true;
 		List<Player> civs = gameData.players.Where(p => !p.IsIndependent).ToList();
 		HashSet<Player> trialCivs = new();
-		// A trial half of -1 is every civ (C7_TRIAL_ALL).
+		// A trial half of -1 is every civ (C7_TRIAL_ALL). C7_TRIAL_COUNT keeps
+		// only the first that many civs of the half on trial, so that, say, a
+		// lone Advanced civ can be measured against Standard rivals only.
+		int trialCount = Setting("C7_TRIAL_COUNT", 0);
+		int onTrial = 0;
 		for (int i = 0; i < civs.Count; ++i) {
 			civs[i].isHuman = false;
-			if (trialHalf < 0 || i % 2 == trialHalf) {
+			bool inHalf = trialHalf < 0 || i % 2 == trialHalf;
+			if (inHalf && trialCount > 0 && onTrial >= trialCount) {
+				inHalf = false;
+			}
+			if (inHalf) {
+				++onTrial;
+			}
+			if (inHalf) {
 				trialCivs.Add(civs[i]);
 				// C7_TRIAL_ADVANCED: the trial civs play as the Advanced AI.
 				if (advanced) {
 					civs[i].aiType = AiType.Advanced;
 				}
 			}
-			if (trialHalf < 0 || i % 2 == trialHalf || Setting("C7_TRIAL_ALL", 0) != 0) {
+			if (inHalf || Setting("C7_TRIAL_ALL", 0) != 0) {
 				foreach (string experiment in experiments) {
 					AiExperiments.Enable(civs[i], experiment);
 				}
