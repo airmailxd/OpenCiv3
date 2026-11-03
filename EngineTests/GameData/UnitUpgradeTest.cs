@@ -67,6 +67,17 @@ public class UnitUpgradeTest {
 	}
 
 	[Fact]
+	public void UpgradingEndsTheUnitsTurn() {
+		AddBarracks();
+		MapUnit unit = MakeSpearman();
+		unit.movementPoints.reset(1);
+		Assert.True(unit.movementPoints.canMove);
+
+		Assert.True(unit.Upgrade());
+		Assert.False(unit.movementPoints.canMove);
+	}
+
+	[Fact]
 	public void CannotUpgradeWithoutEnoughGold() {
 		AddBarracks();
 		player.gold = 10;

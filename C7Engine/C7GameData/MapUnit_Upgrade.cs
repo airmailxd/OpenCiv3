@@ -101,6 +101,11 @@ public partial class MapUnit {
 		log.Information("Upgrading {Unit} to {Upgrade} for {Cost} gold", this, upgrade.name, cost);
 		owner.gold -= cost;
 		ChangeTypeForUpgrade(upgrade);
+		// Upgrading ends the unit's turn. Using upgraded units that same turn
+		// was reported as an exploit, possible only between turns, in Vanilla,
+		// PTW and C3C (Scop: "You can upgrade units and use them the turn
+		// they're upgraded", https://forums.civfanatics.com/threads/two-bugs-ive-discovered.73675/).
+		movementPoints.onConsumeAll();
 		return true;
 	}
 
