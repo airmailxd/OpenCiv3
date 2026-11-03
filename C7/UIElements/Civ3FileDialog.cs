@@ -61,12 +61,15 @@ public partial class Civ3FileDialog : FileDialog {
 		EnsureSavesDirectory();
 		CurrentDir = SavesDirectory;
 		FileMode = FileDialog.FileModeEnum.OpenFile;
+		// Only saves, so a recorded game's play log (.jsonl) beside them isn't offered.
+		Filters = new[] { "*.json, *.sav, *.SAV ; Saved Games" };
 		ShowSavesButtons(true);
 	}
 
 	public void SetDirectoryForLoading(string RelPath) {
 		CurrentDir = Util.Civ3Root + "/" + RelPath;
 		FileMode = FileDialog.FileModeEnum.OpenFile;
+		ClearFilters();
 		ShowSavesButtons(false);
 	}
 
@@ -84,6 +87,7 @@ public partial class Civ3FileDialog : FileDialog {
 			}
 		}
 		FileMode = FileDialog.FileModeEnum.SaveFile;
+		Filters = new[] { "*.json ; Saved Games" };
 		if (!string.IsNullOrEmpty(fileName)) {
 			CurrentFile = fileName + ".json";
 		}
