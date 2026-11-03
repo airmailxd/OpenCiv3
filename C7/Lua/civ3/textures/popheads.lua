@@ -31,6 +31,8 @@ local function get_laborer(resident, era_num)
     column = 0
   elseif resident.mood == resident.mood.Happy then
     column = 1
+  elseif resident.mood == resident.mood.Resisting then
+    column = 2
   elseif resident.mood == resident.mood.Unhappy then
     column = 3
   end

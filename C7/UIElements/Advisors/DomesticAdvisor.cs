@@ -674,6 +674,7 @@ public partial class DomesticAdvisor : Control {
 	private readonly List<CityResident> happyResidents = new();
 	private readonly List<CityResident> contentResidents = new();
 	private readonly List<CityResident> unhappyResidents = new();
+	private readonly List<CityResident> resistingResidents = new();
 	private readonly List<CityResident> specialists = new();
 
 	private void UpdateCityRow(CityRow cityRow, City city, int eraNum) {
@@ -695,6 +696,7 @@ public partial class DomesticAdvisor : Control {
 		happyResidents.Clear();
 		contentResidents.Clear();
 		unhappyResidents.Clear();
+		resistingResidents.Clear();
 		specialists.Clear();
 		foreach (CityResident cr in city.residents) {
 			if (!cr.citizenType.IsDefaultCitizen) {
@@ -705,6 +707,8 @@ public partial class DomesticAdvisor : Control {
 				contentResidents.Add(cr);
 			} else if (cr.mood == CityResident.Mood.Unhappy) {
 				unhappyResidents.Add(cr);
+			} else if (cr.mood == CityResident.Mood.Resisting) {
+				resistingResidents.Add(cr);
 			}
 		}
 
@@ -754,9 +758,8 @@ public partial class DomesticAdvisor : Control {
 		}
 
 		// Leave a 1 head gap between each section of moods.
-		int numMoodsPresent = (happyResidents.Count > 0 ? 1 : 0)
-			+ (contentResidents.Count > 0 ? 1: 0)
-			+ (unhappyResidents.Count > 0 ? 1: 0);
+		List<CityResident>[] moodGroups = { happyResidents, contentResidents, unhappyResidents, resistingResidents };
+		int numMoodsPresent = moodGroups.Count(g => g.Count > 0);
 		width += (numMoodsPresent - 1) * PopHead.HEAD_SIZE;
 
 		// Figure out the actual spacing we'll use, to ensure we fit withing the
@@ -772,20 +775,18 @@ public partial class DomesticAdvisor : Control {
 		// Add each of the default citizens. These are buttons with the idea that
 		// we can eventually support clicking on the heads to view details, such
 		// as the reason for unhappiness.
-		foreach (CityResident cr in happyResidents) {
-			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
-		}
-		if (happyResidents.Count > 0 && (contentResidents.Count > 0 || unhappyResidents.Count > 0)) {
-			xPos += spacer;
-		}
-		foreach (CityResident cr in contentResidents) {
-			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
-		}
-		if (contentResidents.Count > 0 && unhappyResidents.Count > 0) {
-			xPos += spacer;
-		}
-		foreach (CityResident cr in unhappyResidents) {
-			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
+		bool first = true;
+		foreach (List<CityResident> group in moodGroups) {
+			if (group.Count == 0) {
+				continue;
+			}
+			if (!first) {
+				xPos += spacer;
+			}
+			first = false;
+			foreach (CityResident cr in group) {
+				xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
+			}
 		}
 
 		// Add space before specialists.

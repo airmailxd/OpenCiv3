@@ -2660,13 +2660,14 @@ namespace C7GameData {
 		// GameData.AiRulesDifficulty), and after that all citizens are born
 		// unhappy. Specialists and resisters are excluded from this:
 		// "Resistors, content people, and Specialists are ignored in the
-		// calculation" of disorder (Civ3 manual); resisters are left
-		// unhappy.
+		// calculation" of disorder (Civ3 manual); resisters are shown as
+		// resisting, neither happy nor unhappy (Civ3's popHeads.pcx has a
+		// resisting head between the happy and unhappy ones).
 		// A scenario may have fewer of the rest born unhappy (see
 		// Rules.BornUnhappyPercent).
 		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty, Rules rules) {
 			foreach (CityResident r in residents.Skip(residents.Count - ResistersInCity())) {
-				r.mood = CityResident.Mood.Unhappy;
+				r.mood = CityResident.Mood.Resisting;
 			}
 			List<CityResident> laborers = Laborers().ToList();
 			// A house rule may make more of the AI's citizens content (see
@@ -2823,7 +2824,9 @@ namespace C7GameData {
 				return 0;
 			}
 			Dictionary<Civilization, int> foreigners = null;
-			foreach (CityResident r in residents) {
+			// Resisters take no part in the city's moods (see
+			// InitializeMoodsForDifficulty), so they don't add to it either.
+			foreach (CityResident r in WorkingResidents()) {
 				if (r.nationality == null || r.nationality == owner.civilization) {
 					continue;
 				}

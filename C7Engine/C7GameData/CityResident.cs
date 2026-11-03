@@ -11,7 +11,10 @@ namespace C7GameData {
 		public enum Mood {
 			Happy,
 			Content,
-			Unhappy
+			Unhappy,
+			// A resister in a conquered city: neither happy nor unhappy, and
+			// left out of disorder (see City.StartResistance).
+			Resisting
 		};
 		public Mood mood;
 	}

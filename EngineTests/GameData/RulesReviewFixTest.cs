@@ -314,6 +314,23 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// Resisters are neither happy nor unhappy, and their nation's war
+	// doesn't make anyone else unhappy on their account.
+	[Fact]
+	public void ResistersAreNeitherHappyNorUnhappy() {
+		City city = CapturedCity();
+		city.RecalculateCitizenMoods(gameData);
+		Assert.All(city.residents, r => Assert.Equal(CityResident.Mood.Resisting, r.mood));
+		Assert.Equal(0, city.MotherlandUnhappiness(gameData));
+		Assert.False(city.isInCivilDisorder);
+
+		city.resisters = 1;
+		city.RecalculateCitizenMoods(gameData);
+		Assert.Equal(CityResident.Mood.Resisting, city.residents[^1].mood);
+		Assert.DoesNotContain(city.residents.Take(city.residents.Count - 1), r => r.mood == CityResident.Mood.Resisting);
+		Assert.Equal((city.residents.Count - 1 + 1) / 2, city.MotherlandUnhappiness(gameData));
+	}
+
 	// The free palace jump goes to the city with the most points: 3 per
 	// national citizen, 1 per foreign one, and our cities around it
 	// (DaveMcW's "Free Palace Jump" article).
@@ -526,7 +543,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 	public void ResistersDontRiot() {
 		City city = CapturedCity();
 		Assert.Equal(City.Mood.Happy, city.RecalculateCitizenMoods(gameData));
-		Assert.All(city.residents.Skip(city.residents.Count - city.resisters), r => Assert.Equal(CityResident.Mood.Unhappy, r.mood));
+		Assert.All(city.residents.Skip(city.residents.Count - city.resisters), r => Assert.Equal(CityResident.Mood.Resisting, r.mood));
 		Assert.False(city.QualifiesForCelebration(gameData.rules));
 	}
 
