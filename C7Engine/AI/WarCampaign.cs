@@ -1324,6 +1324,23 @@ namespace C7Engine.AI {
 			}
 			c.massed = true;
 
+			// The stack never leaves its staging city empty: with no
+			// defender of its own left there, its best defender stays. An
+			// empty city can be walked into, and flips with nothing to stop
+			// it (see CultureFlip.Garrison).
+			if (staging.owner == player && HomeDefenders(player, staging.location, null) < 1) {
+				MapUnit keeper = ready.Where(u => u.CanDefendOnLand() && !u.IsArmy())
+					.OrderByDescending(u => u.unitType.defense).ThenBy(u => IsAttacker(u) ? 1 : 0).FirstOrDefault();
+				if (keeper != null) {
+					ready.Remove(keeper);
+					c.units.Remove(keeper);
+					keeper.currentAI = new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(keeper, player));
+					keeper.Fortify();
+					readyAttackers = ready.Count(IsAttacker);
+					log.Information("{Player} leaves {Unit} to hold {City} as its stack marches", player, keeper, staging.name);
+				}
+			}
+
 			if (!atWar) {
 				player.DeclareWarOn(c.enemy, gameData.turn);
 				log.Information("{Player} declared war on {Enemy} to take {City}{Total}", player, c.enemy, c.target.name, TotalWar.On(player) ? " (total war)" : "");
