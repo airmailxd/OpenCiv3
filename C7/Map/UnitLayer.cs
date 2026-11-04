@@ -619,6 +619,12 @@ public partial class UnitLayer : LooseLayer {
 		return displayed;
 	}
 
+	// The unit drawn on the tile, or null if none is.
+	public MapUnit DrawnUnitOn(LooseView looseView, GameData gameData, Tile tile) {
+		List<MapUnit> units = ShownUnits(gameData, looseView.mapView.game.controller, tile);
+		return units.Count == 0 ? null : getDisplayedUnit(looseView, tile, units).unit;
+	}
+
 	// Returns which unit should be drawn from among a list of units. The list is assumed to be non-empty.
 	public MapUnit selectUnitToDisplay(LooseView looseView, Tile tile, List<MapUnit> units) {
 		if (units == tile.unitsOnTile) {

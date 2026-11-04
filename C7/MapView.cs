@@ -935,6 +935,7 @@ public partial class MapView : Node2D {
 	public GridLayer gridLayer { get; private set; }
 	public CityLayer cityLayer { get; private set; }
 	private UnitLayer unitLayer;
+	private LooseView unitLayerView;
 	public TileAssignmentLayer tileAssignmentLayer { get; private set; }
 
 	// What bare map mode hides: whole views (cities and units are child nodes, so skipping their layers wouldn't hide them) and the layers
@@ -1098,6 +1099,7 @@ public partial class MapView : Node2D {
 		unitView.layers.Add(new GotoLayer());
 		unitView.layers.Add(new BombardLayer());
 		LooseView otherView = new(this, LooseView.RedrawPolicy.WhenUnitsChange);
+		unitLayerView = otherView;
 		unitLayer = new UnitLayer();
 		otherView.layers.Add(unitLayer);
 
@@ -1538,6 +1540,11 @@ public partial class MapView : Node2D {
 			}
 		}
 		return (X, Y);
+	}
+
+	// The unit the map draws on top of the tile's stack, or null if none.
+	public MapUnit DrawnUnitOn(GameData gameData, Tile tile) {
+		return unitLayer == null ? null : unitLayer.DrawnUnitOn(unitLayerView, gameData, tile);
 	}
 
 	public Tile tileOnScreenAt(GameMap map, Vector2 screenLocation) {

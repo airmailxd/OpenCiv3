@@ -2859,8 +2859,14 @@ public partial class Game : Node {
 			return;
 		}
 
-		// Pick a top unit, never one carried by an army or a ship: the selected
-		// unit if it's here, otherwise one that can still move.
+		// Pick the unit drawn on top of the stack, if it's ours. Failing that, a
+		// top unit, never one carried by an army or a ship: the selected unit
+		// if it's here, otherwise one that can still move.
+		MapUnit drawn = mapView.DrawnUnitOn(EngineStorage.gameData, tile);
+		if (drawn != null && drawn.owner == controller && !drawn.IsLoaded()) {
+			SelectUnit(drawn, tile);
+			return;
+		}
 		MapUnit unit = null;
 		foreach (MapUnit u in tile.unitsOnTile) {
 			if (u.owner != controller || u.IsLoaded()) {
