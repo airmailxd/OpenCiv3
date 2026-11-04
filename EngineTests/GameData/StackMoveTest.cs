@@ -98,6 +98,10 @@ public class StackMoveTest : IClassFixture<SaveGameFixture> {
 		MapUnit fortified = Warrior(outside);
 		fortified.isFortified = true;
 		MapUnit theirs = gameData.SpawnUnit(ai, gameData.unitPrototypes.Single(p => p.name == "Warrior"), outside);
+		MapUnit working = gameData.SpawnUnit(human, gameData.unitPrototypes.First(p => p.isWorker), outside);
+		working.WorkerJob = gameData.Terraforms[0];
+		MapUnit automated = gameData.SpawnUnit(human, gameData.unitPrototypes.First(p => p.isWorker), outside);
+		automated.isAutomated = true;
 
 		TilePath leaderPath = PathingAlgorithmChooser.GetAlgorithm(leader).PathFrom(outside, inside, leader);
 		var orders = UnitInteractions.StackMoveOrders(leader, leaderPath, inside);

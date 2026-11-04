@@ -157,9 +157,10 @@ namespace C7Engine {
 			List<(MapUnit, TilePath)> moves = [(leader, leaderPath)];
 			foreach (MapUnit unit in leader.location.unitsOnTile) {
 				// Loaded units ride along with their transport. Fortified
-				// units stay put, as do units out of moves.
+				// units stay put, as do units out of moves and workers at work
+				// or automated.
 				if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
-					|| unit.isFortified
+					|| unit.isFortified || unit.WorkerJob != null || unit.isAutomated
 					|| !unit.movementPoints.canMove
 					|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
 					continue;
