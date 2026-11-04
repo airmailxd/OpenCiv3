@@ -73,6 +73,21 @@ public class StackMoveTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(inside, follower.location);
 	}
 
+	// The rest of a stack's paths wait while its first unit moves. The UI
+	// mustn't pick one of those units next, as selecting it would cancel its
+	// path once it's handled, leaving it to stop at the end of the turn.
+	[Fact]
+	public void AUnitWhosePathIsStillWaitingIsntSelectedNext() {
+		(Tile outside, Tile inside) = FindBorder();
+		MapUnit follower = Warrior(outside);
+		EngineStorage.uiControllerID = human.id;
+		TilePath path = PathingAlgorithmChooser.GetAlgorithm(follower).PathFrom(outside, inside, follower);
+
+		Assert.Equal(follower, UnitInteractions.getNextSelectedUnit(outside, follower.unitType));
+		new MsgSetUnitPath(follower.id, path).send();
+		Assert.NotEqual(follower, UnitInteractions.getNextSelectedUnit(outside, follower.unitType));
+	}
+
 	// Units out of moves, fortified units and other civs' units stay.
 	[Fact]
 	public void OnlyOurUnitsThatCanMoveGo() {

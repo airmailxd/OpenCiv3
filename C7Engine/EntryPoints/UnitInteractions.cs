@@ -64,6 +64,11 @@ namespace C7Engine {
 				if (unit.id is not null && waitingUnits.ContainsKey(unit.id)) {
 					continue;
 				}
+				// Already given a path that hasn't been handled yet: selecting
+				// it would cancel the path once it is.
+				if (EngineStorage.HasPendingPathFor(unit.id)) {
+					continue;
+				}
 				if (previousStack == null) {
 					return unit;
 				}

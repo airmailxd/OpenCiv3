@@ -2,6 +2,7 @@ namespace C7Engine {
 	using System;
 	using C7GameData;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading.Tasks;
 
 	/**
@@ -316,6 +317,12 @@ namespace C7Engine {
 
 		public static bool HasPendingMessagesToEngine() {
 			return pendingMessages.Count > 0;
+		}
+
+		// Whether a path for the unit is waiting to be handled, as the rest
+		// of a stack's are while its first unit moves.
+		public static bool HasPendingPathFor(ID unitID) {
+			return unitID is not null && pendingMessages.Any(m => m is MsgSetUnitPath p && p.unitID == unitID);
 		}
 
 		// Returns the engine to how a fresh single-machine game starts, for
