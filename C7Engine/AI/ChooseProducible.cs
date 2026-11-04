@@ -954,12 +954,35 @@ namespace C7Engine {
 			}
 			int cities = player.cities.Count;
 			int have = 0;
+			int defendersInCities = 0, allDefenders = 0, allAttackers = 0;
 			foreach (MapUnit u in player.units) {
-				if (defensive ? StockWarPlotting.IsDefensive(u) : StockWarPlotting.IsOffensive(u)) {
+				bool d = StockWarPlotting.IsDefensive(u);
+				if (d) {
+					++allDefenders;
+					if (u.location?.cityAtTile?.owner == player) {
+						++defendersInCities;
+					}
+				}
+				if (StockWarPlotting.IsOffensive(u)) {
+					++allAttackers;
+				}
+				if (defensive ? d : StockWarPlotting.IsOffensive(u)) {
 					++have;
 				}
 			}
 			int want = defensive ? 2 * cities : cities;
+			if (!LeanGarrison.On(player) && defensive) {
+				// Only defenders in the cities count towards their two each,
+				// not those escorting or in the field. With the cities held,
+				// the AI keeps building defenders as Civ3's does, which
+				// "likes" "between a 3:2 and 4:3 ratio of D:A units" and
+				// builds "D : O : other ~= 53% : 43% : 4%" in peacetime
+				// (Ozymandias, CFC 686973, about 560 AI builds; compendium 08).
+				// Here, at least 4 defenders for each 3 attackers.
+				bool citiesShort = defendersInCities < want;
+				bool ratioShort = 3 * allDefenders < 4 * allAttackers;
+				return citiesShort || ratioShort ? GarrisonShortBonus : 0;
+			}
 			if (LeanGarrison.On(player)) {
 				int leanDefenders = stats?.LeanGarrisonNeed
 					?? LeanGarrison.Need(player, IsInAnyWar(player, EngineStorage.gameData.players));

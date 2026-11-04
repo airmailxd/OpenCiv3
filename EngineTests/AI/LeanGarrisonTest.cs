@@ -101,6 +101,41 @@ public sealed class LeanGarrisonTest : IClassFixture<SaveGameFixture>, IDisposab
 		Assert.True(ChooseProducible.StockGarrisonBonus(player, archer) > 0);
 	}
 
+	// The standard AI: a spare defender goes to a farther city short of two
+	// rather than a nearer one that has them.
+	[Fact]
+	public void ASpareDefenderGoesToACityShortOfTwo() {
+		player.aiType = AiType.Standard;
+		City near = CityInteractions.BuildCity(LandAt(city.location, 3), player, player.GetNextCityName());
+		City far = CityInteractions.BuildCity(LandAt(city.location, 6, awayFromCity: 6), player, player.GetNextCityName());
+		Spearman(near);
+		Spearman(near);
+		Spearman(far);
+		Spearman(city);
+		Spearman(city);
+		MapUnit spare = Spearman(city);
+
+		Assert.Equal(far.location, DefenderAI.MakeAiDataForDefendAtRiskCity(spare, player, int.MaxValue).destination);
+	}
+
+	// Defenders outside the cities don't count towards their two each, and
+	// with the cities held the AI still wants 4 defenders for 3 attackers.
+	[Fact]
+	public void OnlyDefendersInCitiesCountAndTheRatioIsKept() {
+		player.aiType = AiType.Standard;
+		UnitPrototype spearman = Unit("Spearman");
+		Spearman(city);
+		gameData.SpawnUnit(player, spearman, LandAt(city.location, 3));
+		Assert.True(ChooseProducible.StockGarrisonBonus(player, spearman) > 0);
+
+		Spearman(city);
+		Assert.Equal(0, ChooseProducible.StockGarrisonBonus(player, spearman));
+		for (int i = 0; i < 3; ++i) {
+			gameData.SpawnUnit(player, Unit("Archer"), city.location);
+		}
+		Assert.True(ChooseProducible.StockGarrisonBonus(player, spearman) > 0);
+	}
+
 	[Fact]
 	public void SurplusDefendersInAnInteriorCityGoToAShortBorderCity() {
 		// A border city of ours 3 tiles from a rival city, which is far
@@ -112,18 +147,19 @@ public sealed class LeanGarrisonTest : IClassFixture<SaveGameFixture>, IDisposab
 		CityInteractions.BuildCity(rivalSite, rival, rival.GetNextCityName());
 		MapUnit[] spears = [Spearman(city), Spearman(city), Spearman(city)];
 
-		// Advanced, switch off: they stay.
+		// Advanced, switch off: none has to leave, but a spare one, looking
+		// for a city to defend, goes to the one short of two.
 		player.aiType = AiType.Advanced;
 		Assert.True(LeanGarrison.IsInterior(player, city));
 		Assert.False(LeanGarrison.IsInterior(player, border));
 		Assert.False(LeanGarrison.ShouldLeave(spears[0], player));
-		Assert.Equal(city.location, DefenderAI.MakeAiDataForDefendAtRiskCity(spears[0], player, int.MaxValue).destination);
+		Assert.Equal(border.location, DefenderAI.MakeAiDataForDefendAtRiskCity(spears[0], player, int.MaxValue).destination);
 
-		// Standard, switch on: they stay.
+		// Standard, switch on: the same.
 		player.aiType = AiType.Standard;
 		AiExperiments.Enable(player, LeanGarrison.Switch);
 		Assert.False(LeanGarrison.ShouldLeave(spears[0], player));
-		Assert.Equal(city.location, DefenderAI.MakeAiDataForDefendAtRiskCity(spears[0], player, int.MaxValue).destination);
+		Assert.Equal(border.location, DefenderAI.MakeAiDataForDefendAtRiskCity(spears[0], player, int.MaxValue).destination);
 
 		// Advanced, switch on: the border city wants two, so two of the
 		// interior city's three leave, one keeps it. Nothing is disbanded.

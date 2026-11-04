@@ -219,6 +219,10 @@ namespace C7Engine.AI.UnitAI {
 		 * city needs more defenders, or if the units present are defenders.
 		 * Returns null if there is none, as when the player has no cities.
 		 */
+		// The defenders the standard AI wants in each of its cities: Civ3's
+		// "two defensive units per city".
+		internal const int CityDefendersWanted = 2;
+
 		private static City FindAtRiskCityToDefend(MapUnit unit, Player player, int minDefenders) {
 			if (player.cities.Count == 0) {
 				return null;
@@ -242,6 +246,21 @@ namespace C7Engine.AI.UnitAI {
 					City c = snap.cities[i];
 					if (LeanGarrison.Defenders(player, c, except: unit) + snap.enRoute[i] < LeanGarrison.DefendersWanted(player, c, atWar)) {
 						score += LeanGarrison.ShortCityPull;
+					}
+				} else if (minDefenders == int.MaxValue) {
+					// A defender with nowhere it must be fills up cities short
+					// of two defenders first, then goes to the nearest. Civ3's
+					// AI keeps "a heavy number of garrison units in each and
+					// every one of its cities" (Ision,
+					// https://civfanatics.com/civ3/strategy/misc/your-ai-opponent/),
+					// and its war plotting looks for "two defensive units per
+					// city" (Flintlock, CFC 703785; compendium 08, 3.4.1).
+					// Without this every city scored the same, so the nearest
+					// cities piled up defenders and the rest kept one.
+					City c = snap.cities[i];
+					int others = snap.defenders[i] - (unit.location == c.location && unit.CanDefendOnLand() ? 1 : 0);
+					if (others + snap.enRoute[i] < CityDefendersWanted) {
+						score += 10f;
 					}
 				} else if (snap.defenders[i] < minDefenders) {
 					// Add to the score if there aren't many defenders, with a
