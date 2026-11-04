@@ -369,6 +369,21 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		Assert.True(AtPeace(us, them));
 	}
 
+	// Workers don't give cause for a demand, but once their civ is told to
+	// leave they go along with its troops.
+	[Fact]
+	public void AnAiToldToLeaveTakesItsWorkersToo() {
+		MakeUnit(them, row[1]);
+		MapUnit worker = MakeUnit(them, row[2]);
+		worker.unitType.attack = 0;
+		worker.unitType.defense = 0;
+		MakeUnit(us, row[0]);
+		MakeUnit(us, row[0]);
+
+		Assert.True(DemandOfAi().withdrew);
+		Assert.Same(row[3], worker.location);
+	}
+
 	[Fact]
 	public void AStrongerAiRefusesToLeaveAndDeclaresWar() {
 		MapUnit intruder = MakeUnit(them, row[1]);

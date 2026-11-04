@@ -81,7 +81,7 @@ namespace C7Engine.AI {
 
 				if (!them.isHuman) {
 					// AIs back down rather than start a war over it.
-					int withdrawn = Withdraw(units);
+					int withdrawn = Withdraw(us, them, units);
 					if (withdrawn > 0) {
 						++ourView.recentWithdrawals;
 					}
@@ -99,7 +99,7 @@ namespace C7Engine.AI {
 					MsgWarDeclaration.Announce(them, us);
 				} else if (ultimatum) {
 					// "<Your troops will move automatically.>"
-					int withdrawn = Withdraw(units);
+					int withdrawn = Withdraw(us, them, units);
 					if (withdrawn > 0) {
 						++ourView.recentWithdrawals;
 					}
@@ -254,7 +254,7 @@ namespace C7Engine.AI {
 				return false;
 			}
 
-			int withdrawn = Withdraw(units);
+			int withdrawn = Withdraw(human, ai, units);
 			log.Information("{Ai} withdrew {Count} units from {Human}'s territory", ai, withdrawn, human);
 			return true;
 		}
@@ -277,10 +277,25 @@ namespace C7Engine.AI {
 			return relationship.multiTurnDeals.Exists(d => d.dealSubType == DealSubType.MilitaryAlliance);
 		}
 
-		// Returns how many of the units moved out.
-		private static int Withdraw(List<MapUnit> units) {
+		// Moves the units out, and with them the rest of their civ's land
+		// units in our territory. Only military units give cause for a
+		// demand, but once one is made the others go too: a lone explorer
+		// "can meander all over the place", but with an ultimatum "he gets
+		// teleported" (Crow T Robot, CFC "Stopping AIs walking through my
+		// land", https://forums.civfanatics.com/threads/stopping-ais-walking-through-my-land.69754/).
+		// Returns how many units moved out.
+		private static int Withdraw(Player us, Player them, List<MapUnit> units) {
+			List<MapUnit> leaving = new(units);
+			foreach (MapUnit unit in them.units) {
+				Tile tile = unit.location;
+				if (leaving.Contains(unit) || unit.IsLoaded() || tile == null || tile == Tile.NONE || tile.OwningPlayer() != us
+					|| !unit.IsLandUnit() || unit.unitType.hasHiddenNationality) {
+					continue;
+				}
+				leaving.Add(unit);
+			}
 			int withdrawn = 0;
-			foreach (MapUnit unit in units) {
+			foreach (MapUnit unit in leaving) {
 				if (unit.WithdrawToNearestFreeTile()) {
 					++withdrawn;
 				}
