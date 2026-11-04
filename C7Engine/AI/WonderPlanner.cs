@@ -33,6 +33,42 @@ namespace C7Engine.AI {
 		public const string Value = "wonder-value";
 		public const string Timing = "wonder-timing";
 
+		// The standard AI weighs great wonders as Civ3's does: by what they
+		// do, on the same scale as other improvements. Civ3's city AI
+		// "considers all kinds of improvements, wonders or not, together"
+		// (Flintlock, reading the code, CFC 703785; compendium 08, 3.1) and
+		// "simply builds the item with the highest value" (Soren Johnson).
+		// Before, a wonder scored nothing for its effect, only for its
+		// city's production and culture, so it lost to almost any building:
+		// AI trials saw about 1.5 wonders built per civ in 200 turns, from
+		// 7.5 begun. The Advanced AI keeps its own wonder settings.
+		internal static bool CivStyle(Player player) => player != null && !player.isHuman && !player.IsAdvancedAi;
+
+		// HEURISTIC: how many great wonders a standard-AI civ builds at once,
+		// so its shields aren't spread over races it then loses. Civ3's AI
+		// is "coded to reshuffle wonders so that the minimal number of
+		// shields is wasted" (CFC "AI wonder cascade",
+		// https://forums.civfanatics.com/threads/ai-wonder-cascade.54400).
+		internal const int MaxWondersAtOnce = 2;
+
+		// Whether the city may start the wonder, given how many the civ's
+		// other cities are building.
+		internal static bool RoomForAnother(ChooseProducible.ProducibleStats stats, City city, Building wonder) {
+			return city.itemBeingProduced == wonder || stats.WonderPlan.otherWonderBuilds < MaxWondersAtOnce;
+		}
+
+		// The wonders Civ3's AI is known to favour. Soren Johnson: "the
+		// Great Library is one of the Wonders the AI prefers... the AI likes
+		// the Pyramids, the Great Library, the Art of War, the Hoover Dam,
+		// Sistine Chapel maybe?" (https://codehappy.net/apolyton/threads/84522-1.htm;
+		// compendium 04). HEURISTIC: the size of the bonus.
+		internal const float FavouriteBonus = 10;
+		private static readonly HashSet<string> Favourites = new() {
+			"The Pyramids", "The Great Library", "Sun Tzu's Art of War", "Hoover Dam", "Sistine Chapel",
+		};
+
+		internal static bool IsFavourite(Building wonder) => Favourites.Contains(wonder.name);
+
 		// HEURISTIC: how near an enemy unit (one we can see) or an enemy
 		// city must be for a city to count as threatened.
 		private const int ThreatUnitDistance = 3;

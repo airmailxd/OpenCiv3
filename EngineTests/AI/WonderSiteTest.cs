@@ -66,6 +66,32 @@ public sealed class WonderSiteTest : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.True(safe > -1000);
 	}
 
+	// The standard AI builds two great wonders at a time. A city already
+	// building one carries on.
+	[Fact]
+	public void TheStandardAiBuildsTwoWondersAtATime() {
+		Assert.True(WonderPlanner.CivStyle(player));
+		List<Building> others = gameData.Buildings.Where(b => b.IsGreatWonder() && b != wonder).Take(2).ToList();
+		List<Tile> sites = gameData.map.tiles.Where(t => t.IsLand() && !t.HasCity() && t.IsAllowCities() && t.OwningPlayer() == null
+			&& t.continent == city.location.continent && t.DistanceTo(city.location) >= 4).ToList();
+		City first = CityInteractions.BuildCity(sites[0], player, player.GetNextCityName());
+		City second = CityInteractions.BuildCity(sites.First(t => t.DistanceTo(sites[0]) >= 4 && !t.HasCity()), player, player.GetNextCityName());
+		first.SetItemBeingProduced(others[0]);
+		Assert.True(WonderScore() > -1000);
+
+		second.SetItemBeingProduced(others[1]);
+		Assert.True(WonderScore() <= -1000);
+
+		city.SetItemBeingProduced(wonder);
+		Assert.True(WonderScore() > -1000);
+	}
+
+	// Civ3's favourite wonders are all found by name in the rules.
+	[Fact]
+	public void TheFavouriteWondersAreInTheRules() {
+		Assert.Equal(5, gameData.Buildings.Count(b => b.IsGreatWonder() && WonderPlanner.IsFavourite(b)));
+	}
+
 	// With the AI fog of war, an enemy the AI can't see doesn't count.
 	[Fact]
 	public void WithTheFogAnUnseenEnemyDoesntThreaten() {

@@ -506,7 +506,19 @@ namespace C7Engine {
 					score += (float)((wondersWeight - C7Engine.AI.Advanced.RuleWeights.Neutral) / C7Engine.AI.Advanced.RuleWeights.Neutral * C7Engine.AI.Advanced.PlanEffects.FocusPoints(player));
 					C7Engine.AI.Advanced.RuleWeights.Used(player, C7Engine.AI.Advanced.RuleCategory.Wonders, "production");
 				}
-				if (AiExperiments.Has(player, WonderPlanner.Value)) {
+				if (WonderPlanner.CivStyle(player)) {
+					// The standard AI, as Civ3's (see WonderPlanner.CivStyle):
+					// a wonder or two at a time, valued by its effect, with
+					// Civ3's favourites a little ahead.
+					if (!WonderPlanner.RoomForAnother(stats, city, building)) {
+						return -1000f;
+					}
+					valuedWonder = true;
+					score += WonderPlanner.EffectScore(stats, city, player, building);
+					if (WonderPlanner.IsFavourite(building)) {
+						score += WonderPlanner.FavouriteBonus;
+					}
+				} else if (AiExperiments.Has(player, WonderPlanner.Value)) {
 					valuedWonder = true;
 					score += WonderPlanner.EffectScore(stats, city, player, building);
 				}
@@ -653,8 +665,11 @@ namespace C7Engine {
 			}
 			score += effect.Value;
 
-			// Penalize more expensive buildings.
-			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);
+			// Penalize more expensive buildings. The standard AI doesn't hold
+			// a great wonder's build time against it more while expanding:
+			// Civ3's AI weighs wonders with everything else all game.
+			bool civStyleWonder = building.IsGreatWonder() && WonderPlanner.CivStyle(player);
+			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase && !civStyleWonder ? 1 : 2);
 
 			// Penalize buildings with higher maintenance costs, as much of
 			// them as a house rule leaves us to pay (see AiHouseRules).
