@@ -1313,6 +1313,36 @@ namespace C7Engine {
 		}
 	}
 
+	// A human asks an AI, not at war with them, for a counter-offer to the
+	// deal on the table: "What do you want for $GIVE0?" (exchange false: the
+	// AI asks for more of the human's side) or "Would you care to offer
+	// something in exchange for $GIVE0?" (exchange true: the AI adds to its
+	// own side), Conquests diplomacy.txt #USERASKFORCOUNTER and
+	// #USERASKFOREXCHANGE. The AI answers at once with MsgPeaceTerms, the
+	// answer to any such ask (see CounterOfferAI).
+	public class MsgAskForCounterOffer : MessageToEngine {
+		public Player opponent;
+		public TradeOffer humanGives;
+		public TradeOffer humanWants;
+		public bool exchange;
+
+		public MsgAskForCounterOffer(Player opponent, TradeOffer humanGives, TradeOffer humanWants, bool exchange) {
+			this.opponent = opponent;
+			this.humanGives = humanGives;
+			this.humanWants = humanWants;
+			this.exchange = exchange;
+		}
+
+		protected override void ProcessAllowed() {
+			GameData gD = EngineStorage.gameData;
+			if (opponent == null || opponent == Sender || opponent.isHuman || Sender == null || humanGives == null || humanWants == null) return;
+			(TradeOffer humanGives, TradeOffer humanWants)? terms = exchange
+				? CounterOfferAI.Exchange(gD, opponent, Sender, humanGives, humanWants)
+				: CounterOfferAI.Counter(gD, opponent, Sender, humanGives, humanWants);
+			new MsgPeaceTerms(Sender, opponent, terms?.humanGives, terms?.humanWants).send();
+		}
+	}
+
 	// A human tells an AI to take its units out of the human's territory or
 	// prepare for war. The AI answers at once with MsgWithdrawalDemandResult.
 	public class MsgDemandWithdrawal : MessageToEngine {
@@ -1471,15 +1501,20 @@ namespace C7Engine {
 		public EspionageMission mission;
 		public Player target;
 		public City city;
+		// How carefully it is sent, where that matters (see
+		// Espionage.RiskMatters).
+		public EspionageRisk risk;
 
-		public MsgPerformEspionage(EspionageMission mission, Player target, City city) {
+		public MsgPerformEspionage(EspionageMission mission, Player target, City city,
+				EspionageRisk risk = EspionageRisk.Immediately) {
 			this.mission = mission;
 			this.target = target;
 			this.city = city;
+			this.risk = risk;
 		}
 
 		protected override void ProcessAllowed() {
-			Espionage.MissionResult result = Espionage.Perform(EngineStorage.gameData, Sender, mission, target, city);
+			Espionage.MissionResult result = Espionage.Perform(EngineStorage.gameData, Sender, mission, target, city, risk: risk);
 			new MsgEspionageResult(Sender, mission, result.performed, result.success, result.message, result.city) { newsEvent = result.newsEvent }.send();
 		}
 	}

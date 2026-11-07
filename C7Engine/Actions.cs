@@ -38,6 +38,9 @@ public static class C7Action {
 	// Civ3's hidden developer advisor (Ctrl+Shift+Alt+S, no input action).
 	public const string ShowSorenAdvisor = "show_soren_advisor";
 
+	// The Espionage screen (the "E" button, no input action).
+	public const string ShowEspionage = "show_espionage";
+
 	public const string ShowWondersView = "show_wonders_view"; // F7
 	public const string ShowVictoryStatusView = "show_victory_status_view";
 	public const string ShowPalaceView = "show_palace_view";

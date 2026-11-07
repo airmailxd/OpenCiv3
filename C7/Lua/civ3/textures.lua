@@ -571,6 +571,35 @@ textures.diplomacy = {
   offer = "Art/Diplomacy/talk_offer.pcx",
 }
 
+-- The Espionage screen (Play the World's Art/Espionage). The parts are where
+-- the artist's notes on the sheet put them: the opponents' buttons, the
+-- embassy and spy icons, the bars of the target list, and the mission boxes.
+local ESPIONAGE = "Art/Espionage/"
+local ESPIONAGE_PARTS = ESPIONAGE .. "X_ESPIONAGE PARTS.PCX"
+local ESPIONAGE_PARTS2 = ESPIONAGE .. "X_ESPIONAGE PARTS2.PCX"
+textures.espionage = {
+  background = ESPIONAGE .. "X_ESPIONAGEbkg.pcx",
+  civ = {
+    normal = { path = ESPIONAGE_PARTS, crop_region = { 2, 0, 321, 48 } },
+    selected = { path = ESPIONAGE_PARTS, crop_region = { 2, 56, 321, 48 } },
+    hover = { path = ESPIONAGE_PARTS, crop_region = { 2, 336, 321, 48 } },
+  },
+  embassy = { path = ESPIONAGE_PARTS, crop_region = { 1, 121, 24, 23 } },
+  spy = { path = ESPIONAGE_PARTS, crop_region = { 1, 158, 24, 23 } },
+  bar = {
+    normal = { path = ESPIONAGE_PARTS, crop_region = { 1, 195, 256, 24 } },
+    selected = { path = ESPIONAGE_PARTS, crop_region = { 1, 230, 256, 24 } },
+    hover = { path = ESPIONAGE_PARTS, crop_region = { 1, 265, 256, 24 } },
+    disabled = { path = ESPIONAGE_PARTS, crop_region = { 1, 300, 256, 25 } },
+  },
+  box = {
+    normal = { path = ESPIONAGE_PARTS, crop_region = { 291, 249, 24, 23 } },
+    hover = { path = ESPIONAGE_PARTS, crop_region = { 291, 283, 24, 23 } },
+    checked = { path = ESPIONAGE_PARTS2, crop_region = { 0, 0, 24, 23 } },
+    checked_hover = { path = ESPIONAGE_PARTS2, crop_region = { 0, 25, 24, 23 } },
+  },
+}
+
 textures.upper_left_navigation = {
   menu = {
     path = INTERFACE .. "menuButtons.pcx",

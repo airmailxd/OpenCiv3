@@ -973,7 +973,13 @@ namespace C7GameData {
 		// the valuation (see TradeOffer.GoldEquivalentFor), and per the
 		// project owner we never give a city away except in a peace treaty.
 		// Peace is weighed up by PeaceAI.
-		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
+		//
+		// theirValuePercent scales what their offer is worth to us, for
+		// working out how far a deal is from one we'd take (see
+		// C7Engine.AI.CounterOfferAI): below 100 we're harder to please, as
+		// when making a counter-offer that leaves us a margin.
+		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer,
+				int theirValuePercent = 100) {
 			// TODO: culture groups.
 			// Attitude counts only through the markup on deals with a human
 			// (see TradeMarkup), as TheNiceOne measured it. UNVERIFIED:
@@ -1018,6 +1024,9 @@ namespace C7GameData {
 				theirGoldValue = C7Engine.AI.TradeMarkup.Paying(theirGoldValue, markup);
 				ourGoldValue += C7Engine.AI.TradeGuards.MonopolyPremium(gameData, this, ourOffer);
 				theirGoldValue -= C7Engine.AI.TradeGuards.RiskDiscount(gameData, other, theirOffer);
+			}
+			if (theirValuePercent != 100) {
+				theirGoldValue = (int)Math.Clamp((long)theirGoldValue * theirValuePercent / 100, int.MinValue, int.MaxValue);
 			}
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {

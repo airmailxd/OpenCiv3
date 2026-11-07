@@ -1872,10 +1872,15 @@ public partial class Game : Node {
 						mapView.InvalidateMap();
 					}
 					City capital = mER.city;
+					// The Espionage screen shows the new embassy, spy and treasury.
+					advisor.RefreshEspionage();
 					popupOverlay.ShowPopup(
 						new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
 							[new ChoicePopup.Choice("Very well.", () => {
 							if (showCapital) {
+								// The capital is shown on the map, under the
+								// Espionage screen.
+								advisor.Hide();
 								ShowEmbassyCapital(capital);
 							}
 						})], cancellable: false),
@@ -2940,17 +2945,10 @@ public partial class Game : Node {
 		LogTileDetails(tile);
 	}
 
-	// Lists the diplomatic and espionage missions the player at the screen
-	// could send against a foreign civ and one of its cities, with their
-	// cost and chance of success.
-	public void ShowEspionageMissions(Player target, City city) {
-		List<ChoicePopup.Choice> choices = new();
-		EngineStorage.ReadGameData((GameData gameData) => {
-			choices = Embassies.MissionChoices(gameData, controller, target, city);
-		});
-		string title = city == null ? $"Missions to the {target.civilization.noun}" : $"Missions to {city.name}";
-		popupOverlay.ShowPopup(new ChoicePopup(title, $"Treasury: {controller.gold} gold", choices),
-			PopupOverlay.PopupCategory.Advisor);
+	// Opens the Espionage screen, with a foreign civ and one of its cities
+	// picked if given, for the player at the screen to send missions from.
+	public void ShowEspionageMissions(Player target = null, City city = null) {
+		advisor.ShowEspionage(target?.id, city);
 	}
 
 	public void ShowTileInfo(Tile tile) {

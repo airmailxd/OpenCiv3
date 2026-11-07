@@ -928,7 +928,35 @@ In this study a negative number is good.
   `AIWEAKREJECT`/`AINEUTRALREJECT`/`AISTRONGREJECT`/`AITOTALREJECT`. Quotes:
   "This deal will probably be acceptable.", "We're getting close to a deal
   here.", "I doubt they will accept this proposal.", "They will probably be
-  insulted by this deal.", "They would never accept such a deal."
+  insulted by this deal.", "They would never accept such a deal." Players
+  quote the advisor so (wervdon, CFC "When the AI refuses a deal that is too
+  good", https://forums.civfanatics.com/threads/when-the-ai-refuses-a-deal-that-is-too-good.17044/:
+  "They would never accept such a deal!"). No source gives the value gaps
+  between the levels (OpenCiv3's are HEURISTIC, see CounterOfferAI).
+- **diplomacy.txt's layout (read from the file).** A label's `#civ 1` gives
+  each civ its own group of lines, in the BIQ's RACE order (#AIFIRSTCONTACT
+  has 32 lines, one per race; line 21 is the Celts' "Céad Míle Fáilte", line
+  29 the Dutch "House of Orange"); `#mood 1` or `#power 1` splits a group in
+  three; `#random n` is the lines in each. So the reject labels have 192 = 32
+  x 3 x 2 lines and #AICOUNTERPEACE 36 = 3 x 12. The three mood sets read
+  friendly, then neutral, then hostile (UNVERIFIED which attitudes map to
+  which). Placeholder numbers differ per label; the comments above each label
+  say what they stand for.
+- **The AI's counter-offers leave it a margin.** Qitai (CFC "A small trick to
+  keep AI happy", Civ3, Jun 2003,
+  https://forums.civfanatics.com/threads/a-small-trick-to-keep-ai-happy.57086/):
+  "Usually they give 10%-15% more of what they offer", and "The limit is near
+  when you find they are not giving everything they have". BiggN (Apolyton
+  43227, "Won't the AI offer anything?"): asked what it would give for a map,
+  the AI offered "the 20-40 gold that they have in stock", sometimes with furs
+  or silk. Counters can be inconsistent: Cleo refused a deal she had herself
+  offered (Pyrodrew, Apolyton 43582, "AI diplomacy flaws"). The human's asks
+  are `#USERASKFORCOUNTER` ("What do you want for $GIVE0?") and
+  `#USERASKFOREXCHANGE` ("Would you care to offer something in exchange for
+  $GIVE0?"); the answers `#AICOUNTERPEACE` ("How about this?") and
+  `#AINOCOUNTERPEACE` ("Regrettably, we don't see how a deal could be worked
+  out..."). UNSOURCED: the order the AI fills a counter-offer beyond gold
+  first.
 - **Selling techs for large GPT can drain the AI economy for 20 turns.**
   Source: "Crippling the AI's Research Capability"
   (https://civfanatics.com/?p=170). Quotes: "There is a limit to how much the

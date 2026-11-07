@@ -626,7 +626,8 @@ namespace C7Engine {
 	}
 
 	// An AI's answer to a human who asked what it wants for peace (see
-	// MsgAskForPeaceTerms): the terms, or none (both null) if it sees no
+	// MsgAskForPeaceTerms), or for a counter-offer to the deal on the table
+	// (MsgAskForCounterOffer): the terms, or none (both null) if it sees no
 	// deal.
 	public class MsgPeaceTerms : MessageToUI {
 		public Player opponent;

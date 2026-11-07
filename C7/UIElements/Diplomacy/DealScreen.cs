@@ -19,13 +19,15 @@ using static C7GameData.PlayerRelationship;
 // TradeOffer object, and then we refresh the UIs of the trading tree and the
 // trade offer ui to swap the visibility.
 //
+// A computer opponent answers the deal on the table as Civ3's does, in its
+// words from diplomacy.txt, by how close the deal is to one it would take
+// (see CounterOfferAI.Reaction), rather than showing what it is worth. The
+// human may ask it what it wants for what is on its side, or what it would
+// give for what is on the human's (CounterOfferAI.Counter and Exchange).
+//
 // Things that aren't yet implemented:
 //  - Gifts
 //  - Demands
-//  - What do you need for ...
-//  - What will you give me for ...
-//  - Per-turn deals
-//  - Interesting messages from the opponent player
 public partial class DealScreen : TextureRect {
 	private ID humanPlayerId;
 	private ID opponentPlayerId;
@@ -54,6 +56,16 @@ public partial class DealScreen : TextureRect {
 	// What the opponent says first, if it made the offer with words of its
 	// own (see DealProposalAI.Greeting), or null.
 	private readonly string greeting;
+
+	// Civ3's "What do you want for $GIVE0?" and "Would you care to offer
+	// something in exchange for $GIVE0?", shown while there is something on
+	// the opponent's or the human's side, in peace with a computer player.
+	Button askCounter;
+	Button askExchange;
+
+	// Which of its lines the opponent says, so its words change only when
+	// its view of the deal does.
+	private readonly int linePick = System.Random.Shared.Next(1000);
 
 	public DealScreen(ID humanPlayer, ID opponentPlayer, TradeOffer humanGives, TradeOffer humanWants, string greeting = null) {
 		this.humanPlayerId = humanPlayer;
@@ -219,6 +231,18 @@ public partial class DealScreen : TextureRect {
 				negotiationControls.Add(askTerms);
 			}
 
+			// In peace, the human may ask for a counter-offer.
+			if (!playersAtWar && !opponentPlayer.isHuman) {
+				askCounter = new() { Theme = fontTheme, Visible = false };
+				askCounter.SetPosition(new Vector2(512 - 205, 590));
+				askCounter.Pressed += () => AskForCounterOffer(exchange: false);
+				AddChild(askCounter);
+				askExchange = new() { Theme = fontTheme, Visible = false };
+				askExchange.SetPosition(new Vector2(512 - 205, 610));
+				askExchange.Pressed += () => AskForCounterOffer(exchange: true);
+				AddChild(askExchange);
+			}
+
 			Button goodbye = new();
 			goodbye.Text = "\"Never mind...\"";
 			goodbye.SetPosition(new Vector2(512 - 205, 650));
@@ -246,6 +270,8 @@ public partial class DealScreen : TextureRect {
 			opponentResponse.SetPosition(new Vector2(512 - 205, 345));
 			opponentResponse.Theme = fontTheme;
 			AddChild(opponentResponse);
+
+			RefreshAskButtons(gD, opponentPlayer, humanPlayer);
 		});
 	}
 
@@ -256,6 +282,50 @@ public partial class DealScreen : TextureRect {
 			control.Visible = !showDeals;
 		}
 		activeDealsButton.Text = showDeals ? "Back to the negotiation" : "Active Deals";
+		EngineStorage.ReadGameData((GameData gD) => {
+			RefreshAskButtons(gD, gD.GetPlayer(opponentPlayerId), gD.GetPlayer(humanPlayerId));
+		});
+	}
+
+	// Shows "What do you want for $GIVE0?" while the opponent's side has
+	// something on it, and "Would you care to offer something in exchange
+	// for $GIVE0?" while ours has, in Civ3's words (diplomacy.txt,
+	// #USERASKFORCOUNTER and #USERASKFOREXCHANGE).
+	private void RefreshAskButtons(GameData gD, Player opponentPlayer, Player humanPlayer) {
+		if (askCounter == null || opponentPlayer == null || humanPlayer == null) {
+			return;
+		}
+		bool negotiating = !activeDealsPanel.Visible;
+		askCounter.Visible = negotiating && !opponentOffer.IsEmpty();
+		askExchange.Visible = negotiating && !humanOffer.IsEmpty();
+		if (askCounter.Visible) {
+			askCounter.Text = AskText(gD, "USERASKFORCOUNTER", opponentPlayer, humanPlayer, opponentOffer);
+		}
+		if (askExchange.Visible) {
+			askExchange.Text = AskText(gD, "USERASKFOREXCHANGE", opponentPlayer, humanPlayer, humanOffer);
+		}
+	}
+
+	private string AskText(GameData gD, string key, Player opponentPlayer, Player humanPlayer, TradeOffer items) {
+		string line = DiplomacyLines.Say(gD, key, opponentPlayer, humanPlayer, linePick).Replace("$GIVE0", ItemsName(items));
+		return $"\"{line}\"";
+	}
+
+	// What is on one side of the table, for $GIVE0: the item, if there is
+	// one, or "this".
+	private static string ItemsName(TradeOffer offer) {
+		string items = offer.ToString();
+		return items.Length == 0 || items.Contains(',') ? "this" : items;
+	}
+
+	private void AskForCounterOffer(bool exchange) {
+		EngineStorage.ReadGameData((GameData gD) => {
+			Player opponentPlayer = gD.GetPlayer(opponentPlayerId);
+			if (opponentPlayer == null) {
+				return;
+			}
+			new MsgAskForCounterOffer(opponentPlayer, humanOffer, opponentOffer, exchange) { playerID = humanPlayerId }.send();
+		});
 	}
 
 	// Lists the deals in force with the opponent across the boxes in the
@@ -442,38 +512,41 @@ public partial class DealScreen : TextureRect {
 					// Civ3's words (diplomacy.txt, #AINOPEACETREATY).
 					opponentResponse.Text = $"\"Not likely! {opponentPlayer.civilization.name} is winning!\"";
 				} else {
-					// A computer player says no, so the deal isn't left
-					// looking unanswered. Civ3's words (diplomacy.txt,
-					// #AINEUTRALREJECT).
-					opponentResponse.Text = "\"That deal is not acceptable.\"";
+					// A computer player says no in Civ3's words, by how far
+					// the deal is from one it would take. If it now looks
+					// acceptable (things changed while it was considered),
+					// a plain no (#AINEUTRALREJECT).
+					C7Engine.AI.DealReaction reaction = C7Engine.AI.CounterOfferAI.Reaction(gD, opponentPlayer,
+						gD.GetPlayer(humanPlayerId), humanOffer, opponentOffer);
+					if (reaction == C7Engine.AI.DealReaction.Accept) {
+						reaction = C7Engine.AI.DealReaction.NeutralReject;
+					}
+					ShowReaction(gD, opponentPlayer, reaction);
 				}
 			});
 		}
 	}
 
+	private void ShowReaction(GameData gD, Player opponentPlayer, C7Engine.AI.DealReaction reaction) {
+		ShowResponse(DiplomacyLines.Say(gD, DiplomacyLines.Key(reaction), opponentPlayer, gD.GetPlayer(humanPlayerId), linePick));
+	}
+
+	// The opponent's words as the deal on the table changes: Civ3's leader
+	// says how close the deal is to one it would take (diplomacy.txt,
+	// #AIWILLACCEPT, #AIWEAKREJECT, #AINEUTRALREJECT, #AISTRONGREJECT,
+	// #AITOTALREJECT, as the foreign advisor's #DIPLOADVICETRADE_DEAL_*
+	// lines grade it), not what it is worth.
 	private void UpdateText() {
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
+			RefreshAskButtons(gD, opponentPlayer, humanPlayer);
 
-			// The gold valuation below is the AI's view of the deal.
-			if (opponentPlayer.isHuman) {
+			if (opponentPlayer.isHuman || (humanOffer.IsEmpty() && opponentOffer.IsEmpty())) {
 				opponentResponse.Text = "\"Let's get down to business...\"";
 				return;
 			}
-
-			int theirGoldValue = opponentOffer.GoldEquivalentFor(gD, opponentPlayer, given: true, counterpart: humanPlayer);
-			int ourGoldValue = humanOffer.GoldEquivalentFor(gD, opponentPlayer, counterpart: humanPlayer);
-			string text = $"I value my offer at {theirGoldValue} gold and I value your offer at {ourGoldValue} gold";
-			if (TradeOffer.IncludesRightOfPassage(humanOffer, opponentOffer)) {
-				// What the AI weighs it at (see RightOfPassageAI).
-				if (C7Engine.AI.RightOfPassageAI.Refuses(gD, opponentPlayer, humanPlayer)) {
-					text += ", and I will not sign a right of passage with you";
-				} else {
-					text += $", and a right of passage at {C7Engine.AI.RightOfPassageAI.Worth(gD, opponentPlayer, humanPlayer)} gold";
-				}
-			}
-			opponentResponse.Text = $"\"{text}\"";
+			ShowReaction(gD, opponentPlayer, C7Engine.AI.CounterOfferAI.Reaction(gD, opponentPlayer, humanPlayer, humanOffer, opponentOffer));
 		});
 	}
 }

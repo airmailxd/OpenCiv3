@@ -108,19 +108,26 @@ public partial class Diplomacy : CenterContainer {
 		dealScreen?.OnDealResult(opponent, accepted);
 	}
 
-	// An AI's answer to our asking what it wants for peace: its terms put
-	// on the table ("How about this?", Conquests diplomacy.txt
-	// #AICOUNTERPEACE), or none ("Regrettably, we don't see how a deal
-	// could be worked out...", #AINOCOUNTERPEACE).
+	// An AI's answer to our asking what it wants for peace, or for a
+	// counter-offer: its terms put on the table ("How about this?",
+	// Conquests diplomacy.txt #AICOUNTERPEACE), or none ("Regrettably, we
+	// don't see how a deal could be worked out...", #AINOCOUNTERPEACE), in
+	// its words for its mood.
 	public void OnPeaceTerms(ID human, ID opponent, TradeOffer humanGives, TradeOffer humanWants) {
 		if (dealScreen == null || !dealScreen.IsFor(opponent)) {
 			return;
 		}
+		GameData gd = EngineStorage.gameData;
+		Player ai = gd?.GetPlayer(opponent);
+		Player player = gd?.GetPlayer(human);
+		int pick = System.Random.Shared.Next(1000);
 		if (humanGives == null || humanWants == null) {
-			dealScreen.ShowResponse("Regrettably, we don't see how a deal could be worked out...");
+			dealScreen.ShowResponse(ai == null ? "Regrettably, we don't see how a deal could be worked out..."
+				: DiplomacyLines.Say(gd, "AINOCOUNTERPEACE", ai, player, pick));
 			return;
 		}
-		ShowDealScreenForPlayer(human, opponent, humanGives, humanWants, "How about this?");
+		string line = ai == null ? "How about this?" : DiplomacyLines.Say(gd, "AICOUNTERPEACE", ai, player, pick);
+		ShowDealScreenForPlayer(human, opponent, humanGives, humanWants, line);
 	}
 
 	public void OnWithdrawalDemandResult(ID opponent, bool withdrew) {

@@ -330,6 +330,29 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(48, Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city));
 	}
 
+	// "3/2 for carefully and 2 for" safely, for the study's better odds:
+	// an embassy gets away 40/55/65% of the time, succeeding 32/44/52%.
+	// Missions that always succeed are sent immediately whatever is asked.
+	[Fact]
+	public void CarefulAndSafeMissionsCostMoreForBetterOdds() {
+		City city = SetUpEmbassy();
+		actor.gold = 100000;
+		int immediate = Espionage.Cost(gameData, actor, EspionageMission.StealTechnology, target, city);
+		Assert.Equal(immediate * 3 / 2, Espionage.Cost(gameData, actor, EspionageMission.StealTechnology, target, city, EspionageRisk.Carefully));
+		Assert.Equal(immediate * 2, Espionage.Cost(gameData, actor, EspionageMission.StealTechnology, target, city, EspionageRisk.Safely));
+		Assert.Equal(44, Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city, EspionageRisk.Carefully));
+		Assert.Equal(52, Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city, EspionageRisk.Safely));
+
+		int investigate = Espionage.Cost(gameData, actor, EspionageMission.InvestigateCity, target, city);
+		Assert.Equal(investigate, Espionage.Cost(gameData, actor, EspionageMission.InvestigateCity, target, city, EspionageRisk.Safely));
+
+		// The gold spent is the safe price.
+		int gold = actor.gold;
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.StealTechnology, target, city, Fail, EspionageRisk.Safely);
+		Assert.Equal(immediate * 2, result.goldSpent);
+		Assert.Equal(gold - immediate * 2, actor.gold);
+	}
+
 	// "Plant Spy  60 dist*level + base": a base of 60 plus the distance
 	// from their capital to our nearest city times the capital's level.
 	[Fact]

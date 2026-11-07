@@ -96,6 +96,17 @@ namespace C7GameData {
 				&& (workers?.Count ?? 0) == 0;
 		}
 
+		// A copy whose lists can be changed without changing this offer's.
+		public TradeOffer Copy() {
+			TradeOffer copy = (TradeOffer)MemberwiseClone();
+			copy.techs = new(techs ?? new());
+			copy.resources = new(resources ?? new());
+			copy.cities = new(cities ?? new());
+			copy.workers = new(workers ?? new());
+			copy.contacts = new(contacts ?? new());
+			return copy;
+		}
+
 		// The cities a player may give away in a deal: any but its capital,
 		// and only while it has another city to keep.
 		public static List<City> TradableCities(Player player) {

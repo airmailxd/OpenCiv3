@@ -1,6 +1,7 @@
 using Godot;
 using Serilog;
 using C7Engine;
+using C7GameData;
 
 /**
  * Handles managing the advisor screens.
@@ -22,10 +23,38 @@ public partial class Advisors : CenterContainer {
 	// Civ3's hidden developer advisor, built here rather than in the scene.
 	private SorenAdvisor sorenAdvisor;
 
+	// Civ3's Espionage screen, shown here like the advisors.
+	private EspionageScreen espionageScreen;
+
 	public override void _Ready() {
 		sorenAdvisor = new SorenAdvisor { Name = "SorenAdvisor", Visible = false };
 		AddChild(sorenAdvisor);
+		espionageScreen = new EspionageScreen { Name = "EspionageScreen", Visible = false };
+		AddChild(espionageScreen);
 		Hide();
+	}
+
+	/// <summary>
+	/// Shows the Espionage screen, with the civ (and city) picked if given.
+	/// </summary>
+	public void ShowEspionage(ID civ = null, City city = null) {
+		latest = C7Action.ShowEspionage;
+		HideAdvisors();
+		try {
+			espionageScreen.ShowScreen(civ, city);
+		} catch (System.Exception e) {
+			log.Error(e, "Couldn't fill in the Espionage screen");
+		}
+		Show();
+	}
+
+	/// <summary>
+	/// Draws the Espionage screen again if it is up, as after a mission.
+	/// </summary>
+	public void RefreshEspionage() {
+		if (Visible && espionageScreen.Visible) {
+			espionageScreen.Refresh();
+		}
 	}
 
 	private void OnShowGameView(string gameView) {
@@ -90,6 +119,9 @@ public partial class Advisors : CenterContainer {
 			case C7Action.ShowSorenAdvisor:
 				sorenAdvisor.ShowAdvisor();
 				break;
+			case C7Action.ShowEspionage:
+				espionageScreen.ShowScreen();
+				break;
 			default:
 				log.Warning("Unknown advisor type: " + advisorType);
 				break;
@@ -104,6 +136,7 @@ public partial class Advisors : CenterContainer {
 	public void RefreshAfterGameReplaced() {
 		domesticAdvisor.ForgetGameObjects();
 		scienceAdvisor.RefreshAfterGameReplaced();
+		espionageScreen.ForgetGameObjects();
 		if (Visible) {
 			OnShowSpecificAdvisor(latest);
 		}
@@ -117,5 +150,6 @@ public partial class Advisors : CenterContainer {
 		culturalAdvisor.Hide();
 		scienceAdvisor.Hide();
 		sorenAdvisor.Hide();
+		espionageScreen.Hide();
 	}
 }

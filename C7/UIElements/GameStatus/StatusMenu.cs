@@ -87,11 +87,8 @@ public partial class StatusMenu : Control {
 		});
 	}
 
+	// Civ3's Espionage screen.
 	private void OpenEmbassyPopup() {
-		Player player = null;
-		EngineStorage.ReadGameData((GameData gD) => {
-			player = gD.GetUIControllerPlayer();
-		});
-		Embassies.ShowSelection(popupOverlay, player);
+		(Owner as Game)?.ShowEspionageMissions();
 	}
 }

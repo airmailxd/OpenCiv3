@@ -26,6 +26,18 @@ namespace C7Engine {
 		StealPlans,
 	}
 
+	// How carefully a mission is carried out, the Espionage screen's
+	// "operational cost options" (Conquests Civilopedia, GCON_Espionage;
+	// script.txt #ESPIONAGE_SAFETY_LEVEL: "[Immediately] ($NUM0 gold - low
+	// chance of success)", "[Carefully] ($NUM1 gold - moderate chance of
+	// success)", "[Safely] ($NUM2 gold - high chance of success)"). Sent
+	// between LAN machines by name.
+	public enum EspionageRisk {
+		Immediately,
+		Carefully,
+		Safely,
+	}
+
 	// Civ3's diplomatic and espionage missions, launched against another
 	// civ, or one of its cities.
 	//
@@ -57,11 +69,11 @@ namespace C7Engine {
 	//   ESPN, CULT and GOVT sections), which match the study's tables.
 	//
 	// Our choices where the sources are silent are marked UNVERIFIED below.
-	// Not done: the study's choice of risk ("carefully" and "safely" cost
-	// more for better odds); every mission is sent "immediately", the
-	// cheapest and riskiest way. The game has no spy units, so a mission is
-	// sent by the embassy (a "diplomat") or by the planted spy, whose
-	// experience comes from the sender's government.
+	// A mission is sent immediately, carefully or safely (EspionageRisk), the
+	// latter two costing more for better odds (see RiskCost and
+	// GetawayPercent). The game has no spy units, so a mission is sent by the
+	// embassy (a "diplomat") or by the planted spy, whose experience comes
+	// from the sender's government.
 	public static class Espionage {
 		private static readonly ILogger log = Log.ForContext(typeof(Espionage));
 
@@ -88,6 +100,8 @@ namespace C7Engine {
 			public string reason;
 			public int cost;
 			public int successPercent;
+			// The risk the cost and chance are for.
+			public EspionageRisk risk;
 		}
 
 		// What an investigated city reveals, as it was on the turn it was
@@ -266,7 +280,45 @@ namespace C7Engine {
 		// units is the target's number of units; shield is the shields the
 		// city has stored. UNVERIFIED: the rounding (fractions are dropped
 		// at the end) and, for a civ with no culture, taking its culture as 1.
-		public static int Cost(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
+		public static int Cost(GameData gameData, Player actor, EspionageMission mission, Player target, City city,
+				EspionageRisk risk = EspionageRisk.Immediately) {
+			return RiskCost(ImmediateCost(gameData, actor, mission, target, city), RiskFor(mission, risk));
+		}
+
+		// "Carefully" costs 3/2 of "immediately" and "safely" twice as much
+		// (Oystein, https://forums.civfanatics.com/threads/a-study-of-espionage-mission.97042/
+		// page 3: "3/2 for carefully and 2 for" safely; Spoonwood, page 4,
+		// tested: "safe steal attempts cost exactly twice of an immediate
+		// steal attempt"; compendium 06, section 6.11). UNVERIFIED: the
+		// rounding (down).
+		public static int RiskCost(int immediateCost, EspionageRisk risk) {
+			long cost = risk switch {
+				EspionageRisk.Carefully => (long)immediateCost * 3 / 2,
+				EspionageRisk.Safely => (long)immediateCost * 2,
+				_ => immediateCost,
+			};
+			return (int)Math.Min(cost, int.MaxValue);
+		}
+
+		// Whether how carefully the mission is sent changes its odds: only for
+		// the missions whose agents can be caught getting away (the study's
+		// escape table). Build an Embassy and Investigate City "always
+		// succeed", propaganda is never caught, and the study gives Plant Spy
+		// its own chances with no risk column. UNVERIFIED: that Civ3 offers
+		// no choice of risk for these; we send them immediately, since more
+		// gold would buy nothing.
+		public static bool RiskMatters(EspionageMission mission) {
+			return mission is EspionageMission.StealTechnology or EspionageMission.StealWorldMap
+				or EspionageMission.StealPlans or EspionageMission.SabotageProduction or EspionageMission.ExposeEnemySpy;
+		}
+
+		// The risk a mission is actually sent at: the one asked for, where it
+		// matters.
+		public static EspionageRisk RiskFor(EspionageMission mission, EspionageRisk risk) {
+			return RiskMatters(mission) && Enum.IsDefined(risk) ? risk : EspionageRisk.Immediately;
+		}
+
+		private static int ImmediateCost(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
 			City measured = MeasuredCity(target, city);
 			int pop = measured?.residents.Count ?? 1;
 			long cost = (long)Distance(actor, target, city) * SettlementLevel(measured);
@@ -326,14 +378,21 @@ namespace C7Engine {
 		}
 
 		// The study's chance, in per cent, of a planted spy getting away
-		// from a theft, sabotage or exposing mission sent immediately:
-		// embassy 40, regular spy 60, veteran spy 70.
-		public static int GetawayPercent(Agent agent) {
-			return agent switch {
+		// from a theft, sabotage or exposing mission, sent immediately,
+		// carefully or safely: embassy 40/55/65, regular spy 60/75/85,
+		// veteran spy 70/85/95 (confirmed by Kool Keith and Jazzmail,
+		// https://forums.civfanatics.com/threads/steal-technology.232487/post-5709659).
+		public static int GetawayPercent(Agent agent, EspionageRisk risk = EspionageRisk.Immediately) {
+			int immediate = agent switch {
 				Agent.Embassy => 40,
 				Agent.RegularSpy => 60,
 				Agent.VeteranSpy => 70,
 				_ => 40,
+			};
+			return immediate + risk switch {
+				EspionageRisk.Carefully => 15,
+				EspionageRisk.Safely => 25,
+				_ => 0,
 			};
 		}
 
@@ -345,7 +404,9 @@ namespace C7Engine {
 		// government's spies are in Conquests.)
 		public static int PlantSpyPercent(Agent agent) => agent == Agent.VeteranSpy ? 60 : 50;
 
-		public static int SuccessPercent(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
+		public static int SuccessPercent(GameData gameData, Player actor, EspionageMission mission, Player target, City city,
+				EspionageRisk risk = EspionageRisk.Immediately) {
+			risk = RiskFor(mission, risk);
 			switch (mission) {
 				case EspionageMission.EstablishEmbassy:
 				case EspionageMission.InvestigateCity:
@@ -365,7 +426,7 @@ namespace C7Engine {
 					if (mission == EspionageMission.ExposeEnemySpy && !HasSpy(target, actor)) {
 						return 0;
 					}
-					return GetawayPercent(AgentFor(actor, target, mission)) * SuccessIfNotCaughtPercent / 100;
+					return GetawayPercent(AgentFor(actor, target, mission), risk) * SuccessIfNotCaughtPercent / 100;
 				default:
 					return 0;
 			}
@@ -477,7 +538,8 @@ namespace C7Engine {
 		private static int CityCount(Player player) => player.hostFacts?.cities ?? player.cities.Count;
 
 		// Why the mission can't be performed, or null if it can.
-		public static string Unavailable(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
+		public static string Unavailable(GameData gameData, Player actor, EspionageMission mission, Player target, City city,
+				EspionageRisk risk = EspionageRisk.Immediately) {
 			// A LAN client's message can carry any number as the mission.
 			if (!Enum.IsDefined(mission)) {
 				return "There is no such mission.";
@@ -541,7 +603,7 @@ namespace C7Engine {
 				}
 			}
 
-			int cost = Cost(gameData, actor, mission, target, city);
+			int cost = Cost(gameData, actor, mission, target, city, risk);
 			if (actor.gold < cost) {
 				return $"We can't afford the {cost} gold it would cost.";
 			}
@@ -554,8 +616,10 @@ namespace C7Engine {
 				&& t.Prerequisites.All(p => actor.knownTechs.Contains(p.id))).ToList();
 		}
 
-		public static MissionOption GetOption(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
-			string reason = Unavailable(gameData, actor, mission, target, city);
+		public static MissionOption GetOption(GameData gameData, Player actor, EspionageMission mission, Player target, City city,
+				EspionageRisk risk = EspionageRisk.Immediately) {
+			risk = RiskFor(mission, risk);
+			string reason = Unavailable(gameData, actor, mission, target, city, risk);
 			bool known = target != null && actor != null && target != actor
 				&& PlayerRelationship.TryGetRelationship(actor, target, out _)
 				&& (!TargetsCity(mission) || city != null);
@@ -563,8 +627,9 @@ namespace C7Engine {
 				mission = mission,
 				available = reason == null,
 				reason = reason,
-				cost = known ? Cost(gameData, actor, mission, target, city) : 0,
-				successPercent = known ? SuccessPercent(gameData, actor, mission, target, city) : 0,
+				cost = known ? Cost(gameData, actor, mission, target, city, risk) : 0,
+				successPercent = known ? SuccessPercent(gameData, actor, mission, target, city, risk) : 0,
+				risk = risk,
 			};
 		}
 
@@ -581,6 +646,9 @@ namespace C7Engine {
 			return result;
 		}
 
+		// The missions in the order the Espionage screen lists them.
+		public static IReadOnlyList<EspionageMission> Missions => ListedOrder;
+
 		// The Civilopedia's order, diplomatic missions first.
 		private static readonly EspionageMission[] ListedOrder = [
 			EspionageMission.EstablishEmbassy, EspionageMission.InvestigateCity, EspionageMission.StealTechnology,
@@ -593,18 +661,20 @@ namespace C7Engine {
 		// succeeds, below the chance of getting away fails unnoticed, and
 		// otherwise the agents are caught. For propaganda it is each
 		// citizen's roll against their chance of being persuaded.
-		public static MissionResult Perform(GameData gameData, Player actor, EspionageMission mission, Player target, City city, int? roll = null) {
+		public static MissionResult Perform(GameData gameData, Player actor, EspionageMission mission, Player target, City city, int? roll = null,
+				EspionageRisk risk = EspionageRisk.Immediately) {
 			if (!TargetsCity(mission)) {
 				city = null;
 			}
+			risk = RiskFor(mission, risk);
 			MissionResult result = new() { mission = mission };
-			string reason = Unavailable(gameData, actor, mission, target, city);
+			string reason = Unavailable(gameData, actor, mission, target, city, risk);
 			if (reason != null) {
 				result.message = reason;
 				return result;
 			}
 
-			int cost = Cost(gameData, actor, mission, target, city);
+			int cost = Cost(gameData, actor, mission, target, city, risk);
 			Agent agent = AgentFor(actor, target, mission);
 			actor.gold -= cost;
 			result.performed = true;
@@ -620,11 +690,11 @@ namespace C7Engine {
 				return result;
 			}
 
-			int chance = SuccessPercent(gameData, actor, mission, target, city);
+			int chance = SuccessPercent(gameData, actor, mission, target, city, risk);
 			int getaway = mission switch {
 				EspionageMission.EstablishEmbassy or EspionageMission.InvestigateCity => 100,
 				EspionageMission.PlantSpy => chance,
-				_ => GetawayPercent(agent),
+				_ => GetawayPercent(agent, risk),
 			};
 			int r = roll ?? GameData.rng.Next(100);
 			result.success = r < chance;

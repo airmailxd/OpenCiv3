@@ -85,6 +85,10 @@ namespace C7GameData {
 		public List<City> cities = new List<City>();
 
 		internal List<Civilization> civilizations = new List<Civilization>();
+
+		// The civ's place in the rules' list of civilizations, the BIQ's RACE
+		// order (which Civ3's per-civ text in diplomacy.txt follows), or -1.
+		public int CivilizationIndex(Civilization civ) => civ == null ? -1 : civilizations.IndexOf(civ);
 		internal HashSet<CultureGroup> cultureGroups = new HashSet<CultureGroup>();
 		internal HashSet<Alliance> alliances;
 		internal Dictionary<Alliance, Alliance> allianceWars = new Dictionary<Alliance, Alliance>();
