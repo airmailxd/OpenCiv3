@@ -299,16 +299,43 @@ public partial class DealScreen : TextureRect {
 		askCounter.Visible = negotiating && !opponentOffer.IsEmpty();
 		askExchange.Visible = negotiating && !humanOffer.IsEmpty();
 		if (askCounter.Visible) {
-			askCounter.Text = AskText(gD, "USERASKFORCOUNTER", opponentPlayer, humanPlayer, opponentOffer);
+			SetAskText(askCounter, gD, "USERASKFORCOUNTER", opponentPlayer, humanPlayer, opponentOffer);
 		}
 		if (askExchange.Visible) {
-			askExchange.Text = AskText(gD, "USERASKFOREXCHANGE", opponentPlayer, humanPlayer, humanOffer);
+			SetAskText(askExchange, gD, "USERASKFOREXCHANGE", opponentPlayer, humanPlayer, humanOffer);
 		}
 	}
 
-	private string AskText(GameData gD, string key, Player opponentPlayer, Player humanPlayer, TradeOffer items) {
-		string line = DiplomacyLines.Say(gD, key, opponentPlayer, humanPlayer, linePick).Replace("$GIVE0", ItemsName(items));
-		return $"\"{line}\"";
+	// The width of the box the buttons are in, from their left edge, less
+	// the margins of the button's text.
+	private const float AskTextWidth = 392;
+
+	private bool FitsAskButton(string text) => font.GetStringSize(text, HorizontalAlignment.Left, -1, 13).X <= AskTextWidth;
+
+	// The words for an ask button, kept within the box: the line for the
+	// opponent's mood if it fits, else the shortest of the label's lines,
+	// else that line asking for "this", and if even that is too long, cut
+	// short with the whole line in the tooltip.
+	private void SetAskText(Button button, GameData gD, string key, Player opponentPlayer, Player humanPlayer, TradeOffer items) {
+		string Quoted(string line, string give) => $"\"{line.Replace("$GIVE0", give)}\"";
+		string name = ItemsName(items);
+		string text = Quoted(DiplomacyLines.Say(gD, key, opponentPlayer, humanPlayer, linePick), name);
+		string full = text;
+		if (!FitsAskButton(text)) {
+			string shortest = DiplomacyLines.SayInEveryMood(gD, key, opponentPlayer, humanPlayer, linePick)
+				.OrderBy(l => l.Length).First();
+			text = Quoted(shortest, name);
+			if (!FitsAskButton(text)) {
+				text = Quoted(shortest, "this");
+			}
+		}
+		bool fits = FitsAskButton(text);
+		button.ClipText = !fits;
+		button.TextOverrunBehavior = fits ? TextServer.OverrunBehavior.NoTrimming : TextServer.OverrunBehavior.TrimEllipsis;
+		button.CustomMinimumSize = fits ? Vector2.Zero : new Vector2(AskTextWidth + 8, 0);
+		button.Size = Vector2.Zero;
+		button.TooltipText = text == full ? "" : full;
+		button.Text = text;
 	}
 
 	// What is on one side of the table, for $GIVE0: the item, if there is

@@ -50,14 +50,20 @@ public static class DiplomacyLines {
 
 	// What the AI says, for the label: pick chooses among the label's lines
 	// for the civ and mood, so the same pick gives the same line.
-	public static string Say(GameData gameData, string key, Player ai, Player human, int pick) {
+	public static string Say(GameData gameData, string key, Player ai, Player human, int pick, int? mood = null) {
 		DiplomacyEntry entry = Text.Get(key);
-		string line = entry?.Line(gameData.CivilizationIndex(ai.civilization), Mood(gameData, ai, human), pick);
+		string line = entry?.Line(gameData.CivilizationIndex(ai.civilization), mood ?? Mood(gameData, ai, human), pick);
 		if (line == null) {
 			entry = null;
 			line = Fallback.GetValueOrDefault(key, "");
 		}
 		return DiplomacyText.Fill(entry, line, Speakers(ai, human));
+	}
+
+	// The label's line for each of the three moods, friendliest first (the
+	// same one three times for a label without moods).
+	public static List<string> SayInEveryMood(GameData gameData, string key, Player ai, Player human, int pick) {
+		return [Say(gameData, key, ai, human, pick, 0), Say(gameData, key, ai, human, pick, 1), Say(gameData, key, ai, human, pick, 2)];
 	}
 
 	// The three moods of a "#mood 1" label, friendliest first. UNVERIFIED:
