@@ -161,9 +161,32 @@ public partial class AnimationManager {
 	// The header values of the flic a unit art's action is drawn with.
 	public Util.FlicSheet GetUnitFlicSheet(string artName, MapUnit.AnimatedAction action) {
 		if (!OwnUnitArt) {
-			return getFlicSheet("Art/Units/" + artName, getUnitINIData(artName), action);
+			return RemadeFlicSheet(artName, getUnitFlicFilepath(artName, action))
+				?? getFlicSheet("Art/Units/" + artName, getUnitINIData(artName), action);
 		}
-		UnitArtMetadata.Flic flic = OwnMetadata(artName).GetFlic(OwnFlicName(artName, action));
+		return SheetOf(OwnMetadata(artName).GetFlic(OwnFlicName(artName, action)));
+	}
+
+	// With Civ3's art and the graphics overhaul on, the header values of a
+	// unit flic's remade sheet, or null if it hasn't one: the remade frames
+	// are padded to one size for all of a unit's actions, so their size and
+	// place on the canvas are the remade art's metadata's, not those of
+	// Civ3's flic. Cutting the remade sheet by Civ3's frame size (as for
+	// the Settler, whose flic frames are 30x55 against 67x93 remade) cut
+	// mostly empty pieces of the wrong frames, and the units looked sunk
+	// into the ground or weren't drawn (owner's report, 2026-11-07).
+	private static Util.FlicSheet? RemadeFlicSheet(string artName, string flicPath) {
+		if (flicPath == null || !ModernGraphics.HasFlicSheet(flicPath)) {
+			return null;
+		}
+		UnitArtMetadata metadata = ModernGraphics.LoadUnitMetadata(artName);
+		if (metadata == null || !metadata.TryGetFlic(System.IO.Path.GetFileNameWithoutExtension(flicPath), out UnitArtMetadata.Flic flic)) {
+			return null;
+		}
+		return SheetOf(flic);
+	}
+
+	private static Util.FlicSheet SheetOf(UnitArtMetadata.Flic flic) {
 		return new Util.FlicSheet {
 			spriteOriginalWidth = flic.CanvasWidth,
 			spriteOriginalHeight = flic.CanvasHeight,
@@ -348,8 +371,9 @@ public partial class AnimationManager {
 
 		// This actually doesn't return the tint frame with the civ color applied. The shader still needs to be applied.
 		ImageTexture baseFrame, tintFrame;
-		if (OwnUnitArt) {
-			Util.FlicSheet sheet = GetUnitFlicSheet(ArtNameFor(unit), thumbnailAction);
+		Util.FlicSheet? remade = OwnUnitArt ? null : RemadeFlicSheet(ArtNameFor(unit), filepath);
+		if (OwnUnitArt || remade != null) {
+			Util.FlicSheet sheet = remade ?? GetUnitFlicSheet(ArtNameFor(unit), thumbnailAction);
 			(baseFrame, tintFrame) = LoadOwnFrame(filepath, sheet, flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame);
 		} else {
 			Flic flic = Util.LoadFlic(filepath);
@@ -537,8 +561,9 @@ public partial class AnimationManager {
 			return false;
 		}
 		string filepath = getUnitFlicFilepath(artName, action);
-		if (OwnUnitArt) {
-			loadOwnAnimation(filepath, GetUnitFlicSheet(artName, action), name, spriteFrames, tintFrames);
+		Util.FlicSheet? remade = OwnUnitArt ? null : RemadeFlicSheet(artName, filepath);
+		if (OwnUnitArt || remade != null) {
+			loadOwnAnimation(filepath, remade ?? GetUnitFlicSheet(artName, action), name, spriteFrames, tintFrames);
 		} else {
 			loadFlicAnimation(filepath, name, ref this.spriteFrames, ref this.tintFrames);
 		}

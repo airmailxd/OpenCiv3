@@ -119,6 +119,11 @@ namespace C7GameData {
 			return flics[name];
 		}
 
+		public bool TryGetFlic(string name, out Flic flic) {
+			flic = null;
+			return name != null && flics.TryGetValue(name, out flic);
+		}
+
 		// The column of a sheet with `columns` columns that shows frame
 		// `frame` of an animation of `frames` frames. A sheet may have fewer
 		// columns than the animation has frames: a still has one, which
