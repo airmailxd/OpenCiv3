@@ -317,6 +317,7 @@ public partial class EspionageScreen : Control {
 				TooltipText = EmbassyReport(gameData, player, civ),
 			};
 			AddFallbackFace(button, CivButtonSize);
+			AddLeaderHead(button, civ);
 			// The name goes on the bar, right of the square tab at the
 			// button's left end, and stops short of the icons.
 			float nameLeft = CivButtonTab + 10;
@@ -344,6 +345,39 @@ public partial class EspionageScreen : Control {
 			};
 			civList.AddChild(button);
 		}
+	}
+
+	// The inside of the square tab at the left end of an opponent's
+	// button, within its bevel.
+	private static readonly Rect2 HeadBox = new(5, 5, CivButtonTab - 10, 48 - 10);
+
+	// The civ's leader head (for its era, as on the diplomacy screens) in
+	// the square tab, filling it.
+	private static void AddLeaderHead(Control button, Player civ) {
+		Texture2D head;
+		try {
+			head = LeaderHeadTextures.Get(civ);
+		} catch (Exception) {
+			// Art that isn't there (TextureLoader logs it): an empty tab.
+			return;
+		}
+		if (head == null) {
+			return;
+		}
+		Control frame = new() {
+			Position = HeadBox.Position,
+			Size = HeadBox.Size,
+			ClipContents = true,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		frame.AddChild(new TextureRect {
+			Texture = head,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+			Size = HeadBox.Size,
+			MouseFilter = MouseFilterEnum.Ignore,
+		});
+		button.AddChild(frame);
 	}
 
 	// An opponent we haven't met: its button, greyed, that can't be picked.
