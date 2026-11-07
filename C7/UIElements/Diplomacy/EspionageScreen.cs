@@ -24,7 +24,11 @@ using Godot;
 // long. UNVERIFIED: which list goes where (we put the missions in the
 // boxes in the middle and the target cities on the bars at the right, with
 // the operational costs on the three bars below them, the mission type on
-// the bar under the middle panel and the assets below it), and the title.
+// the bar under the middle panel and the assets below it). The words are
+// Civ3's where labels.txt has them, in its block after "ESPIONAGE" (the
+// title): "Select Mission", "Unmet", the assets' "Diplomatic Advance:",
+// "Espionage Advance:", "Intelligence Center:", "Spy Experience:",
+// "Immediately", "Carefully", "Safely" and "Execute".
 public partial class EspionageScreen : Control {
 	private static readonly Vector2 WindowSize = new(1024, 768);
 	private static readonly Color Parchment = Color.Color8(232, 214, 168);
@@ -37,6 +41,8 @@ public partial class EspionageScreen : Control {
 	private static readonly Vector2 CivListPosition = new(50, 92);
 	private static readonly Vector2 CivButtonSize = new(321, 48);
 	private const int CivButtonGap = 10;
+	// The width of the square tab at the left end of an opponent's button.
+	private const float CivButtonTab = 46;
 	private static readonly Rect2 CivScrollBar = new(14, 95, 26, 590);
 
 	private static readonly Vector2 FirstBox = new(402, 117);
@@ -134,10 +140,7 @@ public partial class EspionageScreen : Control {
 				risk = r;
 				Refresh();
 			};
-			StyleBoxFlat frame = new() { DrawCenter = false, BorderColor = Highlight };
-			frame.SetBorderWidthAll(2);
-			riskFrames[i] = new Panel { Position = RiskBars[i].Position, Size = RiskBars[i].Size, MouseFilter = MouseFilterEnum.Ignore };
-			riskFrames[i].AddThemeStyleboxOverride("panel", frame);
+			riskFrames[i] = MakeFrame(RiskBars[i].Position, RiskBars[i].Size);
 			AddChild(riskFrames[i]);
 		}
 
@@ -155,13 +158,25 @@ public partial class EspionageScreen : Control {
 		info.VerticalAlignment = VerticalAlignment.Top;
 		info.AddThemeColorOverride("font_color", Ink);
 
-		assets = AdvisorUtils.CreateLabel(this, "", AssetsArea, 12);
-		assets.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		// Five lines, in a font small enough for all of them to fit.
+		assets = AdvisorUtils.CreateLabel(this, "", AssetsArea, 11);
+		assets.ClipText = false;
+		assets.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
+		assets.AddThemeConstantOverride("line_spacing", 0);
 		assets.VerticalAlignment = VerticalAlignment.Top;
 		assets.AddThemeColorOverride("font_color", Parchment);
 
 		TextureButton close = AdvisorUtils.CreateExitButton(this);
 		close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
+	}
+
+	// An orange frame around something picked.
+	private static Panel MakeFrame(Vector2 position, Vector2 size) {
+		StyleBoxFlat frame = new() { DrawCenter = false, BorderColor = Highlight };
+		frame.SetBorderWidthAll(2);
+		Panel panel = new() { Position = position, Size = size, MouseFilter = MouseFilterEnum.Ignore };
+		panel.AddThemeStyleboxOverride("panel", frame);
+		return panel;
 	}
 
 	// A list that scrolls, with its own scroll bar in the background's slot
@@ -258,8 +273,9 @@ public partial class EspionageScreen : Control {
 				return;
 			}
 			List<Player> civs = Opponents(gameData, player);
-			Player target = civs.FirstOrDefault(c => c.id == selectedCiv)
-				?? civs.FirstOrDefault(c => Espionage.HasEmbassy(player, c)) ?? civs.FirstOrDefault();
+			List<Player> met = civs.Where(c => Met(player, c)).ToList();
+			Player target = met.FirstOrDefault(c => c.id == selectedCiv)
+				?? met.FirstOrDefault(c => Espionage.HasEmbassy(player, c)) ?? met.FirstOrDefault();
 			if (target?.id != selectedCiv) {
 				selectedCity = null;
 				selectedMission = null;
@@ -274,19 +290,24 @@ public partial class EspionageScreen : Control {
 		});
 	}
 
-	// The civs we've met, other than ours.
+	// The other civs in the game, met or not, in the game's order. Those
+	// we haven't met are listed but not named (labels.txt has "Unmet" among
+	// the Espionage screen's words).
 	private static List<Player> Opponents(GameData gameData, Player player) {
-		return gameData.players.Where(p => p != player && !p.defeated && !p.IsIndependent
-			&& PlayerRelationship.TryGetRelationship(player, p, out _)).ToList();
+		return gameData.players.Where(p => p != player && !p.defeated && !p.IsIndependent).ToList();
 	}
+
+	private static bool Met(Player player, Player civ) => PlayerRelationship.TryGetRelationship(player, civ, out _);
+
+	private const string UnmetName = "Unmet Player";
 
 	private void FillCivs(GameData gameData, Player player, List<Player> civs, Player target) {
 		AdvisorUtils.ClearList(civList);
-		if (civs.Count == 0) {
-			civList.AddChild(AdvisorUtils.MakeWrappedLabel("We have not met any other civilizations.", 13, CivButtonSize.X));
-			return;
-		}
 		foreach (Player civ in civs) {
+			if (!Met(player, civ)) {
+				civList.AddChild(MakeUnmetButton());
+				continue;
+			}
 			bool selected = civ == target;
 			TextureButton button = new() {
 				CustomMinimumSize = CivButtonSize,
@@ -296,12 +317,20 @@ public partial class EspionageScreen : Control {
 				TooltipText = EmbassyReport(gameData, player, civ),
 			};
 			AddFallbackFace(button, CivButtonSize);
-			Label name = AdvisorUtils.MakeLabel(civ.civilization.noun ?? civ.civilization.name, 15, 230);
-			name.Position = new Vector2(16, 0);
-			name.Size = new Vector2(230, CivButtonSize.Y);
-			name.AddThemeColorOverride("font_color", Ink);
+			// The name goes on the bar, right of the square tab at the
+			// button's left end, and stops short of the icons.
+			float nameLeft = CivButtonTab + 10;
+			Label name = AdvisorUtils.MakeLabel(civ.civilization.noun ?? civ.civilization.name, 15, 252 - nameLeft);
+			name.Position = new Vector2(nameLeft, 3);
+			name.Size = new Vector2(252 - nameLeft, CivButtonSize.Y - 6);
+			name.AddThemeColorOverride("font_color", selected ? PickedInk : Ink);
 			name.MouseFilter = MouseFilterEnum.Ignore;
 			button.AddChild(name);
+			// The civ picked is framed, as the operational cost picked is,
+			// since the art's own highlight is faint.
+			if (selected) {
+				button.AddChild(MakeFrame(new Vector2(CivButtonTab - 2, 2), CivButtonSize - new Vector2(CivButtonTab, 6)));
+			}
 			// "If the Embassy Icon is displayed, you currently have an
 			// embassy within that civilization's capitol city. If the Spy
 			// icon is present, you have a spy planted within that
@@ -315,6 +344,25 @@ public partial class EspionageScreen : Control {
 			};
 			civList.AddChild(button);
 		}
+	}
+
+	// An opponent we haven't met: its button, greyed, that can't be picked.
+	private static TextureButton MakeUnmetButton() {
+		TextureButton button = new() {
+			CustomMinimumSize = CivButtonSize,
+			TextureNormal = Art("civ.normal"),
+			Disabled = true,
+			MouseDefaultCursorShape = CursorShape.Arrow,
+		};
+		AddFallbackFace(button, CivButtonSize);
+		float nameLeft = CivButtonTab + 10;
+		Label name = AdvisorUtils.MakeLabel(UnmetName, 15, 252 - nameLeft);
+		name.Position = new Vector2(nameLeft, 3);
+		name.Size = new Vector2(252 - nameLeft, CivButtonSize.Y - 6);
+		name.AddThemeColorOverride("font_color", UnavailableInk);
+		name.MouseFilter = MouseFilterEnum.Ignore;
+		button.AddChild(name);
+		return button;
 	}
 
 	private static void AddIcon(Control parent, string key, bool shown, Vector2 position, string fallback) {
@@ -415,7 +463,7 @@ public partial class EspionageScreen : Control {
 					+ (Espionage.TargetsCity(chosen) ? $" in {(selectedCity ?? Espionage.Capital(target))?.name}" : "") + "."
 				: option.reason;
 		} else {
-			info.Text = $"Select a mission against the {target.civilization.noun}.";
+			info.Text = "Select Mission";
 		}
 	}
 
@@ -493,14 +541,24 @@ public partial class EspionageScreen : Control {
 	// technological assets, including the amount of gold in your treasury,
 	// your technological achievements (those that apply to espionage), and
 	// your level of spy experience."
+	// In Civ3's words (labels.txt, after "ESPIONAGE"): "Diplomatic
+	// Advance:", "Espionage Advance:", "Intelligence Center:" and "Spy
+	// Experience:", answered "Yes" or "No". The advances are the one that
+	// enables embassies (Writing) and the one the spy missions' building
+	// needs (Espionage), as the BIQ has them. UNVERIFIED: the spy
+	// experience's wording (the experience level's name).
 	private void FillAssets(GameData gameData, Player player) {
-		List<string> lines = [$"Treasury: {player.gold} gold"];
-		Tech embassyTech = Tech.FindEmbassyTech(gameData.techs);
-		if (embassyTech != null) {
-			lines.Add($"{embassyTech.Name}: {(player.knownTechs.Contains(embassyTech.id) ? "known" : "not known")}");
-		}
-		lines.Add($"Intelligence Agency: {(Espionage.HasIntelligenceAgency(player) ? "built" : "not built")}");
-		lines.Add($"Our spies are {(Espionage.SpyLevel(player) == Espionage.Agent.VeteranSpy ? "veterans" : "regulars")}.");
+		static string YesNo(bool yes) => yes ? "Yes" : "No";
+		bool Knows(Tech tech) => tech != null && player.knownTechs.Contains(tech.id);
+		Tech diplomatic = Tech.FindEmbassyTech(gameData.techs);
+		Tech espionage = gameData.Buildings.FirstOrDefault(b => b.allowsSpyMissions)?.requiredTech;
+		List<string> lines = [
+			$"Treasury: {player.gold} gold",
+			$"Diplomatic Advance: {YesNo(Knows(diplomatic))}",
+			$"Espionage Advance: {YesNo(Knows(espionage))}",
+			$"Intelligence Center: {YesNo(Espionage.HasIntelligenceAgency(player))}",
+			$"Spy Experience: {(Espionage.SpyLevel(player) == Espionage.Agent.VeteranSpy ? "Veteran" : "Regular")}",
+		];
 		assets.Text = string.Join("\n", lines);
 	}
 
