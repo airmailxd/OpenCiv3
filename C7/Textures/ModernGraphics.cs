@@ -198,8 +198,12 @@ public static class ModernGraphics {
 	}
 
 	// Whether there's a remade sheet for a flic, without loading it.
-	public static bool HasFlicSheet(string flicPath) {
-		return flicPath != null && UsedFor(flicPath) && FindFile(flicPath, "") != null;
+	public static bool HasFlicSheet(string flicPath) => HasRemadeArt(flicPath);
+
+	// Whether there's remade art for a media path that would be used,
+	// without loading it.
+	public static bool HasRemadeArt(string mediaPath) {
+		return mediaPath != null && UsedFor(mediaPath) && FindFile(mediaPath, "") != null;
 	}
 
 	// Forgets the sheets of a flic once its frames have been made, as an

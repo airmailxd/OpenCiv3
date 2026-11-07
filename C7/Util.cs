@@ -257,16 +257,26 @@ public partial class Util {
 			return false;
 		}
 		if (!scenarioReplacesStock.TryGetValue(mediaPath, out bool result)) {
-			bool inScenario = false;
-			foreach (string path in modPath.Split(";")) {
-				foreach (string tryPath in new[] { path, "Conquests/Conquests/" + path, "Conquests/Scenarios/" + path, "civ3PTW/Scenarios/" + path }) {
-					inScenario |= CheckForCiv3Media(mediaPath, tryPath) != null;
-				}
-			}
-			result = inScenario && new[] { "Conquests", "civ3PTW", "" }.Any(b => CheckForCiv3Media(mediaPath, b) != null);
+			result = ScenarioHasArt(mediaPath) && new[] { "Conquests", "civ3PTW", "" }.Any(b => CheckForCiv3Media(mediaPath, b) != null);
 			scenarioReplacesStock[mediaPath] = result;
 		}
 		return result;
+	}
+
+	// Whether the scenario being played has its own file for the media,
+	// whether or not the game has one too.
+	public static bool ScenarioHasArt(string mediaPath) {
+		if (string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(mediaPath)) {
+			return false;
+		}
+		foreach (string path in modPath.Split(";")) {
+			foreach (string tryPath in new[] { path, "Conquests/Conquests/" + path, "Conquests/Scenarios/" + path, "civ3PTW/Scenarios/" + path }) {
+				if (CheckForCiv3Media(mediaPath, tryPath) != null) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static string CheckForCiv3Media(string relPath, string rootPath) {
