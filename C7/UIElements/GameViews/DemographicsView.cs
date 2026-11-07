@@ -78,7 +78,7 @@ public partial class DemographicsView : Control {
 			if (i < topCities.Count) {
 				City city = topCities[i];
 				name.Text = $"{i + 1}. {city.name}";
-				details.Text = $"{AdvisorUtils.CivName(city.owner)}, size {city.residents.Count}, {city.GetCultureFor(city.owner):N0} culture";
+				details.Text = $"{AdvisorUtils.CivTitle(city.owner)}, size {city.residents.Count}, {city.GetCultureFor(city.owner):N0} culture";
 			} else {
 				name.Text = "";
 				details.Text = "";

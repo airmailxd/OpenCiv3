@@ -321,7 +321,7 @@ public partial class EspionageScreen : Control {
 			// The name goes on the bar, right of the square tab at the
 			// button's left end, and stops short of the icons.
 			float nameLeft = CivButtonTab + 10;
-			Label name = AdvisorUtils.MakeLabel(civ.civilization.noun ?? civ.civilization.name, 15, 252 - nameLeft);
+			Label name = AdvisorUtils.MakeLabel(AdvisorUtils.CivTitle(civ), 15, 252 - nameLeft);
 			name.Position = new Vector2(nameLeft, 3);
 			name.Size = new Vector2(252 - nameLeft, CivButtonSize.Y - 6);
 			name.AddThemeColorOverride("font_color", selected ? PickedInk : Ink);

@@ -51,7 +51,7 @@ public partial class MarketPopup : Popup {
 		AddHeader("Mercenary Market", 10);
 
 		Label message = new() {
-			Text = $"{player.civilization.noun}: mercenaries offer their swords. Bids are secret; the highest bid for each wins it.",
+			Text = $"{AdvisorUtils.CivTitle(player)}: mercenaries offer their swords. Bids are secret; the highest bid for each wins it.",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			CustomMinimumSize = new Vector2(Width - 50, 0),
 		};
@@ -182,7 +182,7 @@ public partial class MarketResultsPopup : Popup {
 			if (result.winners.Count == 0) {
 				outcome = "unsold";
 			} else {
-				string who = string.Join(", ", result.winners.Select(w => w == player ? "us" : w.civilization.noun));
+				string who = string.Join(", ", result.winners.Select(w => w == player ? "us" : AdvisorUtils.CivTitle(w)));
 				outcome = (result.winners.Count > 1 ? "tied, one each to " : "won by ") + who;
 				if (result.winners.Contains(player)) {
 					outcome += $" (we paid {result.price} gold)";

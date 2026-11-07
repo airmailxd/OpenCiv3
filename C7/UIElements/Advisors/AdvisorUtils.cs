@@ -335,7 +335,12 @@ public static class AdvisorUtils {
 	}
 
 	// How the advisors name another civ, as in "the Romans".
+	// The civ's people ("the Chinese"), for sentences.
 	public static string CivName(Player player) => player.civilization?.noun ?? player.civilization?.name ?? "";
+
+	// The civ's own name ("China"), for where a civ is named on its own, as
+	// in a list or a column (owner's ruling, 2026-11-07).
+	public static string CivTitle(Player player) => player?.civilization?.name ?? player?.civilization?.noun ?? "";
 
 	public static (TextureButton box, Label label) CreateAdvisorDialogBox(Control parent, Vector2? position = null) {
 		Vector2 boxPosition = position ?? new Vector2(806, 110);

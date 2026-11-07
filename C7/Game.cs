@@ -1853,7 +1853,7 @@ public partial class Game : Node {
 					: $"{mUNER.winner.civilization.leader} of the {mUNER.winner.civilization.noun} has been elected Secretary General!";
 					popupOverlay.ShowPopup(
 						new ChoicePopup("United Nations",
-							string.Concat(mUNER.candidates.Select((c, i) => $"{c.civilization.noun}: {mUNER.votes[i]} votes\n"))
+							string.Concat(mUNER.candidates.Select((c, i) => $"{AdvisorUtils.CivTitle(c)}: {mUNER.votes[i]} votes\n"))
 							+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
 							[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
 						PopupOverlay.PopupCategory.Advisor);

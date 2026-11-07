@@ -60,7 +60,7 @@ public partial class StagingPopup : Popup {
 		ship = unit != null && unit.IsSeaUnit();
 		string where = ship ? "\nSent to an inland city, it will put to sea at the nearest coast." : "";
 		Label message = new() {
-			Text = $"{player.civilization.noun}: a {unitType} has joined our forces. Which city shall it report to?{where}",
+			Text = $"{AdvisorUtils.CivTitle(player)}: a {unitType} has joined our forces. Which city shall it report to?{where}",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			CustomMinimumSize = new Vector2(Width - 50, 0),
 		};

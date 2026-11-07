@@ -411,7 +411,7 @@ public partial class ForeignWeb : Control {
 			// The leader's name, and the civ's with its attitude toward us.
 			string attitude = ForeignReport.AttitudeTowardViewer(gameData, viewer, civ) is AttitudeLevel level
 				? $" ({ForeignReport.AttitudeWord(level)})" : "";
-			Label name = AdvisorUtils.MakeLabel($"{civ.civilization?.leader}\n{ForeignReport.CivNoun(civ)}{attitude}",
+			Label name = AdvisorUtils.MakeLabel($"{civ.civilization?.leader}\n{AdvisorUtils.CivTitle(civ)}{attitude}",
 				11, labelWidth, HorizontalAlignment.Center);
 			name.ClipText = false;
 			name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;

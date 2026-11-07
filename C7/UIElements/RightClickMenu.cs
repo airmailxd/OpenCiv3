@@ -375,7 +375,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 
 			// A hidden nationality unit, like a privateer, is named without
 			// its civ, and gives no one to contact.
-			string Whose(MapUnit unit) => unit.ShowsOwnerTo(game.controller) ? $"{unit.owner.civilization.noun} " : "";
+			string Whose(MapUnit unit) => unit.ShowsOwnerTo(game.controller) ? $"{(string.IsNullOrEmpty(unit.owner.civilization.adjective) ? unit.owner.civilization.noun : unit.owner.civilization.adjective)} " : "";
 			if (tile.cityAtTile == null) {
 				foreach (MapUnit unit in nonPlayerUnits) {
 					AddItem($"{Whose(unit)}{unit.Describe()}", null);

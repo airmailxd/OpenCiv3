@@ -145,7 +145,7 @@ public partial class MilitaryAdvisor : Control {
 			};
 			_intelligenceList.AddChild(AdvisorUtils.MakeRow(22,
 				AdvisorUtils.MakeIcon(StatusIcon(atWar), 11),
-				AdvisorUtils.MakeLabel(AdvisorUtils.CivName(rival), 12, 92),
+				AdvisorUtils.MakeLabel(AdvisorUtils.CivTitle(rival), 12, 92),
 				AdvisorUtils.MakeLabel(atWar ? "At War" : "At Peace", 12, 60),
 				AdvisorUtils.MakeLabel(strength, 12)));
 		}

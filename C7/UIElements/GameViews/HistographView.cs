@@ -132,7 +132,7 @@ public partial class HistographView : Control {
 				lines.Add((color, s.points));
 
 				ColorRect swatch = new() { Color = color, CustomMinimumSize = new Vector2(16, 16), SizeFlagsVertical = SizeFlags.ShrinkCenter };
-				legend.AddChild(AdvisorUtils.MakeRow(22, swatch, AdvisorUtils.MakeLabel(AdvisorUtils.CivName(s.player), 13, 125)));
+				legend.AddChild(AdvisorUtils.MakeRow(22, swatch, AdvisorUtils.MakeLabel(AdvisorUtils.CivTitle(s.player), 13, 125)));
 			}
 			TimeOptions time = gameData.timeOptions;
 			graph.SetLines(lines, HistographReport.MaxValue(series), byYears, date => DateText(time, date));

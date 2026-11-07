@@ -32,7 +32,7 @@ public partial class DiplomacySelection : Popup {
 		int vOffset = 65;
 		foreach (Player other in contacts) {
 			string status = PlayerRelationship.AtWar(player, other) ? "War" : "Peace";
-			AddButton($"{other.civilization.noun} (at {status})", vOffset, () => {
+			AddButton($"{AdvisorUtils.CivTitle(other)} (at {status})", vOffset, () => {
 				Node parent = GetParent();
 				parent.EmitSignal(PopupOverlay.SignalName.HidePopup);
 				parent.EmitSignal(PopupOverlay.SignalName.DiplomacySelection, new ParameterWrapper<ID>(other.id));

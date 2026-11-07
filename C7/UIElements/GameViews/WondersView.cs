@@ -85,16 +85,16 @@ public partial class WondersView : Control {
 
 		foreach (Building wonder in gameData.Buildings.Where(b => b.IsGreatWonder())) {
 			if (builtIn.TryGetValue(wonder, out City city)) {
-				AddRow(14, wonder.name, city.owner.civilization.noun, city.name);
+				AddRow(14, wonder.name, AdvisorUtils.CivTitle(city.owner), city.name);
 			} else if (gameData.hostFacts?.wonders.Find(w => w.wonder == wonder.name) is WonderFacts where) {
 				// On a LAN guest's machine, in a city it isn't sent.
 				Player owner = gameData.players.Find(p => p.id.ToString() == where.owner);
-				AddRow(14, wonder.name, owner?.civilization.noun ?? "", where.city);
+				AddRow(14, wonder.name, AdvisorUtils.CivTitle(owner), where.city);
 			} else if (gameData.GreatWondersBuilt.Contains(wonder.name)) {
 				AddRow(14, wonder.name, "Lost", "");
 			} else {
 				List<string> builders = buildingCities.TryGetValue(wonder, out List<City> cities)
-					? cities.Select(c => $"{c.name} ({c.owner.civilization.noun})").ToList()
+					? cities.Select(c => $"{c.name} ({AdvisorUtils.CivTitle(c.owner)})").ToList()
 					: new();
 				AddRow(14, wonder.name, builders.Count == 0 ? "" : "Being built", string.Join(", ", builders));
 			}
