@@ -316,7 +316,16 @@ public class LanHost : IDisposable {
 	// under this name and description (see CurrentListing); and its map's
 	// size, as the list shows it.
 	public bool ListPublicly { get; set; }
-	public string PublicName { get; set; }
+	public string PublicName {
+		get => publicName;
+		set {
+			if (publicName != value) {
+				publicName = value;
+				BroadcastLobby();
+			}
+		}
+	}
+	private string publicName;
 	public string PublicDescription { get; set; }
 	public string MapSize { get; set; }
 	// The game's type as the LAN game list shows it, such as "Standard" or
@@ -355,7 +364,42 @@ public class LanHost : IDisposable {
 	// How long each human has to play their turn before the host ends it for
 	// them; null for no limit. With simultaneous turns, it is how long the
 	// humans have for the round, all at once.
-	public TimeSpan? TurnTimeLimit { get; set; }
+	public TimeSpan? TurnTimeLimit {
+		get => turnTimeLimit;
+		set {
+			if (turnTimeLimit != value) {
+				turnTimeLimit = value;
+				BroadcastLobby();
+			}
+		}
+	}
+	private TimeSpan? turnTimeLimit;
+
+	// How the game is set up, as the Multiplayer Setup screen lists it,
+	// for the lobby to show everyone (see LobbySummary); null if not known.
+	public List<LobbySetting> LobbySettings {
+		get => lobbySettings;
+		set {
+			lobbySettings = value;
+			BroadcastLobby();
+		}
+	}
+	private List<LobbySetting> lobbySettings;
+	public List<LobbyRule> LobbyRules {
+		get => lobbyRules;
+		set {
+			lobbyRules = value;
+			BroadcastLobby();
+		}
+	}
+	private List<LobbyRule> lobbyRules;
+
+	// The game's setup as the lobby shows it.
+	public LobbyDetails CurrentDetails() {
+		int turn = Started && EngineStorage.gameData != null ? EngineStorage.gameData.turn : lobbyTurn;
+		string name = string.IsNullOrWhiteSpace(PublicName) ? DefaultPublicName : PublicName.Trim();
+		return new LobbyDetails(name, TurnTimeLimit?.TotalSeconds, HasPassword, turn, lobbySettings, lobbyRules);
+	}
 
 	// Whether the humans play their turns at the same time rather than one
 	// after another, which the game takes on when it starts.
@@ -606,6 +650,7 @@ public class LanHost : IDisposable {
 			passwordVerifier = GamePassword.Verifier(password, passwordSalt);
 		}
 		PublishDiscoveryReply();
+		BroadcastLobby();
 	}
 
 	// The game as the relay's public list shows it.
@@ -2087,7 +2132,8 @@ public class LanHost : IDisposable {
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
-			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView, TeamCount));
+			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView, TeamCount,
+			CurrentDetails()));
 	}
 
 	// While Poll handles what guests send, the lobby is sent once at the

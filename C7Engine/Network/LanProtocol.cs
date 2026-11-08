@@ -57,7 +57,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 18;
+	public const int Version = 19;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -276,10 +276,26 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // the way it's sent the game now. teams is how many teams players can
 // choose among (numbered from 1), or 0 when they can't choose one: a
 // free-for-all, or a game already created, whose seats show the teams it has.
+// details is how the game is set up, as the Multiplayer Setup screen shows
+// it (see LobbyDetails).
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
 	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
 	bool simultaneousTurns = false, string reconnectToken = null, bool hideUnseen = false,
-	SpectatorViews spectatorViews = SpectatorViews.None, SpectatorViewInfo yourSpectatorView = null, int teams = 0);
+	SpectatorViews spectatorViews = SpectatorViews.None, SpectatorViewInfo yourSpectatorView = null, int teams = 0,
+	LobbyDetails details = null);
+
+// How a game is set up, for everyone in its lobby to see: its name, the
+// seconds each turn has (null for no limit), whether joining takes a
+// password, the turn it's at (0 before it starts), and the settings and
+// rules as the Multiplayer Setup screen lists them (see LobbySummary).
+public record LobbyDetails(string gameName, double? turnSeconds, bool hasPassword, int turn,
+	List<LobbySetting> settings = null, List<LobbyRule> rules = null);
+
+// A setting, such as "World Size:" and "Standard".
+public record LobbySetting(string label, string value);
+
+// A rule, such as "Allow Domination Victory", and whether it's on.
+public record LobbyRule(string name, bool on, string tooltip = null);
 
 // How a spectator sees the game: as all the civilizations at once, which is
 // everything any of them knows, so what none of them has seen stays hidden;

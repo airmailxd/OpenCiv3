@@ -305,6 +305,29 @@ public class HostControlsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Empty(host.Spectators);
 	}
 
+	// Guests see how the game is set up, as the Multiplayer Setup screen
+	// lists it, and again whenever the host changes it.
+	[Fact]
+	public void GuestsSeeTheGamesSetup() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Ann", save, port: 0, answerDiscovery: false);
+		(host.LobbySettings, host.LobbyRules) = LobbySummary.Of(save);
+		using LanClient guest = Connect(host, "Guest");
+		PumpUntil(host, guest, () => guest.Lobby?.details != null);
+		LobbyDetails details = guest.Lobby.details;
+		Assert.Equal("Ann's game", details.gameName);
+		Assert.Null(details.turnSeconds);
+		Assert.False(details.hasPassword);
+		Assert.Contains(details.settings, s => s.label == "Map:" && s.value == $"{save.Map.tilesWide}x{save.Map.tilesTall}");
+		Assert.Contains(details.rules, r => r.name == "Allow Conquest Victory");
+
+		host.PublicName = "Come play";
+		host.TurnTimeLimit = TimeSpan.FromMinutes(5);
+		host.SetPassword("swordfish");
+		PumpUntil(host, guest, () => guest.Lobby.details.hasPassword && guest.Lobby.details.turnSeconds == 300
+			&& guest.Lobby.details.gameName == "Come play");
+	}
+
 	[Fact]
 	public async Task TheListingFollowsTheGame() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();

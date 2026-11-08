@@ -10,6 +10,7 @@ using C7GameData.Save;
 using C7Relay;
 using Godot;
 using Serilog;
+using static SetupStyle;
 
 // Where players gather before a LAN game. The host waits here for a player to
 // take each human seat, then starts the game; the others find the host, take
@@ -17,6 +18,11 @@ using Serilog;
 // several seats, for players taking turns at their machine as in a hotseat
 // game. In a new game the guests also choose their civilizations here, and
 // the host creates the game when starting it.
+//
+// Looking for a game shows the list of games (LanGameBrowser). Hosting, or
+// once in a game's lobby, everyone sees Civ3's Multiplayer Setup screen, in
+// OpenCiv3's look (owner's request, 2026-11-07): the game's settings on the
+// left, the players, rules and messages on the right (LanLobby.Setup.cs).
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
@@ -27,39 +33,18 @@ public partial class LanLobby : Control {
 
 	private GlobalSingleton Global;
 
+	// The list of games, in its own parchment frame, while looking for one.
+	private Control browserRoot;
 	private Label title;
 	private VBoxContainer content;
+
+	// The status line: under the list of games while looking for one, at the
+	// top of the messages once in a lobby.
 	private Label status;
-	private VBoxContainer seatList;
-	private Button startButton;
 
 	// Hosting a new game: whether it is being created, and why that failed.
 	private bool creatingGame = false;
 	private string createFailure;
-
-	// Hosting online: the button to start, the join code and how the link
-	// to the relay stands.
-	private Button hostOnlineButton;
-	private HBoxContainer onlineCodeRow;
-	private Label onlineCode;
-	private HBoxContainer relayRow;
-	private LineEdit relayEdit;
-	private Label onlineStatus;
-
-	// Hosting online: listing the game publicly, under a name and
-	// description, and how that stands.
-	private VBoxContainer listingBox;
-	private Label listingStatus;
-
-	// Hosting: whether spectators may watch, which follows hiding what
-	// players can't see until the host chooses.
-	private CheckBox spectatorsBox;
-
-	// Hosting: the password typed, and whether it was changed since it was
-	// last set.
-	private LineEdit passwordEdit;
-	private Label passwordStatus;
-	private bool passwordEdited;
 
 	// Joining: the name to play under, the list of games, and the join
 	// code typed.
@@ -75,19 +60,7 @@ public partial class LanLobby : Control {
 	// joining elsewhere.
 	private CancellationTokenSource connecting;
 
-	// Joining a new game: the civilizations to choose from, and the chosen
-	// one's leader.
-	private VBoxContainer civPicker;
-	private readonly Dictionary<string, Civ3MenuButton> civButtons = new();
-	private Civ3MenuButton randomCivButton;
-	private List<CivilizationChoice> civChoices;
-	private TextureRect leaderHead;
-	private Label civDescription;
-	private Label civHeading;
-
-	// Joining: which of our seats the civ picker chooses for, and in a game
-	// in progress, the open seats ticked to rejoin with.
-	private ID choosingSeat;
+	// Joining: in a game in progress, the open seats ticked to rejoin with.
 	private readonly HashSet<ID> rejoinSeats = new();
 
 	// Joining: names typed for our seats' players but not yet sent, and the
@@ -99,14 +72,31 @@ public partial class LanLobby : Control {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-		// The 1024x768 parchment frame, centered like the other setup screens.
 		ColorRect backdrop = new() { Color = Colors.Black };
 		backdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		AddChild(backdrop);
 
+		status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		status.AddThemeFontSizeOverride("font_size", 16);
+
+		BuildSetupScreen();
+		if (joining) {
+			BuildBrowserFrame();
+			BuildJoinScreen();
+			ShowSetup(false);
+		} else {
+			ShowSetup(true);
+			BuildHostScreen();
+		}
+	}
+
+	// The 1024x768 parchment frame the list of games is in, centered like
+	// the other setup screens.
+	private void BuildBrowserFrame() {
 		CenterContainer center = new();
 		center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		AddChild(center);
+		browserRoot = center;
 
 		TextureRect background = new() { Texture = TextureLoader.Load("credits.background") };
 		center.AddChild(background);
@@ -121,7 +111,7 @@ public partial class LanLobby : Control {
 		title.AddThemeFontSizeOverride("font_size", 30);
 		background.AddChild(title);
 
-		// The parchment's inner panel; scrolls if the lobby outgrows it.
+		// The parchment's inner panel; scrolls if it outgrows it.
 		ScrollContainer scroll = new() {
 			Position = new Vector2(64, 90),
 			Size = new Vector2(896, 590),
@@ -147,26 +137,25 @@ public partial class LanLobby : Control {
 		TextureLoader.SetButtonTextures(exit, "ui.exit");
 		exit.Pressed += BackToMenu;
 		background.AddChild(exit);
+	}
 
-		if (joining) {
-			BuildJoinScreen();
-		} else {
-			BuildHostScreen();
+	// Shows the Multiplayer Setup screen, or else the list of games, with
+	// the status line.
+	private void ShowSetup(bool show) {
+		setupRoot.Visible = show;
+		if (browserRoot != null) {
+			browserRoot.Visible = !show;
 		}
-	}
-
-	private Label AddLabel(string text, int fontSize = 18) {
-		Label label = new() { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-		label.AddThemeFontSizeOverride("font_size", fontSize);
-		content.AddChild(label);
-		return label;
-	}
-
-	private Button MakeButton(string text, Action onPressed) {
-		Button button = new() { Text = text, CustomMinimumSize = new Vector2(160, 36) };
-		button.AddThemeFontSizeOverride("font_size", 18);
-		button.Pressed += onPressed;
-		return button;
+		// The status line is smaller among the messages than under the list.
+		status.AddThemeFontSizeOverride("font_size", show ? 14 : 16);
+		Node place = show ? statusSlot : gameList?.Visible == true ? gameList.StatusSlot : content;
+		if (place != null && status.GetParent() != place) {
+			if (status.GetParent() == null) {
+				place.AddChild(status);
+			} else {
+				status.Reparent(place, false);
+			}
+		}
 	}
 
 	private void BackToMenu() {
@@ -182,8 +171,6 @@ public partial class LanLobby : Control {
 	// ---- Hosting ----
 
 	private void BuildHostScreen() {
-		title.Text = "Hosting a LAN Game";
-
 		SaveGame save;
 		try {
 			if (LanSession.PendingGame is PendingLanGame pending) {
@@ -202,7 +189,7 @@ public partial class LanLobby : Control {
 				LanSession.Host.TurnTimeLimit = pending.turnTimeLimit;
 				// For the game list's Game Type column; not in the save until the game is made.
 				LanSession.Host.GameType = LanGameList.GameTypeName(pending.setup.scenario);
-
+				(LanSession.Host.LobbySettings, LanSession.Host.LobbyRules) = LobbySummary.Of(pending.setup, save);
 			} else if (LanSession.ResumeGame is LanResumeInfo resume) {
 				// The last game hosted here, as it was autosaved, with its
 				// guests' seats held for them.
@@ -210,426 +197,32 @@ public partial class LanLobby : Control {
 				Global.SaveGame = save;
 				Global.LoadGamePath = null;
 				LanSession.BeginHosting(LanHost.Resume(resume.hostName ?? LanSession.PlayerName, save, resume));
+				(LanSession.Host.LobbySettings, LanSession.Host.LobbyRules) = LobbySummary.Of(save);
 			} else {
 				save = Global.SaveGame ?? LoadSavedGame(Global.LoadGamePath);
 				Global.SaveGame = save;
 				Global.LoadGamePath = null;
 				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, save));
+				(LanSession.Host.LobbySettings, LanSession.Host.LobbyRules) = LobbySummary.Of(save);
 			}
 		} catch (Exception e) when (e is SocketException or ArgumentException or InvalidOperationException) {
 			log.Error(e, "Could not host the LAN game");
-			AddLabel($"Could not host the game: {e.Message}");
+			status.Text = $"Could not host the game: {e.Message}";
 			return;
 		}
 		// So that the game can be hosted again if this machine's game ends.
 		LanSession.Host.AutosaveDirectory = LanAutosave.DefaultDirectory;
 
-		content.AddChild(MakeHostNameRow());
-
-		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
-		List<(string address, string network)> addresses = LanDiscovery.LocalAddressesByNetwork();
-		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
-		List<string> local = addresses.Where(a => a.network == null).Select(a => a.address + port).ToList();
-		if (addresses.Count == 0) {
-			AddLabel("(No network connection found.)", 22);
-		} else if (local.Count > 0) {
-			AddLabel(string.Join("    ", local), 22);
-		}
-		AddLabel("Use the one on the same network as the other players: usually it starts with 192.168. or 10.");
-		// Players on the internet join through a virtual network app, which
-		// doesn't list games, so they type the address it gives this computer.
-		foreach (var (address, network) in addresses.Where(a => a.network != null)) {
-			AddLabel($"Players joining over {network} type: {address}{port}", 22);
-		}
-		AddOnlineHosting();
-		AddLabel("Each human player in the game needs someone to take their seat before the game can start.");
-
-		seatList = new VBoxContainer();
-		seatList.AddThemeConstantOverride("separation", 6);
-		content.AddChild(seatList);
-
-		content.AddChild(MakeTurnTimeRow());
-		content.AddChild(MakeAccessRow());
-
-		status = AddLabel("");
-
-		startButton = MakeButton("Start Game", StartHostedGame);
-		startButton.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-		content.AddChild(startButton);
+		BuildHostSettings();
+		AddMessage(messages, $"Hosting {LanSession.Host.CurrentDetails().gameName}. Players join the Open slots from \"Join LAN Game\".");
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
 	}
 
-	// The name the host goes by, which everyone sees in the lobby, the game
-	// and the public list, kept for next time.
-	private HBoxContainer MakeHostNameRow() {
-		LanHost host = LanSession.Host;
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		Label label = new() { Text = "Your name:" };
-		label.AddThemeFontSizeOverride("font_size", 18);
-		row.AddChild(label);
-		LineEdit name = new() {
-			Text = host.HostName,
-			MaxLength = LanHost.MaxPlayerNameLength,
-			CustomMinimumSize = new Vector2(260, 0),
-			TooltipText = "What the other players see you as. Press Enter to change it.",
-		};
-		void Rename() {
-			if (LanSession.Host == null || string.IsNullOrWhiteSpace(name.Text)) {
-				return;
-			}
-			LanSession.Host.HostName = name.Text;
-			LanSession.PlayerName = LanSession.Host.HostName;
-			name.Text = LanSession.Host.HostName;
-			ShowHostSeats();
-		}
-		name.TextSubmitted += _ => Rename();
-		name.FocusExited += Rename;
-		row.AddChild(name);
-		return row;
-	}
-
-	// Hosting online, for players anywhere to join with a join code through
-	// the relay, as well as on the network.
-	private void AddOnlineHosting() {
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		Label label = new() { Text = "Players elsewhere can join over the internet with a join code:" };
-		label.AddThemeFontSizeOverride("font_size", 18);
-		row.AddChild(label);
-		hostOnlineButton = MakeButton("Host Online", () => HostOnline(relayEdit.Text));
-		row.AddChild(hostOnlineButton);
-		content.AddChild(row);
-
-		// The host chooses the relay; players are told it with the code.
-		relayRow = new HBoxContainer();
-		relayRow.AddThemeConstantOverride("separation", 12);
-		Label relayLabel = new() { Text = "Relay server:" };
-		relayLabel.AddThemeFontSizeOverride("font_size", 16);
-		relayRow.AddChild(relayLabel);
-		relayEdit = new LineEdit {
-			Text = OnlineRelay.SameRelay(OnlineRelay.Url, OnlineRelay.DefaultUrl) ? "" : OnlineRelay.Url,
-			PlaceholderText = "relay.example.org",
-			CustomMinimumSize = new Vector2(320, 0),
-		};
-		relayEdit.TextSubmitted += text => HostOnline(text);
-		relayRow.AddChild(relayEdit);
-		content.AddChild(relayRow);
-
-		onlineCodeRow = new HBoxContainer { Visible = false };
-		onlineCodeRow.AddThemeConstantOverride("separation", 24);
-		onlineCode = new Label { VerticalAlignment = VerticalAlignment.Center };
-		onlineCode.AddThemeFontSizeOverride("font_size", 44);
-		onlineCodeRow.AddChild(onlineCode);
-		Button copy = MakeButton("Copy Code", () => {
-			if (OnlineInvite() is string invite) {
-				DisplayServer.ClipboardSet(invite);
-			}
-		});
-		copy.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-		onlineCodeRow.AddChild(copy);
-		content.AddChild(onlineCodeRow);
-
-		onlineStatus = AddLabel("");
-		onlineStatus.Visible = false;
-
-		AddPublicListing();
-
-		// A game resumed from one hosted online goes online again, with the
-		// same code, so that its guests find it where they left it.
-		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
-			HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
-		} else if (LanSession.DevHostOnline || LanSession.PendingGame?.hostOnline == true) {
-			HostOnline();
-		}
-	}
-
-	// Starts taking guests through the relay: the one in the settings, or
-	// the one a resumed game's code is from.
-	private void HostOnline(string relayUrl = null, string code = null, string key = null) {
-		relayUrl = string.IsNullOrWhiteSpace(relayUrl) ? OnlineRelay.Url : relayUrl.Trim();
-		onlineStatus.Visible = true;
-		if (OnlineRelay.Problem(relayUrl) is string problem) {
-			onlineStatus.Text = problem;
-			return;
-		}
-		// A relay chosen here is the one used from now on, here and when
-		// joining.
-		if (code == null) {
-			OnlineRelay.SetUrl(relayUrl);
-		}
-		LanSession.Host.HostOnline(relayUrl, code, key);
-		hostOnlineButton.Visible = false;
-		relayRow.Visible = false;
-		listingBox.Visible = true;
-		UpdateOnlineStatus();
-	}
-
-	// Listing the game in the relay's public list, for players anywhere to
-	// find under "Browse Online Games", once it's hosted online.
-	private void AddPublicListing() {
-		LanHost host = LanSession.Host;
-		listingBox = new VBoxContainer { Visible = false };
-		listingBox.AddThemeConstantOverride("separation", 6);
-		content.AddChild(listingBox);
-
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		CheckBox list = new() {
-			Text = "List publicly",
-			ButtonPressed = host.ListPublicly,
-			TooltipText = "Show this game in the online game browser, for anyone using this relay to find and join. "
-				+ "Set a password to choose who can join.",
-		};
-		list.AddThemeFontSizeOverride("font_size", 18);
-		list.Toggled += on => host.ListPublicly = on;
-		row.AddChild(list);
-		LineEdit name = new() {
-			Text = host.PublicName ?? "",
-			PlaceholderText = host.DefaultPublicName,
-			MaxLength = RelayProtocol.MaxGameNameLength,
-			CustomMinimumSize = new Vector2(280, 0),
-			TooltipText = "The game's name in the list",
-		};
-		name.TextChanged += text => host.PublicName = text;
-		row.AddChild(name);
-		listingBox.AddChild(row);
-
-		LineEdit description = new() {
-			Text = host.PublicDescription ?? "",
-			PlaceholderText = "A few words about the game, for the list (optional)",
-			MaxLength = RelayProtocol.MaxGameDescriptionLength,
-		};
-		description.TextChanged += text => host.PublicDescription = text;
-		listingBox.AddChild(description);
-
-		listingStatus = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-		listingStatus.AddThemeFontSizeOverride("font_size", 16);
-		listingBox.AddChild(listingStatus);
-	}
-
-	// Who may come in: the game's password, and whether anyone may watch.
-	private HBoxContainer MakeAccessRow() {
-		LanHost host = LanSession.Host;
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		Label label = new() { Text = "Password:" };
-		label.AddThemeFontSizeOverride("font_size", 18);
-		row.AddChild(label);
-		// A resumed game keeps its password, which isn't kept as itself, so
-		// it can only be changed, not shown.
-		passwordEdit = new LineEdit {
-			Secret = true,
-			MaxLength = GamePassword.MaxLength,
-			PlaceholderText = host.HasPassword ? "(kept from the saved game)" : "none",
-			CustomMinimumSize = new Vector2(220, 0),
-			TooltipText = "Players need this to join, unless they're coming back to their seats. Press Enter to set it; "
-				+ "clear it and press Enter for no password. The game's LAN autosave keeps what checks the password, which "
-				+ "is as good as the password for joining this game, so keep the autosave to yourself.",
-		};
-		passwordEdit.TextChanged += _ => passwordEdited = true;
-		passwordEdit.TextSubmitted += _ => SetPassword();
-		passwordEdit.FocusExited += SetPassword;
-		row.AddChild(passwordEdit);
-		passwordStatus = new Label();
-		passwordStatus.AddThemeFontSizeOverride("font_size", 16);
-		row.AddChild(passwordStatus);
-		ShowPasswordStatus();
-
-		spectatorsBox = new() {
-			Text = "Allow spectators",
-			ButtonPressed = host.AllowSpectators,
-			TooltipText = $"Let up to {LanHost.MaxSpectators} players watch the game without playing. Even watching as a "
-				+ "civilization shows what it knows to whoever watches, who may be playing its rival, so they're off unless you "
-				+ "allow them while hiding what players can't see. Turning this off stops anyone watching.",
-		};
-		spectatorsBox.AddThemeFontSizeOverride("font_size", 18);
-		spectatorsBox.Toggled += on => {
-			host.AllowSpectators = on;
-			spectatorViewChoice.Disabled = !on;
-		};
-		row.AddChild(spectatorsBox);
-
-		spectatorViewChoice = new OptionButton {
-			TooltipText = "How spectators may see the game. As a civilization, they see only what it knows, as its player "
-				+ "would; as all of them, what any of them knows, so what nobody has seen stays hidden; or the whole game. "
-				+ "Unless you say otherwise they may watch any way, and switch at will during the game.",
-			Disabled = !host.AllowSpectators,
-		};
-		spectatorViewChoice.AddThemeFontSizeOverride("font_size", 18);
-		foreach ((string text, SpectatorViews _) in SpectatorViewChoices) {
-			spectatorViewChoice.AddItem(text);
-		}
-		ShowSpectatorViews();
-		spectatorViewChoice.ItemSelected += index => host.SpectatorViews = SpectatorViewChoices[(int)index].views;
-		row.AddChild(spectatorViewChoice);
-		return row;
-	}
-
-	// The ways the host can let spectators see the game.
-	private static readonly (string text, SpectatorViews views)[] SpectatorViewChoices = [
-		("Spectators see: any way they choose", SpectatorViews.Any),
-		("Spectators see: as the civilizations, one or all", SpectatorViews.AsCivs),
-		("Spectators see: as all the civilizations", SpectatorViews.AllCivs),
-		("Spectators see: as one civilization", SpectatorViews.OneCiv),
-		("Spectators see: the whole game", SpectatorViews.Omniscient),
-	];
-
-	// Hosting: how spectators may see the game, any way they choose until
-	// the host says otherwise.
-	private OptionButton spectatorViewChoice;
-
-	private void ShowSpectatorViews() {
-		if (spectatorViewChoice == null || LanSession.Host == null) {
-			return;
-		}
-		int index = Array.FindIndex(SpectatorViewChoices, c => c.views == LanSession.Host.SpectatorViews);
-		spectatorViewChoice.Select(index);
-		spectatorViewChoice.Disabled = !LanSession.Host.AllowSpectators;
-	}
-
-	private void SetPassword() {
-		if (!passwordEdited || LanSession.Host == null) {
-			return;
-		}
-		passwordEdited = false;
-		LanSession.Host.SetPassword(passwordEdit.Text);
-		passwordEdit.PlaceholderText = "none";
-		ShowPasswordStatus();
-	}
-
-	private void ShowPasswordStatus() {
-		passwordStatus.Text = LanSession.Host.HasPassword ? "Password set." : "Anyone can join.";
-	}
-
-	// What players type to join: the code, with the relay when it isn't the
-	// default one.
-	private static string OnlineInvite() {
-		RelayHostLink link = LanSession.Host?.Online;
-		return link == null ? null : OnlineRelay.Invite(link.FormattedCode, link.RelayUrl);
-	}
-
-	private void UpdateOnlineStatus() {
-		RelayHostLink link = LanSession.Host?.Online;
-		if (link == null || onlineStatus == null) {
-			return;
-		}
-		string code = OnlineInvite() ?? "";
-		if (onlineCode.Text != code) {
-			onlineCode.Text = code;
-			// An invite naming the relay is longer than a code alone.
-			onlineCode.AddThemeFontSizeOverride("font_size", code.Contains('@') ? 28 : 44);
-			onlineCodeRow.Visible = code != "";
-		}
-		int guests = link.GuestCount;
-		string text = link.State switch {
-			RelayHostLink.LinkState.Connecting => link.Error == null ? "Connecting to the relay..." : $"Connecting to the relay... ({link.Error})",
-			RelayHostLink.LinkState.Online => "Online. Players choose \"Join LAN Game\" in the main menu and type this code under \"Join online\"."
-				+ (guests == 0 ? "" : $" {guests} connected through the relay."),
-			RelayHostLink.LinkState.Reconnecting => $"Lost the relay, reconnecting... Players online are back once it is. ({link.Error})",
-			_ => $"Could not host online: {link.Error}",
-		};
-		if (onlineStatus.Text != text) {
-			onlineStatus.Text = text;
-		}
-		string listing = !LanSession.Host.ListPublicly ? "Not listed: players need the code to join."
-			: link.IsListed ? "Listed publicly: players can find it under \"Browse Online Games\"."
-			: link.ListingError != null ? $"Not listed: {link.ListingError}"
-			: link.State == RelayHostLink.LinkState.Online ? "Listing..."
-			: "Listed once the game is back online.";
-		if (listingStatus.Text != listing) {
-			listingStatus.Text = listing;
-		}
-		// Hosting online failed for good, as with a code that can't be had
-		// again: trying again gets a new one.
-		if (link.State == RelayHostLink.LinkState.Failed && !hostOnlineButton.Visible) {
-			hostOnlineButton.Text = "Host Online Again";
-			hostOnlineButton.Visible = true;
-			relayRow.Visible = true;
-		}
-	}
-
 	// The choices for how long each player has for their turn, in minutes;
 	// 0 means no limit.
 	public static readonly int[] TurnTimeChoices = [0, 2, 5, 10, 15, 20, 30, 45, 60];
-
-	private HBoxContainer MakeTurnTimeRow() {
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		Label label = new() { Text = "Time per turn:" };
-		label.AddThemeFontSizeOverride("font_size", 18);
-		row.AddChild(label);
-
-		OptionButton choice = new();
-		choice.AddThemeFontSizeOverride("font_size", 18);
-		foreach (int minutes in TurnTimeChoices) {
-			choice.AddItem(minutes == 0 ? "No limit" : $"{minutes} minutes");
-		}
-		// A resumed game keeps its time.
-		if (LanSession.Host.TurnTimeLimit is TimeSpan resumedLimit) {
-			int index = Array.IndexOf(TurnTimeChoices, (int)resumedLimit.TotalMinutes);
-			if (index < 0 || resumedLimit.TotalMinutes != (int)resumedLimit.TotalMinutes) {
-				choice.AddItem($"{(int)resumedLimit.TotalSeconds} seconds");
-				index = choice.ItemCount - 1;
-			}
-			choice.Select(index);
-		}
-		TimeSpan? startingLimit = LanSession.Host.TurnTimeLimit;
-		choice.ItemSelected += index => {
-			if (index >= TurnTimeChoices.Length) {
-				// The resumed game's own time.
-				LanSession.Host.TurnTimeLimit = startingLimit;
-				return;
-			}
-			int minutes = TurnTimeChoices[index];
-			LanSession.Host.TurnTimeLimit = minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
-		};
-		row.AddChild(choice);
-
-		if (LanSession.DevTurnSeconds is int seconds) {
-			LanSession.Host.TurnTimeLimit = TimeSpan.FromSeconds(seconds);
-			choice.Disabled = true;
-			choice.AddItem($"{seconds} seconds");
-			choice.Select(choice.ItemCount - 1);
-		}
-
-		// Everyone moves at once, and the computer players after them.
-		// Simultaneous unless a resumed game wasn't, or the Multiplayer
-		// Setup screen said otherwise.
-		bool simultaneousTurns = LanSession.ResumeGame?.simultaneousTurns ?? LanSession.PendingGame?.simultaneousTurns ?? true;
-		CheckBox simultaneous = new() {
-			Text = "Simultaneous turns",
-			ButtonPressed = simultaneousTurns,
-			TooltipText = "Every human plays their turn at the same time, rather than waiting for each other.",
-		};
-		simultaneous.AddThemeFontSizeOverride("font_size", 18);
-		simultaneous.Toggled += on => LanSession.Host.SimultaneousTurns = on;
-		LanSession.Host.SimultaneousTurns = simultaneousTurns;
-		row.AddChild(simultaneous);
-
-		// Guests are sent only what their players could know, unless a
-		// resumed game wasn't.
-		bool hideUnseen = LanSession.ResumeGame?.hideUnseen ?? true;
-		CheckBox hide = new() {
-			Text = "Hide what players can't see",
-			ButtonPressed = hideUnseen,
-			TooltipText = "Each guest's computer is sent only what its players could know of the game, so nobody can read "
-				+ "other civilizations' hidden units, cities or treasuries from it. Spectators are off unless you allow them, "
-				+ "and see only what the civilizations know unless you let them see the whole game.",
-		};
-		hide.AddThemeFontSizeOverride("font_size", 18);
-		hide.Toggled += on => {
-			LanSession.Host.HideUnseen = on;
-			spectatorsBox?.SetPressedNoSignal(LanSession.Host.AllowSpectators);
-			ShowSpectatorViews();
-		};
-		LanSession.Host.HideUnseen = hideUnseen;
-		ShowSpectatorViews();
-		row.AddChild(hide);
-		return row;
-	}
 
 	// The latest autosave that loads, which is the one before the last if the
 	// last was cut short.
@@ -656,36 +249,9 @@ public partial class LanLobby : Control {
 		});
 	}
 
-	private void ShowHostSeats() {
-		foreach (Node child in seatList.GetChildren()) {
-			child.QueueFree();
-		}
+	// The host's status line and Start Game button, as the seats stand.
+	private void ShowHostStatus() {
 		LanHost host = LanSession.Host;
-
-		// In a new game with teams, the host picks their own team here.
-		AddSeatRow(seatList, $"{host.HostName} (you, hosting), {host.HostCivilization}{TeamText(host.HostTeam)}",
-			host.TeamCount > 0 && !creatingGame ? MakeTeamPicker(host.TeamCount, host.HostTeam, team => host.HostTeam = team) : null);
-		foreach (SeatInfo seat in host.Seats) {
-			// A seat held for a guest who hasn't come back can be given to
-			// anyone.
-			Button release = seat.disconnected ? MakeButton("Release Seat", () => host.ReleaseSeat(seat.playerID)) : null;
-			// A guest can be removed, which frees all their seats, or banned.
-			Button remove = null, ban = null;
-			if (seat.takenBy != null) {
-				remove = MakeSmallButton("Remove", $"Remove {seat.takenBy} from the game, freeing their seats for anyone to take.",
-					() => HostActions.Remove(seat.playerID));
-				ban = MakeSmallButton("Ban", $"Remove {seat.takenBy} and keep them out of this game.",
-					() => HostActions.ConfirmBan(this, seat.takenBy, seat.playerID));
-			}
-			AddSeatRow(seatList, Describe(seat), release, remove, ban);
-		}
-		foreach (SpectatorInfo spectator in host.SpectatorList) {
-			AddSeatRow(seatList, $"{spectator.name}: watching",
-				MakeSmallButton("Remove", $"Stop {spectator.name} watching.", () => host.KickSpectator(spectator.id)),
-				MakeSmallButton("Ban", $"Stop {spectator.name} watching, and keep them out of this game.",
-					() => HostActions.ConfirmBanSpectator(this, spectator.name, spectator.id)));
-		}
-
 		if (createFailure != null) {
 			status.Text = $"Could not create the game: {createFailure}";
 			startButton.Disabled = true;
@@ -717,54 +283,6 @@ public partial class LanLobby : Control {
 		}
 	}
 
-	private Button MakeSmallButton(string text, string tooltip, Action onPressed) {
-		Button button = new() { Text = text, TooltipText = tooltip, CustomMinimumSize = new Vector2(80, 30) };
-		button.AddThemeFontSizeOverride("font_size", 15);
-		button.Pressed += onPressed;
-		return button;
-	}
-
-	private static string Describe(SeatInfo seat) {
-		string who = seat.takenBy == null ? "open"
-			: seat.disconnected ? $"{seat.takenBy} (disconnected)"
-			: seat.takenBy;
-		if (seat.away) {
-			who += ", away";
-		}
-		string name = seat.playerName == null ? "" : $"{seat.playerName}, ";
-		string civilization = seat.civilization ?? "civilization not chosen (random)";
-		return $"{name}{civilization}{TeamText(seat.team)}: {who}";
-	}
-
-	// ", Team 2" for a player on a team (see GameSetup.Teams.cs), or "".
-	private static string TeamText(int team) => team > 0 ? $", {GameSetup.TeamName(team)}" : "";
-
-	// A picker for one of the teams numbered 1 to teams, on team at first.
-	private static OptionButton MakeTeamPicker(int teams, int team, Action<int> chosen) {
-		OptionButton picker = new() { TooltipText = "Teammates are allies for good, and win together." };
-		picker.AddThemeFontSizeOverride("font_size", 18);
-		for (int t = 1; t <= teams; ++t) {
-			picker.AddItem(GameSetup.TeamName(t), t);
-		}
-		picker.Select(Math.Clamp(team, 1, teams) - 1);
-		picker.ItemSelected += index => chosen(picker.GetItemId((int)index));
-		return picker;
-	}
-
-	private static void AddSeatRow(VBoxContainer list, string text, params Control[] buttons) {
-		HBoxContainer row = new();
-		row.AddThemeConstantOverride("separation", 12);
-		Label label = new() { Text = text, CustomMinimumSize = new Vector2(420, 0) };
-		label.AddThemeFontSizeOverride("font_size", 18);
-		row.AddChild(label);
-		foreach (Control button in buttons) {
-			if (button != null) {
-				row.AddChild(button);
-			}
-		}
-		list.AddChild(row);
-	}
-
 	private void StartHostedGame() {
 		if (!LanSession.Host.AllSeatsTakenOrHeld || creatingGame || createFailure != null) {
 			return;
@@ -787,6 +305,7 @@ public partial class LanLobby : Control {
 		creatingGame = true;
 		pending.setup.playerTeam = LanSession.Host.HostTeam;
 		pending.setup.hotseatPlayers = LanSession.Host.BeginCreatingGame();
+		AddMessage(messages, "Creating the world...");
 		Thread thread = new(() => {
 			string failure = "";
 			try {
@@ -812,6 +331,7 @@ public partial class LanLobby : Control {
 		if (failure != "") {
 			// The save is half made, so there's no trying again.
 			createFailure = failure;
+			AddMessage(messages, $"Could not create the game: {failure}", ProblemColor);
 			ShowHostSeats();
 			return;
 		}
@@ -830,8 +350,8 @@ public partial class LanLobby : Control {
 		title.Text = "Join a LAN Game";
 
 		// The list fills the parchment, as Steam's server browser fills its
-		// window (owner's request, 2026-10-28); the lobby's seats take its
-		// place once connected.
+		// window (owner's request, 2026-10-28); the Multiplayer Setup screen
+		// takes its place once in the game's lobby.
 		gameList = new LanGameBrowser { CustomMinimumSize = new Vector2(0, 552) };
 		gameList.JoinRequested += (endpoint, watch, token) => Connect(endpoint, watch, token);
 		content.AddChild(gameList);
@@ -870,14 +390,6 @@ public partial class LanLobby : Control {
 			gameList.AddBottomButton(rejoin);
 		}
 
-		seatList = new VBoxContainer();
-		seatList.AddThemeConstantOverride("separation", 6);
-		content.AddChild(seatList);
-
-		civPicker = new VBoxContainer { Visible = false };
-		civPicker.AddThemeConstantOverride("separation", 8);
-		content.AddChild(civPicker);
-
 		// Shown when the host asks for its game's password.
 		passwordPrompt = new HBoxContainer { Visible = false };
 		passwordPrompt.AddThemeConstantOverride("separation", 12);
@@ -887,12 +399,11 @@ public partial class LanLobby : Control {
 		passwordPromptEdit = new LineEdit { Secret = true, MaxLength = GamePassword.MaxLength, CustomMinimumSize = new Vector2(260, 0) };
 		passwordPromptEdit.TextSubmitted += _ => SendPassword();
 		passwordPrompt.AddChild(passwordPromptEdit);
-		passwordPrompt.AddChild(MakeButton("Enter", SendPassword));
+		Button enter = new() { Text = "Enter", CustomMinimumSize = new Vector2(160, 36) };
+		enter.AddThemeFontSizeOverride("font_size", 18);
+		enter.Pressed += SendPassword;
+		passwordPrompt.AddChild(enter);
 		content.AddChild(passwordPrompt);
-
-		status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		status.AddThemeFontSizeOverride("font_size", 16);
-		gameList.StatusSlot.AddChild(status);
 
 		if (LanSession.DevJoinAddress != null && RelayProtocol.NormalizeCode(LanSession.DevJoinAddress) != null
 			&& !LanSession.DevJoinAddress.Contains('.')) {
@@ -931,20 +442,26 @@ public partial class LanLobby : Control {
 		status.Text = "Checking the password...";
 	}
 
-	// The list of games while looking for one, or the lobby's seats once
-	// connected; the status line goes with whichever is shown.
+	// The list of games while looking for one, or else the parchment with
+	// the status line while connecting; the Multiplayer Setup screen once in
+	// the game's lobby.
 	private void ShowGameList(bool show) {
-		if (gameList == null || gameList.Visible == show) {
+		if (gameList == null) {
+			return;
+		}
+		if (show) {
+			ShowSetup(false);
+		}
+		if (gameList.Visible == show) {
 			return;
 		}
 		gameList.Visible = show;
-		status.Reparent(show ? gameList.StatusSlot : content, false);
+		if (!setupRoot.Visible) {
+			status.Reparent(show ? gameList.StatusSlot : content, false);
+		}
 		if (show) {
-			foreach (Node child in seatList.GetChildren()) {
-				child.QueueFree();
-			}
-			civPicker.Visible = false;
 			passwordPrompt.Visible = false;
+			ClearLobbyView();
 			gameList.Refresh();
 		}
 	}
@@ -999,8 +516,6 @@ public partial class LanLobby : Control {
 		LanSession.BeginJoining(client);
 		ShowGameList(false);
 		status.Text = $"Connected to {endpoint.Description}. Waiting for the host...";
-		ClearCivPicker();
-		civPicker.Visible = false;
 		LanSession.Client.LobbyChanged += ShowJoinedSeats;
 		if (watch) {
 			LanSession.Client.Watch();
@@ -1037,153 +552,28 @@ public partial class LanLobby : Control {
 		if (lobby == null) {
 			return;
 		}
-		foreach (Node child in seatList.GetChildren()) {
-			child.QueueFree();
-		}
-		List<string> options = [];
-		if (lobby.simultaneousTurns) {
-			options.Add("simultaneous turns");
-		}
-		if (lobby.hideUnseen) {
-			options.Add("hiding what players can't see");
-		}
-		string turns = options.Count > 0 ? $" ({string.Join(", ", options)})" : "";
-		Label header = new() { Text = $"Seats in {lobby.hostName}'s game{turns}:" };
-		header.AddThemeFontSizeOverride("font_size", 20);
-		seatList.AddChild(header);
-
-		IReadOnlyList<ID> mine = client.YourSeats;
-		bool canChoose = lobby.civilizations != null && mine.Count > 0 && !client.IsSpectator;
-		if (!mine.Contains(choosingSeat)) {
-			choosingSeat = mine.FirstOrDefault();
-		}
-		rejoinSeats.RemoveWhere(id => !lobby.seats.Any(s => s.playerID == id && s.takenBy == null));
-
-		foreach (SeatInfo seat in lobby.seats) {
-			if (seat.isHost) {
-				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}{TeamText(seat.team)}");
-				continue;
-			}
-			List<Control> buttons = [];
-			bool open = seat.takenBy == null && !client.IsSpectator && !lobby.creatingGame;
-			if (open && !lobby.started) {
-				buttons.Add(MakeButton("Take Seat", () => client.ClaimSeat(seat.playerID, NameForAnotherSeat(lobby, mine))));
-			} else if (open) {
-				// In a game in progress, taking a seat takes us into it, so
-				// every seat to take is ticked first.
-				CheckBox tick = new() { Text = "Take", ButtonPressed = rejoinSeats.Contains(seat.playerID) };
-				tick.AddThemeFontSizeOverride("font_size", 18);
-				tick.Toggled += on => {
-					if (on) {
-						rejoinSeats.Add(seat.playerID);
-					} else {
-						rejoinSeats.Remove(seat.playerID);
-					}
-					ShowJoinedSeats();
-				};
-				buttons.Add(tick);
-			}
-			if (mine.Contains(seat.playerID)) {
-				if (canChoose && mine.Count > 1 && seat.playerID != choosingSeat) {
-					buttons.Add(MakeButton("Choose Civilization", () => {
-						choosingSeat = seat.playerID;
-						ShowJoinedSeats();
-					}));
-				}
-				if (!lobby.started && !lobby.creatingGame) {
-					buttons.Add(MakeButton("Leave Seat", () => client.LeaveSeat(seat.playerID)));
-				}
-			}
-			if (mine.Contains(seat.playerID) && !lobby.started && !lobby.creatingGame) {
-				// Each player at this computer has their own name.
-				string place = seat.playerName == null ? "" : $"{seat.playerName}, ";
-				string civilization = seat.civilization ?? "civilization not chosen (random)";
-				OptionButton team = lobby.teams > 0
-					? MakeTeamPicker(lobby.teams, seat.team, t => client.ChooseTeam(t, seat.playerID)) : null;
-				AddSeatRow(seatList, $"{place}{civilization}{(team == null ? TeamText(seat.team) : "")} (you):",
-					[MakeSeatNameEdit(client, seat), team, .. buttons]);
-				continue;
-			}
-			string you = mine.Contains(seat.playerID) ? " (you)" : "";
-			AddSeatRow(seatList, Describe(seat) + you, [.. buttons]);
-		}
-		foreach (ID gone in seatNameDrafts.Keys.Where(id => !mine.Contains(id)).ToList()) {
-			seatNameDrafts.Remove(gone);
-		}
-
-		if (lobby.started && !client.IsSpectator && lobby.seats.Any(s => !s.isHost && s.takenBy == null)) {
-			Button rejoin = MakeButton("Join Game", () => {
-				foreach (SeatInfo seat in lobby.seats.Where(s => rejoinSeats.Contains(s.playerID))) {
-					client.ClaimSeat(seat.playerID, seat.playerName ?? NameForAnotherSeat(lobby, mine));
-				}
-				rejoinSeats.Clear();
-			});
-			rejoin.Disabled = rejoinSeats.Count == 0;
-			rejoin.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-			seatList.AddChild(rejoin);
-		}
-
-		if (lobby.spectators?.Count > 0) {
-			AddSeatRow(seatList, $"Watching: {string.Join(", ", lobby.spectators)}");
-		}
-
-		UpdateCivPicker(lobby, canChoose);
-
-		string hotseatTip = " To play several people at this computer, taking turns, take a seat for each of them"
-			+ " and type each player's name beside their seat.";
-		status.Text = lobby.creatingGame ? $"{lobby.hostName} is creating the world..."
-			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
-			: lobby.started && mine.Count == 0 ? "This game is in progress. Tick the seats to play, then join it." + hotseatTip
-			: mine.Count == 0 ? "Take an open seat to play." + hotseatTip
-			: canChoose ? $"Choose your civilization{(lobby.teams > 0 ? " and team" : "")}, then wait for the host to start the game. "
-				+ "If you don't choose a civilization, you get a random one."
-			: "Waiting for the host to start the game...";
+		ShowSetup(true);
+		ShowGuestLobby(client, lobby);
 
 		SeatInfo firstOpen = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);
+		IReadOnlyList<ID> mine = client.YourSeats;
 		if (LanSession.DevJoinAddress != null && !client.IsSpectator && mine.Count == 0 && firstOpen != null) {
 			client.ClaimSeat(firstOpen.playerID);
 		}
 	}
 
-	// A box for the name of the player in one of our seats, sent to the host
-	// on Enter or on leaving the box.
-	private LineEdit MakeSeatNameEdit(LanClient client, SeatInfo seat) {
-		ID id = seat.playerID;
-		LineEdit edit = new() {
-			Text = seatNameDrafts.TryGetValue(id, out string draft) ? draft : seat.takenBy,
-			PlaceholderText = "Player's name",
-			MaxLength = 40,
-			CustomMinimumSize = new Vector2(200, 0),
-		};
-		edit.TextChanged += text => seatNameDrafts[id] = text;
-		void Send() {
-			if (seatNameDrafts.Remove(id, out string name) && !string.IsNullOrWhiteSpace(name) && name.Trim() != seat.takenBy) {
-				client.ClaimSeat(id, name.Trim());
-			}
-		}
-		edit.TextSubmitted += _ => {
-			Send();
-			edit.ReleaseFocus();
-		};
-		edit.FocusEntered += () => editingSeatName = id;
-		edit.FocusExited += () => {
-			// Redrawing the seats frees the box; the one replacing it takes
-			// over the typing.
-			if (edit.IsQueuedForDeletion()) {
-				return;
-			}
-			editingSeatName = null;
-			Send();
-		};
-		if (editingSeatName == id) {
-			Callable.From(() => {
-				if (IsInstanceValid(edit) && edit.IsInsideTree()) {
-					edit.GrabFocus();
-					edit.CaretColumn = edit.Text.Length;
-				}
-			}).CallDeferred();
-		}
-		return edit;
+	// The guest's status line, as the lobby stands.
+	private static string GuestStatus(LanClient client, LobbyInfo lobby, bool canChoose) {
+		IReadOnlyList<ID> mine = client.YourSeats;
+		string hotseatTip = " To play several people at this computer, taking turns, take a slot for each of them"
+			+ " and type each player's name in their slot.";
+		return lobby.creatingGame ? $"{lobby.hostName} is creating the world..."
+			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
+			: lobby.started && mine.Count == 0 ? "This game is in progress. Tick the seats to play, then join it." + hotseatTip
+			: mine.Count == 0 ? "Take an Open slot to play." + hotseatTip
+			: canChoose ? $"Choose your civilization{(lobby.teams > 0 ? " and team" : "")}, then wait for the host to start the game. "
+				+ "If you don't choose a civilization, you get a random one."
+			: "Waiting for the host to start the game...";
 	}
 
 	// The name for the player in another seat we take: the one typed in,
@@ -1198,162 +588,6 @@ public partial class LanLobby : Control {
 			if (!used.Contains($"{name} {n}")) {
 				return $"{name} {n}";
 			}
-		}
-	}
-
-	// The civilizations a guest can choose from, in the style of the player
-	// setup screen: the ones other players have are greyed out.
-	private void UpdateCivPicker(LobbyInfo lobby, bool choosing) {
-		civPicker.Visible = choosing;
-		if (!choosing) {
-			return;
-		}
-		// Built once per host, and again if the host's choices change (e.g.
-		// after joining another host).
-		if (civChoices == null || pickerClient != LanSession.Client || !SameChoices(civChoices, lobby.civilizations)) {
-			ClearCivPicker();
-			pickerClient = LanSession.Client;
-			BuildCivPicker(lobby.civilizations);
-		}
-
-		SeatInfo mine = lobby.seats.Find(s => s.playerID == choosingSeat);
-		civHeading.Text = LanSession.Client.YourSeats.Count > 1
-			? $"Choose a civilization for {mine?.takenBy}:"
-			: "Choose your civilization:";
-		HashSet<string> takenByOthers = lobby.seats
-			.Where(s => s.playerID != choosingSeat && s.civilization != null)
-			.Select(s => s.civilization)
-			.ToHashSet();
-		foreach ((string name, Civ3MenuButton button) in civButtons) {
-			bool taken = takenByOthers.Contains(name);
-			button.Disabled = taken || lobby.creatingGame;
-			button.Modulate = taken ? new Color(1, 1, 1, 0.35f) : Colors.White;
-			button.TooltipText = taken ? "Another player has this civilization." : "";
-		}
-		randomCivButton.Disabled = lobby.creatingGame;
-
-		Civ3MenuButton chosen = randomCivButton;
-		if (mine?.civilization != null && civButtons.TryGetValue(mine.civilization, out Civ3MenuButton mineButton)) {
-			chosen = mineButton;
-		}
-		if (!chosen.ButtonPressed) {
-			chosen.ButtonPressed = true;
-		}
-		ShowCivilization(mine?.civilization);
-	}
-
-	// The connection the civ picker was built for.
-	private LanClient pickerClient;
-
-	private static bool SameChoices(List<CivilizationChoice> a, List<CivilizationChoice> b) {
-		if (a == null || b == null || a.Count != b.Count) {
-			return false;
-		}
-		for (int i = 0; i < a.Count; ++i) {
-			CivilizationChoice x = a[i], y = b[i];
-			if (x.name != y.name || x.leader != y.leader || x.noun != y.noun || x.leaderArtFile != y.leaderArtFile
-				|| !(x.traits ?? []).SequenceEqual(y.traits ?? [])) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	private void ClearCivPicker() {
-		foreach (Node child in civPicker.GetChildren()) {
-			civPicker.RemoveChild(child);
-			child.QueueFree();
-		}
-		civButtons.Clear();
-		randomCivButton = null;
-		civChoices = null;
-		leaderHead = null;
-		civDescription = null;
-		civHeading = null;
-		pickerClient = null;
-		// Another host's civilizations may have the same names but other art.
-		leaderHeadCache.Clear();
-	}
-
-	private void BuildCivPicker(List<CivilizationChoice> choices) {
-		civChoices = choices;
-		civHeading = new() { Text = "Choose your civilization:" };
-		civHeading.AddThemeFontSizeOverride("font_size", 20);
-		civPicker.AddChild(civHeading);
-
-		HBoxContainer body = new();
-		body.AddThemeConstantOverride("separation", 24);
-		civPicker.AddChild(body);
-
-		GridContainer grid = new() { Columns = 4 };
-		grid.AddThemeConstantOverride("h_separation", 16);
-		grid.AddThemeConstantOverride("v_separation", 2);
-		body.AddChild(grid);
-
-		ButtonGroup group = new();
-		Civ3MenuButton MakeCivButton(string text, string civilization) {
-			Civ3MenuButton button = new() {
-				Text = text,
-				FontSize = 14,
-				ToggleMode = true,
-				ButtonGroup = group,
-			};
-			button.Pressed += () => {
-				LanSession.Client?.ChooseCivilization(civilization, choosingSeat);
-				ShowCivilization(civilization);
-			};
-			grid.AddChild(button);
-			return button;
-		}
-		foreach (CivilizationChoice choice in choices) {
-			civButtons[choice.name] = MakeCivButton(choice.name, choice.name);
-		}
-		randomCivButton = MakeCivButton("Random", null);
-
-		VBoxContainer leader = new() { CustomMinimumSize = new Vector2(200, 0) };
-		body.AddChild(leader);
-		leaderHead = new TextureRect {
-			CustomMinimumSize = new Vector2(172, 172),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-		};
-		leader.AddChild(leaderHead);
-		civDescription = new Label {
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			HorizontalAlignment = HorizontalAlignment.Center,
-		};
-		civDescription.AddThemeFontSizeOverride("font_size", 15);
-		leader.AddChild(civDescription);
-	}
-
-	// The leader heads already shown, by civilization name and art file.
-	private readonly Dictionary<(string, string), ImageTexture> leaderHeadCache = new();
-
-	// Shows the civilization's leader and traits, or null for a random one.
-	private void ShowCivilization(string name) {
-		CivilizationChoice choice = civChoices?.Find(c => c.name == name);
-		if (choice == null) {
-			leaderHead.Texture = null;
-			civDescription.Text = "A random civilization nobody else has.";
-			return;
-		}
-		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits ?? [])})";
-		if (choice.leaderArtFile == null) {
-			leaderHead.Texture = null;
-			return;
-		}
-		try {
-			var key = (choice.name, choice.leaderArtFile);
-			if (!leaderHeadCache.TryGetValue(key, out ImageTexture texture) || !IsInstanceValid(texture)) {
-				Civilization civ = new(choice.name) { leader = choice.leader, noun = choice.noun, leaderArtFile = choice.leaderArtFile };
-				texture = TextureLoader.Load("leader_heads", civ);
-				leaderHeadCache[key] = texture;
-			}
-			leaderHead.Texture = texture;
-		} catch (Exception e) {
-			// The host may have art this computer doesn't.
-			log.Warning("No leader head for {Civilization}: {Error}", choice.name, e.Message);
-			leaderHead.Texture = null;
 		}
 	}
 
