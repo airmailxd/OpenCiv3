@@ -1378,6 +1378,8 @@ public partial class Game : Node {
 			GameData current = EngineStorage.gameData;
 			Player us = current?.GetPlayer(player.id);
 			Tech tech = us == null ? null : NewEra.BigPictureResearch(us, current, random);
+			// Nothing comes up over the advisor until it's closed.
+			ViewTheBigPicture(chooseAfterwards: false);
 			if (tech != null) {
 				new MsgChooseResearch(tech, MsgChooseResearch.AdvisorState.Show).send();
 			} else {
@@ -2070,12 +2072,46 @@ public partial class Game : Node {
 		// The question the production popups were waiting for has come.
 		researchQuestionDueSeconds = 0;
 		bool freeTech = controller.freeTechsRemaining > 0;
-		ScienceSelection selection = new(controller, msg.discovered);
+		ScienceSelection selection = new(controller, msg.discovered, () => ViewTheBigPicture(chooseAfterwards: true));
 		if (freeTech && LanSession.IsClient) {
 			// Once the free tech is chosen the host asks what's next.
 			selection.TreeExiting += () => researchQuestionDueSeconds = ResearchQuestionWaitSeconds;
 		}
 		popupOverlay.ShowPopup(selection, PopupOverlay.PopupCategory.Info);
+	}
+
+	// "What's the big picture?": opens the Science Advisor, and holds back
+	// the popups waiting until the player has closed it, so nothing comes up
+	// over it while they choose what to research (owner's request,
+	// 2026-11-08). If they close it without choosing, they're asked again.
+	// The advisor may open a moment later (when the engine answers a
+	// choice of research), so the hold lasts until it has been seen open
+	// and closed, or a few seconds pass without it opening.
+	private void ViewTheBigPicture(bool chooseAfterwards) {
+		bool seen = false;
+		ulong since = Time.GetTicksMsec();
+		Player player = controller;
+		popupOverlay.HoldWhile(() => {
+			if (advisor.Visible) {
+				seen = true;
+				return true;
+			}
+			return !seen && Time.GetTicksMsec() - since < 3000;
+		}, () => {
+			GameData gameData = EngineStorage.gameData;
+			Player us = gameData?.GetPlayer(player.id);
+			if (!chooseAfterwards || us == null || us != controller) {
+				return;
+			}
+			bool undecided = us.freeTechsRemaining > 0 || us.currentlyResearchedTech == null;
+			if (undecided && us.GetAvailableTechsToResearch(gameData.techs).Any()) {
+				popupOverlay.ShowPopup(new ScienceSelection(us, null, () => ViewTheBigPicture(chooseAfterwards: true)),
+					PopupOverlay.PopupCategory.Info);
+			}
+		});
+		if (chooseAfterwards) {
+			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
+		}
 	}
 
 	// Takes down the production popup on screen (or waiting behind another

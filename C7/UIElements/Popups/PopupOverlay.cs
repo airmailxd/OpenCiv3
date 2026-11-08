@@ -57,7 +57,16 @@ public partial class PopupOverlay : HBoxContainer {
 			currentChild = null;
 		}
 
-		// Bring up the next popup that was waiting, if any.
+		// Bring up the next popup that was waiting, if any, unless they're
+		// held back (see HoldWhile).
+		if (holdWhile != null) {
+			Hide();
+			return;
+		}
+		ShowNextWaiting();
+	}
+
+	private void ShowNextWaiting() {
 		while (waiting.Count > 0) {
 			var (child, category) = waiting.First.Value;
 			waiting.RemoveFirst();
@@ -109,12 +118,36 @@ public partial class PopupOverlay : HBoxContainer {
 
 		CloseTileInfo(replacement: child);
 
-		if (currentChild is not null) {
+		if (currentChild is not null || holdWhile != null) {
 			waiting.AddLast((child, category));
 			return;
 		}
 
 		Present(child, category);
+	}
+
+	// Popups wait while the condition holds, as while the player looks at
+	// the Science Advisor to choose what to research; then afterwards runs,
+	// before the next popup comes up.
+	private System.Func<bool> holdWhile;
+	private System.Action afterHold;
+
+	public void HoldWhile(System.Func<bool> condition, System.Action afterwards = null) {
+		holdWhile = condition;
+		afterHold = afterwards;
+	}
+
+	public override void _Process(double delta) {
+		if (holdWhile == null || holdWhile()) {
+			return;
+		}
+		System.Action afterwards = afterHold;
+		holdWhile = null;
+		afterHold = null;
+		afterwards?.Invoke();
+		if (currentChild is null) {
+			ShowNextWaiting();
+		}
 	}
 
 	/// <summary>

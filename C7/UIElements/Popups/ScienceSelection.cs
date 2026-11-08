@@ -13,7 +13,12 @@ public partial class ScienceSelection : Popup {
 	// The beakers the player makes per turn, added up once for all options.
 	int beakersPerTurn;
 
-	public ScienceSelection(Player player, Tech discovered = null) {
+	// Opens the Science Advisor for "What's the big picture?", holding back
+	// whatever comes next until research is chosen; null to just open it.
+	System.Action bigPicture;
+
+	public ScienceSelection(Player player, Tech discovered = null, System.Action bigPicture = null) {
+		this.bigPicture = bigPicture;
 		alignment = BoxContainer.AlignmentMode.End;
 		margins = new Margins(right: 10);
 		this.player = player;
@@ -56,7 +61,11 @@ public partial class ScienceSelection : Popup {
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		});
 		AddButton("What's the big picture?", 265, () => {
-			new MsgShowScienceAdvisor().send();
+			if (bigPicture != null) {
+				bigPicture();
+			} else {
+				new MsgShowScienceAdvisor().send();
+			}
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		});
 

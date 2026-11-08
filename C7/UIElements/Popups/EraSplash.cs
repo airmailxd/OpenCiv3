@@ -85,9 +85,11 @@ public partial class EraSplash : Popup {
 		AddChild(message);
 
 		int choicesTop = top + 45;
+		// The big picture first, so that what's waiting stays back while
+		// the Science Advisor is up.
 		AddChoice(NewEra.BigPicture, choicesTop, () => {
-			Close();
 			bigPicture();
+			Close();
 		});
 		AddChoice(NewEra.LetsPlay, choicesTop + 25, Close);
 	}
