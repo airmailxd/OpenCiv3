@@ -314,6 +314,21 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// A captured city starts growing again from an empty food box (owner's
+	// ruling, 2026-11-08).
+	[Fact]
+	public void ACapturedCitysFoodBoxEmpties() {
+		BuildCity(them);
+		City city = BuildCity(them);
+		city.AddCitizen(new CityResident() { city = city, nationality = them.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
+		city.foodStored = 15;
+		us.EnsureRelationshipExists(them);
+		PlayerRelationship.DeclareWar(us, them, false, gameData.turn + 10);
+		CityInteractions.CaptureCity(city, us);
+		Assert.Equal(us, city.owner);
+		Assert.Equal(0, city.foodStored);
+	}
+
 	// Resisters "refuse to work": they're on no tile, can't be made
 	// specialists, and aren't moved onto a tile; once they stop
 	// resisting, they go back to work.

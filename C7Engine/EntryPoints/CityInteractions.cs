@@ -284,8 +284,8 @@ namespace C7Engine {
 
 		// Hands a city over to the player who took it, unless it doesn't
 		// survive capture, in which case it is destroyed. The city loses a
-		// citizen (never its last), its production and some of its
-		// buildings, and the captor plunders part of the old
+		// citizen (never its last), its production, its stored food and
+		// some of its buildings, and the captor plunders part of the old
 		// owner's treasury. Its borders fall back to the captor's own culture
 		// there. A human captor is then asked whether to keep or raze it.
 		public static void CaptureCity(City city, Player captor) {
@@ -368,6 +368,9 @@ namespace C7Engine {
 			city.SetStoredShields(0);
 			// With its shields gone, so are any from a cleared forest.
 			city.receivedForestShields = false;
+			// And its food: growth starts again from an empty food box
+			// (owner's ruling, 2026-11-08).
+			city.foodStored = 0;
 
 			gameData.UpdateTileOwners();
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
