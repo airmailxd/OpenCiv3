@@ -118,7 +118,7 @@ namespace C7Engine {
 
 			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 
-			if (tile.personWorkingTile != null && tile.personWorkingTile.city == city) {
+			if (tile.personWorkingTile != null && tile.personWorkingTile.city == city && !city.IsResisting(tile.personWorkingTile)) {
 				// If we're already working a tile and click on it, turn the
 				// citizen into a specialist.
 				CityResident resident = tile.personWorkingTile;
@@ -131,7 +131,8 @@ namespace C7Engine {
 				int worstYield = int.MaxValue;
 				CityResident worst = null;
 
-				foreach (CityResident cr in city.residents) {
+				// Resisters refuse to work, so aren't moved onto it.
+				foreach (CityResident cr in city.WorkingResidents()) {
 					int tileYield = cr.tileWorked.FoodYield(city.owner).yield +
 									cr.tileWorked.ProductionYield(city.owner).yield +
 									cr.tileWorked.CommerceYield(city.owner).yield;
@@ -141,6 +142,9 @@ namespace C7Engine {
 					}
 				}
 
+				if (worst == null) {
+					return;
+				}
 				// Move the worst citizen to our new tile, being sure to update
 				// backpointers from the tile.
 				worst.tileWorked.personWorkingTile = null;
@@ -174,14 +178,17 @@ namespace C7Engine {
 			// are reassigned, apart from which tiles are worked, so the tile
 			// yields can be shared between them.
 			CityTileAssignmentAI.AssignmentContext context = new(gameData, city, foodIsWasted);
-			foreach (Civilization nationality in nationalities) {
+			for (int i = 0; i < nationalities.Count; ++i) {
 				CityResident newResident = new() {
 					citizenType = defaultCitizen,
-					nationality = nationality,
+					nationality = nationalities[i],
 					city = city
 				};
 				city.AddCitizen(newResident);
-				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
+				// Resisters refuse to work: no tile, and no specialty.
+				if (i < nationalities.Count - resisters) {
+					CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
+				}
 			}
 			city.resisters = resisters;
 			city.resistanceFrom = resistanceFrom;
@@ -227,6 +234,10 @@ namespace C7Engine {
 				return;
 			}
 			CityResident resident = city.residents[residentIndex];
+			// Resisters can't be made specialists.
+			if (city.IsResisting(resident)) {
+				return;
+			}
 			List<CitizenType> specialistTypes = city.owner.GetKnownSpecialists(gameData);
 			int index = specialistTypes.FindIndex(x => x.Id == resident.citizenType.Id);
 			if (index < 0) {

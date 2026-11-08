@@ -1974,6 +1974,38 @@ namespace C7GameData {
 			return residents.Take(residents.Count - ResistersInCity());
 		}
 
+		// Whether the resident is resisting.
+		public bool IsResisting(CityResident resident) {
+			int index = residents.IndexOf(resident);
+			return index >= 0 && index >= residents.Count - ResistersInCity();
+		}
+
+		// Resisters "refuse to work": they work no tile and aren't
+		// specialists either, so any resister on a tile or in a specialty
+		// is taken off it.
+		private void IdleResisters(GameData gameData) {
+			CitizenType laborer = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
+			foreach (CityResident r in residents.Skip(residents.Count - ResistersInCity())) {
+				if (r.tileWorked != Tile.NONE) {
+					if (r.tileWorked.personWorkingTile == r) {
+						r.tileWorked.personWorkingTile = null;
+					}
+					r.tileWorked = Tile.NONE;
+				}
+				if (laborer != null) {
+					r.citizenType = laborer;
+				}
+			}
+		}
+
+		// Citizens who stopped resisting go back to work, on the tiles the
+		// city's governor would give them.
+		private void PutFormerResistersToWork(GameData gameData) {
+			foreach (CityResident r in WorkingResidents().Where(r => r.citizenType.IsDefaultCitizen && r.tileWorked == Tile.NONE).ToList()) {
+				C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, r);
+			}
+		}
+
 		private int ResistersInCity() => Math.Clamp(resisters, 0, residents.Count);
 
 		// The working residents who aren't specialists, whose moods count.
@@ -2063,6 +2095,7 @@ namespace C7GameData {
 			if (resistanceFrom == null || resistanceFrom == owner
 					|| (!resistanceFrom.defeated && !PlayerRelationship.AtWar(owner, resistanceFrom))) {
 				EndResistance();
+				PutFormerResistersToWork(gameData);
 				return;
 			}
 			resisters = ResistersInCity();
@@ -2078,6 +2111,7 @@ namespace C7GameData {
 				}
 			}
 			resisters -= Math.Min(givingUp, quellable);
+			PutFormerResistersToWork(gameData);
 			if (resisters == 0) {
 				EndResistance();
 				log.Information("Resistance in {City} has ended", this);
@@ -2856,6 +2890,7 @@ namespace C7GameData {
 		//  - https://codehappy.net/apolyton/threads/83368-1.htm
 		//
 		public Mood RecalculateCitizenMoods(GameData gameData) {
+			IdleResisters(gameData);
 			CityResident.Mood content = CityResident.Mood.Content;
 			CityResident.Mood unhappy = CityResident.Mood.Unhappy;
 			InitializeMoodsForDifficulty(owner.isHuman ? gameData.gameDifficulty : gameData.AiRulesDifficulty(), gameData.rules);

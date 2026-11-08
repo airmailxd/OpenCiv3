@@ -314,6 +314,36 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// Resisters "refuse to work": they're on no tile, can't be made
+	// specialists, and aren't moved onto a tile; once they stop
+	// resisting, they go back to work.
+	[Fact]
+	public void ResistersWorkNoTileAndAreNoSpecialists() {
+		City city = CapturedCity();
+		CityResident resister = city.residents[^1];
+		CitizenType entertainer = us.GetKnownSpecialists(gameData)[0];
+		// As a city taken before resisters were idled would have them.
+		Tile tile = city.GetWorkableTiles().First(t => t != city.location && t.personWorkingTile == null);
+		resister.tileWorked = tile;
+		tile.personWorkingTile = resister;
+		city.residents[0].citizenType = entertainer;
+		city.RecalculateCitizenMoods(gameData);
+		Assert.All(city.residents, r => Assert.Equal(Tile.NONE, r.tileWorked));
+		Assert.All(city.residents, r => Assert.True(r.citizenType.IsDefaultCitizen));
+		Assert.Null(tile.personWorkingTile);
+
+		CityInteractions.CycleSpecialist(gameData, city, city.residents.Count - 1);
+		CityInteractions.ReassignCitizen(gameData, city, tile);
+		CityInteractions.ReassignCitizen(gameData, city, city.location);
+		Assert.All(city.residents, r => Assert.Equal(Tile.NONE, r.tileWorked));
+		Assert.All(city.residents, r => Assert.True(r.citizenType.IsDefaultCitizen));
+
+		// Peace ends the resistance, and they go to work.
+		PlayerRelationship.SignPeaceAfterWar(us, them, gameData);
+		city.UpdateResistance(gameData);
+		Assert.All(city.residents, r => Assert.True(r.tileWorked != Tile.NONE || !r.citizenType.IsDefaultCitizen));
+	}
+
 	// Resisters are neither happy nor unhappy, and their nation's war
 	// doesn't make anyone else unhappy on their account.
 	[Fact]
