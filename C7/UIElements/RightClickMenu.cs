@@ -281,7 +281,8 @@ public partial class RightClickTileMenu : RightClickMenu {
 		// Invisible units the player doesn't detect aren't listed.
 		List<MapUnit> shownUnits = observerMode ? tile.unitsOnTile : tile.UnitsSeenBy(game.controller);
 		List<MapUnit> playerUnits = shownUnits.FindAll(unit => unit.owner.id == game.controller.id || observerMode);
-		List<MapUnit> nonPlayerUnits = shownUnits.FindAll(unit => unit.owner.id != game.controller.id && !observerMode);
+		// Another player's transport is listed without what it carries.
+		List<MapUnit> nonPlayerUnits = shownUnits.FindAll(unit => unit.owner.id != game.controller.id && !observerMode && !unit.IsLoaded());
 
 		// Sort by transport group
 		playerUnits = playerUnits

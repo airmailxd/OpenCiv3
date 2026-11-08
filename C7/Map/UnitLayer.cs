@@ -826,9 +826,12 @@ public partial class UnitLayer : LooseLayer {
 
 	// The units on the tile the player sees: all of them in observer mode
 	// or debug mode (which sees everything, Civ3 FUN_004eba60), otherwise
-	// all but invisible units it doesn't detect.
+	// all but invisible units it doesn't detect, and the cargo of other
+	// players' transports, which only shows as the transport itself.
 	public static List<MapUnit> ShownUnits(GameData gameData, Player player, Tile t) {
-		return SeesAllUnits(gameData) ? t.unitsOnTile : t.UnitsSeenBy(player);
+		if (SeesAllUnits(gameData))
+			return t.unitsOnTile;
+		return t.UnitsSeenBy(player).FindAll(u => u.owner == player || !u.IsLoaded());
 	}
 
 	private static bool SeesAllUnits(GameData gameData) {
