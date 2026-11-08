@@ -1303,7 +1303,7 @@ public partial class Game : Node {
 		// can Staging, which every human answers before anyone moves.
 		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id
 			&& (!LanSession.IsActive || LanSession.IsLocalPlayer(msg.recipient))
-			&& msg is not MsgShowDealProposal && msg is not MsgShowStaging
+			&& msg is not MsgShowDealProposal
 			&& msg is not MsgShowMarket && msg is not MsgShowMarketResults) {
 			HoldMessage(msg.recipient.id, msg);
 			return;
@@ -1803,26 +1803,14 @@ public partial class Game : Node {
 					// not be the one at the screen.
 					Player player = mSM.recipient ?? controller;
 					popupOverlay.ShowPopup(
-						new MarketPopup(player, mSM.offers, mSM.gold, mSM.seconds,
-							bids => new MsgPlaceMarketBids(bids) { playerID = player.id }.send()),
+						new MarketPopup(player, mSM.offers, mSM.gold, mSM.seconds, mSM.cities,
+							(bids, cities) => new MsgPlaceMarketBids(bids, cities) { playerID = player.id }.send()),
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
 					break;
 				}
 			case MsgShowMarketResults mSMR: {
 					popupOverlay.ShowPopup(new MarketResultsPopup(mSMR.recipient ?? controller, mSMR.results), null);
-					break;
-				}
-			case MsgShowStaging mSS: {
-					// Answered for the player it's for, who in a hotseat game
-					// may not be the one at the screen.
-					Player player = mSS.recipient ?? controller;
-					popupOverlay.ShowPopup(
-						new StagingPopup(player, mSS.unitType, mSS.cities,
-							city => new MsgChooseStagingCity(city) { playerID = player.id }.send(),
-							city => mapView?.centerCameraOnTile(city.location)),
-						PopupOverlay.PopupCategory.Advisor);
-					InterestingEvent();
 					break;
 				}
 			case MsgShowCultureFlipOffer mSCFO: {
@@ -2236,11 +2224,7 @@ public partial class Game : Node {
 	}
 
 	// If "location" is not already near the center of the screen, moves the camera to bring it into view.
-	// Not while Staging shows the city being chosen.
 	public void ensureLocationIsInView(Tile location) {
-		if (StagingPopup.IsOpen) {
-			return;
-		}
 		if (controller.tileKnowledge.isTileKnown(location) && location != Tile.NONE) {
 			Vector2 relativeScreenLocation = mapView.screenLocationOfTile(location, true) / mapView.getVisibleAreaSize();
 			if (relativeScreenLocation.DistanceTo(new Vector2((float)0.5, (float)0.5)) > 0.30)

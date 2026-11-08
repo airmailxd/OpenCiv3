@@ -483,9 +483,10 @@ public class EternalWarScenarioTest {
 	}
 
 	// Bids can't come to more than the bidder's gold: the last are cut. A
-	// human who wins chooses a city for the unit before anyone moves.
+	// human chooses the city for each unit with their bid, their capital
+	// unless they choose another, and one not theirs counts as the capital.
 	[Fact]
-	public void AHumanWhoWinsChoosesACity() {
+	public void AHumanChoosesTheCityWithTheirBid() {
 		(_, C7GameData.GameData gameData) = NewGame(13);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		Player human = gameData.players.First(p => p.isHuman);
@@ -497,21 +498,20 @@ public class EternalWarScenarioTest {
 		Staging.BeginTurn(gameData);
 		List<UnitPrototype> offers = Staging.Offers(gameData);
 
-		Staging.AnswerBids(gameData, human, [40, 30, 0]);
+		City capital = Staging.DefaultCity(human);
+		Assert.True(capital.IsCapital());
+		City city = human.cities.Last(c => c != capital);
+		City theirs = gameData.cities.First(c => c.owner != human);
+		int atCity = city.location.unitsOnTile.Count, atCapital = capital.location.unitsOnTile.Count;
+
+		Staging.AnswerBids(gameData, human, [40, 30, 0], [city, theirs, null]);
 		Assert.Equal([40, 10, 0], gameData.staging.bids[human.id.ToString()]);
 		Assert.Equal(0, human.gold);
-		Assert.True(Staging.InProgress(gameData));
-		Assert.Equal(offers[0], Staging.NextToPlace(gameData, human));
-
-		City theirs = gameData.cities.First(c => c.owner != human);
-		Assert.False(Staging.Answer(gameData, human, theirs));
-		City city = human.cities.Last();
-		Assert.True(Staging.Answer(gameData, human, city));
-		Assert.Equal(offers[1], Staging.NextToPlace(gameData, human));
-		Assert.True(Staging.Answer(gameData, human, city));
 		Assert.False(Staging.InProgress(gameData));
-		Assert.Contains(human.units, u => u.unitType == offers[0]);
-		Assert.Contains(human.units, u => u.unitType == offers[1]);
+		Assert.Contains(city.location.unitsOnTile, u => u.owner == human && u.unitType == offers[0]);
+		Assert.Contains(capital.location.unitsOnTile, u => u.owner == human && u.unitType == offers[1]);
+		Assert.Equal(atCity + 1, city.location.unitsOnTile.Count);
+		Assert.Equal(atCapital + 1, capital.location.unitsOnTile.Count);
 		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
 	}
 
@@ -526,9 +526,9 @@ public class EternalWarScenarioTest {
 	}
 
 	// Through the turn loop: once everyone has played a turn, the human is
-	// shown the market before the next turn starts, then who won, then
-	// asked where their unit goes, and the next turn starts once they've
-	// chosen. The messages cross a LAN too.
+	// shown the market, with their cities, capital first, before the next
+	// turn starts; once they've bid, who won, and the next turn starts with
+	// their unit where they chose. The messages cross a LAN too.
 	[Fact]
 	public async Task TheMarketComesBetweenTurnsInTheTurnLoop() {
 		(_, C7GameData.GameData gameData) = NewGame(17);
@@ -553,23 +553,23 @@ public class EternalWarScenarioTest {
 		MsgShowMarket market = EngineWaits.WaitForMessageToUI<MsgShowMarket>(m => Assert.IsNotType<MsgStartTurn>(m));
 		Assert.Equal(human, market.recipient);
 		Assert.Equal(Staging.BidSeconds, market.seconds);
+		Assert.Equal(Staging.DefaultCity(human), market.cities[0]);
+		Assert.Equal(human.cities.Count, market.cities.Count);
 		Assert.False(TurnHandling.IsPlayersTurn(gameData, human.id));
 
 		int unitsBefore = human.units.Count;
+		City chosen = market.cities.Last();
 		EngineStorage.SendToEngine(C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
-			C7Engine.Network.NetSerialization.Serialize(new MsgPlaceMarketBids([gameData.players.Max(p => p.gold), 0, 0]) { playerID = human.id })));
+			C7Engine.Network.NetSerialization.Serialize(new MsgPlaceMarketBids([gameData.players.Max(p => p.gold), 0, 0], [chosen, null, null]) { playerID = human.id })));
 		MsgShowMarketResults results = EngineWaits.WaitForMessageToUI<MsgShowMarketResults>(m => Assert.IsNotType<MsgStartTurn>(m));
 		MsgShowMarketResults sentResults = (MsgShowMarketResults)C7Engine.Network.NetSerialization.DeserializeMessageToUI(C7Engine.Network.NetSerialization.Serialize(results));
 		Assert.Equal([human], sentResults.results[0].winners);
 		Assert.Empty(sentResults.results[1].winners);
 
-		MsgShowStaging ask = EngineWaits.WaitForMessageToUI<MsgShowStaging>(m => Assert.IsNotType<MsgStartTurn>(m));
-		Assert.Equal(market.offers[0], ask.unitType);
-		EngineStorage.SendToEngine(C7Engine.Network.NetSerialization.DeserializeMessageToEngine(
-			C7Engine.Network.NetSerialization.Serialize(new MsgChooseStagingCity(ask.cities[0]) { playerID = human.id })));
 		EngineWaits.WaitForStartTurnMessage(_ => { });
 		Assert.Equal(unitsBefore + 1, human.units.Count);
-		Assert.Equal(ask.unitType, human.units.Last().unitType.name);
+		Assert.Equal(market.offers[0], human.units.Last().unitType.name);
+		Assert.Equal(chosen.location, human.units.Last().location);
 		Assert.True(TurnHandling.IsPlayersTurn(gameData, human.id));
 	}
 

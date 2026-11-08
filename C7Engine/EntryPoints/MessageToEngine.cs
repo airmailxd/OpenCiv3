@@ -1425,15 +1425,15 @@ namespace C7Engine {
 		}
 	}
 
-	// A human chooses the city for the turn's Staging unit (MsgShowStaging).
-	// The last to choose ends Staging, and the turn goes on.
 	// A human's bids in the Mercenary Market, gold for each unit on offer
-	// in order (see Staging).
+	// in order, and the city each goes to if they win it (see Staging).
 	public class MsgPlaceMarketBids : MessageToEngine {
 		public List<int> bids;
+		public List<City> cities;
 
-		public MsgPlaceMarketBids(List<int> bids) {
+		public MsgPlaceMarketBids(List<int> bids, List<City> cities = null) {
 			this.bids = bids ?? new();
+			this.cities = cities ?? new();
 		}
 
 		// Only a human the market waits for, while it does.
@@ -1443,30 +1443,7 @@ namespace C7Engine {
 
 		protected override async Task ProcessAllowedAsync() {
 			GameData gameData = EngineStorage.gameData;
-			if (!Staging.AnswerBids(gameData, Sender, bids) || Staging.InProgress(gameData)) {
-				return;
-			}
-			// What happens next isn't a reply to this player.
-			EngineStorage.processingSenderID = null;
-			await TurnHandling.AdvanceTurn();
-		}
-	}
-
-	public class MsgChooseStagingCity : MessageToEngine {
-		public City city;
-
-		public MsgChooseStagingCity(City city) {
-			this.city = city;
-		}
-
-		// Only a human Staging waits for, while it does.
-		protected override bool IsAllowed() {
-			return Sender != null && Staging.IsWaitingFor(EngineStorage.gameData, Sender) && !TurnHandling.TurnInProgress;
-		}
-
-		protected override async Task ProcessAllowedAsync() {
-			GameData gameData = EngineStorage.gameData;
-			if (!Staging.Answer(gameData, Sender, city) || Staging.InProgress(gameData)) {
+			if (!Staging.AnswerBids(gameData, Sender, bids, cities) || Staging.InProgress(gameData)) {
 				return;
 			}
 			// What happens next isn't a reply to this player.

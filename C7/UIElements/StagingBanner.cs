@@ -4,10 +4,10 @@ using C7Engine;
 using C7GameData;
 using Godot;
 
-// Staging (see C7Engine.Staging): while other humans place the units they
-// won in the Mercenary Market and this player has none left to place, a
-// banner on Civ3's popup parchment at the top of the screen says so, and who
-// it waits for (owner's request, 2026-10-28). No one moves until they're done.
+// Staging (see C7Engine.Staging): while other humans are still bidding in
+// the Mercenary Market and this player is done, a banner on Civ3's popup
+// parchment at the top of the screen says so, and who it waits for (owner's
+// request, 2026-10-28). No one moves until they're done.
 public partial class StagingBanner : Control {
 	// How often it is read again, in seconds.
 	private const double RefreshInterval = 0.5;
@@ -68,21 +68,21 @@ public partial class StagingBanner : Control {
 	}
 
 	private void Refresh(GameData gameData) {
-		List<Player> placing = Placing(gameData);
+		List<Player> bidding = Bidding(gameData);
 		Player player = gameData.GetPlayer(EngineStorage.uiControllerID);
-		Visible = placing.Count > 0 && (player == null || !placing.Contains(player));
+		Visible = bidding.Count > 0 && (player == null || !bidding.Contains(player));
 		if (!Visible) {
 			return;
 		}
-		string names = string.Join(", ", placing.Select(p => $"{p.name ?? p.civilization.leader} of the {p.civilization.noun}"));
-		waitingFor.Text = $"Waiting for {names} to place their units";
+		string names = string.Join(", ", bidding.Select(p => $"{p.name ?? p.civilization.leader} of the {p.civilization.noun}"));
+		waitingFor.Text = $"Waiting for {names} to finish bidding";
 	}
 
-	// The humans yet to place a unit they won, once the market has closed.
-	private static List<Player> Placing(GameData gameData) {
-		if (gameData.rules?.StagingUnits != true || gameData.staging == null || gameData.staging.bidding.Count > 0) {
+	// The humans yet to bid while the market is open.
+	private static List<Player> Bidding(GameData gameData) {
+		if (gameData.rules?.StagingUnits != true || gameData.staging == null) {
 			return [];
 		}
-		return gameData.players.Where(p => Staging.IsWaitingFor(gameData, p)).ToList();
+		return gameData.players.Where(p => Staging.IsBidding(gameData, p)).ToList();
 	}
 }

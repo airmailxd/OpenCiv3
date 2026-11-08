@@ -986,26 +986,21 @@ public class LanHost : IDisposable {
 	}
 
 	// Answers the Mercenary Market for each away player it waits for, once
-	// a turn, so the others aren't kept waiting: no bids, and a city where
-	// an AI would put each unit they won.
+	// a turn, so the others aren't kept waiting: no bids.
 	private void StageForAwayPlayers(GameData gameData) {
 		if (!Staging.InProgress(gameData)) {
 			return;
 		}
-		foreach (Player player in gameData.players.Where(p => Staging.IsBidding(gameData, p) || Staging.IsWaitingFor(gameData, p)).ToList()) {
+		foreach (Player player in gameData.players.Where(p => Staging.IsBidding(gameData, p)).ToList()) {
 			Seat seat = seats.Find(s => s.info.playerID == player.id);
-			string progress = $"{gameData.turn}:{Staging.IsBidding(gameData, player)}:{gameData.staging.toPlace.Count(w => w.player == player.id.ToString())}";
+			string progress = $"{gameData.turn}";
 			if (seat == null || !seat.away || seat.IsTaken || player.cities.Count == 0
 				|| (awayStaged.TryGetValue(player.id, out string staged) && staged == progress)) {
 				continue;
 			}
 			awayStaged[player.id] = progress;
 			log.Information("{Player} is away, answering the market for them", player);
-			if (Staging.IsBidding(gameData, player)) {
-				EngineStorage.ReceiveFromRemote(new MsgPlaceMarketBids([]) { playerID = player.id });
-			} else if (Staging.NextToPlace(gameData, player) is UnitPrototype unit) {
-				EngineStorage.ReceiveFromRemote(new MsgChooseStagingCity(Staging.AiChoice(gameData, player, unit)) { playerID = player.id });
-			}
+			EngineStorage.ReceiveFromRemote(new MsgPlaceMarketBids([]) { playerID = player.id });
 		}
 	}
 

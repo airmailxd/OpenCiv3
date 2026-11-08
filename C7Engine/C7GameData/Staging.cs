@@ -22,11 +22,15 @@ namespace C7GameData {
 		// empty.
 		public List<string> bidding = new();
 
+		// The city each human chose for each offer, by player ID: a city ID
+		// for each offer, in order, or null for none chosen (their capital).
+		public Dictionary<string, List<string>> destinations = new();
+
 		// Whether the market has closed and the units gone to the winners.
 		public bool resolved = true;
 
-		// The units humans won and are yet to put in a city, in order. No one
-		// moves until it's empty.
+		// Saves from before the city was chosen with the bid may hold units
+		// still waiting for one; they're placed as the game loads.
 		public List<StagingWin> toPlace = new();
 	}
 
@@ -59,40 +63,27 @@ namespace C7Engine {
 	// not come to more than its treasury. The highest bid for each unit
 	// wins it and pays its bid; civs tied for the highest each get one and
 	// each pay. A unit no one bid on goes unsold. No one is told anyone
-	// else's bids, only who won. The winners choose a city for each unit
-	// they won: the AIs at once, the humans from a list of their cities, and
-	// no one moves until every human has. A ship may be sent to any city;
-	// one sent inland puts to sea at the coast nearest it.
+	// else's bids, only who won. A human chooses, with each bid, the city
+	// the unit goes to if they win it, their capital unless they choose
+	// another (owner's request, 2026-11-07); the AIs choose once they've
+	// won. The market closes when every human is done or out of time. A
+	// ship may be sent to any city; one sent inland puts to sea at the coast
+	// nearest it.
 	public static class Staging {
 		private static readonly ILogger log = Log.ForContext(typeof(Staging));
 
 		// How long the humans have to bid, in seconds.
-		public const int BidSeconds = 15;
+		public const int BidSeconds = 30;
 
-		// Whether the market is open or a human is yet to place a unit, so
-		// no one may move.
+		// Whether the market is open, so no one may move.
 		public static bool InProgress(GameData gameData) {
 			return gameData.rules?.StagingUnits == true && gameData.staging != null
-				&& (gameData.staging.bidding.Count > 0 || gameData.staging.toPlace.Count > 0);
+				&& gameData.staging.bidding.Count > 0;
 		}
 
 		// Whether the player is yet to bid.
 		public static bool IsBidding(GameData gameData, Player player) {
 			return player != null && gameData.staging?.bidding.Contains(player.id.ToString()) == true;
-		}
-
-		// Whether the player has a unit to place.
-		public static bool IsWaitingFor(GameData gameData, Player player) {
-			return NextToPlace(gameData, player) != null;
-		}
-
-		// The unit the player places next, or null if none.
-		public static UnitPrototype NextToPlace(GameData gameData, Player player) {
-			if (player == null || gameData.staging == null) {
-				return null;
-			}
-			StagingWin win = gameData.staging.toPlace.Find(w => w.player == player.id.ToString());
-			return win == null ? null : gameData.unitPrototypes.Find(p => p.name == win.unitType);
 		}
 
 		// The units on offer this turn.
@@ -170,6 +161,7 @@ namespace C7Engine {
 			state.offers.Clear();
 			state.bids.Clear();
 			state.bidding.Clear();
+			state.destinations.Clear();
 			state.toPlace.Clear();
 			state.resolved = true;
 			if (gameData.rules?.StagingUnits != true) {
@@ -201,10 +193,12 @@ namespace C7Engine {
 			}
 		}
 
-		// Records the player's bids, one for each offer. Missing or negative
-		// bids count as none, and if they come to more than the player's
-		// gold, the last are cut until they don't.
-		public static void Bid(GameData gameData, Player player, List<int> amounts) {
+		// Records the player's bids, one for each offer, and the city each
+		// unit goes to if they win it. Missing or negative bids count as
+		// none, and if they come to more than the player's gold, the last are
+		// cut until they don't. A city missing or not theirs counts as their
+		// capital.
+		public static void Bid(GameData gameData, Player player, List<int> amounts, List<City> cities = null) {
 			StagingState state = gameData.staging;
 			List<int> bids = Enumerable.Range(0, state.offers.Count)
 				.Select(i => amounts != null && i < amounts.Count ? System.Math.Max(0, amounts[i]) : 0).ToList();
@@ -215,7 +209,28 @@ namespace C7Engine {
 				over -= cut;
 			}
 			state.bids[player.id.ToString()] = bids;
+			state.destinations[player.id.ToString()] = Enumerable.Range(0, state.offers.Count)
+				.Select(i => cities != null && i < cities.Count && cities[i]?.owner == player ? cities[i].id.ToString() : null).ToList();
 			state.bidding.Remove(player.id.ToString());
+		}
+
+		// The city a human's units go to unless they choose another: their
+		// capital, or if they have none, their first city.
+		public static City DefaultCity(Player player) {
+			return player.cities.Find(c => c.IsCapital()) ?? player.cities.FirstOrDefault();
+		}
+
+		// The city a unit the player won goes to: the one they chose for the
+		// offer if it's still theirs, otherwise their capital.
+		private static City Destination(GameData gameData, Player player, int offer, UnitPrototype unit) {
+			if (gameData.staging.destinations.TryGetValue(player.id.ToString(), out List<string> chosen)
+				&& offer < chosen.Count && chosen[offer] != null) {
+				City city = player.cities.Find(c => c.id.ToString() == chosen[offer]);
+				if (city != null) {
+					return city;
+				}
+			}
+			return DefaultCity(player) ?? AiChoice(gameData, player, unit);
 		}
 
 		// The AI's bids, one for each offer (see MarketAI).
@@ -228,9 +243,9 @@ namespace C7Engine {
 		internal static System.Action<Player, UnitPrototype, int> onBuy;
 
 		// Closes the market: each unit goes to its highest bidder, or to each
-		// of those tied for it, who pay their bids. The AIs place theirs at
-		// once; the humans' wait for them to choose a city. Returns an entry
-		// for each offer naming its winners.
+		// of those tied for it, who pay their bids. The AIs choose a city for
+		// theirs now; the humans' go where they chose with their bids.
+		// Returns an entry for each offer naming its winners.
 		public static List<MarketResult> Resolve(GameData gameData) {
 			StagingState state = gameData.staging;
 			List<MarketResult> results = new();
@@ -253,11 +268,8 @@ namespace C7Engine {
 						result.winners.Add(player);
 						onBuy?.Invoke(player, unit, best);
 						log.Information("{Player} buys a {Unit} for {Gold} gold", player, unit.name, best);
-						if (player.isHuman) {
-							state.toPlace.Add(new StagingWin { player = id, unitType = unit.name });
-						} else {
-							Place(gameData, player, unit, AiChoice(gameData, player, unit));
-						}
+						City city = player.isHuman ? Destination(gameData, player, i, unit) : AiChoice(gameData, player, unit);
+						Place(gameData, player, unit, city);
 					}
 				}
 				results.Add(result);
@@ -330,10 +342,8 @@ namespace C7Engine {
 				.FirstOrDefault();
 		}
 
-		// Asks the humans yet to bid, and once the market has closed, those
-		// with units to place. One who can't answer (a LAN guest who has
-		// left) or has nowhere to put a unit is answered for: no bids, and
-		// units placed where an AI would.
+		// Asks the humans yet to bid. One who can't answer (a LAN guest who
+		// has left) or has no city is answered for: no bids.
 		public static void AskHumans(GameData gameData) {
 			StagingState state = gameData.staging;
 			foreach (string id in state.bidding.ToList()) {
@@ -344,101 +354,47 @@ namespace C7Engine {
 				}
 				AskHuman(gameData, player);
 			}
-			if (!Continue(gameData)) {
-				foreach (string id in state.toPlace.Select(w => w.player).Distinct().ToList()) {
-					AskToPlace(gameData, gameData.players.Find(p => p.id.ToString() == id));
-				}
-			}
+			Continue(gameData);
 		}
 
-		// Once every human has bid, closes the market, announces it, and asks
-		// each human for their first unit's city. Returns whether it closed
-		// the market just now.
-		private static bool Continue(GameData gameData) {
+		// Once every human has bid, closes the market and announces it.
+		private static void Continue(GameData gameData) {
 			StagingState state = gameData.staging;
 			if (state.bidding.Count > 0 || state.resolved) {
-				return false;
+				return;
 			}
-			List<MarketResult> results = Resolve(gameData);
-			Announce(gameData, results);
-			foreach (string id in state.toPlace.Select(w => w.player).Distinct().ToList()) {
-				AskToPlace(gameData, gameData.players.Find(p => p.id.ToString() == id));
-			}
-			return true;
+			Announce(gameData, Resolve(gameData));
 		}
 
-		// Asks the human for their bids, or for a city for their next unit.
+		// Asks the human for their bids and the city for each unit, from
+		// their cities, their capital first.
 		public static void AskHuman(GameData gameData, Player player) {
-			if (player == null) {
-				return;
-			}
-			if (IsBidding(gameData, player)) {
-				if (player.defeated || player.cities.Count == 0 || !EngineStorage.IsPlayerReachable(player.id)) {
-					Bid(gameData, player, []);
-					return;
-				}
-				new MsgShowMarket(player, gameData.staging.offers.ToList(), player.gold, BidSeconds).send();
-				return;
-			}
-			AskToPlace(gameData, player);
-		}
-
-		private static void AskToPlace(GameData gameData, Player player) {
-			UnitPrototype unit = NextToPlace(gameData, player);
-			if (unit == null) {
+			if (player == null || !IsBidding(gameData, player)) {
 				return;
 			}
 			if (player.defeated || player.cities.Count == 0 || !EngineStorage.IsPlayerReachable(player.id)) {
-				ChooseFor(gameData, player);
+				Bid(gameData, player, []);
 				return;
 			}
-			new MsgShowStaging(player, unit.name, Choices(player, unit)).send();
+			City capital = DefaultCity(player);
+			List<City> cities = [capital, .. player.cities.Where(c => c != capital).OrderBy(c => c.name)];
+			new MsgShowMarket(player, gameData.staging.offers.ToList(), player.gold, BidSeconds, cities).send();
 		}
 
-		// The human's bids. Returns false if they weren't to bid.
-		public static bool AnswerBids(GameData gameData, Player player, List<int> amounts) {
+		// The human's bids, and the city for each unit. Returns false if they
+		// weren't to bid.
+		public static bool AnswerBids(GameData gameData, Player player, List<int> amounts, List<City> cities = null) {
 			if (!IsBidding(gameData, player)) {
 				return false;
 			}
-			Bid(gameData, player, amounts);
+			Bid(gameData, player, amounts, cities);
 			Continue(gameData);
 			return true;
 		}
 
-		// The human's choice of city for their next unit. Returns false if
-		// they had none to place, or may not choose that city.
-		public static bool Answer(GameData gameData, Player player, City city) {
-			UnitPrototype unit = NextToPlace(gameData, player);
-			if (unit == null || city?.owner != player || !Choices(player, unit).Contains(city)) {
-				return false;
-			}
-			RemoveNext(gameData, player);
-			Place(gameData, player, unit, city);
-			AskToPlace(gameData, player);
-			return true;
-		}
-
-		private static void RemoveNext(GameData gameData, Player player) {
-			StagingWin win = gameData.staging.toPlace.Find(w => w.player == player.id.ToString());
-			gameData.staging.toPlace.Remove(win);
-		}
-
-		// Places all of a human's units still waiting where an AI would.
-		public static void ChooseFor(GameData gameData, Player player) {
-			if (player == null) {
-				return;
-			}
-			while (NextToPlace(gameData, player) is UnitPrototype unit) {
-				RemoveNext(gameData, player);
-				if (!player.defeated && player.cities.Count > 0) {
-					Place(gameData, player, unit, AiChoice(gameData, player, unit));
-				}
-			}
-		}
-
 		// A game loaded during Staging starts with a human's turn, so the
-		// market is closed without the bids still to come, and the units
-		// still waiting for a city are placed where an AI would.
+		// market is closed without the bids still to come. Units an older
+		// save holds still waiting for a city go to the owner's capital.
 		public static void FinishOnLoad(GameData gameData) {
 			StagingState state = gameData.staging;
 			if (state == null) {
@@ -453,8 +409,12 @@ namespace C7Engine {
 				}
 			}
 			Resolve(gameData);
-			foreach (string id in state.toPlace.Select(w => w.player).Distinct().ToList()) {
-				ChooseFor(gameData, gameData.players.Find(p => p.id.ToString() == id));
+			foreach (StagingWin win in state.toPlace) {
+				Player player = gameData.players.Find(p => p.id.ToString() == win.player);
+				UnitPrototype unit = gameData.unitPrototypes.Find(p => p.name == win.unitType);
+				if (player != null && unit != null && !player.defeated && DefaultCity(player) is City city) {
+					Place(gameData, player, unit, city);
+				}
 			}
 			state.toPlace.Clear();
 		}

@@ -719,18 +719,21 @@ namespace C7Engine {
 	}
 
 	// Opens the Mercenary Market to a human (see Staging): the units on
-	// offer, the gold they have to bid with, and how many seconds they have.
-	// They answer with MsgPlaceMarketBids.
+	// offer, the gold they have to bid with, how many seconds they have, and
+	// the cities a unit may go to, the first the one it goes to unless they
+	// choose another. They answer with MsgPlaceMarketBids.
 	public class MsgShowMarket : MessageToUI {
 		public List<string> offers;
 		public int gold;
 		public int seconds;
+		public List<City> cities;
 
-		public MsgShowMarket(Player recipient, List<string> offers, int gold, int seconds) {
+		public MsgShowMarket(Player recipient, List<string> offers, int gold, int seconds, List<City> cities) {
 			this.recipient = recipient;
 			this.offers = offers ?? new();
 			this.gold = gold;
 			this.seconds = seconds;
+			this.cities = cities ?? new();
 		}
 	}
 
@@ -742,20 +745,6 @@ namespace C7Engine {
 		public MsgShowMarketResults(Player recipient, List<MarketResult> results) {
 			this.recipient = recipient;
 			this.results = results ?? new();
-		}
-	}
-
-	// Asks a human which of the cities to put a unit they won in the
-	// Mercenary Market in (see Staging); they answer with
-	// MsgChooseStagingCity.
-	public class MsgShowStaging : MessageToUI {
-		public string unitType;
-		public List<City> cities;
-
-		public MsgShowStaging(Player recipient, string unitType, List<City> cities) {
-			this.recipient = recipient;
-			this.unitType = unitType;
-			this.cities = cities ?? new();
 		}
 	}
 
