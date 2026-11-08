@@ -19,6 +19,27 @@ public class MultiplayerSlotsTest {
 
 	private static string Civ(int index) => Civilizations().Where(c => !c.isBarbarian).ElementAt(index).name;
 
+	// With room for fewer slots, Closed ones go first, then the computer's,
+	// then Open ones nobody has taken, and last the players who joined last.
+	[Fact]
+	public void FewerSlotsTakeTheComputersBeforeThePlayers() {
+		List<PlayerSlot> slots = [
+			new(SlotKind.Open),
+			new(SlotKind.Computer),
+			new(SlotKind.Open),
+			new(SlotKind.Closed),
+			new(SlotKind.Open),
+			new(SlotKind.Computer),
+		];
+		// Slot 0 joined second, slot 4 first; slot 2 is empty.
+		long[] joined = [2, 0, 0, 0, 1, 0];
+		Assert.Equal([0, 1, 2, 4], MultiplayerSlots.SlotsToKeep(slots, 4, i => joined[i]));
+		Assert.Equal([0, 2, 4], MultiplayerSlots.SlotsToKeep(slots, 3, i => joined[i]));
+		Assert.Equal([0, 4], MultiplayerSlots.SlotsToKeep(slots, 2, i => joined[i]));
+		Assert.Equal([4], MultiplayerSlots.SlotsToKeep(slots, 1, i => joined[i]));
+		Assert.Equal([0, 1, 2, 3, 4, 5], MultiplayerSlots.SlotsToKeep(slots, 8, i => joined[i]));
+	}
+
 	[Fact]
 	public void OpenSlotsAreSeatsForPlayersJoiningOverTheNetwork() {
 		List<PlayerSlot> slots = [

@@ -593,7 +593,7 @@ public partial class LanLobby : Control {
 
 	public override void _Process(double delta) {
 		LanSession.Host?.Poll();
-		UpdateOnlineStatus();
+		joiningSection?.Update();
 
 		LanClient client = LanSession.Client;
 		if (client != null) {

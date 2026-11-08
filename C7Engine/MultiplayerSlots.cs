@@ -110,6 +110,30 @@ public static class MultiplayerSlots {
 		return plan;
 	}
 
+	// The slots kept, by index in order, when only count fit, as when a
+	// smaller world is chosen (owner's ruling, 2026-11-07): Closed slots go
+	// first, then the computer's, then Open slots nobody has taken, each
+	// from the last; then the Open slots of the players who joined last.
+	// joinOrder gives the order a slot's player joined in, or 0 if nobody
+	// has taken it.
+	public static List<int> SlotsToKeep(IReadOnlyList<PlayerSlot> slots, int count, Func<int, long> joinOrder) {
+		List<int> kept = Enumerable.Range(0, slots.Count).ToList();
+		while (kept.Count > Math.Max(0, count)) {
+			int drop = kept.LastOrDefault(i => slots[i].kind == SlotKind.Closed, -1);
+			if (drop < 0) {
+				drop = kept.LastOrDefault(i => slots[i].kind == SlotKind.Computer, -1);
+			}
+			if (drop < 0) {
+				drop = kept.LastOrDefault(i => joinOrder(i) == 0, -1);
+			}
+			if (drop < 0) {
+				drop = kept.MaxBy(joinOrder);
+			}
+			kept.Remove(drop);
+		}
+		return kept;
+	}
+
 	// Sets the special rules as the game mode has them. Custom leaves them
 	// as they are.
 	public static void ApplyGameMode(VictoryConditions conditions, MultiplayerGameMode mode) {

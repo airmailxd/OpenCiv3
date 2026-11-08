@@ -544,6 +544,11 @@ public class LanClient : IDisposable {
 				PasswordRequest = null;
 				SpectatorViewInfo viewBefore = SpectatorView;
 				Lobby = WithSafeArt(NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload));
+				// The host made us a spectator, as when it took away the
+				// seats we had.
+				if (Lobby.yourSpectatorView != null) {
+					IsSpectator = true;
+				}
 				if (SpectatorView != viewBefore) {
 					SpectatorViewChanged?.Invoke();
 				}

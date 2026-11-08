@@ -118,6 +118,7 @@ public partial class MultiplayerSetupScreen : Control {
 	private CheckBox scientificLeaders;
 	private CheckBox coreCitiesFreeOfCorruption;
 	private VictoryConditions victoryConditions;
+	private readonly List<Civ3Checkbox> ruleBoxes = [];
 	private bool settingGameMode;
 
 	private bool launching;
@@ -186,6 +187,7 @@ public partial class MultiplayerSetupScreen : Control {
 		VBoxContainer settings = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		settings.AddThemeConstantOverride("separation", 2);
 		scroll.AddChild(settings);
+		settingsList = settings;
 
 		Enum.TryParse(choices.MultiplayerGameType, out MultiplayerGameType lastType);
 		if (choices.MultiplayerGameType == null) {
@@ -373,9 +375,21 @@ public partial class MultiplayerSetupScreen : Control {
 		renameButton = MakeButton("Rename", "Rename the selected player: you, or a player at this computer in hotseat.");
 		renameButton.Pressed += Rename;
 		buttons.AddChild(renameButton);
-		launchButton = MakeButton("Launch", "Start the game: in hotseat straight away; on the network, in the lobby, once a player takes each Open slot.", true);
+		// While hosting, for the player in the selected slot.
+		removeButton = MakeButton("Remove", "Select a player's slot to remove them.");
+		removeButton.Pressed += RemoveSelected;
+		removeButton.Visible = false;
+		buttons.AddChild(removeButton);
+		banButton = MakeButton("Ban", "Select a player's slot to ban them.");
+		banButton.Pressed += BanSelected;
+		banButton.Visible = false;
+		buttons.AddChild(banButton);
+		launchButton = MakeButton("Launch", "Start the game: in hotseat straight away; on the network once a player has taken each Open slot.", true);
 		launchButton.Pressed += Launch;
 		buttons.AddChild(launchButton);
+		watchingLabel = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		watchingLabel.AddThemeFontSizeOverride("font_size", 13);
+		box.AddChild(watchingLabel);
 		box.AddChild(buttons);
 		return panel;
 	}
@@ -449,6 +463,10 @@ public partial class MultiplayerSetupScreen : Control {
 		Util.ClearCaches();
 		hasKings = save.UnitPrototypes.Any(p => p.flags.Contains(SaveUnitPrototype.Flag.King));
 		civNames = save.Civilizations.Where(c => !c.isBarbarian).Select(c => c.name).Append(NewGameChoices.Random).ToList();
+		// The players who joined choose from these rules' civilizations.
+		if (Hosting) {
+			Host.SetPlayableCivilizations(save.Civilizations);
+		}
 
 		// MDJ's world sizes are its own (by player count, 1v1 to 8 Player).
 		worldSize.Clear();
@@ -478,6 +496,7 @@ public partial class MultiplayerSetupScreen : Control {
 	// still there.
 	private void MakeSlotRows() {
 		int count = SlotCount();
+		FitSlots(count);
 		while (slots.Count < count) {
 			slots.Add(new PlayerSlot(SlotKind.Computer, NewGameChoices.Random));
 		}
@@ -556,6 +575,7 @@ public partial class MultiplayerSetupScreen : Control {
 		}
 		UpdateCivilizations();
 		renameButton?.SetDeferred(BaseButton.PropertyName.Disabled, !CanRename(selectedRow));
+		SyncSeats();
 	}
 
 	// Each civilization can be chosen once: those chosen for one slot are
@@ -569,9 +589,11 @@ public partial class MultiplayerSetupScreen : Control {
 				chosenBy.TryAdd(name, list);
 			}
 		}
+		// Nor can those the players who joined chose.
+		HashSet<string> guestCivs = GuestCivilizations();
 		foreach (OptionButton list in lists.Concat(rows.Select(r => r.civ)).Distinct()) {
 			for (int i = 0; i < civNames.Count - 1; ++i) {
-				list.SetItemDisabled(i, chosenBy.TryGetValue(civNames[i], out OptionButton by) && by != list);
+				list.SetItemDisabled(i, (chosenBy.TryGetValue(civNames[i], out OptionButton by) && by != list) || guestCivs.Contains(civNames[i]));
 			}
 		}
 		string host = civNames[hostCivilization.Selected];
@@ -579,12 +601,16 @@ public partial class MultiplayerSetupScreen : Control {
 		StyleBoxFlat square = Box(civ == null ? new Color(0.6f, 0.6f, 0.6f) : TextureLoader.LoadColor(civ.primaryColorIndex), Ink, 1, 0);
 		hostColor.AddThemeStyleboxOverride("panel", square);
 		hostColor.TooltipText = civ == null ? "Your color, once your civilization is drawn." : $"Your color, as the {civ.noun}.";
+		ReserveCivilizations();
 	}
 
 	private void SelectRow(int row) {
 		selectedRow = row;
 		hostNameButton.SetPressedNoSignal(row == -1);
 		renameButton?.SetDeferred(BaseButton.PropertyName.Disabled, !CanRename(row));
+		if (Hosting) {
+			ShowSelectedPlayer();
+		}
 	}
 
 	// The host can always be renamed, and in hotseat the other players at
@@ -713,6 +739,10 @@ public partial class MultiplayerSetupScreen : Control {
 			coreCitiesFreeOfCorruption,
 		}) {
 			grid.AddChild(rule);
+			// Those OpenCiv3 has, as the players are shown them.
+			if (rule is Civ3Checkbox ruleBox && rule.Modulate.A == 1) {
+				ruleBoxes.Add(ruleBox);
+			}
 		}
 		foreach (CheckBox special in new[] { elimination, regicide, massRegicide, victoryPointScoring }) {
 			special.Toggled += _ => ShowGameMode();
@@ -755,6 +785,10 @@ public partial class MultiplayerSetupScreen : Control {
 	private Control MakeMessages() {
 		(PanelContainer panel, VBoxContainer box) = MakePanel(this, "MESSAGES");
 		panel.SizeFlagsVertical = SizeFlags.ExpandFill;
+		// While hosting, how the lobby stands.
+		hostStatus = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		hostStatus.AddThemeFontSizeOverride("font_size", 14);
+		box.AddChild(hostStatus);
 		messages = SetupStyle.MakeMessages();
 		box.AddChild(messages);
 		return panel;
@@ -776,15 +810,17 @@ public partial class MultiplayerSetupScreen : Control {
 		string networkOnly = hotseat ? " Only in a networked game." : "";
 		turnTimer.TooltipText = "How long each player has for their turn before it ends for them. With simultaneous moves, how long everyone "
 			+ "has for the round." + networkOnly;
+		UpdateHosting();
 		ShowSlots();
 		messages.Clear();
 		AddMessage($"Setting up {(hotseat ? "a hotseat game" : gameNameEdit.Text)}, hosted by {HostName}.");
 		AddMessage(type switch {
 			MultiplayerGameType.Hotseat => "Each Open slot is another player at this computer, taking turns with you. Rename gives them their names.",
-			MultiplayerGameType.Internet => "Launch opens the lobby and hosts the game online too: players anywhere join with the join code it shows, "
-				+ "and players on your network from \"Join LAN Game\". They choose their civilizations there.",
-			_ => "Launch opens the lobby, where players on your network join the Open slots from \"Join LAN Game\" and choose their civilizations. "
-				+ "You start the game there once every Open slot is taken.",
+			MultiplayerGameType.Internet => "The game is hosted online too: players anywhere join the Open slots with the join code under Game "
+				+ "Settings, and players on your network from \"Join LAN Game\". They choose their civilizations here. Launch starts the game "
+				+ "once every Open slot is taken.",
+			_ => "Players on your network join the Open slots from \"Join LAN Game\" and choose their civilizations here. "
+				+ "Launch starts the game once every Open slot is taken.",
 		});
 	}
 
@@ -796,7 +832,10 @@ public partial class MultiplayerSetupScreen : Control {
 		}
 		MultiplayerGameType type = GameType;
 		Random random = new();
-		MultiplayerPlan plan = MultiplayerSlots.Plan(type, civNames[hostCivilization.Selected], slots, save.Civilizations, random);
+		// A random civilization for the host is one no player who joined chose.
+		HashSet<string> guestCivs = GuestCivilizations();
+		MultiplayerPlan plan = MultiplayerSlots.Plan(type, civNames[hostCivilization.Selected], slots.Take(rows.Count).ToList(),
+			save.Civilizations.Where(c => !guestCivs.Contains(c.name)).ToList(), random);
 		if (plan.problem != null) {
 			AddMessage(plan.problem, ProblemColor);
 			return;
@@ -875,8 +914,16 @@ public partial class MultiplayerSetupScreen : Control {
 			return;
 		}
 
-		// The guests choose their civilizations in the lobby, and the game is
-		// created once the host starts it there.
+		// Hosting here, the players who joined have chosen their
+		// civilizations, and the world is made now.
+		if (Hosting) {
+			LaunchHosted(setup, plan);
+			return;
+		}
+
+		// Couldn't host here: the lobby hosts it, where the guests choose
+		// their civilizations, and the game is created once the host starts
+		// it there.
 		int minutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
 		string name = gameNameEdit.Text.Trim();
 		LanSession.HostNextGame = true;
@@ -954,6 +1001,7 @@ public partial class MultiplayerSetupScreen : Control {
 	}
 
 	private void BackToMenu() {
+		StopHosting();
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");

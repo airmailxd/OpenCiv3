@@ -483,6 +483,52 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(humans[1].hasPlayedThisTurn);
 	}
 
+	// The host changes the seats of a new game while players are in them,
+	// as on the Multiplayer Setup screen: a player whose seat goes watches
+	// instead, and a civilization the host keeps for itself or the computer
+	// can't be chosen.
+	[Fact]
+	public void TheHostChangesTheSeatsWhilePlayersAreInThem() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
+		using LanHost host = new("Host", null, guestSeats: 3, save.Civilizations, port: 0, answerDiscovery: false);
+		using LanClient ann = LanClient.Connect("127.0.0.1", host.Port, "Ann");
+		using LanClient bob = LanClient.Connect("127.0.0.1", host.Port, "Bob");
+		PumpUntil(host, ann, () => ann.Lobby != null);
+		PumpUntil(host, bob, () => bob.Lobby != null);
+		ID first = host.Seats[0].playerID, third = host.Seats[2].playerID;
+		bob.ClaimSeat(third);
+		PumpUntil(host, bob, () => bob.YourSeats.Count > 0);
+		ann.ClaimSeat(first);
+		PumpUntil(host, ann, () => ann.YourSeats.Count > 0);
+		Assert.True(host.JoinOrder(third) < host.JoinOrder(first));
+		Assert.Equal(0, host.JoinOrder(host.Seats[1].playerID));
+
+		// A new seat between, the empty one gone: the seats keep their
+		// players, and have the IDs the game will give them.
+		host.SetSeats([first, null, third]);
+		List<ID> ids = GameSetup.HumanPlayerIDs(4).Skip(1).ToList();
+		Assert.Equal(ids, host.Seats.Select(s => s.playerID));
+		Assert.Equal(["Ann", null, "Bob"], host.Seats.Select(s => s.takenBy));
+		PumpUntil(host, bob, () => bob.YourSeats.SequenceEqual([ids[2]]));
+
+		// Bob's seat goes: he watches instead, and knows it.
+		host.SetSeats([ids[0], ids[1]]);
+		Assert.Equal(["Ann", null], host.Seats.Select(s => s.takenBy));
+		Assert.Equal(["Bob"], host.Spectators);
+		PumpUntil(host, bob, () => bob.IsSpectator && bob.Lobby.yourSeats.Count == 0);
+
+		// The computer's civilization can't be chosen, and Ann loses it when
+		// the host takes it.
+		host.ReservedCivilizations = [playable[2].name];
+		ann.ChooseCivilization(playable[2].name);
+		ann.ChooseCivilization(playable[4].name);
+		PumpUntil(host, ann, () => host.Seats[0].civilization == playable[4].name);
+		Assert.DoesNotContain(ann.Lobby.civilizations, c => c.name == playable[2].name);
+		host.HostCivilization = playable[4].name;
+		Assert.Null(host.Seats[0].civilization);
+	}
+
 	[Fact]
 	public void GuestsChooseTheirCivilizationsBeforeTheGameIsCreated() {
 		// A new game whose map is made but whose players aren't yet.

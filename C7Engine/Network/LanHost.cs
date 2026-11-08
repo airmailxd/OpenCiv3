@@ -163,6 +163,8 @@ public class LanHost : IDisposable {
 		// Bans the address of the guest who took the seat, even once it has
 		// gone; null when that can't be done.
 		public Action banAddress;
+		// The order the guest took the seat in (see JoinOrder).
+		public long joinOrder;
 		public bool IsTaken => guest != null && !guest.connection.IsClosed;
 		// Kept for a guest who has lost their connection.
 		public bool IsHeld => !IsTaken && token != null;
@@ -201,7 +203,7 @@ public class LanHost : IDisposable {
 	private string hostName;
 	private readonly List<Seat> seats;
 	private readonly ID hostPlayerID;
-	private readonly string hostCivilization;
+	private string hostCivilization;
 
 	// The game's turn while in the lobby, for its public listing.
 	private readonly int lobbyTurn;
@@ -484,7 +486,118 @@ public class LanHost : IDisposable {
 
 	// The spectators with their IDs, which tell apart two with the same name.
 	public IReadOnlyList<SpectatorInfo> SpectatorList => spectators.Select(s => new SpectatorInfo(s.id, s.name)).ToList();
-	public string HostCivilization => hostCivilization;
+	// The host's civilization; null for a random one. In a new game not
+	// created yet, the host may change it, and a guest who chose it goes
+	// back to a random one.
+	public string HostCivilization {
+		get => hostCivilization;
+		set {
+			if (value == hostCivilization || !GuestsChooseCivilizations || creatingGame) {
+				return;
+			}
+			hostCivilization = value;
+			FreeCivilizations();
+			BroadcastLobby();
+		}
+	}
+
+	// In a new game not created yet, the civilizations guests can't choose,
+	// such as those the host set computer players to; a guest who chose one
+	// goes back to a random one.
+	public IReadOnlyCollection<string> ReservedCivilizations {
+		get => reservedCivilizations;
+		set {
+			HashSet<string> reserved = value == null ? [] : [.. value];
+			if (reserved.SetEquals(reservedCivilizations)) {
+				return;
+			}
+			reservedCivilizations = reserved;
+			FreeCivilizations();
+			BroadcastLobby();
+		}
+	}
+	private HashSet<string> reservedCivilizations = [];
+
+	// In a new game not created yet, the civilizations guests choose from,
+	// as when the host loads other rules; a guest whose choice isn't among
+	// them goes back to a random one.
+	public void SetPlayableCivilizations(IEnumerable<Civilization> playable) {
+		if (!GuestsChooseCivilizations || creatingGame) {
+			return;
+		}
+		choosable = playable.Where(c => !c.isBarbarian).ToList();
+		foreach (Seat seat in seats.Where(s => s.info.civilization != null && !choosable.Any(c => c.name == s.info.civilization))) {
+			seat.info = seat.info with { civilization = null };
+		}
+		BroadcastLobby();
+	}
+
+	private bool IsReserved(string civilization) => civilization == hostCivilization || reservedCivilizations.Contains(civilization);
+
+	// Gives the guests who chose a civilization now reserved a random one.
+	private void FreeCivilizations() {
+		foreach (Seat seat in seats.Where(s => s.info.civilization != null && IsReserved(s.info.civilization))) {
+			seat.info = seat.info with { civilization = null };
+		}
+	}
+
+	// In a new game not created yet, sets the seats guests can take: one for
+	// each entry, in turn order, either the seat with that ID, kept as it
+	// is, or a new one for null. Seats left out are taken away, and their
+	// guests, left with no seat, watch instead. The seats then have the IDs
+	// GameSetup will give their players.
+	public void SetSeats(IReadOnlyList<ID> layout) {
+		if (!GuestsChooseCivilizations || creatingGame) {
+			throw new InvalidOperationException("The seats can change only before the game is created");
+		}
+		List<Seat> kept = layout.Select(id => id == null ? null : seats.Find(s => s.info.playerID == id)).ToList();
+		List<Seat> removed = seats.Where(s => !kept.Contains(s)).ToList();
+		List<ID> ids = GameSetup.HumanPlayerIDs(layout.Count + 1);
+		List<Seat> next = kept.Select((seat, i) => seat == null
+			? new Seat { info = new SeatInfo(ids[i + 1], null, null, false, null) }
+			: seat).ToList();
+		for (int i = 0; i < next.Count; ++i) {
+			next[i].info = next[i].info with { playerID = ids[i + 1] };
+		}
+		seats.Clear();
+		seats.AddRange(next);
+		foreach (Guest guest in removed.Select(s => s.guest).Where(g => g != null && !SeatsOf(g).Any()).Distinct().ToList()) {
+			log.Information("{Name} has no seat left in the game, so watches it", guest.name);
+			WatchInstead(guest);
+		}
+		PublishDiscoveryReply();
+		BroadcastLobby();
+	}
+
+	// The order the seat's guest took it in, from 1 for the first seat taken;
+	// 0 if it's open.
+	public long JoinOrder(ID playerID) => seats.Find(s => s.info.playerID == playerID) is Seat { guest: not null } seat ? seat.joinOrder : 0;
+	private long nextJoinOrder = 1;
+
+	// A guest left with no seat watches the game, if there's room for one
+	// more spectator, whether or not spectators may join; or else leaves it.
+	private void WatchInstead(Guest guest) {
+		if (spectators.Count(s => !s.connection.IsClosed) >= MaxSpectators) {
+			Reject(guest, "There's no longer a seat for you in this game.");
+			return;
+		}
+		guests.Remove(guest);
+		spectators.Add(new Spectator {
+			id = nextSpectatorID++,
+			connection = guest.connection,
+			name = guest.name,
+			token = guest.token,
+			frameBudget = guest.frameBudget,
+			view = DefaultSpectatorView(),
+		});
+	}
+
+	// Stops taking guests through the relay; those who joined through it
+	// lose the connection.
+	public void StopHostingOnline() {
+		Online?.Dispose();
+		Online = null;
+	}
 	public ID HostPlayerID => hostPlayerID;
 
 	// Whether guests are choosing their civilizations for a game the host
@@ -1558,6 +1671,7 @@ public class LanHost : IDisposable {
 		seat.away = false;
 		seat.takenBy = SeatPlayerName(guest, claim.playerName);
 		seat.banAddress = BanAddress(guest);
+		seat.joinOrder = nextJoinOrder++;
 		log.Information("{Name} took the seat of {Player} for {SeatName}", guest.name, seat.info.playerID, seat.takenBy);
 		if (Started) {
 			// A player rejoining a game in progress, or taking another seat,
@@ -1753,7 +1867,7 @@ public class LanHost : IDisposable {
 		string civilization = choice.civilization;
 		bool available = civilization == null
 			|| (choosable.Any(c => c.name == civilization)
-				&& civilization != hostCivilization
+				&& !IsReserved(civilization)
 				&& !seats.Any(s => s != seat && s.info.civilization == civilization));
 		if (available && seat.info.civilization != civilization) {
 			seat.info = seat.info with { civilization = civilization };
@@ -2129,7 +2243,7 @@ public class LanHost : IDisposable {
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName, team: hostTeam),
 			.. Seats,
 		];
-		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
+		List<CivilizationChoice> civilizations = choosable?.Where(c => !reservedCivilizations.Contains(c.name)).Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
 			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView, TeamCount,

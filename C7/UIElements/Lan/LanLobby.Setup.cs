@@ -37,39 +37,15 @@ public partial class LanLobby {
 	private VBoxContainer statusSlot;
 	private RichTextLabel messages;
 
-	// Who was in each seat and who was watching, when last shown, to tell of
-	// players coming and going.
-	private Dictionary<ID, string> knownOccupants;
-	private HashSet<string> knownSpectators;
+	// Who has come and gone, for the messages.
+	private readonly LobbyEvents lobbyEvents = new();
 
 	// Hosting: the game type shown, which goes from LAN to Internet when the
 	// game is hosted online.
 	private Label gameTypeValue;
 
-	// Hosting online: the button to start, the join code and how the link
-	// to the relay stands.
-	private Button hostOnlineButton;
-	private HBoxContainer onlineCodeRow;
-	private Label onlineCode;
-	private VBoxContainer relayRow;
-	private LineEdit relayEdit;
-	private Label onlineStatus;
-
-	// Hosting online: listing the game publicly, with a description, and
-	// how that stands.
-	private VBoxContainer listingBox;
-	private Label listingStatus;
-
-	// Hosting: the password typed, and whether it was changed since it was
-	// last set.
-	private LineEdit passwordEdit;
-	private Label passwordStatus;
-	private bool passwordEdited;
-
-	// Hosting: whether spectators may watch, which follows hiding what
-	// players can't see until the host chooses, and how they may see it.
-	private Civ3Checkbox spectatorsBox;
-	private OptionButton spectatorViewChoice;
+	// Hosting: how players join, and who may.
+	private HostJoiningSection joiningSection;
 
 	// Column widths in a player row: the slot's number, the team, and what
 	// can be done to the player.
@@ -182,8 +158,7 @@ public partial class LanLobby {
 		FreeChildren(rulesGrid);
 		shownSettings = null;
 		shownRules = null;
-		knownOccupants = null;
-		knownSpectators = null;
+		lobbyEvents.Reset();
 		messages.Clear();
 		startButton.Visible = false;
 		joinGameButton.Visible = false;
@@ -203,13 +178,6 @@ public partial class LanLobby {
 		settingsList.AddChild(value);
 	}
 
-	private Label AddSubheading(string text) {
-		Label heading = MakeHeading(this, text, 13);
-		heading.CustomMinimumSize = new Vector2(0, 26);
-		heading.VerticalAlignment = VerticalAlignment.Bottom;
-		settingsList.AddChild(heading);
-		return heading;
-	}
 
 	private static Label MakeNote(string text) {
 		Label note = new() { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -245,10 +213,17 @@ public partial class LanLobby {
 		AddTurnRules();
 		ShowRules(host.LobbyRules);
 
-		AddSubheading("JOINING");
-		AddJoinAddresses();
-		AddOnlineHosting();
-		AddAccess();
+		joiningSection = new HostJoiningSection();
+		joiningSection.Build(this, hostOnlineButtonShown: true);
+		joiningSection.OnlineChanged += online => gameTypeValue.Text = online ? "Internet" : "LAN";
+		settingsList.AddChild(joiningSection);
+		// A game resumed from one hosted online goes online again, with the
+		// same code, so that its guests find it where they left it.
+		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
+			joiningSection.HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
+		} else if (LanSession.DevHostOnline || LanSession.PendingGame?.hostOnline == true) {
+			joiningSection.HostOnline();
+		}
 	}
 
 	// How long each player has for their turn; a resumed game keeps its own.
@@ -303,246 +278,9 @@ public partial class LanLobby {
 			+ "and see only what the civilizations know unless you let them see the whole game.");
 		hide.Toggled += on => {
 			LanSession.Host.HideUnseen = on;
-			spectatorsBox?.SetPressedNoSignal(LanSession.Host.AllowSpectators);
-			ShowSpectatorViews();
+			joiningSection?.ShowSpectators();
 		};
 		settingsList.AddChild(hide);
-	}
-
-	// The addresses players type to join, if the game isn't listed for them.
-	private void AddJoinAddresses() {
-		List<(string address, string network)> addresses = LanDiscovery.LocalAddressesByNetwork();
-		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
-		const string tip = "Players on your network see this game under \"Join LAN Game\". If it isn't listed for them, "
-			+ "they type the address on the same network as theirs: usually the one starting with 192.168. or 10.";
-		List<string> local = addresses.Where(a => a.network == null).Select(a => a.address + port).ToList();
-		settingsList.AddChild(MakeSettingLabel("Address:"));
-		if (local.Count == 0) {
-			settingsList.AddChild(MakeValue(addresses.Count == 0 ? "No network connection found" : "None on a local network", tip));
-		}
-		foreach (string address in local) {
-			settingsList.AddChild(MakeValue(address, tip));
-		}
-		// Players on the internet join through a virtual network app, which
-		// doesn't list games, so they type the address it gives this computer.
-		foreach (var (address, network) in addresses.Where(a => a.network != null)) {
-			AddSetting($"{network} Address:", MakeValue(address + port, $"Players on your {network} network type this to join."));
-		}
-	}
-
-	// Hosting online, for players anywhere to join with a join code through
-	// the relay, as well as on the network.
-	private void AddOnlineHosting() {
-		settingsList.AddChild(MakeSettingLabel("Join Code:"));
-		hostOnlineButton = MakeButton("Host Online", "Host the game online too, for players anywhere to join with a code.");
-		hostOnlineButton.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-		hostOnlineButton.Pressed += () => HostOnline(relayEdit.Text);
-		settingsList.AddChild(hostOnlineButton);
-
-		// The host chooses the relay; players are told it with the code.
-		relayRow = new VBoxContainer();
-		relayRow.AddChild(MakeSettingLabel("Relay Server:"));
-		relayEdit = MakeDarkField();
-		relayEdit.Text = OnlineRelay.SameRelay(OnlineRelay.Url, OnlineRelay.DefaultUrl) ? "" : OnlineRelay.Url;
-		relayEdit.PlaceholderText = "relay.example.org";
-		relayEdit.TextSubmitted += text => HostOnline(text);
-		relayRow.AddChild(relayEdit);
-		settingsList.AddChild(relayRow);
-
-		onlineCodeRow = new HBoxContainer { Visible = false };
-		onlineCodeRow.AddThemeConstantOverride("separation", 8);
-		onlineCode = MakeValue("");
-		onlineCode.AddThemeFontSizeOverride("font_size", 18);
-		onlineCodeRow.AddChild(onlineCode);
-		Button copy = MakeSmallButton("Copy", "Copy the join code to send to the players.", () => {
-			if (OnlineInvite() is string invite) {
-				DisplayServer.ClipboardSet(invite);
-			}
-		});
-		onlineCodeRow.AddChild(copy);
-		settingsList.AddChild(onlineCodeRow);
-
-		onlineStatus = MakeNote("");
-		onlineStatus.Visible = false;
-		settingsList.AddChild(onlineStatus);
-
-		AddPublicListing();
-
-		// A game resumed from one hosted online goes online again, with the
-		// same code, so that its guests find it where they left it.
-		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
-			HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
-		} else if (LanSession.DevHostOnline || LanSession.PendingGame?.hostOnline == true) {
-			HostOnline();
-		}
-	}
-
-	// Starts taking guests through the relay: the one in the settings, or
-	// the one a resumed game's code is from.
-	private void HostOnline(string relayUrl = null, string code = null, string key = null) {
-		relayUrl = string.IsNullOrWhiteSpace(relayUrl) ? OnlineRelay.Url : relayUrl.Trim();
-		onlineStatus.Visible = true;
-		if (OnlineRelay.Problem(relayUrl) is string problem) {
-			onlineStatus.Text = problem;
-			return;
-		}
-		// A relay chosen here is the one used from now on, here and when
-		// joining.
-		if (code == null) {
-			OnlineRelay.SetUrl(relayUrl);
-		}
-		LanSession.Host.HostOnline(relayUrl, code, key);
-		hostOnlineButton.Visible = false;
-		relayRow.Visible = false;
-		listingBox.Visible = true;
-		gameTypeValue.Text = "Internet";
-		UpdateOnlineStatus();
-	}
-
-	// Listing the game in the relay's public list, under its name, for
-	// players anywhere to find under "Browse Online Games", once it's hosted
-	// online.
-	private void AddPublicListing() {
-		LanHost host = LanSession.Host;
-		listingBox = new VBoxContainer { Visible = false };
-		listingBox.AddThemeConstantOverride("separation", 2);
-		settingsList.AddChild(listingBox);
-
-		Civ3Checkbox list = MakeRule("List Publicly", host.ListPublicly,
-			"Show this game in the online game browser, under its name above, for anyone using this relay to find and join. "
-			+ "Set a password to choose who can join.");
-		list.Toggled += on => host.ListPublicly = on;
-		listingBox.AddChild(list);
-		LineEdit description = MakeDarkField();
-		description.Text = host.PublicDescription ?? "";
-		description.PlaceholderText = "A few words for the list";
-		description.MaxLength = RelayProtocol.MaxGameDescriptionLength;
-		description.TooltipText = "A few words about the game, for the public list (optional).";
-		description.TextChanged += text => host.PublicDescription = text;
-		listingBox.AddChild(description);
-		listingStatus = MakeNote("");
-		listingBox.AddChild(listingStatus);
-	}
-
-	// Who may come in: the game's password, and whether anyone may watch.
-	private void AddAccess() {
-		LanHost host = LanSession.Host;
-		settingsList.AddChild(MakeSettingLabel("Password:"));
-		// A resumed game keeps its password, which isn't kept as itself, so
-		// it can only be changed, not shown.
-		passwordEdit = MakeDarkField();
-		passwordEdit.Secret = true;
-		passwordEdit.MaxLength = GamePassword.MaxLength;
-		passwordEdit.PlaceholderText = host.HasPassword ? "(kept from the saved game)" : "none";
-		passwordEdit.TooltipText = "Players need this to join, unless they're coming back to their seats. Press Enter to set it; "
-			+ "clear it and press Enter for no password. The game's LAN autosave keeps what checks the password, which "
-			+ "is as good as the password for joining this game, so keep the autosave to yourself.";
-		passwordEdit.TextChanged += _ => passwordEdited = true;
-		passwordEdit.TextSubmitted += _ => SetPassword();
-		passwordEdit.FocusExited += SetPassword;
-		settingsList.AddChild(passwordEdit);
-		passwordStatus = MakeNote("");
-		settingsList.AddChild(passwordStatus);
-		ShowPasswordStatus();
-
-		spectatorsBox = MakeRule("Allow Spectators", host.AllowSpectators,
-			$"Let up to {LanHost.MaxSpectators} players watch the game without playing. Even watching as a "
-			+ "civilization shows what it knows to whoever watches, who may be playing its rival, so they're off unless you "
-			+ "allow them while hiding what players can't see. Turning this off stops anyone watching.");
-		spectatorsBox.Toggled += on => {
-			host.AllowSpectators = on;
-			spectatorViewChoice.Disabled = !on;
-		};
-		settingsList.AddChild(spectatorsBox);
-
-		spectatorViewChoice = MakeDropdown("How spectators may see the game. As a civilization, they see only what it knows, as its player "
-			+ "would; as all of them, what any of them knows, so what nobody has seen stays hidden; or the whole game. "
-			+ "Unless you say otherwise they may watch any way, and switch at will during the game.");
-		AddItems(spectatorViewChoice, SpectatorViewChoices.Select(c => c.text), 0);
-		spectatorViewChoice.ItemSelected += index => host.SpectatorViews = SpectatorViewChoices[(int)index].views;
-		AddSetting("Spectators See:", spectatorViewChoice);
-		ShowSpectatorViews();
-	}
-
-	// The ways the host can let spectators see the game.
-	private static readonly (string text, SpectatorViews views)[] SpectatorViewChoices = [
-		("Any way they choose", SpectatorViews.Any),
-		("As the civilizations, one or all", SpectatorViews.AsCivs),
-		("As all the civilizations", SpectatorViews.AllCivs),
-		("As one civilization", SpectatorViews.OneCiv),
-		("The whole game", SpectatorViews.Omniscient),
-	];
-
-	private void ShowSpectatorViews() {
-		if (spectatorViewChoice == null || LanSession.Host == null) {
-			return;
-		}
-		int index = Array.FindIndex(SpectatorViewChoices, c => c.views == LanSession.Host.SpectatorViews);
-		spectatorViewChoice.Select(index);
-		spectatorViewChoice.Disabled = !LanSession.Host.AllowSpectators;
-	}
-
-	private void SetPassword() {
-		if (!passwordEdited || LanSession.Host == null) {
-			return;
-		}
-		passwordEdited = false;
-		LanSession.Host.SetPassword(passwordEdit.Text);
-		passwordEdit.PlaceholderText = "none";
-		ShowPasswordStatus();
-	}
-
-	private void ShowPasswordStatus() {
-		passwordStatus.Text = LanSession.Host.HasPassword ? "Password set." : "Anyone can join.";
-	}
-
-	// What players type to join: the code, with the relay when it isn't the
-	// default one.
-	private static string OnlineInvite() {
-		RelayHostLink link = LanSession.Host?.Online;
-		return link == null ? null : OnlineRelay.Invite(link.FormattedCode, link.RelayUrl);
-	}
-
-	private void UpdateOnlineStatus() {
-		RelayHostLink link = LanSession.Host?.Online;
-		if (link == null || onlineStatus == null) {
-			return;
-		}
-		string code = OnlineInvite() ?? "";
-		if (onlineCode.Text != code) {
-			onlineCode.Text = code;
-			onlineCode.TooltipText = code;
-			// An invite naming the relay is longer than a code alone.
-			onlineCode.AddThemeFontSizeOverride("font_size", code.Contains('@') ? 13 : 18);
-			onlineCodeRow.Visible = code != "";
-		}
-		int guests = link.GuestCount;
-		string text = link.State switch {
-			RelayHostLink.LinkState.Connecting => link.Error == null ? "Connecting to the relay..." : $"Connecting to the relay... ({link.Error})",
-			RelayHostLink.LinkState.Online => "Online. Players choose \"Join LAN Game\" and type this code under \"Online game code\"."
-				+ (guests == 0 ? "" : $" {guests} connected through the relay."),
-			RelayHostLink.LinkState.Reconnecting => $"Lost the relay, reconnecting... Players online are back once it is. ({link.Error})",
-			_ => $"Could not host online: {link.Error}",
-		};
-		if (onlineStatus.Text != text) {
-			onlineStatus.Text = text;
-		}
-		string listing = !LanSession.Host.ListPublicly ? "Not listed: players need the code to join."
-			: link.IsListed ? "Listed publicly: players can find it under \"Browse Online Games\"."
-			: link.ListingError != null ? $"Not listed: {link.ListingError}"
-			: link.State == RelayHostLink.LinkState.Online ? "Listing..."
-			: "Listed once the game is back online.";
-		if (listingStatus.Text != listing) {
-			listingStatus.Text = listing;
-		}
-		// Hosting online failed for good, as with a code that can't be had
-		// again: trying again gets a new one.
-		if (link.State == RelayHostLink.LinkState.Failed && !hostOnlineButton.Visible) {
-			hostOnlineButton.Text = "Host Online Again";
-			hostOnlineButton.Visible = true;
-			relayRow.Visible = true;
-			gameTypeValue.Text = "LAN";
-		}
 	}
 
 	// A guest's view of the settings, which only the host can change.
@@ -699,35 +437,7 @@ public partial class LanLobby {
 	// Tells the messages who has come and gone since the players were last
 	// shown.
 	private void NoteChanges(IEnumerable<SeatInfo> seats, IEnumerable<string> spectators) {
-		Dictionary<ID, string> occupants = seats.Where(s => !s.isHost)
-			.ToDictionary(s => s.playerID, s => s.takenBy == null ? null : s.disconnected ? $"\u0001{s.takenBy}" : s.takenBy);
-		HashSet<string> watching = spectators.ToHashSet();
-		if (knownOccupants != null) {
-			foreach ((ID id, string now) in occupants) {
-				knownOccupants.TryGetValue(id, out string before);
-				if (now == before) {
-					continue;
-				}
-				string nowName = now?.TrimStart('\u0001'), beforeName = before?.TrimStart('\u0001');
-				if (now != null && now.StartsWith('\u0001')) {
-					AddMessage(messages, $"{nowName} lost the connection; their slot is held for them.");
-				} else if (now != null && nowName == beforeName) {
-					AddMessage(messages, $"{nowName} is back.");
-				} else if (now != null) {
-					AddMessage(messages, $"{nowName} joined.");
-				} else if (before != null) {
-					AddMessage(messages, $"{beforeName} left.");
-				}
-			}
-			foreach (string name in watching.Except(knownSpectators)) {
-				AddMessage(messages, $"{name} is watching.");
-			}
-			foreach (string name in knownSpectators.Except(watching)) {
-				AddMessage(messages, $"{name} stopped watching.");
-			}
-		}
-		knownOccupants = occupants;
-		knownSpectators = watching;
+		lobbyEvents.Note(seats, spectators, text => AddMessage(messages, text));
 	}
 
 	// The host's view of the players: their own row, where they can rename
@@ -795,7 +505,7 @@ public partial class LanLobby {
 		ShowGuestSettings(lobby);
 		ShowRules(lobby.details?.rules);
 		NoteChanges(lobby.seats, lobby.spectators ?? []);
-		if (knownOccupants != null && messages.GetParsedText().Length == 0) {
+		if (messages.GetParsedText().Length == 0) {
 			AddMessage(messages, $"In {lobby.hostName}'s game.");
 		}
 
