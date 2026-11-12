@@ -19,17 +19,27 @@ public static class LeaderHeadTextures {
 		return Get(civilization, civilization, 0);
 	}
 
+	// A player's leader head with the given face (the Foreign Advisor's,
+	// see ForeignReport.FaceToward). The neutral face is the one Get(player)
+	// shows.
+	public static ImageTexture Get(Player player, LeaderFace face) {
+		return Get(player, player.civilization, player.EraIndex(), face);
+	}
+
 	// Cached apart from Civ3's heads, so turning the overhaul on or off
 	// shows the other ones.
 	private const int RemadeKey = 1000;
 
-	private static ImageTexture Get(object playerOrCivilization, Civilization civilization, int eraIndex) {
+	private static ImageTexture Get(object playerOrCivilization, Civilization civilization, int eraIndex,
+			LeaderFace face = LeaderFace.Neutral) {
 		Dictionary<int, ImageTexture> byEra = cache.GetOrCreateValue(playerOrCivilization);
 		bool remade = UsesRemadeHead(civilization);
-		int key = remade ? RemadeKey : eraIndex;
+		// The remade portraits have one face for every era and mood.
+		int key = remade ? RemadeKey : eraIndex * 3 + (int)face;
 		if (!byEra.TryGetValue(key, out ImageTexture texture) || !GodotObject.IsInstanceValid(texture)) {
 			texture = remade ? RemadeHead(civilization) : null;
-			texture ??= TextureLoader.Load("leader_heads", playerOrCivilization);
+			texture ??= TextureLoader.Load("leader_heads", face == LeaderFace.Neutral || playerOrCivilization is not Player player
+				? playerOrCivilization : new LeaderPortrait(player, face));
 			byEra[key] = texture;
 		}
 		return texture;
