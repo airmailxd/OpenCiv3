@@ -89,6 +89,20 @@ public partial class PopupOverlay : HBoxContainer {
 
 	public bool ShowingPopup => currentChild is not null;
 
+	// Whether the overlay hid in this frame. The key that closed a popup
+	// (Enter or Space picking from a list) reaches the popup earlier in the
+	// frame than the game polls its key actions, where it would also be an
+	// order on the map: Space "no orders" or Enter End Turn.
+	public bool HidThisFrame => !Visible && hiddenOnFrame == Engine.GetProcessFrames();
+	private ulong hiddenOnFrame = ulong.MaxValue;
+
+	public override void _Notification(int what) {
+		base._Notification(what);
+		if (what == NotificationVisibilityChanged && !Visible) {
+			hiddenOnFrame = Engine.GetProcessFrames();
+		}
+	}
+
 	/// <summary>The popup currently in front, or null.</summary>
 	public Control CurrentPopup => currentChild;
 

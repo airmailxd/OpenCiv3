@@ -3148,6 +3148,13 @@ public partial class Game : Node {
 				&& eventKeyDown.AltPressed) {
 				ProcessAction(C7Action.ToggleCoordinates);
 			}
+			// Go to City (Civ3's Ctrl-Shift-G)
+			else if (eventKeyDown.IsCommandOrControlPressed()
+					   && eventKeyDown.ShiftPressed) {
+				if (!eventKeyDown.Echo) {
+					ProcessAction(C7Action.UnitGotoCity);
+				}
+			}
 			// Toggle Grid
 			else if (eventKeyDown.IsCommandOrControlPressed()) {
 				ProcessAction(C7Action.ToggleGrid);
@@ -3508,8 +3515,9 @@ public partial class Game : Node {
 			return;
 		}
 
-		// never poll for actions if UI elements are visible
-		if (HasVisibleModal()) {
+		// never poll for actions if UI elements are visible, or in the frame
+		// a popup closed (see PopupOverlay.HidThisFrame)
+		if (HasVisibleModal() || popupOverlay.HidThisFrame) {
 			return;
 		}
 
@@ -3617,6 +3625,10 @@ public partial class Game : Node {
 		// it is not the input being pressed.
 		if (currentAction == C7Action.UnitGoto) {
 			this.SetGotoMode(true);
+		}
+
+		if (currentAction == C7Action.UnitGotoCity) {
+			this.ShowGotoCityPopup(CurrentlySelectedUnit);
 		}
 
 		if (currentAction == C7Action.UnitExplore) {
@@ -3801,6 +3813,35 @@ public partial class Game : Node {
 				"No, not now.",
 				() => { new MsgUpgradeUnit(unit.id).send(); }),
 			PopupOverlay.PopupCategory.Advisor);
+	}
+
+	// Civ3's Go to City (Ctrl-Shift-G; script.txt's GOTO_CITY, "Goto
+	// City"): a list of our cities the unit can reach, with the turns to
+	// each as the go-to cursor shows them. A click selects a city, and a
+	// second click on it (or Enter, or the confirm button) sends the unit
+	// there the way a go-to would.
+	private void ShowGotoCityPopup(MapUnit selected) {
+		List<City> cities = [];
+		List<string> items = [];
+		EngineStorage.ReadGameData((GameData gameData) => {
+			MapUnit unit = gameData.GetUnit(selected.id);
+			if (unit == null || unit.owner != controller) {
+				return;
+			}
+			foreach ((City city, TilePath _, int turns) in UnitInteractions.GotoCityChoices(unit)) {
+				cities.Add(city);
+				items.Add($"{city.name} ({turns} {(turns == 1 ? "turn" : "turns")})");
+			}
+		});
+		if (cities.Count == 0) {
+			return;
+		}
+		popupOverlay.ShowPopup(new ListPopup("Goto City", items, -1, index => {
+			SetGotoMode(false);
+			gotoInfo = GetGotoInfo(cities[index].location);
+			ResolveMovement(gotoInfo);
+			SetGotoMode(false);
+		}) { clickTwice = true }, PopupOverlay.PopupCategory.Info);
 	}
 
 	// Whether the player is dragging the selected unit to pick its destination.
