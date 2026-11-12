@@ -1353,12 +1353,8 @@ namespace C7GameData {
 		}
 
 		// Get a fresh research queue that overrides any current or previous queues.
-		// This queue is being reversed in the end, to provide the actual queue
-		// that the player would go through
 		public void CalculateFreshTechQueueAndAssignNewCurrent(Tech tech) {
-			ResearchQueue.Clear();
-			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, ResearchQueue, new HashSet<Tech>()).Reverse();
-			ResearchQueue = new Queue<Tech>(techQueue);
+			ResearchQueue = GetResearchQueueFor(tech);
 
 			if (ResearchQueue.Count > 0)
 				SetCurrentlyResearchedTech(ResearchQueue.Peek().id);
@@ -1366,68 +1362,44 @@ namespace C7GameData {
 
 		// Append a new queue at the tail end of the current queue
 		public void CalculateTechQueueAndAppendToCurrentQueue(Tech tech) {
-			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, new Queue<Tech>(), new HashSet<Tech>()).Reverse();
 			HashSet<Tech> alreadyQueued = new(ResearchQueue);
-			foreach (Tech t in techQueue) {
+			foreach (Tech t in GetResearchQueueFor(tech)) {
 				if (alreadyQueued.Add(t)) {
 					AddTechItemToResearchQueue(t);
 				}
 			}
 		}
 
-		/// <summary>
-		/// This produces a queue, but in reverse order, going from the last tech to the first.
-		/// We can't reverse when returning from this method, because of its recursive nature,
-		/// so this must be done from the caller method.
-		/// </summary>
-		/// <param name="tech"></param>
-		/// <param name="tempQueue">The queue being built.</param>
-		/// <param name="inQueue">The techs in tempQueue, for fast lookups. Must start out matching tempQueue.</param>
-		/// <returns></returns>
-		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue) {
-			return GetResearchQueueFor(tech, tempQueue, inQueue, new HashSet<Tech>());
+		// The techs to research to reach the given one, in research order:
+		// depth first, every unknown prerequisite comes before the tech that
+		// needs it, and the given tech comes last. Adapted from
+		// GBiebs/OpenCiv3.
+		private Queue<Tech> GetResearchQueueFor(Tech tech) {
+			Queue<Tech> queue = new();
+			if (tech == null) {
+				return queue;
+			}
+			HashSet<Tech> visited = new() { tech };
+			foreach (Tech t in OrderTechs(tech.Prerequisites)) {
+				AddWithPrerequisites(t, queue, visited);
+			}
+			queue.Enqueue(tech);
+			return queue;
 		}
 
-		// expanded holds the techs this has already been called for. Once a
-		// call for a tech returns, every unknown tech it leads back to is in
+		// visited holds every tech this has been called for. Once a call for
+		// a tech returns, it and every unknown tech it leads back to are in
 		// the queue, so calling it again would add nothing; skipping it keeps
 		// a tech tree with many paths to the same tech (which the full tree
-		// has) from being walked once per path, without changing the result.
-		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue, HashSet<Tech> expanded) {
-
-			if (tech == null) {
-				return new Queue<Tech>();
+		// has) from being walked once per path.
+		private void AddWithPrerequisites(Tech tech, Queue<Tech> queue, HashSet<Tech> visited) {
+			if (knownTechs.Contains(tech.id) || !visited.Add(tech)) {
+				return;
 			}
-
-			if (!expanded.Add(tech)) {
-				return tempQueue;
+			foreach (Tech t in OrderTechs(tech.Prerequisites)) {
+				AddWithPrerequisites(t, queue, visited);
 			}
-
-			List<Tech> requiredTechs = OrderTechs(tech.Prerequisites);
-
-			// first, add the tech the user clicked
-			if (inQueue.Add(tech)) {
-				tempQueue.Enqueue(tech);
-			}
-
-			// second, get the direct required techs
-			foreach (Tech t in requiredTechs) {
-				if (!knownTechs.Contains(t.id)) {
-					if (inQueue.Add(t)) {
-						tempQueue.Enqueue(t);
-					}
-				}
-			}
-
-			// last, recursively get the required techs of these required techs
-			foreach (Tech t in requiredTechs) {
-				if (!knownTechs.Contains(t.id)) {
-					if (t.Prerequisites.Count > 0) {
-						GetResearchQueueFor(t, tempQueue, inQueue, expanded);
-					}
-				}
-			}
-			return tempQueue;
+			queue.Enqueue(tech);
 		}
 
 		/// <summary>
