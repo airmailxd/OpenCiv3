@@ -686,13 +686,16 @@ namespace C7GameData {
 		// in Civ3.
 		private bool HurryingFromAnEmptyBox() => shieldsStored == 0;
 
-		private int ShieldCostForHurrying() {
-			// If there are no shields in the box, hurrying costs double.
-			if (HurryingFromAnEmptyBox()) {
-				return owner.ShieldCost(itemBeingProduced) * 2;
-			}
+		// The shields still needed to finish the current item.
+		private int ShieldsLeftToHurry() {
 			return owner.ShieldCost(itemBeingProduced) - shieldsStored;
 		}
+
+		// Hurrying from an empty box costs double. Civ3's
+		// City_HurryProduction doubles the price, citizens or gold, after
+		// working it out for the shields still needed. Civ3 binary
+		// (doc/perez-findings/Civ3_Findings.md, 3.4 Hurry).
+		private int EmptyBoxFactor() => HurryingFromAnEmptyBox() ? 2 : 1;
 
 		// The gold it costs to buy the rest of the current item: the BIQ's
 		// "shield value in gold" (4 in the standard rules) for each shield
@@ -703,7 +706,17 @@ namespace C7GameData {
 		// turn)."
 		// https://apolyton.net/forum/civilization-series/civilization-iii/132835-food-shield-gold-explanation-help-please
 		internal int HurryGoldCost() {
-			return ShieldCostForHurrying() * owner.rules.ShieldValueInGold;
+			return ShieldsLeftToHurry() * owner.rules.ShieldValueInGold * EmptyBoxFactor();
+		}
+
+		// The citizens it costs to hurry the current item: those for the
+		// shields still needed, rounded up, then doubled from an empty box,
+		// "cost = ⌈remaining / shields-per-pop⌉, doubled with nothing
+		// invested", Civ3 binary (doc/perez-findings/Civ3_Findings.md, 3.4
+		// Hurry). So 30 shields at 20 a citizen from an empty box is 4
+		// citizens, not the 3 that doubling the shields first would give.
+		internal int HurryPopCost() {
+			return PopRushCost(ShieldsLeftToHurry(), owner.rules.CitizenValueInShields) * EmptyBoxFactor();
 		}
 
 		// The citizens it costs to hurry the given number of shields: each
@@ -742,8 +755,7 @@ namespace C7GameData {
 			if (itemBeingProduced == null) {
 				return new HurryProductionDetails() { errorMessage = "The city is not producing anything to hurry." };
 			}
-			int shieldCost = ShieldCostForHurrying();
-			if (shieldCost <= 0) {
+			if (ShieldsLeftToHurry() <= 0) {
 				return new HurryProductionDetails() { errorMessage = "There is nothing to hurry in this city." };
 			}
 
@@ -761,7 +773,7 @@ namespace C7GameData {
 					return new HurryProductionDetails() { errorMessage = "We cannot hurry production with this government." };
 
 				case Government.HurryProductionType.ForcedLabor:
-					int popCost = PopRushCost(shieldCost, rules.CitizenValueInShields);
+					int popCost = HurryPopCost();
 					if (popCost > residents.Count / 2f) {
 						return new HurryProductionDetails() { errorMessage = $"Hurrying production would take the lives of too many citizens ({popCost})." };
 					}

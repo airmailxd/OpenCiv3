@@ -190,4 +190,31 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(1, new CorruptableValue(5, .9f, 9).useful);
 		Assert.Equal(0, new CorruptableValue(0, .9f, 9).useful);
 	}
+
+	// Pop rushing rounds the citizens up for the shields still needed, then
+	// doubles them from an empty box (3.4 Hurry): 30 shields at 20 a citizen
+	// is 4 citizens, not the 3 that doubling the shields first would give.
+	[Fact]
+	public void PopRushDoublesTheCitizensFromAnEmptyBox() {
+		us.government = gameData.governments.First(g => g.hurryingType == Government.HurryProductionType.ForcedLabor);
+		City city = TownOnGrassland(Terrain("grassland"));
+		UnitPrototype unit = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		city.SetItemBeingProduced(unit);
+		int cost = us.ShieldCost(unit);
+		int saved = gameData.rules.CitizenValueInShields;
+		try {
+			// A citizen worth two thirds of the cost, as 20 is of 30.
+			int value = (2 * cost + 2) / 3;
+			gameData.rules.CitizenValueInShields = value;
+			int expected = 2 * ((cost + value - 1) / value);
+			Assert.NotEqual(expected, (2 * cost + value - 1) / value);
+			Assert.Equal(expected, city.HurryPopCost());
+
+			// With shields in the box, nothing is doubled.
+			city.SetStoredShields(1);
+			Assert.Equal((cost - 1 + value - 1) / value, city.HurryPopCost());
+		} finally {
+			gameData.rules.CitizenValueInShields = saved;
+		}
+	}
 }
