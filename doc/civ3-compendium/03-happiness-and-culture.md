@@ -338,6 +338,7 @@ Where sources are cited:
   - Tested by The Mad Monk, https://codehappy.net/apolyton/threads/76110-1.htm #13 (Feb 2003). He compared the same building in two cities, one just under and one just over 1000 years old: "It's definately 1,000 years." / "you will find that the one improment is now producing twice the culture of the newer one."
   - The 1000 is counted in years. The C3X config (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini): "Buildings double their culture production this many years after they were built. For standard game rules, set to 1000."
   - Corollary: with a 2050 AD end, anything built after 1050 AD never doubles.
+  - **Code (2026-11-12):** Civ3 binary (Perez's decompile, `doc/perez-findings/Civ3_Findings.md`), "Culture and flipping": per-building culture is `BLDG.culture`, "doubled when the building is 1000+ years old", so the doubling starts at exactly 1000 years (inclusive, as the tourism bands do). The owner ruled on 2026-11-12 that the decompile is authoritative; the engine uses `>= 1000`. (An earlier save reading, a library from 620 AD still making 3 in 1620 AD, pointed to "more than 1000"; it is superseded.)
 - **Mobilization halves culture.** Culture from improvements is halved while the civ is on a war footing.
   - Manual: "During wartime footing, cultural improvements produce half the number normally produced per turn."
   - CFC FAQ: "All culture per turn from your city is halved as well".
@@ -360,6 +361,7 @@ Where sources are cited:
   - Renata, https://forums.civfanatics.com/threads/culture-expansion.52924: "a city's original nine tiles".
   - The C3C Civilopedia instead lists 20,000 as the fifth threshold (see Disputed).
   - 1.29f readme, Changes v1.16f: "Editor: On General Settings, added Border Factor which controls border expansion."
+  - **Code (2026-11-12):** Civ3 binary (Perez's decompile, `doc/perez-findings/Civ3_Findings.md`), "Culture and flipping": "Culture level = 1 + number of times `g_RuleCultureBase` fits into the owner's city culture, max 6; it drives borders." The level is capped at 6, whatever the culture. The engine reads "fits" as successive powers of `RULE.BorderFactor`, as the editor help describes, and caps the level at 6 (`City.GetBorderExpansionLevel`). That `g_RuleCultureBase` is the Border Factor is our reading; the decompile does not name the BIQ field.
 - **Civ-wide culture levels** are a separate scale (`RULE` "Lvl. Multiplier", default 1000). They are used for the cultural level labels, not borders.
   - C3C editor help, "Level Multiplier": "Under the default level multiplier of 1000, the values for these cultural levels are 1000, 2000, 4000, 8000, 16000, and 32000."
   - What these levels do in play beyond labels is UNVERIFIED. script.txt uses them only as adjectives (`$CULTURAL_LEVEL`, e.g. "We have destroyed the $CULTURAL_LEVEL3 $CIVNOUN0").

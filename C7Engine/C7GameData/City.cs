@@ -2245,12 +2245,17 @@ namespace C7GameData {
 			return gameData?.timeOptions?.GetRawNumber(gameData.turn) ?? 0;
 		}
 
-		// A building's culture doubles once it is more than a thousand years
-		// old, and only once: Civ3 saves show a temple from 1830 BC making 4
-		// culture a turn in 230 AD, not 8, and a library from 620 AD still
-		// making 3 in 1620 AD.
-		private static int AgeMultiplier(CityBuilding cb, int currentGameYear) {
-			return currentGameYear - cb.year > 1000 ? 2 : 1;
+		// A building's culture doubles once it is 1000 years old or more,
+		// and only once: "doubled when the building is 1000+ years old"
+		// (Civ3 binary, doc/perez-findings/Civ3_Findings.md, "Culture and
+		// flipping"), as the tourism bands start at 1000 years inclusive.
+		// Civ3 saves show a temple from 1830 BC making 4 culture a turn in
+		// 230 AD, not 8. A save with a library from 620 AD still making 3
+		// in 1620 AD reads as "more than 1000"; the project owner ruled the
+		// binary authoritative (2026-11-12). (Perhaps that save's culture
+		// was counted before the year advanced.)
+		internal static int AgeMultiplier(CityBuilding cb, int currentGameYear) {
+			return currentGameYear - cb.year >= 1000 ? 2 : 1;
 		}
 
 		// Conquests tourism: the gold a turn this city's great wonders with
@@ -2306,17 +2311,30 @@ namespace C7GameData {
 			return result;
 		}
 
+		// The city's culture level, 1 to 6, which sets its border radius:
+		// "Culture level = 1 + number of times g_RuleCultureBase fits into
+		// the owner's city culture, max 6" (Civ3 binary,
+		// doc/perez-findings/Civ3_Findings.md, "Culture and flipping"). We
+		// read "fits" as successive powers, as the editor describes the
+		// RULE section's Border Factor: "There are 6 levels of border
+		// expansion and under the default Border Factor of 10, they occur at
+		// 0, 10, 100, 1000, 10000, 100000" (compendium §3.10). So the base
+		// is Rules.BorderFactor, 10 in conquests.biq; a value below 2 is
+		// taken as 10.
 		public int GetBorderExpansionLevel() {
-			// Give ourselves a minimum of 1 culture to avoid taking the log of 0
-			int culture = Math.Max(1, GetCulture());
-
-			// Take the log10 of culture, rounding down (so a culture of 123
-			// would be 2, a culture of 5 would be 0, etc) and then add one to
-			// get the expansion level. With 0-9 culture our culture goal is 10^1
-			// and we have one tile of borders, with 10-99 our culture goal is
-			// 10^2 and we have two tiles of borders.
-			return (int)Math.Floor(Math.Log10(culture)) + 1;
+			int culture = GetCulture();
+			int factor = owner?.rules?.BorderFactor ?? EngineStorage.gameData?.rules?.BorderFactor ?? 10;
+			if (factor < 2) {
+				factor = 10;
+			}
+			int level = 1;
+			for (long threshold = factor; level < MaxBorderExpansionLevel && culture >= threshold; threshold *= factor) {
+				++level;
+			}
+			return level;
 		}
+
+		public const int MaxBorderExpansionLevel = 6;
 
 		public void AddBuilding(Building building) {
 			// A new power plant replaces any other one in the city.
