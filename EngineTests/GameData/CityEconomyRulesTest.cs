@@ -169,4 +169,25 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		us.taxRate = 10 - luxuryRate - scienceRate;
 		Assert.Equal((luxuries, beakers, taxes), city.SplitCommerce(commerce));
 	}
+
+	// Corruption rounds the amount lost halves up, then caps it at 90% less
+	// 10% for each courthouse-class building, rounded down (Economy,
+	// City_CalcCorruption).
+	[Fact]
+	public void CorruptionRoundsTheLossHalfUpAndCapsIt() {
+		// 25 at the 90% cap: 22 lost, 3 kept (not 2).
+		CorruptableValue capped = new(25, .95f, 9);
+		Assert.Equal(3, capped.useful);
+		Assert.Equal(22, capped.corrupt);
+		// 10 at 25%: 2.5 lost rounds up to 3.
+		CorruptableValue half = new(10, .25f, 9);
+		Assert.Equal(3, half.corrupt);
+		Assert.Equal(7, half.useful);
+		// A courthouse lowers the cap to 80%.
+		Assert.Equal(16, new CorruptableValue(20, .9f, 8).corrupt);
+		// The cap leaves a city that makes anything at least one.
+		Assert.Equal(1, new CorruptableValue(1, .9f, 9).useful);
+		Assert.Equal(1, new CorruptableValue(5, .9f, 9).useful);
+		Assert.Equal(0, new CorruptableValue(0, .9f, 9).useful);
+	}
 }

@@ -28,16 +28,23 @@ namespace C7GameData {
 	}
 
 	public struct CorruptableValue {
-		public CorruptableValue(int value, float corruption) {
-			// Apply the corruption amount, ensuring that there is always at
-			// least one shield/commerce if we started with at least one.
-			useful = (int)Math.Round(value * (1 - corruption));
-			if (value > 0) {
-				useful = Math.Max(1, useful);
+		// Civ3's City_CalcCorruption rounds the amount lost, halves up, and
+		// then caps it at capTenths tenths of the amount, rounded down (90%
+		// less 10% for each courthouse-class building, see
+		// City.corruptionCapTenths). So 25 commerce at the 90% cap loses 22
+		// and keeps 3. Civ3 binary (doc/perez-findings/Civ3_Findings.md,
+		// Economy). With a cap of at most 90%, a city that makes anything
+		// always keeps at least one.
+		public CorruptableValue(int value, float corruption, int capTenths = 9) {
+			if (value <= 0) {
+				useful = value;
+				corrupt = 0;
+				return;
 			}
-
-			// Whatever is left over is corrupt.
-			corrupt = value - useful;
+			int lost = (int)Math.Floor(value * corruption + .5f);
+			lost = Math.Clamp(lost, 0, value * Math.Max(capTenths, 0) / 10);
+			corrupt = lost;
+			useful = value - lost;
 		}
 
 		public int useful;
@@ -111,6 +118,11 @@ namespace C7GameData {
 		// Day", between 0 and 1: less than corruption (see
 		// CalculateCorruption). Commerce is corrupted as usual.
 		public float celebrationWaste = 0;
+
+		// The most corruption and waste can take, in tenths of the amount:
+		// 9 less one per courthouse-class building and 7 per Forbidden
+		// Palace (see CalculateCorruption).
+		public int corruptionCapTenths = 9;
 
 		// The number of turns of unhappiness this city will experience due to
 		// pop rushing. Larger values result in larger numbers of citizens being
@@ -1377,7 +1389,7 @@ namespace C7GameData {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
 			// A celebrating city wastes fewer shields (see CalculateCorruption).
-			CorruptableValue result = new(yield, celebrating ? celebrationWaste : corruption);
+			CorruptableValue result = new(yield, celebrating ? celebrationWaste : corruption, corruptionCapTenths);
 
 			// Using our value of corruption, figure out how much useful
 			// production we have to work with. Special case anarchy, where no
@@ -1627,7 +1639,7 @@ namespace C7GameData {
 			// disorder for the purpose of calculating whether a city would be
 			// happy at a certain luxury slider value even while the city is in
 			// civil disorder.
-			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
+			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption, corruptionCapTenths);
 			RecoverWithPolicemen(ref commerce);
 			bool inDisorder = isInCivilDisorder && respectCivilDisorder;
 			bool inAnarchy = owner.government.transitionType;
@@ -2665,9 +2677,9 @@ namespace C7GameData {
 
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
-			float maxCorruption = Math.Max(
-				0,
-				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
+			// The cap applies to the amounts themselves (see CorruptableValue).
+			corruptionCapTenths = Math.Max(0, 9 - numAntiCorruptionBuildings - 7 * numCorruptionReducingSmallWondersInCity);
+			float maxCorruption = corruptionCapTenths / 10f;
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
 			celebrationWaste = Math.Clamp(celebrationWaste, 0, maxCorruption);
