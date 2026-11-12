@@ -22,6 +22,9 @@ public partial class GameViews : CenterContainer {
 	private ReplayView replayView;
 	// Reached from the Histograph's "Show" list.
 	public StatisticsView statisticsView { get; private set; }
+	// The game view name that shows the statistics screen (the info box's
+	// G button; no key of its own).
+	public const string ShowStatisticsView = "show_statistics_view";
 
 	public override void _Ready() {
 		histographView = new HistographView { Name = "HistographView", Visible = false };
@@ -97,6 +100,9 @@ public partial class GameViews : CenterContainer {
 				break;
 			case C7Action.ShowDemographicsView:
 				demographicsView.ShowView();
+				break;
+			case ShowStatisticsView:
+				statisticsView.ShowView();
 				break;
 			default:
 				log.Warning("Unknown game view: " + gameView);
