@@ -123,6 +123,23 @@ public class TerrainPermissionTest : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.Equal(before.commerce, tile.CommerceYield(us).yield);
 	}
 
+	// Pollution, like craters, costs a tile one of each yield, never below 0,
+	// rather than all of them (Civ3 binary,
+	// doc/perez-findings/Civ3_Findings.md, Economy).
+	[Fact]
+	public void PollutionCostsAFoodAShieldAndACommerce() {
+		Tile tile = LonelyLand("grassland");
+		tile.overlays.Add(Improvement(ROAD));
+		tile.overlays.Add(Improvement(MINE));
+		(int food, int shields, int commerce) before = (tile.FoodYield(us).yield, tile.ProductionYield(us).yield, tile.CommerceYield(us).yield);
+		Assert.True(before.food > 0 && before.shields > 0 && before.commerce > 0);
+
+		tile.overlays.Add(Improvement(POLLUTION));
+		Assert.Equal(before.food - 1, tile.FoodYield(us).yield);
+		Assert.Equal(before.shields - 1, tile.ProductionYield(us).yield);
+		Assert.Equal(before.commerce - 1, tile.CommerceYield(us).yield);
+	}
+
 	// A harbor adds a food on every water tile, an ocean's none included,
 	// but not on a polluted one.
 	[Fact]
