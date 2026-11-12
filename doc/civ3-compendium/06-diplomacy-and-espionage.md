@@ -1416,8 +1416,15 @@ In this study a negative number is good.
   least 25% of the world's territory", or "at least 25% of the world's
   population". If only one civ is eligible, "the second candidate is the
   civilization with the largest population."
-- **The UN owner decides whether to hold the vote, every 11 turns.** Source:
-  CivFanatics FAQ. Quote: the choice "comes around every 11 turns". Also
+  - **Binary finding: more than 25%.** Perez's decompile of the Conquests
+    executable (`doc/perez-findings/Civ3_Findings.md`, Round 2 "Victory
+    conditions"): candidates "own a United-Nations-class wonder ... or more
+    than 25% of land or population". The owner ruled on 2026-11-12 that this
+    finding is authoritative. *Superseded:* the Civilopedia's "at least 25%".
+- **The UN owner decides whether to hold the vote, every 10 turns.** Binary
+  finding (same source and ruling): "vote every 10 turns". *Superseded:* the
+  CivFanatics FAQ's "comes around every 11 turns", and Turner's "every 11
+  turns" below. Also
   `script.txt` `DIPLOVICTORYVOTEOPTION`: "Would you like to hold elections for
   UN Secretary-General?" and "Election was inconclusive; no majority was
   found."
