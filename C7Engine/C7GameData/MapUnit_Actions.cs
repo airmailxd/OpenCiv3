@@ -1163,10 +1163,21 @@ public partial class MapUnit {
 			return null;
 		}
 
+		// Inside the borders of a civ at peace with us, founding a city is
+		// an act of war: "If you build a city inside someone else's border,
+		// and you are at peace, the act of building a city is considered an
+		// act of war" (CommandoBob, CFC "Anybody seen this?", #3; compendium
+		// 6.10). A human was asked first, with the Foreign Advisor's
+		// DECLARE_WAR question. UNVERIFIED in the game (compendium 6, open
+		// question 13). Adapted from GBiebs/OpenCiv3 (9b0a25ae).
+		if (location.PeacefulOwnerFor(owner) is Player landOwner) {
+			log.Information("{Owner} founds a city in {LandOwner}'s land, which means war", owner, landOwner);
+			owner.DeclareWarOn(landOwner, EngineStorage.gameData.turn);
+			MsgWarDeclaration.Announce(owner, landOwner);
+		}
+
 		await animateAsync(MapUnit.AnimatedAction.BUILD);
 
-		// TODO: Need to check somewhere that this unit is allowed to build a city on its current tile. Either do that here or in every caller
-		// (probably best to just do it here).
 		City city = CityInteractions.BuildCity(location, owner, cityName);
 		this.RemoveFromPlay();
 
