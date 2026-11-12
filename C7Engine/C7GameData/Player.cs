@@ -163,6 +163,10 @@ namespace C7GameData {
 		public List<string> newsWhileAway = new();
 		public int heardFromAIsOnTurn = -1;
 
+		// The production queues the player saved under a name, by name (see
+		// SavedProductionQueue).
+		public List<SavedProductionQueue> savedProductionQueues = new();
+
 		private const int PasswordIterations = 100_000;
 
 		public bool HasPassword() => !string.IsNullOrEmpty(passwordHash);

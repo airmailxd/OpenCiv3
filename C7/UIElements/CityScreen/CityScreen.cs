@@ -328,6 +328,19 @@ public partial class CityScreen : Control {
 			return;
 		}
 
+		// Q loads a saved production queue into the city, Shift-Q saves the
+		// city's queue under a name (see SavedProductionQueue).
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q } queueKey
+				&& !queueKey.CtrlPressed && !queueKey.AltPressed && !foreignView) {
+			GetViewport().SetInputAsHandled();
+			if (queueKey.ShiftPressed) {
+				SaveProductionQueue();
+			} else {
+				LoadProductionQueue();
+			}
+			return;
+		}
+
 		if (@event is InputEventKey { Pressed: true, Echo: false } debugKey && HandleDebugKey(debugKey)) {
 			GetViewport().SetInputAsHandled();
 			return;
@@ -406,6 +419,39 @@ public partial class CityScreen : Control {
 		}
 		productionMenu.Hide();
 		EngineStorage.ReadGameData((GameData gameData) => overlay.ShowPopup(new GovernorPopup(city), PopupOverlay.PopupCategory.Info));
+	}
+
+	// Shift-Q: asks for a name to save the city's production queue under,
+	// suggesting the city's. An empty queue has nothing to save.
+	private void SaveProductionQueue() {
+		City city = tileAssignmentLayer.city;
+		PopupOverlay overlay = Overlay;
+		if (city == null || overlay == null || overlay.ShowingPopup || city.productionQueue.Count == 0) {
+			return;
+		}
+		productionMenu.Hide();
+		overlay.ShowPopup(new TextDialog("Save Production Queue", "Name: ", city.name, BoxContainer.AlignmentMode.Begin,
+			name => new MsgSaveProductionQueue(city.id, name).send()), PopupOverlay.PopupCategory.Info);
+	}
+
+	// Q: lists the player's saved production queues; the one picked becomes
+	// the city's queue.
+	private void LoadProductionQueue() {
+		City city = tileAssignmentLayer.city;
+		PopupOverlay overlay = Overlay;
+		if (city == null || overlay == null || overlay.ShowingPopup) {
+			return;
+		}
+		productionMenu.Hide();
+		List<SavedProductionQueue> saved = new(city.owner.savedProductionQueues);
+		if (saved.Count == 0) {
+			overlay.ShowPopup(new InformationalPopup("No production queue has been saved. Shift-Q saves a city's queue.",
+				AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy), PopupOverlay.PopupCategory.Info);
+			return;
+		}
+		List<string> names = saved.ConvertAll(q => $"{q.name}: {string.Join(", ", q.items.ConvertAll(i => i.name))}");
+		overlay.ShowPopup(new ListPopup($"Load a production queue into {city.name}", names, 0,
+			index => new MsgLoadProductionQueue(city.id, saved[index].name).send()), PopupOverlay.PopupCategory.Info);
 	}
 
 	// As in Civ3, moving the citizens of a city whose governor manages them

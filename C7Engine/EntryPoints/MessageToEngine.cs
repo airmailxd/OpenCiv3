@@ -615,6 +615,46 @@ namespace C7Engine {
 		}
 	}
 
+	// Shift-Q on the city screen: the city's production queue saved under a
+	// name, for the player to load into a city later (see
+	// SavedProductionQueue).
+	public class MsgSaveProductionQueue : MessageToEngine {
+		public ID cityID;
+		public string name;
+
+		public MsgSaveProductionQueue(ID cityID, string name) {
+			this.cityID = cityID;
+			this.name = name;
+		}
+
+		protected override void ProcessAllowed() {
+			City city = EngineStorage.gameData.GetCity(cityID);
+			if (IsSendersCity(city)) {
+				SavedProductionQueue.Save(city.owner, name, city.productionQueue);
+			}
+		}
+	}
+
+	// Q on the city screen: one of the player's saved production queues
+	// becomes the city's.
+	public class MsgLoadProductionQueue : MessageToEngine {
+		public ID cityID;
+		public string name;
+
+		public MsgLoadProductionQueue(ID cityID, string name) {
+			this.cityID = cityID;
+			this.name = name;
+		}
+
+		protected override void ProcessAllowed() {
+			City city = EngineStorage.gameData.GetCity(cityID);
+			if (IsSendersCity(city) && SavedProductionQueue.Find(city.owner, name) is SavedProductionQueue saved) {
+				saved.LoadInto(EngineStorage.gameData, city);
+				new MsgCityChanged(city).send();
+			}
+		}
+	}
+
 	// The player clicked a tile on the city screen to move a citizen.
 	public class MsgReassignCitizen : MessageToEngine {
 		public City city;

@@ -255,7 +255,7 @@ namespace C7GameData.Save {
 			}
 		}
 
-		private static ProducibleType TypeOf(IProducible producible) {
+		internal static ProducibleType TypeOf(IProducible producible) {
 			return producible switch {
 				Inflow => ProducibleType.INFLOW,
 				UnitPrototype => ProducibleType.UNIT,

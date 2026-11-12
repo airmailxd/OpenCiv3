@@ -305,6 +305,12 @@ namespace C7Engine.PlayLog {
 				case MsgClearProductionQueue m when gameData.GetCity(m.cityID) is City c:
 					row["city"] = c.name;
 					break;
+				case MsgSaveProductionQueue m when gameData.GetCity(m.cityID) is City c:
+					row["city"] = c.name;
+					break;
+				case MsgLoadProductionQueue m when gameData.GetCity(m.cityID) is City c:
+					row["city"] = c.name;
+					break;
 				case MsgChangeSliders:
 					row["before"] = Rates(player);
 					break;

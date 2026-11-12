@@ -360,6 +360,8 @@ public static class SnapshotFilter {
 		filtered.knownTileIndices = SavePlayer.EncodeIndices(territory.Where(i => i < known.Length && known[i]));
 		filtered.tileKnowledge = [];
 		filtered.outdatedTiles = [];
+		// The production queues a player saved are their own.
+		filtered.savedProductionQueues = [];
 
 		if (!view.embassies.Contains(player.id)) {
 			filtered.currentlyResearchedTech = null;

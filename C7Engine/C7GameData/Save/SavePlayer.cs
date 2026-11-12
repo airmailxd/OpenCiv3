@@ -32,6 +32,9 @@ namespace C7GameData.Save {
 		// PlayByEmail).
 		public List<string> newsWhileAway = new();
 		public int heardFromAIsOnTurn = -1;
+		// The production queues the player saved (see SavedProductionQueue);
+		// none in older saves.
+		public List<SavedProductionQueue> savedProductionQueues = new();
 
 		public string civilization;
 
@@ -192,6 +195,8 @@ namespace C7GameData.Save {
 				passwordChosen = passwordChosen,
 				newsWhileAway = new(newsWhileAway ?? new()),
 				heardFromAIsOnTurn = heardFromAIsOnTurn,
+				// Copied, so that the game doesn't change the save.
+				savedProductionQueues = (savedProductionQueues ?? []).ConvertAll(q => q.Copy()),
 				defeated = defeated,
 				primaryColorIndex = primaryColorIndex,
 				secondaryColorIndex = secondaryColorIndex,
@@ -328,6 +333,7 @@ namespace C7GameData.Save {
 			passwordChosen = player.passwordChosen;
 			newsWhileAway = new(player.newsWhileAway);
 			heardFromAIsOnTurn = player.heardFromAIsOnTurn;
+			savedProductionQueues = player.savedProductionQueues.ConvertAll(q => q.Copy());
 			defeated = player.defeated;
 			civilization = player.civilization?.name;
 			// TODO: this should be computed by looking at cities defined in the save
