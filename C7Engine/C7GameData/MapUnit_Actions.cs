@@ -176,6 +176,23 @@ public partial class MapUnit {
 		}
 	}
 
+	// Automates the worker in one of Civ3's kinds of automation, or plain
+	// automation if null. The kinds about a city take the nearest one;
+	// road and rail to need their destination.
+	public void Automate(WorkerAutomation how) {
+		if (how != null && how.NeedsCity && how.target == null) {
+			how.target = WorkerAutomation.NearestCity(this)?.location;
+		}
+		if (how != null && (how.NeedsCity || how.NeedsDestination) && (how.target == null || how.target == Tile.NONE)) {
+			log.Information("{Unit} has no city or destination for {Automation}", this, how);
+			return;
+		}
+		workerAutomation = how;
+		Automate();
+	}
+
+	// Automates the worker in its kind of automation (workerAutomation),
+	// if it has one.
 	public void Automate() {
 		Wake();
 		isAutomated = true;
@@ -191,6 +208,7 @@ public partial class MapUnit {
 
 	public void Explore() {
 		Wake();
+		workerAutomation = null;
 		isAutomated = true;
 		ExplorerAIData? maybeAiData = ExplorerAI.MaybeMakeAiData(this, owner);
 		if (maybeAiData == null) {

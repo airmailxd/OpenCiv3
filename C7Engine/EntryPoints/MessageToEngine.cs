@@ -406,7 +406,7 @@ namespace C7Engine {
 					unit.Explore();
 					break;
 				case Command.Automate:
-					unit.Automate();
+					unit.Automate(null);
 					break;
 				case Command.FormArmy:
 					MapUnit army = unit.FormArmy();
@@ -432,6 +432,31 @@ namespace C7Engine {
 					unit.Sacrifice();
 					break;
 			}
+		}
+	}
+
+	// One of Civ3's kinds of worker automation (see WorkerAutomation): the
+	// tile is the destination of road and rail to, and otherwise unused.
+	public class MsgAutomateWorker : MessageToEngine {
+		public ID unitID;
+		public WorkerAutomation.Kind kind;
+		public Tile tile;
+
+		public MsgAutomateWorker(ID unitID, WorkerAutomation.Kind kind, Tile tile = null) {
+			this.unitID = unitID;
+			this.kind = kind;
+			this.tile = tile;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || !unit.unitType.isWorker) return;
+
+			WorkerAutomation how = new(kind);
+			if (how.NeedsDestination) {
+				how.target = tile;
+			}
+			unit.Automate(how);
 		}
 	}
 

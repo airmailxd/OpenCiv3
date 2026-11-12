@@ -25,6 +25,12 @@ namespace C7GameData.Save {
 		// and automated exploring.
 		public bool isAutomated;
 
+		// The kind of worker automation (a WorkerAutomation.Kind), or null
+		// for plain automation, and its city or destination. Older saves
+		// have neither, and their workers have plain automation.
+		public string workerAutomation;
+		public TileLocation? workerAutomationTarget;
+
 		// True if the unit held this turn before moving, so it still heals.
 		public bool heldWithoutMoving;
 		public bool hasAttackedThisTurn;
@@ -82,6 +88,12 @@ namespace C7GameData.Save {
 				: unit.isSentried ? (unit.sentryEnemyOnly ? "sentryEnemyOnly" : "sentry")
 				: "";
 			isAutomated = unit.isAutomated;
+			if (unit.isAutomated && unit.workerAutomation != null) {
+				workerAutomation = unit.workerAutomation.kind.ToString();
+				if (unit.workerAutomation.target != null && unit.workerAutomation.target != Tile.NONE) {
+					workerAutomationTarget = new TileLocation(unit.workerAutomation.target);
+				}
+			}
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			hasPillagedThisTurn = unit.hasPillagedThisTurn;
@@ -196,6 +208,7 @@ namespace C7GameData.Save {
 				unit.location.unitsOnTile.Add(unit);
 			}
 			unit.path = ToTilePath(map);
+			unit.workerAutomation = ToWorkerAutomation(map);
 			unit.movementPoints.reset(movePointsRemaining);
 			unit.name = string.IsNullOrEmpty(name) ? unit.unitType.name : name;
 
@@ -207,6 +220,17 @@ namespace C7GameData.Save {
 			}
 
 			return unit;
+		}
+
+		// The unit's kind of worker automation, or null for none (or one
+		// this game doesn't know).
+		private WorkerAutomation ToWorkerAutomation(GameMap map) {
+			if (!isAutomated || string.IsNullOrEmpty(workerAutomation)
+					|| !System.Enum.TryParse(workerAutomation, out WorkerAutomation.Kind kind)) {
+				return null;
+			}
+			Tile target = workerAutomationTarget is TileLocation at ? map.tileAt(at.X, at.Y) : null;
+			return new WorkerAutomation(kind, target == Tile.NONE ? null : target);
 		}
 
 		// The path the unit was following, or null if it had none. A path
