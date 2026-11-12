@@ -158,6 +158,11 @@ namespace C7Engine {
 					player.RecalculateCitizenMoods(gameData, goIntoDisorderIfUnhappy: true);
 					player.DoCorruptionCalculations(gameData);
 
+					// A tech paid for by an earlier turn's beakers is learned
+					// before this turn's beakers are added, so it arrives the
+					// turn after its cost is met (see CompletePaidResearch).
+					player.CompletePaidResearch(gameData);
+
 					// Do the financial updates before updating the cities, so
 					// that a newly produced unit won't put a player over the
 					// unit support cap and cause them to lose gold unexpectedly.
