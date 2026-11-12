@@ -1097,31 +1097,40 @@ namespace C7GameData {
 			return best;
 		}
 
-		public void HandleCityGrowth(GameData gameData) {
+		// Stores the turn's food, then grows or starves the city. Returns
+		// true if it starved to nothing, for the caller to destroy (see
+		// Player.HandleCityUpdates).
+		public bool HandleCityGrowth(GameData gameData) {
 			int foodNeededToGrow = FoodNeededToGrow();
 			int foodGrowth = FoodGrowthPerTurn();
-			// In disorder "No excess food is stored" (Civilopedia,
-			// GCON_Disorder); a shortage still starves the city.
+			// In disorder the citizens eat everything the city makes, so it
+			// neither stores food nor starves: "In disorder upkeep =
+			// production, so surplus is 0". Civ3 binary
+			// (doc/perez-findings/Civ3_Findings.md, Food, growth, starvation).
 			if (isInCivilDisorder) {
-				foodGrowth = Math.Min(foodGrowth, 0);
+				foodGrowth = 0;
 			}
 			bool hasGranary = HasGranary();
 
 			foodStored += foodGrowth;
 			foodStored = Math.Min(foodStored, foodNeededToGrow);
 
-			// Handle the city starving. A size 1 city can't shrink any further.
+			// Handle the city starving: "stock < 0 => stock 0 and lose 1
+			// citizen; if size reaches 0 the city is destroyed. This can
+			// happen to a size-1 city if its tile yield falls below its
+			// upkeep" (same source).
 			if (foodStored < 0) {
-				if (residents.Count > 1) {
-					RemoveStarvingCitizen();
-				}
 				foodStored = 0;
-				return;
+				if (residents.Count <= 1) {
+					return true;
+				}
+				RemoveStarvingCitizen();
+				return false;
 			}
 
 			// No growth necessary.
 			if (foodStored < foodNeededToGrow) {
-				return;
+				return false;
 			}
 
 			// With Longevity a full food box adds two citizens instead of one.
@@ -1146,6 +1155,7 @@ namespace C7GameData {
 					foodStored = 0;
 				}
 			}
+			return false;
 		}
 
 		// Whether a fresh water source is within the city's radius, as a

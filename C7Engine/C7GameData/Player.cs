@@ -1755,7 +1755,8 @@ namespace C7GameData {
 		}
 
 		public void HandleCityUpdates(GameData gameData) {
-			foreach (City c in cities) {
+			// A copy, since a city may starve to nothing on the way.
+			foreach (City c in cities.ToList()) {
 				// Barbarian cities (only a scenario can give barbarians one)
 				// build nothing and gain no culture: in Debug mode "The
 				// Barbarian city was not able to build anything (no buildings
@@ -1777,7 +1778,16 @@ namespace C7GameData {
 				}
 
 				c.UpdateResistance(gameData);
-				c.HandleCityGrowth(gameData);
+				int sizeBefore = c.residents.Count;
+				bool starvedOut = c.HandleCityGrowth(gameData);
+				if ((starvedOut || c.residents.Count < sizeBefore) && IsToldNews) {
+					// Civ3's Script.txt, STARVE.
+					new MsgShowDomesticAdvisorPopup(this, $"Starvation at {c.name}!").send();
+				}
+				if (starvedOut) {
+					CityInteractions.DestroyCity(c);
+					continue;
+				}
 				if (active) {
 					c.HandleCityProduction(gameData);
 				}

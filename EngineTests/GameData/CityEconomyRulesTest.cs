@@ -217,4 +217,51 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 			gameData.rules.CitizenValueInShields = saved;
 		}
 	}
+
+	// A city in disorder neither stores food nor starves: its citizens eat
+	// what it makes (Food, growth, starvation).
+	[Fact]
+	public void ACityInDisorderNeitherGrowsNorStarves() {
+		City city = TownOnGrassland(Terrain("mountains"));
+		Assert.Single(city.residents);
+		int saved = us.rules.CityCenterFood;
+		try {
+			us.rules.CityCenterFood = 0;
+			Assert.True(city.FoodGrowthPerTurn() < 0);
+			city.foodStored = 0;
+			city.isInCivilDisorder = true;
+			Assert.False(city.HandleCityGrowth(gameData));
+			Assert.Single(city.residents);
+			Assert.Equal(0, city.foodStored);
+		} finally {
+			us.rules.CityCenterFood = saved;
+		}
+	}
+
+	// A size 1 city that runs out of food is destroyed (Food, growth,
+	// starvation), and its owner is told "Starvation at ...!" (Civ3's
+	// Script.txt, STARVE).
+	[Fact]
+	public void ASizeOneCityStarvesToNothing() {
+		City other = TownOnGrassland(Terrain("grassland"));
+		Tile site = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& t.neighbors.Values.All(n => n != Tile.NONE && IsEmptyLand(n)) && t.RankDistanceTo(other.location) > 4);
+		City city = CityInteractions.BuildCity(site, us, "Starving Town");
+		int saved = us.rules.CityCenterFood;
+		try {
+			us.rules.CityCenterFood = 0;
+			foreach (Tile t in site.neighbors.Values) {
+				SetTerrain(t, Terrain("mountains"));
+			}
+			city.residents[0].tileWorked = site.neighbors.Values.First();
+			city.foodStored = 0;
+			Assert.True(city.FoodGrowthPerTurn() < 0);
+			us.HandleCityUpdates(gameData);
+		} finally {
+			us.rules.CityCenterFood = saved;
+		}
+		Assert.DoesNotContain(city, us.cities);
+		Assert.DoesNotContain(city, gameData.cities);
+		Assert.Null(site.cityAtTile);
+	}
 }
