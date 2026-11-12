@@ -111,8 +111,11 @@ namespace C7GameData.Save {
 		// The turn disease last struck the city (City.lastDiseaseTurn);
 		// missing in older saves.
 		public int? lastDiseaseTurn;
-		// Disease struck the city and takes another citizen next turn
-		// (City.diseaseStrikesNextTurn); false in older saves.
+		// The city is ill and loses a citizen every turn until it recovers
+		// (City.ill); false in older saves.
+		public bool ill;
+		// Older saves only: disease struck the city and was to take a second
+		// citizen the next turn. Such a city loads as ill. Not written.
 		public bool diseaseStrikesNextTurn;
 		// The city's governor (see CityGovernor); all off in older saves.
 		public bool governorManagesMoods;
@@ -172,7 +175,7 @@ namespace C7GameData.Save {
 			hurriedThisTurn = city.hurriedThisTurn;
 			receivedForestShields = city.receivedForestShields;
 			lastDiseaseTurn = city.lastDiseaseTurn;
-			diseaseStrikesNextTurn = city.diseaseStrikesNextTurn;
+			ill = city.ill;
 			rallyPoint = city.rallyPoint == null ? null : new TileLocation(city.rallyPoint);
 			governorManagesMoods = city.governor.manageMoods;
 			governorEmphasizesFood = city.governor.emphasizeFood;
@@ -317,7 +320,7 @@ namespace C7GameData.Save {
 				hurriedThisTurn = hurriedThisTurn,
 				receivedForestShields = receivedForestShields,
 				lastDiseaseTurn = lastDiseaseTurn ?? -1,
-				diseaseStrikesNextTurn = diseaseStrikesNextTurn,
+				ill = ill || diseaseStrikesNextTurn,
 				governor = new CityGovernor {
 					manageMoods = governorManagesMoods,
 					emphasizeFood = governorEmphasizesFood,

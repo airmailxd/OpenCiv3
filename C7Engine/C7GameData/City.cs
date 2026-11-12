@@ -185,12 +185,13 @@ namespace C7GameData {
 		// (see Tile.MaybeAwardForestClearingShields).
 		public bool receivedForestShields = false;
 
-		// The turn disease last struck the city, or -1 (see Disease).
+		// The turn disease last cost the city a citizen, or -1 (see
+		// Disease).
 		public int lastDiseaseTurn = -1;
 
-		// Disease struck the city this turn and takes a second citizen next
-		// turn (see Disease).
-		public bool diseaseStrikesNextTurn = false;
+		// Whether the city is ill: it loses a citizen every turn until it
+		// recovers (see Disease).
+		public bool ill = false;
 
 		// Whether the city is celebrating "We Love the King Day".
 		public bool celebrating = false;
