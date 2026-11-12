@@ -2160,6 +2160,7 @@ public partial class Game : Node {
 		}
 		PollLanSession();
 		ProcessActions();
+		EdgeScroll(delta);
 		UpdateGotoPath();
 
 		// The engine waits for animations to finish before going on.
@@ -2189,6 +2190,39 @@ public partial class Game : Node {
 
 		EndTurnIfNothingToDo(delta);
 		UpdateMusic();
+	}
+
+	// With Edge scrolling on in the settings, pans the map while the mouse
+	// rests at an edge of the window: only while the game's window has focus
+	// and the mouse is in it, the map is in front with nothing over it, and
+	// the map or a unit isn't being dragged. The mouse position, margin and
+	// camera are all in the UI's logical pixels, so the margin and speed grow
+	// with the interface scale; the speed is per second, whatever the frame
+	// rate. Edge scrolling adapted from GBiebs/OpenCiv3.
+	private void EdgeScroll(double delta) {
+		if (!EdgeScrolling.Enabled || IsMovingCamera || draggingUnit || HasVisibleModal() || hotseatHandoff != null
+			|| (FileDialog?.Visible ?? false) || (CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator)) {
+			return;
+		}
+		Window window = GetWindow();
+		if (!window.HasFocus()) {
+			return;
+		}
+		// The viewport keeps the last position the mouse had in the window
+		// after it leaves, so ask where it really is.
+		Rect2I windowRect = new(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+		if (!windowRect.HasPoint(DisplayServer.MouseGetPosition())) {
+			return;
+		}
+		Vector2 mouse = GetViewport().GetMousePosition();
+		Vector2 size = GetViewport().GetVisibleRect().Size;
+		float margin = EdgeScrolling.Margin;
+		Vector2 direction = new(
+			mouse.X < margin ? -1 : mouse.X >= size.X - margin ? 1 : 0,
+			mouse.Y < margin ? -1 : mouse.Y >= size.Y - margin ? 1 : 0);
+		if (direction != Vector2.Zero) {
+			mapView.moveCamera(direction * EdgeScrolling.Speed * (float)delta);
+		}
 	}
 
 	// Set once no unit needs orders this turn, until one does again.
