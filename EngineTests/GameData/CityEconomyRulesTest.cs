@@ -133,6 +133,34 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(upkeep - temple.maintenanceCost, city.MaintenanceCostsRaw());
 	}
 
+	// Any obsolete building, not only a great wonder, loses its effects but
+	// keeps making culture (see Building.IsObsoleteFor): a Temple whose
+	// obsoleting tech is known no longer makes anyone content.
+	[Fact]
+	public void ObsoleteImprovementsStopWorkingButKeepTheirCulture() {
+		City city = TownOnGrassland(Terrain("grassland"));
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		Assert.True(temple.contentFacesInCity > 0 && temple.culturePerTurn > 0);
+		Tech obsoleting = gameData.techs.First(t => !us.knownTechs.Contains(t.id));
+		temple.renderedObsoleteBy = obsoleting;
+		city.AddBuilding(temple);
+		int faces = city.BuildingContentFaces(city.EffectiveBuildings());
+		int culture = city.GetCulturePerTurnBySource().improvements;
+		Assert.True(faces >= temple.contentFacesInCity);
+		Assert.True(temple.TakesEffectFor(us));
+
+		us.knownTechs.Add(obsoleting.id);
+
+		Assert.False(temple.TakesEffectFor(us));
+		Assert.DoesNotContain(city.EffectiveBuildings(), cb => cb.building == temple);
+		Assert.Equal(faces - temple.contentFacesInCity, city.BuildingContentFaces(city.EffectiveBuildings()));
+		Assert.Equal(culture, city.GetCulturePerTurnBySource().improvements);
+		// The city still has it, so it isn't offered again, and nowhere can
+		// build it any more.
+		Assert.True(city.HasEffectiveBuilding(temple));
+		Assert.False(temple.CanProduce(city, new()));
+	}
+
 	// A building a wonder grants doesn't pollute: C3X offers, as a change
 	// to the base game, making "improvements granted for free by great or
 	// small wonders" pollute "as though they had been built in the city"

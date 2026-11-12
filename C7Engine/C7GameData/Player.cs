@@ -3107,7 +3107,7 @@ namespace C7GameData {
 			foreach (City c in cities.ToArray()) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
 					bool isGreatWonder = cb.building.greatWonderProperties != null;
-					if (isGreatWonder && cb.building.isGreatWonderObsolete(this)) {
+					if (cb.building.IsObsoleteFor(this)) {
 						continue;
 					}
 					if (cb.building.allowsLargerArmies) {
@@ -3118,7 +3118,7 @@ namespace C7GameData {
 					}
 					// Combat and movement effects (the Great Wall, the Great
 					// Lighthouse, Magellan's Voyage, the Heroic Epic) come from
-					// any of our buildings but an obsolete great wonder.
+					// any of our buildings but an obsolete one.
 					AddCombatAndMovementEffects(snapshot, cb.building);
 					if (!isGreatWonder) {
 						continue;
