@@ -1639,13 +1639,7 @@ namespace C7GameData {
 			// TODO: Science/Luxury commerce doesn't seem to be tabulating correctly, can be negative in some cases with specialists, might be ImportCiv3 issue?
 			CommerceBreakdown result = new();
 			result.corrupted = commerce.corrupt;
-			// Civ3 rounds each share to the nearest whole value rather than
-			// down (8 commerce at 70% science is 6 beakers, not 5). Luxuries
-			// are rounded first, then science, from what's left, and taxes get
-			// the remainder.
-			result.happiness = RoundedShare(commerce.useful, owner.luxuryRate);
-			result.beakers = Math.Min(RoundedShare(commerce.useful, owner.scienceRate), commerce.useful - result.happiness);
-			result.taxes = commerce.useful - result.beakers - result.happiness;
+			(result.happiness, result.beakers, result.taxes) = SplitCommerce(commerce.useful);
 
 			// Each library, marketplace and similar building adds 50% to the
 			// share of commerce it affects, and each research-doubling wonder
@@ -1709,11 +1703,26 @@ namespace C7GameData {
 			if (commerce <= 0) {
 				return;
 			}
-			int happiness = RoundedShare(commerce, owner.luxuryRate);
-			int beakers = Math.Min(RoundedShare(commerce, owner.scienceRate), commerce - happiness);
+			(int happiness, int beakers, int taxes) = SplitCommerce(commerce);
 			result.happiness += happiness;
 			result.beakers += beakers;
-			result.taxes += commerce - happiness - beakers;
+			result.taxes += taxes;
+		}
+
+		// Shares out commerce by the owner's sliders as Civ3's
+		// City_RecalcTrade does: luxuries and science are each rounded to the
+		// nearest whole value, halves up (8 commerce at 70% science is 6
+		// beakers, not 5). If the two come to more than there is, science
+		// keeps its share and luxuries take the shortfall (5 commerce at
+		// 50%/50% is 2 luxuries and 3 beakers). Taxes get the rest. Civ3
+		// binary (doc/perez-findings/Civ3_Findings.md, Economy).
+		internal (int luxuries, int beakers, int taxes) SplitCommerce(int commerce) {
+			int luxuries = RoundedShare(commerce, owner.luxuryRate);
+			int beakers = RoundedShare(commerce, owner.scienceRate);
+			if (luxuries + beakers > commerce) {
+				luxuries = commerce - beakers;
+			}
+			return (luxuries, beakers, commerce - luxuries - beakers);
 		}
 
 		// The share of `commerce` a slider at `rate` (in tenths) gets, rounding

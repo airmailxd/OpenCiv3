@@ -151,4 +151,22 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0, city.BuildingPollution());
 		Assert.Equal(0, city.PollutionIcons(gameData.rules));
 	}
+
+	// ---- Civ3 binary (doc/perez-findings/Civ3_Findings.md), owner's ruling 2026-11-12 ----
+
+	// Luxuries and science are each rounded halves up; if they come to more
+	// than there is, science keeps its share and luxuries take the
+	// shortfall, and taxes get the rest (Economy, City_RecalcTrade).
+	[Theory]
+	[InlineData(5, 5, 5, 2, 3, 0)]
+	[InlineData(1, 3, 3, 0, 0, 1)]
+	[InlineData(8, 0, 7, 0, 6, 2)]
+	[InlineData(3, 5, 5, 1, 2, 0)]
+	public void TradeSplitGivesScienceItsRoundedShare(int commerce, int luxuryRate, int scienceRate, int luxuries, int beakers, int taxes) {
+		City city = TownOnGrassland(Terrain("grassland"));
+		us.luxuryRate = luxuryRate;
+		us.scienceRate = scienceRate;
+		us.taxRate = 10 - luxuryRate - scienceRate;
+		Assert.Equal((luxuries, beakers, taxes), city.SplitCommerce(commerce));
+	}
 }
