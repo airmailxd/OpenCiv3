@@ -937,6 +937,30 @@ namespace C7Engine {
 		}
 	}
 
+	// Playing by email: the human whose turn it is is at the computer (and
+	// has given their password), so the computer players can have their say
+	// with them (PlayByEmail.HearFromAIs) before the turn begins.
+	public class MsgHearFromAIs : MessageToEngine {
+		protected override Task ProcessAllowedAsync() {
+			return PlayByEmail.HearFromAIs(Sender);
+		}
+	}
+
+	// Hotseat and play by email: the sender's password (empty for none),
+	// which they give before their empire is shown on their turns.
+	public class MsgSetPassword : MessageToEngine {
+		public string password;
+
+		public MsgSetPassword(string password) {
+			this.password = password;
+		}
+
+		// Only on the sender's own turn, whose handoff asks for it.
+		protected override void ProcessAllowed() {
+			Sender.SetPassword(password ?? "");
+		}
+	}
+
 	public class MsgEndTurn : MessageToEngine {
 		// The turn the sender means to end, if they say. An end that arrives
 		// once that turn is over is ignored, rather than ending the next.
@@ -1188,7 +1212,8 @@ namespace C7Engine {
 				return;
 			}
 
-			if (opponent.isHuman && opponentAgreed) {
+			// Playing by email, the other human isn't at this computer to agree.
+			if (opponent.isHuman && opponentAgreed && !PlayByEmail.IsOn(gD)) {
 				bool done = opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
 				new MsgDealResult(proposer, opponent, done).send();
 				return;

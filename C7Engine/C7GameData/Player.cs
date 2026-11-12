@@ -148,6 +148,59 @@ namespace C7GameData {
 		// Null when no name was given.
 		public string name;
 
+		// Hotseat and play by email: the password the player gives before
+		// their empire is shown, as Civ3's ("Please Enter New Password (Leave
+		// blank for none)"), empty for none. Kept as a slow salted hash, as
+		// the save travels to the other players by email. passwordChosen is
+		// set once they've been asked to choose one, so it's asked only once.
+		public string passwordHash = "";
+		public bool passwordChosen = false;
+
+		// Play by email: what this player was told while the others played,
+		// kept in the save for their turn (see PlayByEmail.KeepNews), and the
+		// turn the computer players last had their say with them (see
+		// PlayByEmail.HearFromAIs).
+		public List<string> newsWhileAway = new();
+		public int heardFromAIsOnTurn = -1;
+
+		private const int PasswordIterations = 100_000;
+
+		public bool HasPassword() => !string.IsNullOrEmpty(passwordHash);
+
+		// Sets the player's password; empty for none.
+		public void SetPassword(string password) {
+			passwordChosen = true;
+			if (string.IsNullOrEmpty(password)) {
+				passwordHash = "";
+				return;
+			}
+			byte[] salt = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
+			passwordHash = $"pbkdf2:{PasswordIterations}:{Convert.ToBase64String(salt)}:{Convert.ToBase64String(HashPassword(password, salt, PasswordIterations))}";
+		}
+
+		// Whether this is the player's password (anything is, without one).
+		public bool CheckPassword(string password) {
+			if (!HasPassword()) {
+				return true;
+			}
+			string[] parts = passwordHash.Split(':');
+			if (parts.Length != 4 || parts[0] != "pbkdf2" || !int.TryParse(parts[1], out int iterations) || iterations <= 0) {
+				return false;
+			}
+			try {
+				byte[] expected = Convert.FromBase64String(parts[3]);
+				byte[] given = HashPassword(password ?? "", Convert.FromBase64String(parts[2]), iterations);
+				return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(given, expected);
+			} catch (FormatException) {
+				return false;
+			}
+		}
+
+		private static byte[] HashPassword(string password, byte[] salt, int iterations) {
+			return System.Security.Cryptography.Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations,
+				System.Security.Cryptography.HashAlgorithmName.SHA256, 32);
+		}
+
 		// Has this player been defeated?
 		public bool defeated = false;
 

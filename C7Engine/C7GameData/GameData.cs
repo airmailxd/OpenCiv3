@@ -205,6 +205,10 @@ namespace C7GameData {
 		// Whether the humans play their turns at the same time, rather than
 		// one after another. Only LAN games do.
 		public bool simultaneousTurns = false;
+		// Play by email (Civ3's "Play By Email" game type): each human plays
+		// their turn on their own computer, from the save the human before
+		// them sent on (see PlayByEmail).
+		public bool playByEmail = false;
 		public bool showGridCoordinates = false;
 
 		public string scenarioSearchPath;   //legacy from Civ3, we'll probably have a more modern format someday but this keeps legacy compatibility
