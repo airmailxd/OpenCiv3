@@ -209,6 +209,10 @@ namespace C7Engine {
 
 				CheckVictory(gameData);
 
+				// Twenty turns before the turn limit, the humans are warned
+				// that the game will end.
+				TimeLimitVictory.MaybeWarn(gameData);
+
 				// Now that the turn is ending, do all the bookkeeping for the
 				// start of the next turn. We don't put the "hasPlayedThisTurn"
 				// logic in OnBeginTurn because OnBeginTurn is called when a
