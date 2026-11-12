@@ -189,6 +189,51 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(tech.id, us.currentlyResearchedTech);
 	}
 
+	// "A tech is gained on the turn *after* progress >= cost" (Perez's
+	// decompile, Round 2b "Research"; owner's ruling 2026-11-12): the turn
+	// that pays for it doesn't learn it, the next one does, before its own
+	// beakers are added.
+	[Fact]
+	public void ATechIsLearnedTheTurnAfterItIsPaidFor() {
+		Tech tech = us.GetAvailableTechsToResearch(gameData.techs).First();
+		us.freeTechsRemaining = 0;
+		us.SetCurrentlyResearchedTech(tech.id);
+		us.turnsResearched = gameData.rules.MinimumResearchTime;
+		us.beakers = 0;
+		int cost = gameData.TechCostFor(tech, us);
+		Assert.True(gameData.rules.MaximumResearchTime > us.turnsResearched + 1);
+
+		us.beakers = cost - 1;
+		us.CompletePaidResearch(gameData);
+		Assert.DoesNotContain(tech.id, us.knownTechs);
+
+		// This turn's beakers pay for it: it isn't learned yet.
+		us.beakers = cost;
+		us.DoPerTurnScienceUpdates(gameData);
+		Assert.DoesNotContain(tech.id, us.knownTechs);
+		Assert.Equal(1, us.EstimateTurnsToResearch(gameData, tech));
+
+		// The next turn learns it.
+		us.CompletePaidResearch(gameData);
+		Assert.Contains(tech.id, us.knownTechs);
+		Assert.NotEqual(tech.id, us.currentlyResearchedTech);
+	}
+
+	// A human asked what to research next keeps the beakers of the turn
+	// that taught them the last tech.
+	[Fact]
+	public void BeakersGatheredWhileChoosingGoToTheTechChosen() {
+		Tech tech = us.GetAvailableTechsToResearch(gameData.techs).First();
+		us.freeTechsRemaining = 0;
+		us.SetCurrentlyResearchedTech(null);
+		us.beakers = 7;
+		us.turnsResearched = 1;
+
+		us.SetCurrentlyResearchedTech(tech.id);
+		Assert.Equal(7, us.beakers);
+		Assert.Equal(1, us.turnsResearched);
+	}
+
 	// ---- Specialists ----
 
 	// Turns the city's only citizen into the given specialist.

@@ -1011,6 +1011,18 @@ namespace C7GameData {
 			float researchCost = map.techRate * 10 * tech.Cost  * knowledgeFactor/ (difficultyFactor * 10);
 			// A house rule may make the AI's research cheaper (see AiHouseRules).
 			researchCost *= AiHouseRules.CostFactor(player);
+			// Accelerated Production halves research too: game-rule flag
+			// 0x200 "halves the food box, unit cost, improvement cost and tech
+			// cost base" (Perez's decompile of Civ3 Conquests,
+			// doc/perez-findings/Civ3_Findings.md, Round 2b "Costs";
+			// authoritative per the owner's 2026-11-12 ruling). Future techs
+			// cost `g_RuleFutureTechCost * base` with the same halved base; the
+			// game has none yet, so when they come (Rules.FutureTechCost) they
+			// must be halved here as well. The min/max research times still
+			// apply afterwards (Player.BeakerTurnsLeft).
+			if (City.AcceleratedProduction(player)) {
+				researchCost /= 2;
+			}
 
 			// Only include the progress factor if this is the tech actively
 			// being researched.

@@ -163,6 +163,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Upgrading a unit heals it fully** (community). Pyrrhos (thread 266551, #9): "Now there remains only one, rarely used,
   way to heal even redlined troops in one turn to mention - to upgrade them." massa (thread 113864, #3), on the
   no-move rule for healing: "Exceptions are upgrades and promotions."
+- **A human's fortified unit wakes once fully healed (binary finding).** Perez's decompile of the Conquests
+  executable (`doc/perez-findings/Civ3_Findings.md`, Round 2b "Units", `Unit_HealPerTurn`): "A fully healed fortified
+  unit of a human player wakes up." The owner ruled on 2026-11-12 that this finding is authoritative. AI units stay
+  fortified.
 - **Ships heal only in port; in C3C their passengers heal at sea** (community). The Professor (thread 266551, #2):
   "Ships can only heal in port". PaperBeetle (same thread, #11, C3C): passengers heal aboard; "To get this healing, you
   need to be in friendly or neutral waters." UNVERIFIED by a test.
@@ -404,6 +408,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 
 ## 1.5 Retreat (withdrawal)
 
+- **Barbarians never retreat from an attack (binary finding).** Perez's decompile
+  (`doc/perez-findings/Civ3_Findings.md`, 3.2 "Combat"): "Retreat (only the attacker, never barbarians)"; the owner
+  ruled on 2026-11-12 that this is authoritative. The engine still lets a barbarian defender withdraw by the rules
+  below (that part of the finding is not applied).
 - **Fast units withdraw when losing, unless the opponent is also fast.** PEDIA `PRTO_Horseman`: "move fast and will
   [withdraw] from combat if losing (unless fighting another fast unit)." (`PRTO_Cavalry` has the same wording.)
 - **Since 1.17f, withdrawal is a die roll that depends on experience.** README-V 1.17f: "Mobile units now have to make
@@ -585,6 +593,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Terrain under a city still counts.** CFC-CSE (Xerxes314): "Terrain under a city does affect its defense value."
   The printed manual (p. 110, quoted by royfurr in thread 7886): "Terrain bonuses are figured in BEFORE THE CITY SIZE
   AND WALLS TAKE EFFECT."
+- **Fortify needs movement points left (binary finding).** Perez's decompile (`doc/perez-findings/Civ3_Findings.md`,
+  3.2 "Combat"): "the fortified bonus requires the unit to be fortified *and have movement points remaining*"; the owner
+  ruled on 2026-11-12 that this is authoritative. A unit that fortifies after spending its moves gets no bonus until
+  its moves are restored at the start of the next turn.
 - **Fortify.** +25%; fortify, fortress and walls stack per EDHELP's "cumulative" wording. Some players believed the
   wall or fortress replaces fortify (https://forums.civfanatics.com/threads/defense-bonuses-question.21715). See
   Disputed. Which units cannot fortify is UNVERIFIED. Sentry gives the same bonus, per two C3X-THREAD posters

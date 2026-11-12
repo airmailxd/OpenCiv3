@@ -493,7 +493,15 @@ namespace C7GameData {
 			if (role.Defending()) {
 				// "There is no defensive bonus for fortified ships"
 				// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
-				if (isFortified && !IsWaterUnit())
+				// The bonus also needs movement points left: "the fortified
+				// bonus requires the unit to be fortified *and have movement
+				// points remaining*" (Perez's decompile of Civ3 Conquests,
+				// doc/perez-findings/Civ3_Findings.md, 3.2 "Combat";
+				// authoritative per the owner's 2026-11-12 ruling). Moves are
+				// restored as each round begins (TurnHandling.InitTurnData),
+				// so a unit that fortifies having spent its moves only gets
+				// the bonus from then on.
+				if (isFortified && !IsWaterUnit() && movementPoints.canMove)
 					yield return gD.fortificationBonus;
 
 				yield return location.overlayTerrainType.defenseBonus;
@@ -968,8 +976,9 @@ namespace C7GameData {
 		// https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-4,
 		// #62). So a regular has an even chance against a regular, and a
 		// conscript opponent makes it likelier than a veteran one.
+		// Barbarians never retreat from an attack (see Fight).
 		public double RetreatChance(MapUnit opponent, bool isAttacking) {
-			if (!IsFastAgainst(opponent))
+			if (!IsFastAgainst(opponent) || (isAttacking && owner?.isBarbarians == true))
 				return 0.0;
 			(int own, int theirs) = RetreatBonuses(opponent, isAttacking);
 			return Math.Min(1.0, (double)own / (theirs + 50));

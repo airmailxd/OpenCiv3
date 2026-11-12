@@ -483,6 +483,12 @@ namespace C7GameData {
 		}
 
 		public void SetCurrentlyResearchedTech(ID id) {
+			// The beakers gathered while nothing was being researched, such
+			// as a human's on the turn they learned a tech and are asked what
+			// to research next (CompletePaidResearch runs before the turn's
+			// beakers are added), go to the tech chosen.
+			(int beakers, int turns) unassigned = currentlyResearchedTech == null ? (beakers, turnsResearched) : (0, 0);
+
 			// Award a free tech if the player has one.
 			if (id != null && freeTechsRemaining > 0) {
 				--freeTechsRemaining;
@@ -506,6 +512,10 @@ namespace C7GameData {
 				CompleteResearchAndBeginNew(gameData, tech);
 				if (first) {
 					MapUnit.RollForScientificLeader(gameData, this, tech);
+				}
+				if (unassigned.beakers > 0) {
+					beakers += unassigned.beakers;
+					turnsResearched += unassigned.turns;
 				}
 				return;
 			}
@@ -545,6 +555,9 @@ namespace C7GameData {
 				beakers = stored;
 				turnsResearched = turns;
 				abandonedResearch = null;
+			} else if (id != null) {
+				beakers = unassigned.beakers;
+				turnsResearched = unassigned.turns;
 			}
 		}
 
@@ -1203,7 +1216,23 @@ namespace C7GameData {
 
 		// Like EstimateTurnsToResearch, with the beakers per turn (from
 		// BeakersPerTurn) computed once by a caller estimating many techs.
+		//
+		// This is the number of turns until the tech is learned: research is
+		// paid for over BeakerTurnsLeft turns, and the tech arrives one turn
+		// later, as "a tech is gained on the turn *after* progress >= cost"
+		// (Perez's decompile of Civ3 Conquests,
+		// doc/perez-findings/Civ3_Findings.md, Round 2b "Research";
+		// authoritative per the owner's 2026-11-12 ruling). See
+		// CompletePaidResearch.
 		public int EstimateTurnsToResearch(GameData gameData, Tech tech, int beakersPerTurn) {
+			int turns = BeakerTurnsLeft(gameData, tech, beakersPerTurn);
+			return turns == int.MaxValue ? int.MaxValue : turns + 1;
+		}
+
+		// How many more turns of beakers the tech needs before it is paid
+		// for, within the rules' minimum and maximum research times; 0 once
+		// it is paid for, int.MaxValue if no research is happening.
+		private int BeakerTurnsLeft(GameData gameData, Tech tech, int beakersPerTurn) {
 			int remainingCost = gameData.TechCostFor(tech, this);
 			if (remainingCost > 0 && beakersPerTurn == 0) {
 				// No research is happening.
@@ -1213,13 +1242,15 @@ namespace C7GameData {
 			// A tech that's already paid for is done, even with no science.
 			int turnsRemaining = remainingCost <= 0 ? 0 : (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
 
-			int maxTurnsRemaining = rules.MaximumResearchTime - turnsResearched;
-			int minTurnsRemaining = rules.MinimumResearchTime - turnsResearched;
+			// Only the tech being researched has turns spent on it.
+			int turnsSpent = currentlyResearchedTech == tech.id ? turnsResearched : 0;
+			int maxTurnsRemaining = rules.MaximumResearchTime - turnsSpent;
+			int minTurnsRemaining = rules.MinimumResearchTime - turnsSpent;
 
 			int result = Math.Min(turnsRemaining, maxTurnsRemaining);
 			result = Math.Max(result, minTurnsRemaining);
 
-			return result;
+			return Math.Max(result, 0);
 		}
 
 		public string SummarizeScience(GameData gD) {
@@ -1801,11 +1832,44 @@ namespace C7GameData {
 			Disease.StrikeFortifiedUnits(this);
 		}
 
-		public void DoPerTurnScienceUpdates(GameData gameData) {
+		// Learns the tech being researched if an earlier turn's beakers paid
+		// for it. Runs at the start of the turn's processing, before that
+		// turn's beakers are added (DoPerTurnFinanceUpdates), so a tech whose
+		// progress reaches its cost is learned the turn after: "a tech is
+		// gained on the turn *after* progress >= cost" (Perez's decompile of
+		// Civ3 Conquests, doc/perez-findings/Civ3_Findings.md, Round 2b
+		// "Research"; authoritative per the owner's 2026-11-12 ruling).
+		// Research has no overflow: beakers beyond the cost are lost
+		// (CompleteResearchingTech resets them), and the turn's new beakers go
+		// to the next tech (see SetCurrentlyResearchedTech for a human who
+		// has yet to choose it).
+		public void CompletePaidResearch(GameData gameData) {
 			if (currentlyResearchedTech == null) {
 				return;
 			}
+			Tech tech = Tech.FindById(gameData.techs, currentlyResearchedTech);
+			// Whether it's paid for doesn't depend on this turn's beakers (any
+			// positive rate gives the same answer), only on the beakers stored
+			// and the turns spent.
+			if (tech == null || BeakerTurnsLeft(gameData, tech, beakersPerTurn: 1) > 0) {
+				return;
+			}
 
+			// Being the first to research a tech may bring a scientific
+			// leader (see MapUnit_ScientificLeader.cs).
+			bool first = IsFirstToLearn(gameData, tech);
+			CompleteResearchAndBeginNew(gameData, tech);
+			if (first) {
+				MapUnit.RollForScientificLeader(gameData, this, tech);
+			}
+		}
+
+		// Counts the turn's research towards the maximum research time, once
+		// DoPerTurnFinanceUpdates has added the turn's beakers. A tech paid
+		// for this turn is learned at the next turn's CompletePaidResearch. A
+		// turn funded while a human chooses the next tech counts for the tech
+		// they choose (see SetCurrentlyResearchedTech).
+		public void DoPerTurnScienceUpdates(GameData gameData) {
 			// Only turns that put beakers into the tech count towards the
 			// maximum research time: "You cannot use up more than 50 turns of
 			// actual research, no matter how little you spend, as long as you
@@ -1818,21 +1882,6 @@ namespace C7GameData {
 				turnsResearched++;
 			}
 			researchFundedThisTurn = false;
-
-			// Check to see if the player has finished researching their
-			// tech, and if they have, add it to the list of known techs
-			Tech tech = Tech.FindById(gameData.techs, currentlyResearchedTech);
-			if (EstimateTurnsToResearch(gameData, tech) > 0) {
-				return;
-			}
-
-			// Being the first to research a tech may bring a scientific
-			// leader (see MapUnit_ScientificLeader.cs).
-			bool first = IsFirstToLearn(gameData, tech);
-			CompleteResearchAndBeginNew(gameData, tech);
-			if (first) {
-				MapUnit.RollForScientificLeader(gameData, this, tech);
-			}
 		}
 
 		// Whether no other civ knows the tech yet. Barbarians don't count.
@@ -3149,7 +3198,8 @@ namespace C7GameData {
 			// A house rule may make it cheaper still (see AiHouseRules).
 			costFactor *= AiHouseRules.CostFactor(this);
 			// Accelerated Production halves the shield box (see
-			// City.AcceleratedProduction).
+			// City.AcceleratedProduction), as it does tech costs
+			// (GameData.TechCostFor).
 			if (City.AcceleratedProduction(this)) {
 				costFactor *= 0.5f;
 			}

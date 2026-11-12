@@ -1238,6 +1238,34 @@ In this study a negative number is good.
   Technology"
   (https://forums.civfanatics.com/threads/steal-technology.232487/post-5709659).
   Jazzmail, quote: "You have to multiply the values in the table by 0.8."
+- **Binary finding: the 80% roll is for the two thefts only, and a
+  successful spy can still be exposed.** Perez's decompile of the Conquests
+  executable (`doc/perez-findings/Civ3_Findings.md`, Round 2d "Espionage").
+  The owner ruled on 2026-11-12 that this finding is authoritative.
+  - Success roll `Rand(100) < successPct`; failing it is being caught.
+    "Second roll for Steal Tech and Steal World Map: after a successful first
+    roll, `Rand(100) < 80` completes the mission; the remaining 20% give
+    "mission failed" without being caught." *Superseded:* the study's "80% if
+    not caught" for every caught-able mission. Steal Plans, Sabotage
+    Production and Expose Enemy Spy use the success roll alone, so their
+    chance is the escape table itself (regular spy 60/75/85).
+  - "Exposed afterwards (the spy is lost even though the mission worked):
+    Steal Plans 10%, Sabotage Production 20%, Expose Mole 10%." Civ3's own
+    messages for it are in `script.txt`
+    (#ESPIONAGE_MISSION_STEAL_PLANS_SUCCESS_EXPOSED, "However, our agent was
+    caught and executed. $TITLE1 $LEADER2 is not pleased.";
+    #ESPIONAGE_MISSION_SABOTAGE_PRODUCTION_SUCCESS_EXPOSED;
+    #ESPIONAGE_MISSION_EXPOSE_MOLE_SUCCESS_EXPOSED). The engine counts the
+    exposure as an incident because of the "not pleased" line (UNVERIFIED).
+  - "The gold is charged first, always, and never refunded."
+- **Binary finding: the final price** (same source and ruling):
+  `((2*size - nativesOfSpyCiv + 1) * (cost + (sizeClass+1)*DAT_009e5ce4)) /
+  (2*size + 1)`, so a city full of the spy civ's own citizens is much cheaper.
+  `(sizeClass+1)` is the study's "level". The constant `DAT_009e5ce4` is not
+  named by the decompile; the engine takes it to be the study's "dist" (the
+  editor help above lists "the distance of the target" and "the ratio of
+  citizens between the initiating civ and the target civ" among the
+  modifiers). UNVERIFIED.
 - **Plant Spy modifiers by agent level** (Oystein, CFC 97042 page 3, Mar
   2005): "Conscript -30, Regular/Embassy 0, Veteran 10, Elite 25" (summarised
   list). An elite embassy had 75% to plant and 65% for the other spy missions.
@@ -1365,6 +1393,17 @@ In this study a negative number is good.
   2006): "They use propaganda and sabotage production, for sure." Manual
   p.~157: "Be aware that enemies can use all the same techniques against your
   civilization as you use against theirs."
+- **How often the AI spies (binary finding).** Perez's decompile
+  (`doc/perez-findings/Civ3_Findings.md`, Round 2d, `AI_ConsiderEspionage`;
+  authoritative per the owner's 2026-11-12 ruling): each turn, per civ,
+  `Rand(range)` with range 200000, 20000, 2000, 200, 20 for relationship
+  level 0..4, halved with an embassy (or "a positive counter"); 0-1 steal
+  tech, 2 steal map, 3 steal plans, 4-5 propaganda, 6-7 sabotage, 8-9 expose
+  mole; only allowed missions, and never one the target's government is
+  immune to. The decompile does not decode which relationship gives which
+  level. Engine reading (HEURISTIC): the AI's attitude, Gracious 0 to Furious
+  4, so a furious AI with an embassy tries a mission every turn and a
+  cautious one about 1 turn in 100.
 
 ## 6.12 United Nations (brief)
 
@@ -1377,8 +1416,15 @@ In this study a negative number is good.
   least 25% of the world's territory", or "at least 25% of the world's
   population". If only one civ is eligible, "the second candidate is the
   civilization with the largest population."
-- **The UN owner decides whether to hold the vote, every 11 turns.** Source:
-  CivFanatics FAQ. Quote: the choice "comes around every 11 turns". Also
+  - **Binary finding: more than 25%.** Perez's decompile of the Conquests
+    executable (`doc/perez-findings/Civ3_Findings.md`, Round 2 "Victory
+    conditions"): candidates "own a United-Nations-class wonder ... or more
+    than 25% of land or population". The owner ruled on 2026-11-12 that this
+    finding is authoritative. *Superseded:* the Civilopedia's "at least 25%".
+- **The UN owner decides whether to hold the vote, every 10 turns.** Binary
+  finding (same source and ruling): "vote every 10 turns". *Superseded:* the
+  CivFanatics FAQ's "comes around every 11 turns", and Turner's "every 11
+  turns" below. Also
   `script.txt` `DIPLOVICTORYVOTEOPTION`: "Would you like to hold elections for
   UN Secretary-General?" and "Election was inconclusive; no majority was
   found."
