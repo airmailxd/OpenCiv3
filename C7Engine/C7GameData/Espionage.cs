@@ -130,7 +130,8 @@ namespace C7Engine {
 			public string message;
 			public Tech stolenTech;
 			public CityReport report;
-			// The capital an embassy was established in.
+			// The capital an embassy was established in, or the investigated
+			// city, which the player is shown on the city screen.
 			public City city;
 			public Player exposedSpyOwner;
 			// Propaganda: how many citizens were persuaded.
@@ -826,8 +827,13 @@ namespace C7Engine {
 						break;
 					}
 				case EspionageMission.InvestigateCity:
+					// As in Civ3, the city is then shown on the city screen.
+					// Civ3's words (script.txt,
+					// #ESPIONAGE_MISSION_INVESTIGATE_CITY_SUCCESS): "We have
+					// conducted an investigation of the city of $CITY1."
 					result.report = Investigate(city, gameData.turn);
-					result.message = DescribeReport(result.report);
+					result.city = city;
+					result.message = $"We have conducted an investigation of the city of {city.name}.";
 					break;
 				case EspionageMission.StealTechnology: {
 						List<Tech> stealable = StealableTechs(gameData, actor, target);

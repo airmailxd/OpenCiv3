@@ -824,8 +824,8 @@ namespace C7Engine {
 		public bool performed;
 		public bool success;
 		public string message;
-		// The capital an embassy was established in, which the player is
-		// shown once.
+		// The capital an embassy was established in, or the investigated
+		// city, which the player is shown once on the city screen.
 		public City city;
 
 		public MsgEspionageResult(Player recipient, EspionageMission mission, bool performed, bool success, string message, City city = null) {

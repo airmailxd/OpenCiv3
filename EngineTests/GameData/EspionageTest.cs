@@ -221,6 +221,9 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(17, result.report.shieldsStored);
 		Assert.Contains(result.report.buildings, b => b == city.constructed_buildings[0].building.name);
 		Assert.Equal(target.gold, result.report.ownerGold);
+		// As in Civ3, the city is shown on the city screen, with Civ3's words.
+		Assert.Equal(city, result.city);
+		Assert.Equal($"We have conducted an investigation of the city of {city.name}.", result.message);
 	}
 
 	[Fact]

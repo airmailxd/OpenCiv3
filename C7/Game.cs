@@ -1966,8 +1966,10 @@ public partial class Game : Node {
 				}
 			case MsgEspionageResult mER: {
 					// A new embassy shows us their capital once, then the land
-					// around it stays on the map as it was.
-					bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
+					// around it stays on the map as it was. An investigated
+					// city is shown on the city screen too, as in Civ3.
+					bool showCapital = mER.success && mER.mission is EspionageMission.EstablishEmbassy or EspionageMission.InvestigateCity
+						&& mER.city != null;
 					// A stolen map, stolen plans or a city won by propaganda change
 					// what the map shows.
 					bool mapChanged = mER.success && mER.mission is EspionageMission.StealWorldMap or EspionageMission.StealPlans
@@ -1982,10 +1984,10 @@ public partial class Game : Node {
 						new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
 							[new ChoicePopup.Choice("Very well.", () => {
 							if (showCapital) {
-								// The capital is shown on the map, under the
+								// The city is shown on the map, under the
 								// Espionage screen.
 								advisor.Hide();
-								ShowEmbassyCapital(capital);
+								ShowForeignCityScreen(capital);
 							}
 						})], cancellable: false),
 						PopupOverlay.PopupCategory.Advisor);
@@ -4237,9 +4239,10 @@ public partial class Game : Node {
 			}.send();
 	}
 
-	// Shows the capital a new embassy reports on, with the tiles around it as
-	// they are now, until the city screen is closed.
-	private void ShowEmbassyCapital(City capital) {
+	// Shows another civ's city on the city screen (the capital a new embassy
+	// reports on, or an investigated city), with the tiles around it as they
+	// are now, until the screen is closed.
+	private void ShowForeignCityScreen(City capital) {
 		Player viewer = controller;
 		viewer.tileKnowledge.Peek(Espionage.CityRadius(capital));
 		mapView.InvalidateMap();
