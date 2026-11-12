@@ -2443,15 +2443,30 @@ namespace C7GameData {
 		// leads to "Destruction of existing city improvements" (Civilopedia,
 		// GCON_Disorder). Civ3 tells of it: "Civil Disorder intensifies in
 		// $CITYNAME0! The mob has destroyed $IMPROVEMENT1!" (script.txt).
-		// UNVERIFIED: a riot destroys one improvement picked at random, never
-		// a wonder or the palace.
+		// Civ3's City_UpdateDisorder (Civ3 binary,
+		// doc/perez-findings/Civ3_Findings.md, "Happiness, disorder,
+		// celebration" and Round 2b): never in the capital; Rand(100) <
+		// the chance, then for a town (size up to MaximumLevel1CitySize)
+		// a second Rand(100) < twice the chance; and it never destroys a
+		// wonder, a small wonder, a palace-class building or one that lets
+		// the city grow (aqueduct and sewer class).
+		// UNVERIFIED: which of the rest goes is picked at random among them.
+		// The binary makes up to size + 20 random picks, which may all miss.
 		public void MaybeRiot(GameData gameData) {
-			int chance = owner?.rules?.ChanceOfRioting ?? gameData.rules?.ChanceOfRioting ?? 0;
+			if (IsCapital()) {
+				return;
+			}
+			Rules rules = owner?.rules ?? gameData.rules;
+			int chance = rules?.ChanceOfRioting ?? 0;
 			if (chance <= 0 || GameData.rng.Next(100) >= chance) {
 				return;
 			}
+			if (rules != null && residents.Count <= rules.MaximumLevel1CitySize && GameData.rng.Next(100) >= 2 * chance) {
+				return;
+			}
 			List<CityBuilding> breakable = constructed_buildings
-				.Where(cb => !cb.building.IsGreatWonder() && !cb.building.isSmallWonder && !cb.building.isCenterOfEmpire)
+				.Where(cb => !cb.building.IsGreatWonder() && !cb.building.isSmallWonder && !cb.building.isCenterOfEmpire
+					&& !cb.building.allowsCitySize2 && !cb.building.allowsCitySize3)
 				.ToList();
 			if (breakable.Count == 0) {
 				return;
