@@ -125,6 +125,9 @@ namespace C7GameData.Save {
 		// Player.bonusFreeTechsRemaining); 0 in older saves.
 		public int bonusFreeTechsRemaining = 0;
 
+		// The statistics screen's records (see PlayerStats); empty in older saves.
+		public PlayerStats stats;
+
 		// If the government is anarchy (or a govt with the transition bool set
 		// to true), the turn number at which switching governments is allowed.
 		public int inAnarchyUntilTurn = 0;
@@ -196,6 +199,7 @@ namespace C7GameData.Save {
 				cityStatesCaptured = cityStatesCaptured,
 				freeTechsRemaining = freeTechsRemaining,
 				bonusFreeTechsRemaining = bonusFreeTechsRemaining,
+				stats = stats ?? new(),
 				neverHadCityOrSettler = neverHadCityOrSettler,
 				receivedStartUnits = receivedStartUnits ?? false,
 				kingsLost = kingsLost,
@@ -338,6 +342,7 @@ namespace C7GameData.Save {
 			cityStatesCaptured = player.cityStatesCaptured;
 			freeTechsRemaining = player.freeTechsRemaining;
 			bonusFreeTechsRemaining = player.bonusFreeTechsRemaining;
+			stats = player.stats.IsEmpty ? null : player.stats;
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			receivedStartUnits = player.receivedStartUnits;
 			kingsLost = player.kingsLost;

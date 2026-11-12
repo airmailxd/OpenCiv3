@@ -317,6 +317,9 @@ namespace C7GameData {
 		// The rules of this game.
 		public Rules rules;
 
+		// Statistics recorded each turn, for the statistics screen.
+		public PlayerStats stats = new();
+
 		public List<City> citiesWithCorruptionWonders = new();
 
 		// The number of free techs this player has remaining. Free techs can
@@ -944,15 +947,19 @@ namespace C7GameData {
 		// The same as CalculateGoldPerTurn, from per-city flows computed
 		// earlier and the current unit support cost.
 		private int GoldPerTurnFrom(CityFlows[] cityFlows, int unitSupport) {
+			return FlowsFrom(cityFlows, unitSupport).Netflows();
+		}
+
+		private PlayerCommerceBreakdown FlowsFrom(CityFlows[] cityFlows, int unitSupport) {
 			if (cityFlows.Length == 0) {
-				return 0;
+				return new();
 			}
 			PlayerCommerceBreakdown result = new();
 			int interestBuildings = 0;
 			foreach (CityFlows flows in cityFlows) {
 				AddCityFlows(ref result, ref interestBuildings, flows);
 			}
-			return AddEmpireFlows(result, interestBuildings, unitSupport).Netflows();
+			return AddEmpireFlows(result, interestBuildings, unitSupport);
 		}
 
 		public int MaintenanceCosts() {
@@ -1692,7 +1699,9 @@ namespace C7GameData {
 					$"We have insufficient gold to continue supporting all our units.\nWe had to disband: {string.Join(", ", disbandedUnits)}.", happy: false).send();
 			}
 
-			lastGoldPerTurn = GoldPerTurnFrom(cityFlows, unitSupportCost);
+			PlayerCommerceBreakdown turnFlows = FlowsFrom(cityFlows, unitSupportCost);
+			stats.RecordFinances(turnFlows);
+			lastGoldPerTurn = turnFlows.Netflows();
 			gold = Math.Max(0, gold + lastGoldPerTurn);
 		}
 
@@ -1824,6 +1833,7 @@ namespace C7GameData {
 				MapUnit.RollForScientificLeader(gameData, this, tech);
 			}
 		}
+
 
 		// Whether no other civ knows the tech yet. Barbarians don't count.
 		internal bool IsFirstToLearn(GameData gameData, Tech tech) {
