@@ -94,6 +94,9 @@ public static class C7Action {
 	public const string UnitExplore = "unit_explore";
 	public const string UnitFortify = "unit_fortify";
 	public const string UnitGoto = "unit_goto";
+	// Civ3's Go to City (Ctrl-Shift-G), handled with the other G keys in
+	// Game.HandleKeyboardInput.
+	public const string UnitGotoCity = "unit_goto_city";
 	public const string UnitHold = "unit_hold";
 	public const string UnitSentry = "unit_sentry";
 	public const string UnitSentryEnemyOnly = "unit_sentry_enemy_only";
