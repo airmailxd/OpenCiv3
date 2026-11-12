@@ -1974,11 +1974,10 @@ namespace C7GameData {
 			if (!KnowsEveryTech(gameData)) {
 				return;
 			}
-			if (researchFundedThisTurn) {
-				turnsResearched++;
-			}
-			researchFundedThisTurn = false;
-			if (EstimateTurnsToFutureTech(gameData, BeakersPerTurn()) > 0) {
+			// Like an advance (see CompletePaidResearch), it is learned the
+			// turn after it is paid for, whatever this turn's science; the
+			// turns of research are counted by DoPerTurnScienceUpdates.
+			if (FutureTechBeakerTurnsLeft(gameData, beakersPerTurn: 1) > 0) {
 				return;
 			}
 			futureTechs++;
@@ -1991,8 +1990,15 @@ namespace C7GameData {
 			}
 		}
 
-		// Like EstimateTurnsToResearch, for the next future tech.
+		// Like EstimateTurnsToResearch, for the next future tech: the turns
+		// until it is learned, one more than the turns of beakers it needs.
 		public int EstimateTurnsToFutureTech(GameData gameData, int beakersPerTurn) {
+			int turns = FutureTechBeakerTurnsLeft(gameData, beakersPerTurn);
+			return turns == int.MaxValue ? int.MaxValue : turns + 1;
+		}
+
+		// Like BeakerTurnsLeft, for the next future tech.
+		private int FutureTechBeakerTurnsLeft(GameData gameData, int beakersPerTurn) {
 			int remainingCost = Math.Max(gameData.FutureTechCostFor(this) - beakers, 0);
 			if (remainingCost > 0 && beakersPerTurn <= 0) {
 				// No research is happening.
@@ -2000,7 +2006,8 @@ namespace C7GameData {
 			}
 			int turnsRemaining = remainingCost <= 0 ? 0 : (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
 			turnsRemaining = Math.Min(turnsRemaining, rules.MaximumResearchTime - turnsResearched);
-			return Math.Max(turnsRemaining, rules.MinimumResearchTime - turnsResearched);
+			turnsRemaining = Math.Max(turnsRemaining, rules.MinimumResearchTime - turnsResearched);
+			return Math.Max(turnsRemaining, 0);
 		}
 
 		// Whether no other civ knows the tech yet. Barbarians don't count.

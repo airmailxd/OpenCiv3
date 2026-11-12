@@ -41,7 +41,7 @@ public class FutureTechTest : IClassFixture<SaveGameFixture>, IDisposable {
 		us.SetCurrentlyResearchedTech(null);
 		us.beakers = 100000;
 		us.turnsResearched = 100;
-		us.DoPerTurnScienceUpdates(gameData);
+		us.CompletePaidResearch(gameData);
 		Assert.Equal(0, us.futureTechs);
 	}
 
@@ -55,11 +55,11 @@ public class FutureTechTest : IClassFixture<SaveGameFixture>, IDisposable {
 		// Not before the least turns of research, even with the beakers.
 		us.beakers = cost;
 		us.turnsResearched = 0;
-		us.DoPerTurnScienceUpdates(gameData);
+		us.CompletePaidResearch(gameData);
 		Assert.Equal(0, us.futureTechs);
 
 		us.turnsResearched = gameData.rules.MinimumResearchTime;
-		us.DoPerTurnScienceUpdates(gameData);
+		us.CompletePaidResearch(gameData);
 		Assert.Equal(1, us.futureTechs);
 		Assert.Equal(0, us.beakers);
 		Assert.Equal(0, us.turnsResearched);
@@ -70,8 +70,12 @@ public class FutureTechTest : IClassFixture<SaveGameFixture>, IDisposable {
 		// With no science, no progress.
 		Assert.Equal(0, us.BeakersPerTurn());
 		Assert.Equal("Future Tech 2 (-- turns)", us.SummarizeScience(gameData));
-		us.turnsResearched = gameData.rules.MaximumResearchTime;
+		// An unfunded turn doesn't count towards the most turns of research,
+		// so the clamp can't hand out a future tech for nothing.
+		us.turnsResearched = gameData.rules.MaximumResearchTime - 1;
 		us.DoPerTurnScienceUpdates(gameData);
+		Assert.Equal(gameData.rules.MaximumResearchTime - 1, us.turnsResearched);
+		us.CompletePaidResearch(gameData);
 		Assert.Equal(1, us.futureTechs);
 	}
 
