@@ -399,6 +399,17 @@ namespace C7GameData {
 			return baseTerrainType.IsWater;
 		}
 
+		// Whether the tile is water in a body of more than 20 tiles, where
+		// Harbour, Offshore Platform and Commercial Dock class buildings
+		// work: their +1 applies "only on bodies of water larger than 20
+		// tiles". Civ3 binary (doc/perez-findings/Civ3_Findings.md,
+		// Economy). Smaller bodies are the fresh water lakes (see
+		// GameMap.MaxFreshWaterLakeTiles), so this is salt water.
+		[LuaMethod]
+		public bool IsInLargeBodyOfWater() {
+			return baseTerrainType.IsWater && !isFreshWater;
+		}
+
 		public bool IsCoast() {
 			return baseTerrainType.IsCoast;
 		}
