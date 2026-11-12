@@ -20,12 +20,16 @@ public partial class GameViews : CenterContainer {
 	private HistographView histographView;
 	// Shown at the end of the game (see ReplayView).
 	private ReplayView replayView;
+	// Reached from the Histograph's "Show" list.
+	public StatisticsView statisticsView { get; private set; }
 
 	public override void _Ready() {
 		histographView = new HistographView { Name = "HistographView", Visible = false };
 		AddChild(histographView);
 		replayView = new ReplayView { Name = "ReplayView", Visible = false };
 		AddChild(replayView);
+		statisticsView = new StatisticsView { Name = "StatisticsView", Visible = false };
+		AddChild(statisticsView);
 		Hide();
 	}
 
@@ -33,6 +37,13 @@ public partial class GameViews : CenterContainer {
 	public void ShowHistograph() {
 		HideGameViews();
 		histographView.ShowView();
+		Show();
+	}
+
+	// The statistics screen (see StatisticsView).
+	public void ShowStatistics() {
+		HideGameViews();
+		statisticsView.ShowView();
 		Show();
 	}
 
@@ -101,5 +112,6 @@ public partial class GameViews : CenterContainer {
 		demographicsView.Hide();
 		histographView?.Hide();
 		replayView?.Hide();
+		statisticsView?.Hide();
 	}
 }

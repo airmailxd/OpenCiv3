@@ -370,6 +370,13 @@ namespace C7GameData {
 		// The rules of this game.
 		public Rules rules;
 
+		// Statistics recorded each turn, for the statistics screen.
+		public PlayerStats stats = new();
+
+		// Future techs learned, once every advance was known. They count only
+		// for the score (see ScoreVictory.ComputeTurnScore).
+		public int futureTechs;
+
 		public List<City> citiesWithCorruptionWonders = new();
 
 		// The number of free techs this player has remaining. Free techs can
@@ -1010,15 +1017,19 @@ namespace C7GameData {
 		// The same as CalculateGoldPerTurn, from per-city flows computed
 		// earlier and the current unit support cost.
 		private int GoldPerTurnFrom(CityFlows[] cityFlows, int unitSupport) {
+			return FlowsFrom(cityFlows, unitSupport).Netflows();
+		}
+
+		private PlayerCommerceBreakdown FlowsFrom(CityFlows[] cityFlows, int unitSupport) {
 			if (cityFlows.Length == 0) {
-				return 0;
+				return new();
 			}
 			PlayerCommerceBreakdown result = new();
 			int interestBuildings = 0;
 			foreach (CityFlows flows in cityFlows) {
 				AddCityFlows(ref result, ref interestBuildings, flows);
 			}
-			return AddEmpireFlows(result, interestBuildings, unitSupport).Netflows();
+			return AddEmpireFlows(result, interestBuildings, unitSupport);
 		}
 
 		public int MaintenanceCosts() {
@@ -1309,9 +1320,18 @@ namespace C7GameData {
 		public string SummarizeScience(GameData gD) {
 			Tech tech = Tech.FindById(gD.techs, currentlyResearchedTech);
 			if (tech == null) {
-				return "Not selected (-- turns)";
+				return SummarizeFutureTech(gD, BeakersPerTurn()) ?? "Not selected (-- turns)";
 			}
 			return SummarizeScience(tech, EstimateTurnsToResearch(gD, tech));
+		}
+
+		// "Future Tech 3 (5 turns)" once every advance is known, else null.
+		private string SummarizeFutureTech(GameData gD, int beakersPerTurn) {
+			if (!KnowsEveryTech(gD)) {
+				return null;
+			}
+			int turns = EstimateTurnsToFutureTech(gD, beakersPerTurn);
+			return turns == int.MaxValue ? $"Future Tech {futureTechs + 1} (-- turns)" : $"Future Tech {futureTechs + 1} ({Math.Max(turns, 1)} turns)";
 		}
 
 		// Like SummarizeScience, with the beakers per turn (from
@@ -1319,7 +1339,7 @@ namespace C7GameData {
 		public string SummarizeScience(GameData gD, int beakersPerTurn) {
 			Tech tech = Tech.FindById(gD.techs, currentlyResearchedTech);
 			if (tech == null) {
-				return "Not selected (-- turns)";
+				return SummarizeFutureTech(gD, beakersPerTurn) ?? "Not selected (-- turns)";
 			}
 			return SummarizeScience(tech, EstimateTurnsToResearch(gD, tech, beakersPerTurn));
 		}
@@ -1776,7 +1796,9 @@ namespace C7GameData {
 					$"We have insufficient gold to continue supporting all our units.\nWe had to disband: {string.Join(", ", disbandedUnits)}.", happy: false).send();
 			}
 
-			lastGoldPerTurn = GoldPerTurnFrom(cityFlows, unitSupportCost);
+			PlayerCommerceBreakdown turnFlows = FlowsFrom(cityFlows, unitSupportCost);
+			stats.RecordFinances(turnFlows);
+			lastGoldPerTurn = turnFlows.Netflows();
 			gold = Math.Max(0, gold + lastGoldPerTurn);
 		}
 
@@ -1898,6 +1920,7 @@ namespace C7GameData {
 		// has yet to choose it).
 		public void CompletePaidResearch(GameData gameData) {
 			if (currentlyResearchedTech == null) {
+				ResearchFutureTech(gameData);
 				return;
 			}
 			Tech tech = Tech.FindById(gameData.techs, currentlyResearchedTech);
@@ -1935,6 +1958,49 @@ namespace C7GameData {
 				turnsResearched++;
 			}
 			researchFundedThisTurn = false;
+		}
+
+		// Whether there's no advance left to learn.
+		public bool KnowsEveryTech(GameData gameData) {
+			return gameData.techs.Count > 0 && gameData.techs.All(t => knownTechs.Contains(t.id));
+		}
+
+		// With every advance known, research goes on to future techs: "When
+		// your civilization accumulates enough scientific research to finish
+		// one unit of Future Technology, you can research another" (Civ3
+		// manual, p.125). Each takes FutureTechCostFor's beakers, within the
+		// rules' least and most turns of research like an advance.
+		private void ResearchFutureTech(GameData gameData) {
+			if (!KnowsEveryTech(gameData)) {
+				return;
+			}
+			if (researchFundedThisTurn) {
+				turnsResearched++;
+			}
+			researchFundedThisTurn = false;
+			if (EstimateTurnsToFutureTech(gameData, BeakersPerTurn()) > 0) {
+				return;
+			}
+			futureTechs++;
+			beakers = 0;
+			turnsResearched = 0;
+			log.Information("{Player} discovered Future Tech {Number}", this, futureTechs);
+			if (IsToldNews) {
+				new MsgShowScienceAdvisorPopup(this, $"Our scientists have discovered Future Tech {futureTechs}!",
+					MsgShowScienceAdvisorPopup.Mood.Happy).send();
+			}
+		}
+
+		// Like EstimateTurnsToResearch, for the next future tech.
+		public int EstimateTurnsToFutureTech(GameData gameData, int beakersPerTurn) {
+			int remainingCost = Math.Max(gameData.FutureTechCostFor(this) - beakers, 0);
+			if (remainingCost > 0 && beakersPerTurn <= 0) {
+				// No research is happening.
+				return int.MaxValue;
+			}
+			int turnsRemaining = remainingCost <= 0 ? 0 : (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
+			turnsRemaining = Math.Min(turnsRemaining, rules.MaximumResearchTime - turnsResearched);
+			return Math.Max(turnsRemaining, rules.MinimumResearchTime - turnsResearched);
 		}
 
 		// Whether no other civ knows the tech yet. Barbarians don't count.

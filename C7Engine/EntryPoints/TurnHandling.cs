@@ -158,6 +158,12 @@ namespace C7Engine {
 					player.RecalculateCitizenMoods(gameData, goIntoDisorderIfUnhappy: true);
 					player.DoCorruptionCalculations(gameData);
 
+					// Finances, growth and production below add to this
+					// turn's statistics.
+					if (!player.IsIndependent && !player.defeated) {
+						player.stats.StartTurn(gameData.turn);
+					}
+
 					// A tech paid for by an earlier turn's beakers is learned
 					// before this turn's beakers are added, so it arrives the
 					// turn after its cost is met (see CompletePaidResearch).
@@ -187,6 +193,13 @@ namespace C7Engine {
 					// Civ3 checks each civ's palace achievements every turn
 					// (FUN_0056c5a0 calls FUN_00589ae0).
 					PalaceUpgrades.CheckAchievements(player, gameData);
+				}
+
+				// The statistics' end-of-turn snapshot, once every player's
+				// cities have grown and borders expanded.
+				Dictionary<Player, PlayerStats.LandCount> land = PlayerStats.CountLand(gameData.map);
+				foreach (Player player in gameData.players) {
+					player.stats.EndTurn(player, land.GetValueOrDefault(player));
 				}
 
 				// In the interturn, cities may flip to a civ whose culture

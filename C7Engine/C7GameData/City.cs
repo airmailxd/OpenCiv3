@@ -960,6 +960,7 @@ namespace C7GameData {
 				receivedForestShields = false;
 			}
 			if (producedItem is UnitPrototype prototype) {
+				owner.stats.RecordUnitBuilt(prototype);
 				SendToRallyPoint(AddUnit(prototype, gameData));
 			} else if (producedItem is Building building) {
 				if (building.isCenterOfEmpire) {
@@ -1124,6 +1125,8 @@ namespace C7GameData {
 			bool hasGranary = HasGranary();
 
 			foodStored += foodGrowth;
+			// Food beyond the box is thrown away, also every turn a city can't grow.
+			owner.stats.RecordGrowth(surplus: Math.Max(foodGrowth, 0), wasted: Math.Max(foodStored - foodNeededToGrow, 0));
 			foodStored = Math.Min(foodStored, foodNeededToGrow);
 
 			// Handle the city starving: "stock < 0 => stock 0 and lose 1
@@ -1371,13 +1374,18 @@ namespace C7GameData {
 		public IProducible ComputeTurnProduction() {
 			int shieldsBefore = shieldsStored;
 			int cost = owner.ShieldCost(itemBeingProduced);
-			shieldsStored += CurrentProductionYield().useful;
+			CorruptableValue production = CurrentProductionYield();
+			shieldsStored += production.useful;
+			// Shields beyond the cost are thrown away, whether the build finishes or not.
+			int excess = Math.Max(shieldsStored - cost, 0);
 
 			// Like a settler waiting for the city to grow, an army the empire
 			// can't support waits with its shields kept in the box.
 			bool unsupportedArmy = IsUnsupportedArmy(itemBeingProduced);
 			if (shieldsStored >= cost && residents.Count > itemBeingProduced.populationCost && !unsupportedArmy) {
 				shieldsStored = 0;
+				// Wealth turns all its shields into gold every turn.
+				RecordProductionStats(production, overflowed: itemBeingProduced is Inflow ? 0 : excess, capped: 0);
 				RemoveCitizens(itemBeingProduced.populationCost);
 				return itemBeingProduced;
 			}
@@ -1388,7 +1396,18 @@ namespace C7GameData {
 			}
 
 			shieldsStored = Math.Min(shieldsStored, owner.ShieldCost(itemBeingProduced));
+			RecordProductionStats(production, overflowed: 0, capped: excess);
 			return null;
+		}
+
+		// For the statistics (see PlayerStats.RecordProduction). In civil
+		// disorder or anarchy all the city's shields count as lost to it.
+		private void RecordProductionStats(CorruptableValue production, int overflowed, int capped) {
+			bool anarchy = owner.government.transitionType;
+			bool idle = anarchy || isInCivilDisorder;
+			int lost = idle ? production.corrupt : 0;
+			owner.stats.RecordProduction(produced: production.useful + production.corrupt, corrupted: idle ? 0 : production.corrupt,
+				lostToDisorder: anarchy ? 0 : lost, lostToAnarchy: anarchy ? lost : 0, overflowed, capped);
 		}
 
 		public int CurrentFoodYield() {

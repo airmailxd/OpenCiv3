@@ -905,6 +905,10 @@ public partial class MapUnit {
 		// The play log notes fights a human is in (see PlayLog.PlayRecorder).
 		C7Engine.PlayLog.PlayRecorder.FightEntry recordedFight = C7Engine.PlayLog.PlayRecorder.BeginFight(attacker, defender, attackerOdds);
 
+		// For the statistics: the battle's chance before any dice are rolled.
+		double startingAttackerOdds = attackerOdds, defensiveBombardHitChance = 0;
+		int attackerStartingHitPoints = attacker.CompositeHitPoints(), defenderStartingHitPoints = defender.CompositeHitPoints();
+
 		// When an army rotates in another member, the odds change with it.
 		void UpdateOdds() {
 			attackerStrength = (attackingMember.unitType.attack + attacker.ArmyStrengthBonus(CombatRole.Attack)) * attackMultiplier;
@@ -976,7 +980,8 @@ public partial class MapUnit {
 
 			// dADB = defense Against Defensive Bombard
 			double dADB = attacker.StrengthVersus(defensiveBombarder, CombatRole.DefensiveBombardDefense, defensiveBombardDirection);
-			if (GameData.rng.NextDouble() < defensiveBombarderStrength / (defensiveBombarderStrength + dADB))
+			defensiveBombardHitChance = defensiveBombarderStrength / (defensiveBombarderStrength + dADB);
+			if (GameData.rng.NextDouble() < defensiveBombardHitChance)
 				bombardedUnit.hitPointsRemaining -= 1;
 
 			defensiveBombarder.defensiveBombardsRemaining -= 1;
@@ -1027,6 +1032,13 @@ public partial class MapUnit {
 		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f
 			&& attacker.owner?.isBarbarians != true;
 
+		bool defenderHasRetreat = defenderEligibleToRetreat && defender.location.neighbors.TryGetValue(attackerAttackDirection, out Tile behindDefender)
+			&& behindDefender != Tile.NONE && defender.CanEnterPeacefully(behindDefender);
+		double attackerWinChance = BattleOdds.AttackerWinChance(startingAttackerOdds, attackerStartingHitPoints, defenderStartingHitPoints,
+			defensiveBombardHitChance,
+			attackerEligibleToRetreat ? attacker.RetreatChance(defender, isAttacking: true) : 0,
+			defenderHasRetreat ? defender.RetreatChance(attacker, isAttacking: false) : 0);
+
 		// Do combat rounds
 		while (true) {
 			defender.animate(MapUnit.AnimatedAction.ATTACK1);
@@ -1072,6 +1084,8 @@ public partial class MapUnit {
 				}
 			}
 		}
+
+		RecordBattleStats(attacker, defender, result, attackerWinChance);
 
 		if ((result == CombatResult.AttackerKilled) || (result == CombatResult.DefenderKilled)) {
 			var (dead, alive) = (result == CombatResult.AttackerKilled) ? (attacker, defender) : (defender, attacker);

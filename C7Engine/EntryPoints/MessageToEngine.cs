@@ -28,6 +28,12 @@ namespace C7Engine {
 		[JsonIgnore]
 		public virtual bool IsLocal => false;
 
+		// Whether this is one of the player's orders or decisions, counted as a
+		// game action in the statistics (see PlayerStats.actions), rather than
+		// the UI's or the engine's own housekeeping.
+		[JsonIgnore]
+		public virtual bool IsGameAction => !IsLocal;
+
 		public void send() {
 			playerID ??= EngineStorage.uiControllerID;
 			EngineStorage.SendToEngine(this);
@@ -54,6 +60,9 @@ namespace C7Engine {
 			}
 			// The play log notes what humans do (see PlayLog.PlayRecorder).
 			PlayLog.PlayRecorder.Entry recorded = PlayLog.PlayRecorder.Active ? PlayLog.PlayRecorder.Begin(this) : null;
+			if (IsGameAction && Sender is Player sender) {
+				sender.stats.RecordAction(sender, EngineStorage.gameData);
+			}
 			Task handling = ProcessAllowedAsync();
 			PlayLog.PlayRecorder.End(recorded, handling.IsCompleted);
 			return handling;
@@ -429,6 +438,9 @@ namespace C7Engine {
 	// The player selected a unit, which takes it out of automation, cancels
 	// its path and wakes it up.
 	public class MsgSelectUnit : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		public ID unitID;
 
 		public MsgSelectUnit(ID unitID) {
@@ -787,6 +799,9 @@ namespace C7Engine {
 	// Sent by the UI at the start of the player's turn: asks them what to
 	// research next if they have nothing to research.
 	public class MsgAskWhatToResearch : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		protected override void ProcessAllowed() {
 			Sender.AskWhatToResearch(EngineStorage.gameData);
 		}
@@ -796,6 +811,9 @@ namespace C7Engine {
 	// science isn't wasted if they dismiss the science selection popup. A free
 	// tech the player has coming is left for them to choose.
 	public class MsgPickDefaultResearch : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		protected override void ProcessAllowed() {
 			Player player = Sender;
 			GameData gameData = EngineStorage.gameData;
@@ -962,6 +980,9 @@ namespace C7Engine {
 	}
 
 	public class MsgEndTurn : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		// The turn the sender means to end, if they say. An end that arrives
 		// once that turn is over is ignored, rather than ending the next.
 		public int? turn;
@@ -1099,6 +1120,9 @@ namespace C7Engine {
 	}
 
 	public class MsgSetAnimationsEnabled : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		public bool enabled;
 
 		public MsgSetAnimationsEnabled(bool enabled) {
@@ -1522,6 +1546,9 @@ namespace C7Engine {
 	}
 
 	public class MsgDiplomacyCompleted : MessageToEngine {
+		// Not a game action (see IsGameAction).
+		public override bool IsGameAction => false;
+
 		// While an AI waits on a human to answer it, only that human can end
 		// the talks; the active player may still be the last human to play.
 		protected override bool IsAllowed() {
