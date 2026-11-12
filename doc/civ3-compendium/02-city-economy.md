@@ -209,6 +209,7 @@ Web sources are cited by URL. A fetch tool extracted their quotes, so they may d
 - **Production can be changed at any time; an impossible wonder is switched off** (code reading). Flintlock ([C3X-THREAD] post-16693789, page-118 #2346): "In Civ 3 you can change production at any time"; (page-117 #2331, post-16686149): (paraphrase from a summarised fetch) "the game will switch production off a wonder that can't be completed".
 - **Specialist shields count only for some builds.** Flintlock ([C3X-THREAD] post-16341094, page-51 #1018, "IIRC"): "the game just checks if the city's current build is an improvement or unit to determine whether shields from specialists can contribute". This fits the Civil Engineer rule above.
 - **Accelerated Production** (game option) halves the boxes only. tjs282 ([C3X-THREAD] post-16624265, page-107 #2130, "As far as I can tell"): it "simply halves the capacity of every player's food- and shield-boxes" and (paraphrase from a summarised fetch) "It doesn't alter e.g. base-Worker-turns to complete tile improvements".
+- **A unit costs at least 1 shield** ([BINARY] Perez's decompile of the C3C executable, `doc/perez-findings/Civ3_Findings.md`, authoritative by the owner's ruling of 2026-11-12, Round 2b, Costs): "Unit cost = base * PRTO.cost / 10, minimum 1."
 
 ---
 

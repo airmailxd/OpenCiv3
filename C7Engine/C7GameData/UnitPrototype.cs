@@ -551,8 +551,11 @@ namespace C7GameData {
 			terraformActions = proto.terraformActions.Select(id => terraforms.First(t => t.Id == id)).ToHashSet();
 		}
 
+		// "Unit cost = base * PRTO.cost / 10, minimum 1": never less than a
+		// shield, whatever the factors. Civ3 binary
+		// (doc/perez-findings/Civ3_Findings.md, Round 2b, Costs).
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {
-			return (int)(shieldCost * costFactor);
+			return Math.Max(1, (int)(shieldCost * costFactor));
 		}
 
 		public bool IsLandUnit() {

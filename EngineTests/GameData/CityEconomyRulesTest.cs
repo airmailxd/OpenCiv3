@@ -264,4 +264,12 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(city, gameData.cities);
 		Assert.Null(site.cityAtTile);
 	}
+
+	// A unit never costs less than a shield, whatever the factors (Round
+	// 2b, Costs).
+	[Fact]
+	public void AUnitCostsAtLeastAShield() {
+		UnitPrototype unit = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		Assert.Equal(1, unit.ShieldCost(new(), 0.01f));
+	}
 }
