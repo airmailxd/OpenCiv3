@@ -88,6 +88,10 @@ namespace C7GameData.Save {
 		// The turn the city last changed hands; absent if it never has, or
 		// in saves made before this was saved.
 		public int? ownerChangedTurn;
+
+		// The city's culture-flip cooldown (City.flipCooldown); absent if 0
+		// and in older saves.
+		public int? flipCooldown;
 		// See City.wasCityState.
 		public bool wasCityState;
 		// The civilization the city was taken from by force (City.capturedFrom),
@@ -158,6 +162,7 @@ namespace C7GameData.Save {
 			resisters = city.resisters;
 			resistanceFrom = city.resistanceFrom?.id;
 			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
+			flipCooldown = city.flipCooldown > 0 ? city.flipCooldown : null;
 			wasCityState = city.wasCityState;
 			capturedFrom = city.capturedFrom?.name;
 			if (city.cultureFlipOfferedTo != null && city.cultureFlipOfferTurn >= 0) {
@@ -301,6 +306,7 @@ namespace C7GameData.Save {
 				resisters = resisters,
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				ownerChangedTurn = ownerChangedTurn ?? -1,
+				flipCooldown = flipCooldown ?? 0,
 				wasCityState = wasCityState,
 				// Saves made before this was saved still know a city-state a
 				// civ took: it was taken from the city-states.

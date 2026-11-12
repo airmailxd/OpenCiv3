@@ -147,6 +147,11 @@ namespace C7GameData {
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
 
+		// Civ3's flip cooldown: while it is at least 1 the city can't flip,
+		// and each round's flip check counts it down by one instead (see
+		// CultureFlip.SetFlipCooldown). 0 in older saves.
+		public int flipCooldown;
+
 		// Kings & Nomads: the city was a city-state a civ took, so it needs
 		// an aqueduct to grow past the first size limit, fresh water or not
 		// (see CanGrowPopulationByOne).
