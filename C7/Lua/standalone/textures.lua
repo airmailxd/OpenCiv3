@@ -293,8 +293,12 @@ return function(civ3_textures)
   -- other civilization shows the placeholder.
   function c7_textures.leader_heads:map_object_to_sprite(player_or_civ)
     local civ = player_or_civ
-    if player_or_civ:GetType().Name == "Player" then
+    local type_name = player_or_civ:GetType().Name
+    if type_name == "Player" then
       civ = player_or_civ.civilization
+    elseif type_name == "LeaderPortrait" then
+      -- Our portraits have one face for every mood.
+      civ = player_or_civ.player.civilization
     end
     if civ and leader_head_civs[civ.name] then
       return { path = "Art/Leaderheads/" .. civ.name .. ".png" }
