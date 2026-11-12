@@ -157,6 +157,15 @@ namespace C7Engine {
 		public override bool IsForEveryone => true;
 	}
 
+	// Playing by email: the computer players have had their say with the
+	// human at the start of their turn (PlayByEmail.HearFromAIs), whose
+	// turn now begins.
+	public class MsgTurnReady : MessageToUI {
+		public MsgTurnReady(Player recipient) {
+			this.recipient = recipient;
+		}
+	}
+
 	public class MsgShowScienceAdvisor : MessageToUI { }
 
 	public class MsgUpdateUiAfterDomesticChange : MessageToUI { }

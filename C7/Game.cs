@@ -481,6 +481,10 @@ public partial class Game : Node {
 			} else {
 				MaybeAutoplayLanTurn();
 			}
+		} else if (PlayByEmail.IsOn(EngineStorage.gameData)) {
+			// Whoever opened the save gives the password of the player whose
+			// turn it is before anything of theirs shows.
+			BeginTurnByEmail(controller);
 		} else if (TurnHandling.IsHotseat(EngineStorage.gameData)) {
 			// The first hotseat player also needs the others to look away.
 			ShowHotseatHandoff(controller, OnPlayerStartTurn);
@@ -1184,6 +1188,18 @@ public partial class Game : Node {
 			return;
 		}
 
+		if (PlayByEmail.IsOn(EngineStorage.gameData)) {
+			if (controller != null && next.id != controller.id) {
+				// The next human plays on their own computer.
+				SendTurnByEmail(next);
+			} else {
+				// The only human left plays on.
+				controller = next;
+				HearFromAIs();
+			}
+			return;
+		}
+
 		if (!TurnHandling.IsHotseat(EngineStorage.gameData)) {
 			controller = next;
 			OnPlayerStartTurn();
@@ -1191,6 +1207,80 @@ public partial class Game : Node {
 		}
 
 		ShowHotseatHandoff(next, OnPlayerStartTurn);
+	}
+
+	// ---- Play by email (see C7Engine.PlayByEmail) ----
+
+	// Whether the computer players are having their say with the human at
+	// the start of their turn, which begins once they've had it.
+	private bool hearingFromAIs = false;
+
+	// The end-of-turn curtain, while it's up.
+	private PlayByEmailSave playByEmailSave = null;
+
+	// Starts the turn of the human whose save this is: once they've given
+	// their password (or chosen one), the news from while they were away,
+	// then what the computer players have to say to them, then their turn.
+	private void BeginTurnByEmail(Player player) {
+		ShowHotseatHandoff(player, "It is now your turn.", "Begin Turn", () => {
+			foreach (MessageToUI news in PlayByEmail.TakeNews(EngineStorage.gameData, controller)) {
+				HoldMessage(controller.id, news);
+			}
+			HearFromAIs();
+		}, turnStart: true, offerMainMenu: true);
+	}
+
+	private void HearFromAIs() {
+		CurrentState = GameState.ComputerTurn;
+		hearingFromAIs = true;
+		new MsgHearFromAIs().send();
+	}
+
+	// The turn is over, and the next human's begins on their computer: the
+	// player saves the game for them, under the name they give it, and
+	// goes back to the main menu. What they'll be told when they open it
+	// (the news held for them, and for the others) goes with it.
+	private void SendTurnByEmail(Player next) {
+		CloseScreensForHandoff();
+		CurrentState = GameState.ComputerTurn;
+		GameData gameData = EngineStorage.gameData;
+		string folder = Civ3FileDialog.SavesDirectory;
+
+		string Save(string fileName) {
+			Dictionary<ID, int> kept = gameData.players.ToDictionary(p => p.id, p => p.newsWhileAway.Count);
+			try {
+				foreach (Player player in gameData.players.Where(p => p.isHuman)) {
+					List<MessageToUI> news = new();
+					if (pendingProductionPopups.TryGetValue(player.id, out LinkedList<MsgCityProductionCompleted> production)) {
+						news.AddRange(production);
+					}
+					if (heldMessages.TryGetValue(player.id, out Queue<MessageToUI> held)) {
+						news.AddRange(held);
+					}
+					PlayByEmail.KeepNews(gameData, player.id, news);
+				}
+				System.IO.Directory.CreateDirectory(folder);
+				SaveManager.Save(System.IO.Path.Combine(folder, fileName));
+				return null;
+			} catch (Exception e) {
+				log.Error(e, "Couldn't save the turn to send on");
+				return e.Message;
+			} finally {
+				// The news is in the save; here it's still held.
+				foreach (Player player in gameData.players) {
+					int count = kept.GetValueOrDefault(player.id);
+					if (player.newsWhileAway.Count > count) {
+						player.newsWhileAway.RemoveRange(count, player.newsWhileAway.Count - count);
+					}
+				}
+			}
+		}
+
+		playByEmailSave = new PlayByEmailSave(PlayByEmail.PlayerName(next), PlayByEmail.SaveFileName(gameData, next), folder, Save, OnRetire);
+		CanvasLayer curtainLayer = new() { Layer = 100 };
+		curtainLayer.AddChild(playByEmailSave);
+		playByEmailSave.TreeExited += curtainLayer.QueueFree;
+		AddChild(curtainLayer);
 	}
 
 	private void BeginLanTurn() {
@@ -1202,18 +1292,19 @@ public partial class Game : Node {
 		ShowHotseatHandoff(next,
 			"It is your turn. Make sure the other players aren't looking.",
 			"Begin Turn",
-			onBeginTurn);
+			onBeginTurn,
+			turnStart: true);
 	}
 
 	// Handoffs asked for while the curtain is already up, shown in turn once
 	// it's dismissed, so that what each of them goes on to do isn't lost.
-	private readonly Queue<(ID next, string message, string buttonText, Action onContinue)> queuedHandoffs = new();
+	private readonly Queue<(ID next, string message, string buttonText, Action onContinue, bool turnStart)> queuedHandoffs = new();
 	// Who the curtain is up for, and what it says.
 	private (ID, string) hotseatHandoffShown;
 
 	private void ShowNextQueuedHandoff() {
 		while (hotseatHandoff == null && queuedHandoffs.Count > 0) {
-			var (nextID, message, buttonText, onContinue) = queuedHandoffs.Dequeue();
+			var (nextID, message, buttonText, onContinue, turnStart) = queuedHandoffs.Dequeue();
 			// Found by id, as a LAN client's snapshots replace the players.
 			Player next = EngineStorage.gameData?.GetPlayer(nextID);
 			if (next == null) {
@@ -1224,18 +1315,22 @@ public partial class Game : Node {
 				onContinue();
 				continue;
 			}
-			ShowHotseatHandoff(next, message, buttonText, onContinue);
+			ShowHotseatHandoff(next, message, buttonText, onContinue, turnStart);
 		}
 	}
 
-	private void ShowHotseatHandoff(Player next, string message, string buttonText, Action onContinue) {
+	// A handoff at the start of the player's turn lets them choose a
+	// password, the first time; one opening a save played by email lets
+	// whoever opened it go back to the main menu.
+	private void ShowHotseatHandoff(Player next, string message, string buttonText, Action onContinue,
+		bool turnStart = false, bool offerMainMenu = false) {
 		if (hotseatHandoff != null) {
 			// The same news twice, like a turn starting again for whoever the
 			// curtain is already up for, is only shown once.
 			bool duplicate = hotseatHandoffShown == (next.id, message)
 				|| queuedHandoffs.Any(h => h.next == next.id && h.message == message);
 			if (!duplicate) {
-				queuedHandoffs.Enqueue((next.id, message, buttonText, onContinue));
+				queuedHandoffs.Enqueue((next.id, message, buttonText, onContinue, turnStart));
 			}
 			return;
 		}
@@ -1245,18 +1340,7 @@ public partial class Game : Node {
 
 		// Close anything the previous player left open, and remember where
 		// they were looking so we can restore it on their next turn.
-		if (tileInfo != null) {
-			HideTileInfo();
-		}
-		SetGotoMode(false);
-		setBombard(null);
-		cityScreen.Hide();
-		advisor.Hide();
-		gameViews.Hide();
-		diplomacy.Hide();
-		civilopedia.Hide();
-		// Production news waits for its owner's turn.
-		HoldShownProductionPopup();
+		CloseScreensForHandoff();
 		if (controller != null && controller != next) {
 			hotseatCameraLocations[controller.id] = mapView.cameraLocation;
 		}
@@ -1273,6 +1357,9 @@ public partial class Game : Node {
 
 		// Games without player names (e.g. older saves) fall back to the leader.
 		string playerName = controller.name ?? controller.civilization.leader;
+		// Passwords are for players sharing a computer or a save, not a
+		// LAN game's.
+		bool passwords = !LanSession.IsActive;
 		hotseatHandoff = new HotseatHandoff(
 			$"{playerName} - {controller.civilization.name}",
 			message,
@@ -1281,11 +1368,31 @@ public partial class Game : Node {
 				hotseatHandoff = null;
 				onContinue();
 				ShowNextQueuedHandoff();
-			});
+			},
+			player: passwords ? controller : null,
+			mayChoosePassword: passwords && turnStart,
+			onMainMenu: offerMainMenu ? OnRetire : null);
 		CanvasLayer curtainLayer = new() { Layer = 100 };
 		curtainLayer.AddChild(hotseatHandoff);
 		hotseatHandoff.TreeExited += curtainLayer.QueueFree;
 		AddChild(curtainLayer);
+	}
+
+	// Closes anything the player at the screen left open, as the screen
+	// changes hands.
+	private void CloseScreensForHandoff() {
+		if (tileInfo != null) {
+			HideTileInfo();
+		}
+		SetGotoMode(false);
+		setBombard(null);
+		cityScreen.Hide();
+		advisor.Hide();
+		gameViews.Hide();
+		diplomacy.Hide();
+		civilopedia.Hide();
+		// Production news waits for its owner's turn.
+		HoldShownProductionPopup();
 	}
 
 	public void HandleEngineMessage(MessageToUI msg) {
@@ -1423,6 +1530,13 @@ public partial class Game : Node {
 				// Hotseat follows the UI controller, which the engine moved to
 				// the player whose turn it is; a LAN game is told who they are.
 				OnControllerTurnStart(LanSession.IsActive ? mST.player : EngineStorage.gameData.GetUIControllerPlayer());
+				break;
+			case MsgTurnReady mTR:
+				// Playing by email, the computer players have had their say.
+				if (hearingFromAIs && mTR.recipient?.id == controller?.id) {
+					hearingFromAIs = false;
+					OnPlayerStartTurn();
+				}
 				break;
 			case MsgShowCityScreen mSCS:
 				ShowCityScreenForCity(gameData, mSCS.city);
@@ -2263,7 +2377,11 @@ public partial class Game : Node {
 	}
 
 	// Whether the hotseat curtain hides the whole map.
-	public bool IsMapHidden => hotseatHandoff != null;
+	public bool IsMapHidden => CurtainIsUp;
+
+	// Whether a curtain hides the map: the hotseat handoff, or the end of a
+	// turn played by email.
+	private bool CurtainIsUp => hotseatHandoff != null || playByEmailSave != null;
 
 	// Whether the game may change without the UI being told, i.e. while the
 	// AI plays, animations run, or the engine has messages to process. The
@@ -2686,7 +2804,7 @@ public partial class Game : Node {
 			return;
 		}
 		bool waiting = CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator;
-		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || waiting || hotseatHandoff != null) {
+		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || waiting || CurtainIsUp) {
 			IsMovingCamera = false;
 			return;
 		}
@@ -2707,7 +2825,7 @@ public partial class Game : Node {
 	// drags and zooms the map, and does nothing else. Returns whether it
 	// took the event.
 	private bool MovesMapUnderPopup(InputEvent @event) {
-		if (!popupOverlay.LetsMapMove || hotseatHandoff != null
+		if (!popupOverlay.LetsMapMove || CurtainIsUp
 			|| cityScreen.Visible || diplomacy.Visible || advisor.Visible || gameViews.Visible || civilopedia.Visible) {
 			return false;
 		}
@@ -3456,7 +3574,7 @@ public partial class Game : Node {
 
 	private void ProcessAction(string currentAction) {
 		// Nothing happens behind the hotseat curtain.
-		if (hotseatHandoff != null) {
+		if (CurtainIsUp) {
 			return;
 		}
 

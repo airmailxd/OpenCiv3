@@ -105,6 +105,7 @@ namespace C7GameData.Save {
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
 				SimultaneousTurns = data.simultaneousTurns,
+				PlayByEmail = data.playByEmail,
 				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
 				// Left out of games without Staging.
@@ -178,6 +179,7 @@ namespace C7GameData.Save {
 			data.victoryBonus = VictoryBonus;
 			data.nuclearEvents = NuclearEvents;
 			data.simultaneousTurns = SimultaneousTurns;
+			data.playByEmail = PlayByEmail;
 			data.debugMode = DebugMode;
 
 			BeginHistory(data);
@@ -764,6 +766,8 @@ namespace C7GameData.Save {
 		public int NuclearEvents { get; set; }
 		// Older saves, without it, have the humans take turns one by one.
 		public bool SimultaneousTurns { get; set; }
+		// See GameData.playByEmail. Older saves, without it, aren't.
+		public bool PlayByEmail { get; set; }
 		// See GameData.debugMode. Older saves, without it, aren't in debug
 		// mode.
 		public bool DebugMode { get; set; }

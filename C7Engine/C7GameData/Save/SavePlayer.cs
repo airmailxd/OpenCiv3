@@ -23,6 +23,16 @@ namespace C7GameData.Save {
 		// The name of the person playing, for human players in a hotseat game.
 		public string name;
 
+		// Hotseat and play by email: the player's password, hashed, and
+		// whether they've chosen it (see Player.passwordHash).
+		public string passwordHash = "";
+		public bool passwordChosen = false;
+		// Play by email: the news kept for the player's turn, and the turn
+		// the computer players last had their say with them (see
+		// PlayByEmail).
+		public List<string> newsWhileAway = new();
+		public int heardFromAIsOnTurn = -1;
+
 		public string civilization;
 
 		// The tiles this player knows about, in the order they learned of
@@ -172,6 +182,10 @@ namespace C7GameData.Save {
 				hasPlayedThisTurn = hasPlayedCurrentTurn,
 				skipFirstTurn = skipFirstTurn,
 				name = name,
+				passwordHash = passwordHash ?? "",
+				passwordChosen = passwordChosen,
+				newsWhileAway = new(newsWhileAway ?? new()),
+				heardFromAIsOnTurn = heardFromAIsOnTurn,
 				defeated = defeated,
 				primaryColorIndex = primaryColorIndex,
 				secondaryColorIndex = secondaryColorIndex,
@@ -302,6 +316,10 @@ namespace C7GameData.Save {
 			hasPlayedCurrentTurn = player.hasPlayedThisTurn;
 			skipFirstTurn = player.skipFirstTurn;
 			name = player.name;
+			passwordHash = player.passwordHash;
+			passwordChosen = player.passwordChosen;
+			newsWhileAway = new(player.newsWhileAway);
+			heardFromAIsOnTurn = player.heardFromAIsOnTurn;
 			defeated = player.defeated;
 			civilization = player.civilization?.name;
 			// TODO: this should be computed by looking at cities defined in the save
