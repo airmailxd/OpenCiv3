@@ -1149,6 +1149,7 @@ namespace C7GameData {
 				if (leader.Researching > -1) {
 					player.currentlyResearchedTech = save.Techs[leader.Researching].id;
 				}
+				player.futureTechs = leader.FutureTechsKnown;
 
 				// Record any techs that this player knows.
 				for (int k = 0; k < savData.KnownTechFlags.Length; ++k) {

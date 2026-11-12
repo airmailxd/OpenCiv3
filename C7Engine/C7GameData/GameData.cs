@@ -975,6 +975,20 @@ namespace C7GameData {
 			return newUnit;
 		}
 
+		// The beakers a future tech takes: the research cost formula (see
+		// TechCostFor) with the rules' future tech cost, "the cost of each
+		// future technology" (Civ3 editor help, default 400), in place of an
+		// advance's, and no other civ knowing it. UNVERIFIED: how Civ3 puts
+		// the 400 in the formula, and whether later future techs cost more
+		// (see doc/civ3-compendium/04-science-and-wonders.md).
+		public int FutureTechCostFor(Player player) {
+			// The difficulty factor as in TechCostFor.
+			int difficultyFactor = player.isHuman ? Math.Min(gameDifficulty.AiCostFactor, 10) : gameDifficulty.HumanCostFactor;
+			float researchCost = map.techRate * 10 * rules.FutureTechCost / (float)(difficultyFactor * 10);
+			researchCost *= AiHouseRules.CostFactor(player);
+			return Math.Max((int)Math.Floor(researchCost), 1);
+		}
+
 		public int TechCostFor(Tech tech, Player player) {
 			// Cost formula from https://forums.civfanatics.com/threads/research-cost-formula-v1-29f.29485/.
 			// Research Cost = [MM * [10*COST * (1 - N/[CL*1.75])]/(CF * 10)] - progress
