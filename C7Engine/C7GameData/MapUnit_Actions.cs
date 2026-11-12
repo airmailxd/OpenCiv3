@@ -13,6 +13,7 @@ public partial class MapUnit {
 		int maxMP = MaxMovementPoints();
 		bool restedLastTurn = movementPoints.remaining >= maxMP || heldWithoutMoving;
 		if (restedLastTurn && !skipTurn) {
+			bool wasHurt = IsHurt();
 			// The members of an army heal when the army rests, since they don't
 			// move by themselves.
 			if (IsArmy()) {
@@ -21,6 +22,14 @@ public partial class MapUnit {
 			}
 			if (!IsInArmy())
 				Heal();
+			// "A fully healed fortified unit of a human player wakes up"
+			// (Perez's decompile of Civ3 Conquests,
+			// doc/perez-findings/Civ3_Findings.md, Round 2b "Units";
+			// authoritative per the owner's 2026-11-12 ruling), so the
+			// player is asked for its orders again. The AI's stay put.
+			if (wasHurt && !IsHurt() && isFortified && owner?.isHuman == true) {
+				Wake();
+			}
 		}
 		heldWithoutMoving = false;
 
@@ -39,6 +48,15 @@ public partial class MapUnit {
 		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
 			Wake();
 		}
+	}
+
+	// Whether the unit, or for an army any of its members, has lost hit
+	// points.
+	private bool IsHurt() {
+		if (IsArmy()) {
+			return Passengers().Any(m => m.hitPointsRemaining < m.maxHitPoints);
+		}
+		return hitPointsRemaining < maxHitPoints;
 	}
 
 	private void Heal() {
@@ -1002,7 +1020,12 @@ public partial class MapUnit {
 		// fortified in a city" (#19), which an earlier version here followed;
 		// the code reading wins. The 1 HP rule is the 2-to-1 drop below.
 		bool defenderEligibleToRetreat = !defender.location.HasCity() && !defender.location.IsWater();
-		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f;
+		// Barbarians never retreat from an attack: "Retreat (only the
+		// attacker, never barbarians)" (Perez's decompile of Civ3 Conquests,
+		// doc/perez-findings/Civ3_Findings.md, 3.2 "Combat"; authoritative
+		// per the owner's 2026-11-12 ruling).
+		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f
+			&& attacker.owner?.isBarbarians != true;
 
 		// Do combat rounds
 		while (true) {
