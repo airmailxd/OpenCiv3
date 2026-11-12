@@ -1138,6 +1138,31 @@ In this study a negative number is good.
   55198 (Jul 2002, 1.21f) has guesses only. Hurricane: "The exact number of
   units required is still unresolved, AFAIK." Fitz: "Contacting a
   settler/worker never brings up the war version of this demand."
+- **Engine ruling (owner, as in GBiebs/OpenCiv3 9999221c): on peace, each
+  side's units in the other's territory are moved out at once,** by the same
+  teleport as an ejection. The manual's peace terms (6.5: not to "even enter
+  the other's territory with military units") support it, but no Civ3 source
+  was found that describes units moving on signing itself. See open
+  question 12.
+- **A city may be founded inside another civ's borders, and at peace that is
+  an act of war (community).** Inverse Icarus (Apolyton "combat settlers",
+  https://apolyton.net/forum/civilization-series/civilization-iii/126826-combat-settlers
+  #1, Mar 2004): "Building a city in another civilizations land is an act of
+  war, but it can be done." CommandoBob (CFC "Anybody seen this?",
+  https://forums.civfanatics.com/threads/anybody-seen-this.325883 #3, Jun
+  2009): "If you build a city inside someone else's border, and you are at
+  peace, the act of building a city is considered an act of war", and
+  "you'll get a pop-up from the Foreign Advisor asking you to wimp-out and not
+  build the city" (that is `script.txt` `DECLARE_WAR`, "this will cause war
+  with the $CIVADJ0 people"). wilbill (CFC "other civs encrouching on my
+  borders", https://forums.civfanatics.com/threads/other-civs-encrouching-on-my-borders.113953
+  #17): "Actually you can, but it's considered a declaration of war with the
+  AI"; Brain (#2): "possible, but only if they are at war with you". Against:
+  Grogs (#3): "You can't build a city within another nation's borders";
+  Zanzin (Apolyton 126826 #7, C3C) found the option missing in one game.
+  The AI doesn't do it: SJ Frank (113953 #8): "they will never settle on your
+  land, not even during war"; eldar (#20): except when "reduced to a single
+  settler, they will settle in place (if they can)". See open question 13.
 
 ## 6.11 Espionage
 
@@ -1669,3 +1694,12 @@ war (6.11, informal test).
 11. **Embassy-granting wonder** (Marco Polo's Embassy): its presence and
     effect per version were not checked here. It belongs to the wonders
     section.
+12. **Whether signing peace itself moves units out of the other's territory.**
+    The engine does (owner's ruling, 6.10). Civ3 sources only describe units
+    teleported out when told to leave; none was found for the signing. A test
+    in Civ3 (make peace with units inside the AI's borders) would settle it.
+13. **Founding a city inside another civ's borders.** The engine follows the
+    community reports (6.10): allowed; at peace the Foreign Advisor asks
+    (`DECLARE_WAR`) and founding declares war; the AI never does it. Two
+    reports say it is impossible; Zanzin (C3C) saw the option missing once,
+    possibly for another reason (spacing, terrain). Unverified in the game.
