@@ -629,8 +629,13 @@ namespace C7GameData {
 		// difficulty and "divided by 2 if accelerated production is on"
 		// (post-16848272, context unclear). The tiles'
 		// yields stay as they are, so a city grows and builds twice as fast
-		// on the same surplus, and its commerce is unchanged. See
-		// Player.ShieldCost for the shield box.
+		// on the same surplus, and its commerce is unchanged. It halves tech
+		// costs too: flag 0x200 "halves the food box, unit cost, improvement
+		// cost and tech cost base" (Perez's decompile of Civ3 Conquests,
+		// doc/perez-findings/Civ3_Findings.md, Round 2b; authoritative per the
+		// owner's 2026-11-12 ruling), so research also goes twice as fast. See
+		// Player.ShieldCost for the shield box and GameData.TechCostFor for
+		// research.
 		internal static bool AcceleratedProduction(Player owner) {
 			return owner?.rules?.AcceleratedProduction == true;
 		}
