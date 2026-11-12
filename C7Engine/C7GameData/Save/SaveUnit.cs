@@ -24,6 +24,9 @@ namespace C7GameData.Save {
 		// True for multiple types of automation, including worker automation
 		// and automated exploring.
 		public bool isAutomated;
+		// Which one: "work" or "explore" (MapUnit.AutomationKind). Saves made
+		// before it was saved have none, and the unit guesses by its type.
+		public string automation;
 
 		// True if the unit held this turn before moving, so it still heals.
 		public bool heldWithoutMoving;
@@ -82,6 +85,7 @@ namespace C7GameData.Save {
 				: unit.isSentried ? (unit.sentryEnemyOnly ? "sentryEnemyOnly" : "sentry")
 				: "";
 			isAutomated = unit.isAutomated;
+			automation = unit.AutomationKind();
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			hasPillagedThisTurn = unit.hasPillagedThisTurn;
@@ -198,6 +202,9 @@ namespace C7GameData.Save {
 			unit.path = ToTilePath(map);
 			unit.movementPoints.reset(movePointsRemaining);
 			unit.name = string.IsNullOrEmpty(name) ? unit.unitType.name : name;
+			if (isAutomated) {
+				unit.resumeAutomation = automation;
+			}
 
 			Player originalNationality = Lookups.Find(lookups.playersByCivilizationName, nationality);
 			if (originalNationality != null) {
