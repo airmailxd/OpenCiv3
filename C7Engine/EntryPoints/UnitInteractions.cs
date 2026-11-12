@@ -173,6 +173,24 @@ namespace C7Engine {
 			return moves;
 		}
 
+		// The aircraft a stack re-base (J with a plane selected, Civ3's "Stack
+		// Go to" for aircraft) sends to the destination: the leader and every
+		// other aircraft of ours on its tile, aboard a carrier or not, that
+		// can re-base there (MapUnit.CanRebaseTo), the leader first.
+		public static List<MapUnit> StackRebasers(MapUnit leader, Tile destination) {
+			List<MapUnit> planes = [];
+			if (leader?.location == null || !leader.CanRebaseTo(destination)) {
+				return planes;
+			}
+			planes.Add(leader);
+			foreach (MapUnit unit in leader.location.unitsOnTile) {
+				if (unit != leader && unit.owner == leader.owner && unit.IsAirUnit() && unit.CanRebaseTo(destination)) {
+					planes.Add(unit);
+				}
+			}
+			return planes;
+		}
+
 		// The choices for Civ3's Go to City (Ctrl-Shift-G; script.txt's
 		// GOTO_CITY): the owner's cities the unit can reach, other than the
 		// one it's in, by name, each with the path a go-to there takes and
