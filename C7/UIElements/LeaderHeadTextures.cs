@@ -57,6 +57,19 @@ public static class LeaderHeadTextures {
 			&& !Util.ScenarioHasArt(civilization.leaderArtFile) && ModernGraphics.HasRemadeArt(RemadePath(civilization));
 	}
 
+	// A civ's remade portrait for screens drawn in our own art (the end of
+	// the game's, with Modern graphics on or in standalone mode), or null if
+	// there's none to use: the civ isn't one of the game's, or a scenario
+	// has its own art of its leader.
+	public static ImageTexture Portrait(Civilization civilization) {
+		if (string.IsNullOrEmpty(civilization?.name)
+			|| (!C7Engine.C7Settings.UseStandaloneMode() && Util.ScenarioHasArt(civilization.leaderArtFile))
+			|| !ModernGraphics.HasRemadeArt(RemadePath(civilization))) {
+			return null;
+		}
+		return RemadeHead(civilization);
+	}
+
 	private static string RemadePath(Civilization civilization) => $"Art/Leaderheads/{civilization.name}.png";
 
 	private static ImageTexture RemadeHead(Civilization civilization) {
