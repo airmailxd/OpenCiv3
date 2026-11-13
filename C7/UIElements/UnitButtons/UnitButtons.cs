@@ -84,6 +84,12 @@ public partial class UnitButtons : VBoxContainer {
 
 		AddNewButton(specializedControls, C7Action.UnitAutomate);
 
+		// Civ3's other kinds of worker automation, shown with the "Show
+		// Advanced Unit Action Buttons" preference.
+		foreach ((string action, WorkerAutomation.Kind _) in C7Action.WorkerAutomations) {
+			AddNewButton(advancedControls, action);
+		}
+
 		// Row index 4 and later not yet added
 	}
 
@@ -139,8 +145,27 @@ public partial class UnitButtons : VBoxContainer {
 		UpdateButtons(wrappedMapUnit.Value);
 	}
 
+	// The unit the buttons are for, to show them again when the
+	// preference for the advanced ones changes.
+	private MapUnit shownUnit;
+
+	public override void _EnterTree() {
+		Preferences.Changed += OnPreferenceChanged;
+	}
+
+	public override void _ExitTree() {
+		Preferences.Changed -= OnPreferenceChanged;
+	}
+
+	private void OnPreferenceChanged(Preferences.Option option) {
+		if (option == Preferences.Option.ShowAdvancedUnitActionButtons && shownUnit != null && Visible) {
+			UpdateButtons(shownUnit);
+		}
+	}
+
 	private void UpdateButtons(MapUnit unit) {
 		if (!unit.CanBeActive()) return;
+		shownUnit = unit;
 		// Reset the visibility and tooltip whenever the unit changes.
 		foreach (ButtonAndTooltip btt in buttonMap.Values) {
 			btt.button.Visible = false;
@@ -170,6 +195,14 @@ public partial class UnitButtons : VBoxContainer {
 				value.button.TooltipText = $"{value.baseTooltip} ({unit.TurnsToCompleteTerraform(terraform)} turns)";
 			} else {
 				log.Warning("Could not find button " + actionKey);
+			}
+		}
+
+		if (Preferences.Get(Preferences.Option.ShowAdvancedUnitActionButtons)) {
+			foreach ((string action, WorkerAutomation.Kind kind) in C7Action.WorkerAutomations) {
+				if (C7Action.CanAutomate(unit, kind) && buttonMap.TryGetValue(action, out ButtonAndTooltip value)) {
+					value.button.Visible = true;
+				}
 			}
 		}
 
