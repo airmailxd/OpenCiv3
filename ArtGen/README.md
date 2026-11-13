@@ -28,6 +28,14 @@ airdrop, together in `AirMissionButtons.png`. It also draws the icons by a
 city for its barracks, airport and harbor, into
 `C7/ModernArt/Art/Cities/CityBuildingIcons.png`.
 
+`screens/` remakes the art of two screens the owner asked for in the remade
+style: the Wonders of the World screen's background and box
+(`Art/Advisors/wonders_background.png`, `wondersBOX.png`), and the city
+screen's icons, draft button and governor button (`Art/city screen/CityIcons.png`,
+`draftButton.png`, `govern.png`). Like the map art they keep Civ3's layout at
+twice the size, so they're used with the Modern graphics option, and in
+standalone mode for whatever the asset pack lacks. See its `build.py`.
+
 ## The contract with the game
 
 * **Same file, same layout, twice the pixels.** The remake of
@@ -73,7 +81,7 @@ city for its barracks, airport and harbor, into
   in `units_32.pcx`. In standalone mode everything under `Art/Units` comes
   from here whatever the Graphics Overhaul setting.
 * **Don't remake** `Territory.pcx` (borders are recolored by exact color),
-  `FogOfWar.pcx`, or any interface art.
+  `FogOfWar.pcx`, or interface art other than the screens' above.
 * **Deterministic.** Fixed random seeds, so a rebuild gives the same art.
 * Only numpy and Pillow are guaranteed (`pip install scipy` is fine if needed).
 
