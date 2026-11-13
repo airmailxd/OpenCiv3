@@ -64,6 +64,8 @@ public class BombardInfo {
 	// The air mission (or airdrop) whose target is being picked, or null for
 	// a bombardment.
 	public UnitAction? airMission;
+	// For a re-base, whether the other planes on the tile go too (J).
+	public bool wholeStack;
 
 	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null) {
 		this.bombardingUnit = bombardingUnit;
@@ -3188,7 +3190,7 @@ public partial class Game : Node {
 	}
 
 	private void HandleKeyboardInput(InputEventKey eventKeyDown) {
-		if (HandleDebugKey(eventKeyDown)) {
+		if (HandleDebugKey(eventKeyDown) || HandleCiv3Key(eventKeyDown)) {
 			return;
 		}
 
@@ -4192,6 +4194,10 @@ public partial class Game : Node {
 					MaybeDeclareWar(victim, gameData.turn, () => {
 						new MsgAirMission(bombarderID, mission, tile).send();
 					});
+				} else if (mission == UnitAction.Rebase && info.wholeStack) {
+					foreach (MapUnit plane in UnitInteractions.StackRebasers(gameData.GetUnit(bombarderID), tile)) {
+						new MsgAirMission(plane.id, mission, tile).send();
+					}
 				} else {
 					new MsgAirMission(bombarderID, mission, tile).send();
 				}
