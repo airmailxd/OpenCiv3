@@ -31,6 +31,54 @@ public partial class UnitButtons : VBoxContainer {
 	[Export]
 	HBoxContainer advancedControls;
 
+	// Where the buttons sit along the bottom, kept for Backspace to bring
+	// them back to; null while they're there.
+	private (Vector4 anchors, Vector4 offsets, GrowDirection h, GrowDirection v)? bottomPlace;
+
+	// The columns the buttons move into, side by side, the primary ones
+	// nearest the edge; made the first time. (Godot's HBoxContainer and
+	// VBoxContainer can't change direction, so the buttons move.)
+	private HBoxContainer columns;
+
+	// Backspace, as in Civ3: the buttons in rows along the bottom, or in
+	// columns down the left side.
+	public void ToggleLayout() {
+		HBoxContainer[] rows = [primaryControls, specializedControls, advancedControls];
+		if (columns == null) {
+			columns = new HBoxContainer { Visible = false, SizeFlagsVertical = SizeFlags.ExpandFill };
+			AddChild(columns);
+			foreach (HBoxContainer _ in rows) {
+				columns.AddChild(new VBoxContainer { Alignment = AlignmentMode.Center });
+			}
+		}
+		bool toColumns = bottomPlace == null;
+		if (toColumns) {
+			bottomPlace = (new Vector4(AnchorLeft, AnchorTop, AnchorRight, AnchorBottom),
+				new Vector4(OffsetLeft, OffsetTop, OffsetRight, OffsetBottom), GrowHorizontal, GrowVertical);
+		}
+		for (int i = 0; i < rows.Length; i++) {
+			Container from = toColumns ? rows[i] : (Container)columns.GetChild(i);
+			Container to = toColumns ? (Container)columns.GetChild(i) : rows[i];
+			foreach (Node button in from.GetChildren()) {
+				button.Reparent(to, false);
+			}
+			rows[i].Visible = !toColumns;
+		}
+		columns.Visible = toColumns;
+		if (toColumns) {
+			// Down the left side, between the menu buttons and the minimap.
+			SetAnchorsPreset(LayoutPreset.LeftWide);
+			(OffsetLeft, OffsetTop, OffsetRight, OffsetBottom) = (0, 60, 0, -150);
+			(GrowHorizontal, GrowVertical) = (GrowDirection.End, GrowDirection.Both);
+		} else {
+			(Vector4 a, Vector4 o, GrowDirection h, GrowDirection v) = bottomPlace.Value;
+			(AnchorLeft, AnchorTop, AnchorRight, AnchorBottom) = (a.X, a.Y, a.Z, a.W);
+			(OffsetLeft, OffsetTop, OffsetRight, OffsetBottom) = (o.X, o.Y, o.Z, o.W);
+			(GrowHorizontal, GrowVertical) = (h, v);
+			bottomPlace = null;
+		}
+	}
+
 	private static readonly string[] terraformOrder = [
 		C7Action.UnitBuildRoad,
 		C7Action.UnitBuildRailroad,
