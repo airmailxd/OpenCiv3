@@ -54,7 +54,22 @@ namespace C7GameData {
 		public bool isSentried { get; set; }
 		public bool sentryEnemyOnly { get; set; }
 
-		public bool isAutomated { get; set; }
+		// Taking a unit out of automation ends its kind of worker automation
+		// too.
+		public bool isAutomated {
+			get => automated;
+			set {
+				automated = value;
+				if (!value) {
+					workerAutomation = null;
+				}
+			}
+		}
+		private bool automated;
+
+		// One of Civ3's kinds of worker automation while the unit is
+		// automated, or null for plain automation (see WorkerAutomation).
+		public WorkerAutomation workerAutomation { get; set; }
 
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.
 		public int defensiveBombardsRemaining;

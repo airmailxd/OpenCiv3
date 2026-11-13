@@ -82,6 +82,17 @@ local unit_control = {
   unit_auto_bombard = make_entry(3, 5),
   unit_auto_bombing = make_entry(6, 6),
   unit_auto_precision_bombing = make_entry(7, 6),
+  -- The worker automation commands, likewise.
+  unit_road_to = make_entry(5, 5),
+  unit_rail_to = make_entry(6, 5),
+  unit_auto_trade_network = make_entry(7, 5),
+  unit_auto_irrigate_to_city = make_entry(0, 6),
+  unit_auto_clear_forest = make_entry(1, 6),
+  unit_auto_clear_wetlands = make_entry(2, 6),
+  unit_auto_clear_damage = make_entry(3, 6),
+  unit_auto_city_only = make_entry(4, 6),
+  unit_auto_no_altering = make_entry(5, 6),
+  unit_auto_city_no_altering = make_entry(0, 7),
 
   movement_indicators = {
     path = INTERFACE .. "MovementLED.PCX",

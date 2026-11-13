@@ -23,6 +23,9 @@ public class GotoInfo {
 	// Whether every unit on the selected unit's tile goes, not just the
 	// selected one (the J key).
 	public bool wholeStack = false;
+	// Road or rail to (Ctrl-R, Ctrl-Shift-R): the tile picked is the
+	// worker's destination, rather than where it goes now.
+	public WorkerAutomation.Kind? workerAutomation = null;
 	// The unit that moves, once a war declaration has to be confirmed first,
 	// so the move doesn't go to whichever unit is selected by then.
 	public ID unitID = null;
@@ -3770,6 +3773,17 @@ public partial class Game : Node {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Automate).send();
 		}
 
+		// Civ3's other kinds of worker automation; road and rail to pick
+		// their destination as a go-to does.
+		if (C7Action.ToWorkerAutomation(currentAction) is WorkerAutomation.Kind automation
+			&& C7Action.CanAutomate(CurrentlySelectedUnit, automation)) {
+			if (automation is WorkerAutomation.Kind.RoadTo or WorkerAutomation.Kind.RailTo) {
+				SetGotoMode(true, workerAutomation: automation);
+			} else {
+				new MsgAutomateWorker(CurrentlySelectedUnit.id, automation).send();
+			}
+		}
+
 		if (currentAction == C7Action.UnitSentry) {
 			new MsgSentry(CurrentlySelectedUnit.id, enemyOnly: false).send();
 		}
@@ -4005,10 +4019,10 @@ public partial class Game : Node {
 	// Whether the player is dragging the selected unit to pick its destination.
 	private bool draggingUnit = false;
 
-	private void SetGotoMode(bool isOn, bool wholeStack = false) {
+	private void SetGotoMode(bool isOn, bool wholeStack = false, WorkerAutomation.Kind? workerAutomation = null) {
 		this.lastTile = null;
 		if (isOn) {
-			this.gotoInfo = new() { wholeStack = wholeStack };
+			this.gotoInfo = new() { wholeStack = wholeStack, workerAutomation = workerAutomation };
 		} else {
 			this.gotoInfo = null;
 			this.draggingUnit = false;
@@ -4089,6 +4103,11 @@ public partial class Game : Node {
 		}
 
 		if (info.moveCost == -1) {
+			return;
+		}
+
+		if (info.workerAutomation is WorkerAutomation.Kind automation) {
+			new MsgAutomateWorker(info.unitID ?? CurrentlySelectedUnit.id, automation, info.destinationTile).send();
 			return;
 		}
 
@@ -4203,7 +4222,7 @@ public partial class Game : Node {
 	}
 
 	private GotoInfo GetGotoInfo(Tile tile) {
-		GotoInfo result = new() { wholeStack = this.gotoInfo?.wholeStack ?? false };
+		GotoInfo result = new() { wholeStack = this.gotoInfo?.wholeStack ?? false, workerAutomation = this.gotoInfo?.workerAutomation };
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			if (tile == this.lastTile && this.gotoInfo != null) {

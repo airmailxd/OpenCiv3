@@ -138,6 +138,16 @@ local c7_texture_list = {
   "Art/interface/unit_sacrifice.png",
   "Art/interface/unit_upgrade.png",
   "Art/interface/unit_build_barricade.png",
+  "Art/interface/unit_road_to.png",
+  "Art/interface/unit_rail_to.png",
+  "Art/interface/unit_auto_trade_network.png",
+  "Art/interface/unit_auto_irrigate_to_city.png",
+  "Art/interface/unit_auto_clear_forest.png",
+  "Art/interface/unit_auto_clear_wetlands.png",
+  "Art/interface/unit_auto_clear_damage.png",
+  "Art/interface/unit_auto_city_only.png",
+  "Art/interface/unit_auto_no_altering.png",
+  "Art/interface/unit_auto_city_no_altering.png",
   "Art/Cities/CityBuildingIcons.png"
 }
 
@@ -381,6 +391,12 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_sacrifice = own_button("unit_sacrifice")
   c7_textures.ui.unit_control.unit_upgrade = own_button("unit_upgrade")
   c7_textures.ui.unit_control.unit_build_barricade = own_button("unit_build_barricade")
+  -- The worker automation commands (ArtGen/ui_buttons/worker_automation.py).
+  for _, order in ipairs({ "unit_road_to", "unit_rail_to", "unit_auto_trade_network", "unit_auto_irrigate_to_city",
+      "unit_auto_clear_forest", "unit_auto_clear_wetlands", "unit_auto_clear_damage", "unit_auto_city_only",
+      "unit_auto_no_altering", "unit_auto_city_no_altering" }) do
+    c7_textures.ui.unit_control[order] = own_button(order)
+  end
 
   -- The asset pack's techboxes.png only has the small boxes of the Ancient
   -- era, so a bigger box (an advance with more than one thing to show) or a
