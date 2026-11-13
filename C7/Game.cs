@@ -1806,6 +1806,9 @@ public partial class Game : Node {
 			case MsgNoHumansRemain:
 				RecordInHallOfFame(HallOfFame.ForDefeat);
 				InterestingEvent();
+				// After the end of the game's pages, this is their last
+				// question, and looking around lets the game go on (see
+				// EndOfGame.Claim).
 				void ShowNoHumansRemain(bool withReplay) {
 					popupOverlay.ShowPopup(
 						new ConfirmationPopup(
@@ -1820,8 +1823,9 @@ public partial class Game : Node {
 								} else {
 									OnRetire();
 								}
-							}),
-						PopupOverlay.PopupCategory.Advisor);
+							},
+							EndOfGame.PlayOn),
+						PopupOverlay.PopupCategory.Advisor, withReplay ? null : EndOfGame.Claim);
 				}
 				// Civ3's announcement of the loss and its defeat screen
 				// first, when the Civ3 install has them (see EndOfGame).
@@ -1924,7 +1928,11 @@ public partial class Game : Node {
 					}
 					popupOverlay.ShowPopup(
 						new ChoicePopup(upgrade.Caption ?? "", string.Join("\n", upgrade.Lines),
-							[new ChoicePopup.Choice("OK", () => EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView))],
+							[new ChoicePopup.Choice("OK", () => {
+								// The palace has the screen until it's built on.
+								ClaimWhileOpen("palace", () => gameViews.Visible, admitsNewPopups: true);
+								EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView);
+							})],
 							cancellable: false),
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
@@ -2003,6 +2011,7 @@ public partial class Game : Node {
 								// The city is shown on the map, under the
 								// Espionage screen.
 								advisor.Hide();
+								ClaimWhileOpen("foreign city", () => cityScreen.Visible, admitsNewPopups: true);
 								ShowForeignCityScreen(capital);
 							}
 						})], cancellable: false),
@@ -2157,7 +2166,10 @@ public partial class Game : Node {
 			}
 			CityProductionPopup popup = new(city, msg.completed,
 				// The next popup waits for the city screen to close.
-				onZoom: () => ShowCityScreenForCity(EngineStorage.gameData, city),
+				onZoom: () => {
+					ClaimWhileOpen("city screen", () => cityScreen.Visible, admitsNewPopups: true);
+					ShowCityScreenForCity(EngineStorage.gameData, city);
+				},
 				onDone: ShowNextProductionPopup);
 			shownProductionPopup = popup;
 			shownProductionMessage = msg;
@@ -2184,6 +2196,7 @@ public partial class Game : Node {
 	// News held for the player (see ReplayHeldMessage) is shown first.
 	private bool MayShowTurnStartPopup() {
 		return !popupOverlay.Visible
+			&& !popupOverlay.Claims.Any
 			&& !cityScreen.Visible
 			&& !EngineStorage.HasPendingMessagesToEngine()
 			&& researchQuestionDueSeconds <= 0
@@ -2212,27 +2225,20 @@ public partial class Game : Node {
 		popupOverlay.ShowPopup(selection, PopupOverlay.PopupCategory.Info);
 	}
 
-	// "What's the big picture?": opens the Science Advisor, and holds back
-	// the popups waiting until the player has closed it, so nothing comes up
-	// over it while they choose what to research (owner's request,
-	// 2026-11-08). If they close it without choosing, they're asked again.
-	// The advisor may open a moment later (when the engine answers a
-	// choice of research), so the hold lasts until it has been seen open
-	// and closed, or a few seconds pass without it opening.
+	// "What's the big picture?": opens the Science Advisor, which has the
+	// screen until the player has closed it (see ClaimWhileOpen), so nothing
+	// comes up over it, and no city asks what to build, while they choose
+	// what to research (owner's requests, 2026-11-08 and 2026-11-12). If they
+	// close it without choosing, they're asked again before anything else.
+	// The advisor may open a moment later (when the engine answers a choice
+	// of research).
 	private void ViewTheBigPicture(bool chooseAfterwards) {
-		bool seen = false;
-		ulong since = Time.GetTicksMsec();
 		Player player = controller;
-		popupOverlay.HoldWhile(() => {
-			if (advisor.Visible) {
-				seen = true;
-				return true;
-			}
-			return !seen && Time.GetTicksMsec() - since < 3000;
-		}, () => {
+		ClaimWhileOpen("big picture", () => advisor.Visible, afterwards: () => {
 			GameData gameData = EngineStorage.gameData;
 			Player us = gameData?.GetPlayer(player.id);
-			if (!chooseAfterwards || us == null || us != controller) {
+			// The engine may have asked already (after a free tech).
+			if (!chooseAfterwards || us == null || us != controller || popupOverlay.HasPopup<ScienceSelection>()) {
 				return;
 			}
 			bool undecided = us.freeTechsRemaining > 0 || us.currentlyResearchedTech == null;
@@ -2244,6 +2250,18 @@ public partial class Game : Node {
 		if (chooseAfterwards) {
 			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 		}
+	}
+
+	// Gives the screen to one the player is sent to from a popup (the Science
+	// Advisor, a city screen, the palace) until they close it: the popups
+	// waiting stay back rather than come up over it, and the cities' and the
+	// held news's prompts wait (see ScreenClaim). With admitsNewPopups, what
+	// comes up while it's open (such as the city screen's own questions)
+	// still does. It's given up if the screen hasn't opened within a few
+	// seconds. Call it before opening the screen.
+	private ScreenClaim ClaimWhileOpen(string name, Func<bool> isOpen, bool admitsNewPopups = false, Action afterwards = null) {
+		return popupOverlay.Claims.ClaimWhileOpen(name, isOpen, () => Time.GetTicksMsec() / 1000.0,
+			admitsNewPopups: admitsNewPopups, afterwards: afterwards);
 	}
 
 	// Takes down the production popup on screen (or waiting behind another
@@ -2295,16 +2313,19 @@ public partial class Game : Node {
 		EdgeScroll(delta);
 		UpdateGotoPath();
 
-		// The engine waits for animations to finish before going on.
-		if (!EngineStorage.HasPendingAnimations())
+		// The engine waits for animations to finish before going on, and for
+		// a flow that holds the game, like the end of the game, to end (see
+		// ScreenClaim). On a LAN the other machines' players play on.
+		if (!EngineStorage.HasPendingAnimations() && (!GameHeld || LanSession.IsActive))
 			EngineStorage.ProcessMessagesToEngine(engineMessageBudget);
 
 		// Handle the waiting messages to the UI, as many as fit in the frame's
 		// budget. None of them start animations (those have their own queue),
-		// so there's no need to pace them.
+		// so there's no need to pace them. While a flow holds the game, they
+		// stay in the queue, in order, until it ends.
 		long start = Stopwatch.GetTimestamp();
 		bool handledMessage = false;
-		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+		while (!GameHeld && EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
 			HandleEngineMessage(msg);
 			handledMessage = true;
 			if (Stopwatch.GetTimestamp() - start >= uiMessageBudgetTicks) {
@@ -2416,10 +2437,14 @@ public partial class Game : Node {
 	// while the banner saying so is shown.
 	public bool IsWaitingForRemotePlayer => lanWaitingBanner != null;
 
+	// Whether a flow on screen holds the game (see ScreenClaim), as the end
+	// of the game does until the player chooses to play on.
+	private bool GameHeld => popupOverlay.Claims.HoldsGame;
+
 	// Shows messages that were held for the UI controller while another
 	// player had the screen, one popup at a time, once their turn is underway.
 	private void ReplayHeldMessage() {
-		if (CurrentState != GameState.PlayerTurn || hotseatHandoff != null || popupOverlay.Visible) {
+		if (CurrentState != GameState.PlayerTurn || hotseatHandoff != null || popupOverlay.Visible || popupOverlay.Claims.Any) {
 			return;
 		}
 		if (heldMessages.TryGetValue(controller.id, out Queue<MessageToUI> held) && held.TryDequeue(out MessageToUI msg)) {
@@ -3566,8 +3591,9 @@ public partial class Game : Node {
 		if (advisor.Visible || gameViews.Visible || civilopedia.Visible)
 			return true;
 
-		// The end of the game's pages (see EndOfGame).
-		if (EndOfGame.InProgress)
+		// A flow that has the screen, like the end of the game's pages (see
+		// EndOfGame), between its popups and screens.
+		if (EndOfGame.InProgress || popupOverlay.Claims.Any)
 			return true;
 
 		return false;

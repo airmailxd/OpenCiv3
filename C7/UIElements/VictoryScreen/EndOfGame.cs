@@ -33,6 +33,14 @@ public static class EndOfGame {
 	// (Enter would end the turn, Escape open the menu).
 	public static bool InProgress { get; private set; }
 
+	// The end of the game's hold on the screen and the game (see
+	// ScreenClaim), from the announcement until the player answers whether
+	// to play on: nothing else the game has to show comes up in between,
+	// and the engine waits. Playing on (ShowGameOver, PlayOn) releases it,
+	// and what the game held back then comes up in order; leaving for the
+	// main menu drops it all with the game.
+	public static ScreenClaim Claim { get; private set; }
+
 	// Shows the end of the game for the player playing here: the
 	// announcement, the victory screen, the replay and (if the game went
 	// into it) the Hall of Fame, then calls finished. Returns false, having
@@ -62,6 +70,10 @@ public static class EndOfGame {
 			return false;
 		}
 
+		// Anything already up waits behind the announcement, and anything
+		// the game has yet to show waits until the player plays on.
+		Claim = overlay.Claims.Claim("end of game", holdsGame: true);
+		ScreenClaim claim = Claim;
 		InProgress = true;
 		void Finish() {
 			InProgress = false;
@@ -86,8 +98,16 @@ public static class EndOfGame {
 
 		overlay.ShowPopup(new EndOfGamePopup(announcement.caption, announcement.message, () => {
 			ShowOnTop(host, screen, s => s.Closed += ShowReplayThenHallOfFame);
-		}), PopupOverlay.PopupCategory.Advisor);
+		}), PopupOverlay.PopupCategory.Advisor, claim);
 		return true;
+	}
+
+	// The player plays on after the end of the game: what the game held
+	// back comes up, in order, and the game goes on.
+	public static void PlayOn() {
+		ScreenClaim claim = Claim;
+		Claim = null;
+		claim?.Release();
 	}
 
 	// labels.txt and script.txt from the Civ3 install (or a scenario's), or
@@ -143,22 +163,29 @@ public static class EndOfGame {
 	// answered "Good! I'm done!" (done) or "Wait, lemme just play 'couple
 	// more turns..." (keepPlaying, also what Escape picks). Without the
 	// Civ3 text, OpenCiv3's own wording.
+	// It's the last page of the end of the game, so playing on lets the game
+	// go on (see Claim); done keeps it held on the way to the main menu.
 	public static void ShowGameOver(PopupOverlay overlay, Action done, Action keepPlaying = null) {
+		ScreenClaim claim = Claim;
+		void PlayOnThen() {
+			PlayOn();
+			keepPlaying?.Invoke();
+		}
 		Civ3EndGameText.ScriptPopup popup = LoadText()?.Popup("GAMEOVERMAN");
 		if (popup == null || popup.Choices.Count < 2) {
 			overlay.ShowPopup(new ConfirmationPopup(
 					"This game is over: No further score will be entered.\n\n",
 					"Good! I’m Done!",
 					"Wait, lemme just play a couple of more turns...",
-					done, keepPlaying),
-				PopupOverlay.PopupCategory.Advisor);
+					done, PlayOnThen),
+				PopupOverlay.PopupCategory.Advisor, claim);
 			return;
 		}
 		overlay.ShowPopup(new ChoicePopup(popup.Caption, popup.Text.Trim(), [
 				new ChoicePopup.Choice(popup.Choices[0], done),
-				new ChoicePopup.Choice(popup.Choices[1], keepPlaying ?? (() => { })),
+				new ChoicePopup.Choice(popup.Choices[1], PlayOnThen),
 			], cancellable: false),
-			PopupOverlay.PopupCategory.Advisor);
+			PopupOverlay.PopupCategory.Advisor, claim);
 	}
 }
 
