@@ -14,7 +14,14 @@ namespace C7GameData.Save {
 		public List<TileLocation> path;
 		public int hitPointsRemaining;
 		public float movePointsRemaining;
-		public string action; // "fortified", "sentry" or "sentryEnemyOnly"
+		// "fortified", "sentry", "sentryEnemyOnly", or for automated
+		// bombarding (see MapUnit_AutoBombard.cs) "autoBombard",
+		// "autoBombing" or "autoPrecisionBombing".
+		public string action;
+		// The tile an automated bombardment fires at, and the turn it last
+		// did. Older saves have neither, and no such action.
+		public TileLocation? autoBombardTarget;
+		public int autoBombardTurn = -1;
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 		public string experience;
 		public float WorkerProgressTowardsJob;
@@ -80,7 +87,12 @@ namespace C7GameData.Save {
 			hitPointsRemaining = unit.hitPointsRemaining;
 			action = unit.isFortified ? "fortified"
 				: unit.isSentried ? (unit.sentryEnemyOnly ? "sentryEnemyOnly" : "sentry")
+				: unit.IsAutoBombarding() && Tile.IsTileValid(unit.autoBombardTarget) ? "auto" + unit.autoBombard
 				: "";
+			if (action.StartsWith("auto")) {
+				autoBombardTarget = new TileLocation(unit.autoBombardTarget);
+				autoBombardTurn = unit.autoBombardTurn;
+			}
 			isAutomated = unit.isAutomated;
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
@@ -194,6 +206,15 @@ namespace C7GameData.Save {
 				Serilog.Log.Warning("Unit {Id} is at ({X}, {Y}), which is not on the map", id, currentLocation.X, currentLocation.Y);
 			} else {
 				unit.location.unitsOnTile.Add(unit);
+			}
+			if (action != null && action.StartsWith("auto") && autoBombardTarget != null
+				&& System.Enum.TryParse(action[4..], out MapUnit.AutoBombardMode mode) && mode != MapUnit.AutoBombardMode.None) {
+				Tile target = map.tileAt(autoBombardTarget.Value.X, autoBombardTarget.Value.Y);
+				if (Tile.IsTileValid(target)) {
+					unit.autoBombard = mode;
+					unit.autoBombardTarget = target;
+					unit.autoBombardTurn = autoBombardTurn;
+				}
 			}
 			unit.path = ToTilePath(map);
 			unit.movementPoints.reset(movePointsRemaining);

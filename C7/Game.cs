@@ -64,10 +64,14 @@ public class BombardInfo {
 	// The air mission (or airdrop) whose target is being picked, or null for
 	// a bombardment.
 	public UnitAction? airMission;
+	// For automated bombarding, its kind: the target picked is bombarded
+	// every turn (see MapUnit_AutoBombard.cs).
+	public MapUnit.AutoBombardMode autoMode;
 
-	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null) {
+	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null, MapUnit.AutoBombardMode autoMode = MapUnit.AutoBombardMode.None) {
 		this.bombardingUnit = bombardingUnit;
 		this.airMission = airMission;
+		this.autoMode = autoMode;
 	}
 
 	// Whether the unit can bombard, or fly its mission at, the tile.
@@ -75,6 +79,13 @@ public class BombardInfo {
 		target = MapUnit.BombardTarget.None;
 		if (!Tile.IsTileValid(tile)) {
 			return false;
+		}
+		if (autoMode != MapUnit.AutoBombardMode.None) {
+			// Only civs we're at war with are bombarded automatically.
+			bool can = autoMode == MapUnit.AutoBombardMode.Bombard
+				? bombardingUnit.CanBombardTile(tile, out target)
+				: bombardingUnit.CanFlyMissionAt(autoMode == MapUnit.AutoBombardMode.Bombing ? UnitAction.Bombing : UnitAction.PrecisionBombing, tile, out target);
+			return can && bombardingUnit.CanAutoBombardTile(autoMode, tile);
 		}
 		return airMission is UnitAction mission
 			? bombardingUnit.CanFlyMissionAt(mission, tile, out target)
@@ -826,7 +837,7 @@ public partial class Game : Node {
 		cityScreen.RefreshAfterGameReplaced();
 		if (bombardInfo != null) {
 			MapUnit bombarder = gameData.GetUnit(bombardInfo.bombardingUnit.id);
-			setBombard(bombarder, bombardInfo.airMission);
+			setBombard(bombarder, bombardInfo.airMission, bombardInfo.autoMode);
 		}
 
 		// The tile info box and the goto path refer to tiles, which are
@@ -3807,6 +3818,24 @@ public partial class Game : Node {
 		}
 
 
+		// Automated bombarding: Shift-B (an aircraft's bombing), or its
+		// buttons, then the target; Shift-P, the pillage key, for an
+		// aircraft's precision bombing.
+		MapUnit.AutoBombardMode? autoMode = currentAction switch {
+			C7Action.UnitAutoBombard => CurrentlySelectedUnit.CanAutomateBombard(MapUnit.AutoBombardMode.Bombard)
+				? MapUnit.AutoBombardMode.Bombard : MapUnit.AutoBombardMode.Bombing,
+			C7Action.UnitAutoBombing => MapUnit.AutoBombardMode.Bombing,
+			C7Action.UnitAutoPrecisionBombing or C7Action.UnitPillage => MapUnit.AutoBombardMode.PrecisionBombing,
+			_ => null,
+		};
+		if (autoMode is MapUnit.AutoBombardMode mode
+			&& CurrentlySelectedUnit.GetAvailableActions().Contains(MapUnit.ActionFor(mode))) {
+			EngineStorage.ReadGameData((GameData gameData) => {
+				MapUnit currentUnit = gameData.GetUnit(CurrentlySelectedUnit.id);
+				setBombard(currentUnit, null, mode);
+			});
+		}
+
 		if (currentAction == C7Action.UnitPillage && CurrentlySelectedUnit.CanPillage()) {
 			new MsgPillage(CurrentlySelectedUnit.id).send();
 		}
@@ -3859,15 +3888,14 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitLoad) {
-			// TODO: Which transport?
-			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();
+			ChooseTransportToBoard(CurrentlySelectedUnit);
 		}
 		// Upgrading and unloading share a key; upgrading wins when possible.
 		if (currentAction == C7Action.UnitUpgrade) {
 			ConfirmUpgrade(CurrentlySelectedUnit);
 		}
 		if (currentAction == C7Action.UnitUnload && CurrentlySelectedUnit.GetAvailableUpgrade() == null) {
-			new MsgUnloadTransport(CurrentlySelectedUnit.id).send();
+			ChooseUnitsToUnload(CurrentlySelectedUnit);
 		}
 
 		Terraform terraform = C7Action.ToTerraform(currentAction);
@@ -3977,8 +4005,55 @@ public partial class Game : Node {
 		}
 	}
 
-	private void setBombard(MapUnit bombardingUnit, UnitAction? airMission = null) {
-		bombardInfo = bombardingUnit == null ? null : new BombardInfo(bombardingUnit, airMission);
+	// Loads the unit, asking which transport when more than one on its tile
+	// could take it, as Civ3 does (script.txt's SELECT_TRANSPORT: "What
+	// Transport?", "Select a transport to board:"), with how full each is.
+	private void ChooseTransportToBoard(MapUnit unit) {
+		List<MapUnit> transports = null;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			transports = unit.TransportsToBoard(unit.location, explicitLoad: true);
+		});
+		if (transports == null || transports.Count <= 1) {
+			new MsgLoadToTransport(unit.id).send();
+			return;
+		}
+		ID unitID = unit.id;
+		List<ChoicePopup.Choice> choices = transports.ConvertAll(t => {
+			ID transportID = t.id;
+			return new ChoicePopup.Choice($"{t.name} ({t.PassengerCount()}/{t.Capacity()})",
+				() => new MsgLoadToTransport(unitID, transportID).send());
+		});
+		popupOverlay.ShowPopup(new ChoicePopup("What Transport?", "Select a transport to board:", choices),
+			PopupOverlay.PopupCategory.Advisor);
+	}
+
+	// Unloads the transport, asking which of several units aboard, as Civ3
+	// does (script.txt's DISEMBARK: "Disembark?", with "Never mind.",
+	// "Unload all." and then the units).
+	private void ChooseUnitsToUnload(MapUnit transport) {
+		List<MapUnit> passengers = null;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			passengers = transport.Passengers();
+		});
+		ID transportID = transport.id;
+		if (passengers == null || passengers.Count <= 1) {
+			new MsgUnloadTransport(transportID).send();
+			return;
+		}
+		List<ChoicePopup.Choice> choices = [
+			new("Never mind.", () => { }),
+			new("Unload all.", () => new MsgUnloadTransport(transportID).send()),
+		];
+		foreach (MapUnit passenger in passengers) {
+			ID passengerID = passenger.id;
+			choices.Add(new(passenger.Describe(), () => new MsgUnloadTransport(transportID, passengerID).send()));
+		}
+		popupOverlay.ShowPopup(new ChoicePopup("Disembark?", null, choices), PopupOverlay.PopupCategory.Advisor);
+	}
+
+	private void setBombard(MapUnit bombardingUnit, UnitAction? airMission = null,
+			MapUnit.AutoBombardMode autoMode = MapUnit.AutoBombardMode.None) {
+		bombardInfo = bombardingUnit == null ? null : new BombardInfo(bombardingUnit, airMission, autoMode);
 		if (bombardingUnit == null)
 			Input.SetCustomMouseCursor(null);
 	}
@@ -4185,6 +4260,12 @@ public partial class Game : Node {
 		}
 		// The unit bombarding, not whichever is selected once war is declared.
 		ID bombarderID = info.bombardingUnit.id;
+
+		// Automated bombarding never needs a war declared (see CanTarget).
+		if (info.autoMode != MapUnit.AutoBombardMode.None) {
+			new MsgAutoBombard(bombarderID, info.autoMode, tile).send();
+			return;
+		}
 
 		if (info.airMission is UnitAction mission) {
 			EngineStorage.ReadGameData((GameData gameData) => {

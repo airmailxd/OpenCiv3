@@ -776,6 +776,18 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Bombard can hit tile improvements outside cities, and PTW+ airfields, outposts and radar towers.**
   README-PTW 1.01f: "You can destroy through bombarding Airfields, Outposts and Radar Towers." README-PTW: "Fixed bug
   where auto-bombard would not auto-bomb multiple terrain improvements in neutral territory."
+- **Automated bombard fires at one chosen square every turn until nothing is left there** (community). labels.txt
+  (#UNIT_ACTIONS): "Automate:^Bombard (Shift-B)", "Automate:^Bombing (Shift-B)", "Automate:^Precision Bombing
+  (Shift-P)". https://forums.civfanatics.com/threads/stack-bombardment.87621: "You press Shift-B then select your
+  target. What it does is cause your bombard units to keep firing on that same target, turn after turn, until there is
+  nothing left to bombard." Bucephalus (https://forums.civfanatics.com/threads/how-exactly-do-i-use-auto-bombard.276907/,
+  #2): "press the auto-bombard button then indicate the square you wish to bombard by clicking on it"; Gosnork (#5):
+  "Auto-bombard just tells 1 Artillery to bombard the same square every turn." meriadoc
+  (https://codehappy.net/apolyton/threads/71619-1.htm): "until either the square can't be bombarded or you stop the
+  unit"; there "Wake when next to enemy unit" cancels it, and WarpStorm: "It does work fine for ships and planes
+  though." README-PTW: "ICBM's can no longer auto-bombard." UNVERIFIED: whether it can hit a civ we're at peace with
+  (C3 only fires at civs at war with us, owner's decision), and when in the turn it fires (C3: at once, then at the
+  start of each turn).
 - **Ships in port are extra vulnerable** (C3C). PEDIA `GCON_Bombardment_in_Ports`: "naval units "in port" (i.e., in a
   coastal city square being bombarded) are especially vulnerable to bombardment attacks." The size of the effect is UNVERIFIED.
 - **Lethal bombard (editor ability since 1.21f; used by stock units in C3C only).** README-V 1.21f: "Editor: Added new
@@ -1053,6 +1065,13 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   loaded onto another transport-unit." Flintlock (post-16667922, page-114 #2273): "transports are the
   only units that never stack", and (#2269) "Units track what unit they're contained in but container
   units don't track what units are inside them."
+- **A go-to doesn't board a ship at sea** (community). Reviewing OpenCiv3's transport PR
+  (https://github.com/C7-Game/OpenCiv3/pull/936), stavrosfa: to send a land unit onto a transport on a sea tile next
+  to the shore "I can't use the go-to (this is faithful to the original)"; the last step is a manual move. C3 keeps it
+  so. Loading asks which transport when several could take the unit (script.txt `SELECT_TRANSPORT`: "What
+  Transport?", "Select a transport to board:"), and unloading asks which units (script.txt `DISEMBARK`:
+  "Disembark?", "Never mind.", "Unload all."). UNVERIFIED: whether moving onto a tile with several transports asks too
+  (C3 picks one).
 - **Ships can enter a land tile only if it holds a city; doing so unloads everything** (code reading). Flintlock
   (C3X-THREAD post-16787843, page-134 #2662): "It's technically already possible for sea units to enter
   land tiles, if those tiles have cities on them." / (paraphrase from a summarised fetch) "Moving a transport onto a land tile triggers the
@@ -1483,6 +1502,8 @@ bombard defense 16 (README-V 1.17f, BIQ, alexman's tests) are now in the main te
   tile; whether a stealth fighter can intercept (MoonWolf, thread 86619: "stealth fighters haven't the ability to
   shoot down incoming bombers/fighters").
 - Nukes: whether "2:1" means a 2/3 or 1/2 kill chance; the fallout pattern; launch restrictions.
+- Automated bombard: whether it may hit civs we're at peace with, when in the turn it fires, and whether it fires at
+  once when ordered (§1.7). Whether a go-to can board a ship at sea rests on one review comment (§1.10).
 - Capture: whether capturing counts as declaring war; whether a Leader caught alone is captured or killed.
 - Pillage: order of improvements removed (one untested statement, Vasyl-67, §1.13).
 - Capture: the nationality of units the AI captures. Spoonwood (C3X-THREAD post-16305156, page-41 #808): "captured

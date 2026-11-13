@@ -117,6 +117,12 @@ public static class C7Action {
 	public const string UnitRebase = "unit_rebase";
 	public const string UnitAirdrop = "unit_airdrop";
 	public const string UnitAirlift = "unit_airlift";
+	// Automated bombarding (see MapUnit_AutoBombard.cs): Shift-B, which an
+	// aircraft takes as its bombing, and its buttons. Shift-P, for
+	// automated precision bombing, is the pillage key (see Game).
+	public const string UnitAutoBombard = "unit_auto_bombard";
+	public const string UnitAutoBombing = "unit_auto_bombing";
+	public const string UnitAutoPrecisionBombing = "unit_auto_precision_bombing";
 
 	private static readonly Dictionary<string, UnitAction> toUnitAction = new() {
 		[UnitBuildCity] = UnitAction.BuildCity,
@@ -147,6 +153,9 @@ public static class C7Action {
 		[UnitRebase] = UnitAction.Rebase,
 		[UnitAirdrop] = UnitAction.Airdrop,
 		[UnitAirlift] = UnitAction.Airlift,
+		[UnitAutoBombard] = UnitAction.AutoBombard,
+		[UnitAutoBombing] = UnitAction.AutoBombing,
+		[UnitAutoPrecisionBombing] = UnitAction.AutoPrecisionBombing,
 	};
 
 	private static readonly Dictionary<string, string> toTooltip = new() {
@@ -196,6 +205,11 @@ public static class C7Action {
 		[UnitAirdrop] = "Airdrop",
 		// labels.txt's "Airlif(T): Choose new airbase".
 		[UnitAirlift] = "Airlift",
+		// labels.txt's "Automate:^Bombard (Shift-B)", "Automate:^Bombing
+		// (Shift-B)" and "Automate:^Precision Bombing (Shift-P)".
+		[UnitAutoBombard] = "Automate: Bombard (Shift-B)",
+		[UnitAutoBombing] = "Automate: Bombing (Shift-B)",
+		[UnitAutoPrecisionBombing] = "Automate: Precision Bombing (Shift-P)",
 	};
 
 	// The unit actions that are aimed at a tile on the map.

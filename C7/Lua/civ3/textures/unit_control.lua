@@ -74,6 +74,11 @@ local unit_control = {
   unit_air_superiority = make_entry(7, 4),
   unit_rebase = make_entry(0, 5),
   unit_precision_bombing = make_entry(1, 5),
+  -- labels.txt's "Automate: Bombard", "Automate: Bombing" and "Automate:
+  -- Precision Bombing" (#UNIT_ACTIONS 43, 54 and 55).
+  unit_auto_bombard = make_entry(3, 5),
+  unit_auto_bombing = make_entry(6, 6),
+  unit_auto_precision_bombing = make_entry(7, 6),
 
   movement_indicators = {
     path = INTERFACE .. "MovementLED.PCX",

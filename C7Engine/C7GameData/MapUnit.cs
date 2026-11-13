@@ -102,7 +102,7 @@ namespace C7GameData {
 		}
 
 		public bool IsBusy() {
-			return isFortified || isSentried || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
+			return isFortified || isSentried || IsAutoBombarding() || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
 		}
 
 		public bool IsLandUnit() {
@@ -1297,24 +1297,25 @@ namespace C7GameData {
 			return IsLoadable() && IsLoaded() && tile.IsLand();
 		}
 
+		// The transports (or, on the player's order, armies) on the tile this
+		// unit could board, the one it boards unasked first: one that already
+		// carries units, then the one with the most room. The Load order asks
+		// which when there are several (Civ3's "What Transport?" popup,
+		// script.txt's SELECT_TRANSPORT).
+		public List<MapUnit> TransportsToBoard(Tile tile, bool explicitLoad = false) {
+			if (!IsLoadable() || !Tile.IsTileValid(tile))
+				return [];
+			return tile.unitsOnTile
+				.Where(u => u != this && u.CanCarryUnits() && (explicitLoad || !u.IsArmy()) && u.CanLoad(this))
+				.OrderBy(t => t.IsEmpty())
+				.ThenByDescending(t => t.FreeCapacity())
+				.ToList();
+		}
+
+		// UNVERIFIED (no Civ3 source found): moving onto a tile with several
+		// transports picks one unasked, rather than asking as Load does.
 		private MapUnit SelectTransportToBoard(Tile tile, bool explicitLoad = false) {
-			// TODO: Let human player choose via UI which transport to load unit in
-
-			var availableTransports = tile.unitsOnTile
-				.Where(u => u != this && u.CanCarryUnits() && (explicitLoad || !u.IsArmy()))
-				.Where(u => !u.IsFull());
-
-			// Sort candidates by free capacity, but prefer transports that already have units
-			availableTransports = availableTransports
-				.OrderBy(t => !t.IsEmpty())
-				.ThenByDescending(t => t.FreeCapacity());
-
-			foreach (var transport in availableTransports) {
-				if (transport.CanLoad(this))
-					return transport;
-			}
-
-			return null;
+			return TransportsToBoard(tile, explicitLoad).FirstOrDefault();
 		}
 
 		private MapUnit FindTransportToUnboard(Tile tile, ID transport) {
@@ -1585,6 +1586,11 @@ namespace C7GameData {
 				result.Add(UnitAction.Sacrifice);
 			}
 			AddAvailableAirMissions(result);
+			foreach (AutoBombardMode mode in new[] { AutoBombardMode.Bombard, AutoBombardMode.Bombing, AutoBombardMode.PrecisionBombing }) {
+				if (CanAutomateBombard(mode) && movementPoints.canMove) {
+					result.Add(ActionFor(mode));
+				}
+			}
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.
 			// unit.availableActions.Add("rename");

@@ -63,13 +63,15 @@ public partial class UnitButtons : VBoxContainer {
 		AddNewButton(specializedControls, C7Action.UnitAirlift);
 		AddNewButton(specializedControls, C7Action.UnitPillage);
 		AddNewButton(specializedControls, C7Action.UnitBombard);
-		// AddNewButton(specializedControls, "autobombard");
+		AddNewButton(specializedControls, C7Action.UnitAutoBombard);
 		AddNewButton(specializedControls, C7Action.UnitAirdrop);
 		AddNewButton(specializedControls, C7Action.UnitBombing);
 		AddNewButton(specializedControls, C7Action.UnitPrecisionBombing);
 		AddNewButton(specializedControls, C7Action.UnitRecon);
 		AddNewButton(specializedControls, C7Action.UnitAirSuperiority);
 		AddNewButton(specializedControls, C7Action.UnitRebase);
+		AddNewButton(specializedControls, C7Action.UnitAutoBombing);
+		AddNewButton(specializedControls, C7Action.UnitAutoPrecisionBombing);
 		//superfortify?
 		AddNewButton(specializedControls, C7Action.UnitHurryBuilding);
 		AddNewButton(specializedControls, C7Action.UnitBuildArmy);
