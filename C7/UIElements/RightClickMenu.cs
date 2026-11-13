@@ -315,6 +315,13 @@ public partial class RightClickTileMenu : RightClickMenu {
 		if (fortifiedCount > 1) {
 			AddItem($"Wake All ({fortifiedCount} units)", () => ForAll(tile.XCoordinate, tile.YCoordinate, false));
 		}
+		// labels.txt's "Wake Transported": wakes the units asleep aboard our
+		// transports here, to be moved one by one.
+		List<MapUnit> asleepAboard = playerUnits.FindAll(u => u.IsLoaded() && !u.IsLockedInArmy()
+			&& (isUnitFortified(u, uiUpdatedUnitStates) || (u.isSentried && uiUpdatedUnitStates?.ContainsKey(u.id) != true)));
+		if (asleepAboard.Count > 0 && !observerMode) {
+			AddItem($"Wake Transported ({asleepAboard.Count} {(asleepAboard.Count == 1 ? "unit" : "units")})", () => WakeTransported(tile, asleepAboard));
+		}
 		if (unfortifiedCount > 1) {
 			AddItem($"Fortify All ({unfortifiedCount} units)", () => ForAll(tile.XCoordinate, tile.YCoordinate, true));
 		}
@@ -455,6 +462,15 @@ public partial class RightClickTileMenu : RightClickMenu {
 		if (!Input.IsKeyPressed(Godot.Key.Shift)) {
 			CloseAndDelete();
 		}
+	}
+
+	private void WakeTransported(Tile tile, List<MapUnit> units) {
+		Dictionary<ID, bool> modified = new();
+		foreach (MapUnit unit in units) {
+			new MsgSetFortification(unit.id, false).send();
+			modified[unit.id] = false;
+		}
+		ResetItems(tile, modified);
 	}
 
 	public void ForAll(int tileX, int tileY, bool isFortify) {

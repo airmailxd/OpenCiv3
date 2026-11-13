@@ -341,21 +341,27 @@ namespace C7Engine {
 		}
 	}
 
+	// Unloads a transport's passengers: all of them, or with `only` just
+	// that one, as Civ3's unload popup offers ("Disembark?", with "Unload
+	// all." or one unit from the list; script.txt's DISEMBARK).
 	public class MsgUnloadTransport : MessageToEngine {
 		public ID transportUnitId;
+		public ID only;
 
-		public MsgUnloadTransport(ID transportUnitId) {
+		public MsgUnloadTransport(ID transportUnitId, ID only = null) {
 			this.transportUnitId = transportUnitId;
+			this.only = only;
 		}
 
 		protected override void ProcessAllowed() {
-			// TODO: more selective unload, let human player choose
 			MapUnit transportUnit = SendersUnit(transportUnitId);
 			// Armies can only be unloaded when the game option allows it.
 			if (transportUnit == null || !transportUnit.CanTransport())
 				return;
 			foreach (MapUnit unit in transportUnit.Passengers()) {
-				unit.UnboardTransport(transportUnit);
+				if (only == null || unit.id == only) {
+					unit.UnboardTransport(transportUnit);
+				}
 			}
 			new
 				MsgTransportUnloaded(transportUnit).send();

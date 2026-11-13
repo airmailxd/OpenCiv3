@@ -3857,15 +3857,14 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitLoad) {
-			// TODO: Which transport?
-			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();
+			ChooseTransportToBoard(CurrentlySelectedUnit);
 		}
 		// Upgrading and unloading share a key; upgrading wins when possible.
 		if (currentAction == C7Action.UnitUpgrade) {
 			ConfirmUpgrade(CurrentlySelectedUnit);
 		}
 		if (currentAction == C7Action.UnitUnload && CurrentlySelectedUnit.GetAvailableUpgrade() == null) {
-			new MsgUnloadTransport(CurrentlySelectedUnit.id).send();
+			ChooseUnitsToUnload(CurrentlySelectedUnit);
 		}
 
 		Terraform terraform = C7Action.ToTerraform(currentAction);
@@ -3973,6 +3972,52 @@ public partial class Game : Node {
 			this.gotoInfo = null;
 			this.draggingUnit = false;
 		}
+	}
+
+	// Loads the unit, asking which transport when more than one on its tile
+	// could take it, as Civ3 does (script.txt's SELECT_TRANSPORT: "What
+	// Transport?", "Select a transport to board:"), with how full each is.
+	private void ChooseTransportToBoard(MapUnit unit) {
+		List<MapUnit> transports = null;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			transports = unit.TransportsToBoard(unit.location, explicitLoad: true);
+		});
+		if (transports == null || transports.Count <= 1) {
+			new MsgLoadToTransport(unit.id).send();
+			return;
+		}
+		ID unitID = unit.id;
+		List<ChoicePopup.Choice> choices = transports.ConvertAll(t => {
+			ID transportID = t.id;
+			return new ChoicePopup.Choice($"{t.name} ({t.PassengerCount()}/{t.Capacity()})",
+				() => new MsgLoadToTransport(unitID, transportID).send());
+		});
+		popupOverlay.ShowPopup(new ChoicePopup("What Transport?", "Select a transport to board:", choices),
+			PopupOverlay.PopupCategory.Advisor);
+	}
+
+	// Unloads the transport, asking which of several units aboard, as Civ3
+	// does (script.txt's DISEMBARK: "Disembark?", with "Never mind.",
+	// "Unload all." and then the units).
+	private void ChooseUnitsToUnload(MapUnit transport) {
+		List<MapUnit> passengers = null;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			passengers = transport.Passengers();
+		});
+		ID transportID = transport.id;
+		if (passengers == null || passengers.Count <= 1) {
+			new MsgUnloadTransport(transportID).send();
+			return;
+		}
+		List<ChoicePopup.Choice> choices = [
+			new("Never mind.", () => { }),
+			new("Unload all.", () => new MsgUnloadTransport(transportID).send()),
+		];
+		foreach (MapUnit passenger in passengers) {
+			ID passengerID = passenger.id;
+			choices.Add(new(passenger.Describe(), () => new MsgUnloadTransport(transportID, passengerID).send()));
+		}
+		popupOverlay.ShowPopup(new ChoicePopup("Disembark?", null, choices), PopupOverlay.PopupCategory.Advisor);
 	}
 
 	private void setBombard(MapUnit bombardingUnit, UnitAction? airMission = null) {
