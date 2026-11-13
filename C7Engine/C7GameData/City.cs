@@ -1846,35 +1846,9 @@ namespace C7GameData {
 				return 0;
 			}
 			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
-			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;
 			int result = 0;
 			foreach (CityBuilding cb in constructed_buildings) {
-				Building b = cb.building;
-				// Civ3 charges nothing for a building one of the owner's
-				// wonders also provides (a granary alongside the Pyramids),
-				// and Smith's Trading Company pays for commercial buildings.
-				// The Conquests Civilopedia (BLDG_Trading_Company): "Pays
-				// maintenance costs for all trade-based city improvements
-				// (Harbors, Marketplaces, Banks, Airports, Commerical Dock and
-				// Stock Exchanges)", the buildings with the Commercial trait.
-				// Older lists of just Harbors, Marketplaces, Banks and Airports
-				// (https://civfanatics.com/civ3/civilopedia/wonders/) predate
-				// the Commercial Dock.
-				if (cache.providedByWonders.Contains(b)
-					|| (commercialUpkeepPaid && b.traits.Contains(Civilization.Trait.Commercial))) {
-					continue;
-				}
-				// Nor for an obsolete improvement: "Players are not supposed to
-				// pay maintenance for obsolete city improvements however they
-				// often do because the game does not recompute maintenance
-				// after a player unlocks a technology that obsoletes a city
-				// improvement" (the C3X mod's notes on the 1.22 executable,
-				// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
-				// The intended rule, not the bug.
-				if (b.renderedObsoleteBy != null && owner != null && owner.knownTechs.Contains(b.renderedObsoleteBy.id)) {
-					continue;
-				}
-				result += b.maintenanceCost;
+				result += UpkeepOf(cb.building, cache);
 			}
 			// A house rule may cut the AI's upkeep (see AiHouseRules).
 			int percent = AiHouseRules.BuildingMaintenancePercent(owner);
@@ -1882,6 +1856,44 @@ namespace C7GameData {
 				result = (result * percent + 50) / 100;
 			}
 			return result;
+		}
+
+		// The gold a turn one of the city's buildings costs (the share of
+		// MaintenanceCostsRaw it accounts for, before any house rule), as
+		// the city screen shows it.
+		public int MaintenanceCostOf(CityBuilding cb) {
+			if (owner?.government != null && !owner.government.RequiresMaintenance()) {
+				return 0;
+			}
+			return UpkeepOf(cb.building, GetEffectiveBuildingsCache());
+		}
+
+		private int UpkeepOf(Building b, EffectiveBuildingsCache cache) {
+			// Civ3 charges nothing for a building one of the owner's
+			// wonders also provides (a granary alongside the Pyramids),
+			// and Smith's Trading Company pays for commercial buildings.
+			// The Conquests Civilopedia (BLDG_Trading_Company): "Pays
+			// maintenance costs for all trade-based city improvements
+			// (Harbors, Marketplaces, Banks, Airports, Commerical Dock and
+			// Stock Exchanges)", the buildings with the Commercial trait.
+			// Older lists of just Harbors, Marketplaces, Banks and Airports
+			// (https://civfanatics.com/civ3/civilopedia/wonders/) predate
+			// the Commercial Dock.
+			if (cache.providedByWonders.Contains(b)
+				|| (cache.wonders.paysTradeMaintenance && b.traits.Contains(Civilization.Trait.Commercial))) {
+				return 0;
+			}
+			// Nor for an obsolete improvement: "Players are not supposed to
+			// pay maintenance for obsolete city improvements however they
+			// often do because the game does not recompute maintenance
+			// after a player unlocks a technology that obsoletes a city
+			// improvement" (the C3X mod's notes on the 1.22 executable,
+			// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+			// The intended rule, not the bug.
+			if (b.renderedObsoleteBy != null && owner != null && owner.knownTechs.Contains(b.renderedObsoleteBy.id)) {
+				return 0;
+			}
+			return b.maintenanceCost;
 		}
 
 		[MoonSharpHidden]
@@ -2291,14 +2303,7 @@ namespace C7GameData {
 			int wonders = 0;
 			for (int i = 0; i < cache.buildings.Count; ++i) {
 				CityBuilding cb = cache.buildings[i];
-				// Only the owner's own buildings make culture: a captured
-				// city's wonders make none for its captor.
-				if (cb.builtByPlayer != null && cb.builtByPlayer != owner) {
-					continue;
-				}
-				// Buildings granted by wonders never get old.
-				bool granted = i >= cache.grantedStart;
-				int culture = cb.building.culturePerTurn * (granted ? 1 : AgeMultiplier(cb, currentGameYear));
+				int culture = CultureOf(cb, i >= cache.grantedStart, currentGameYear);
 				if (cb.building.IsGreatWonder() || cb.building.isSmallWonder) {
 					wonders += culture;
 				} else {
@@ -2306,6 +2311,23 @@ namespace C7GameData {
 				}
 			}
 			return (improvements, wonders);
+		}
+
+		// The culture a turn one of the city's buildings makes (its share of
+		// GetCulturePerTurnRaw), as the city screen shows it. A building a
+		// wonder grants isn't among the city's constructed buildings.
+		public int CulturePerTurnOf(CityBuilding cb) {
+			return CultureOf(cb, !constructed_buildings.Contains(cb), CurrentGameYear());
+		}
+
+		private int CultureOf(CityBuilding cb, bool granted, int currentGameYear) {
+			// Only the owner's own buildings make culture: a captured
+			// city's wonders make none for its captor.
+			if (cb.builtByPlayer != null && cb.builtByPlayer != owner) {
+				return 0;
+			}
+			// Buildings granted by wonders never get old.
+			return cb.building.culturePerTurn * (granted ? 1 : AgeMultiplier(cb, currentGameYear));
 		}
 
 		private static int CurrentGameYear() {
