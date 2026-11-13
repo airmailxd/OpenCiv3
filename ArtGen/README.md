@@ -34,7 +34,12 @@ style: the Wonders of the World screen's background and box
 screen's icons, draft button and governor button (`Art/city screen/CityIcons.png`,
 `draftButton.png`, `govern.png`). Like the map art they keep Civ3's layout at
 twice the size, so they're used with the Modern graphics option, and in
-standalone mode for whatever the asset pack lacks. See its `build.py`.
+standalone mode for whatever the asset pack lacks. It also draws the
+end-of-game screen (`screens/victory.py`, into `Art/VictoryScreen/`): a
+background for each kind of ending with niches where Civ3 puts the heads,
+the speech bubble, and our own frames, heart badge, close and Next buttons
+for the remade portraits, which that screen uses with Modern graphics on and
+always in standalone mode. See its `build.py`.
 
 ## The contract with the game
 

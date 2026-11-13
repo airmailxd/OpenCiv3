@@ -1,4 +1,5 @@
-"""The remade art of the Wonders of the World screen and the city screen.
+"""The remade art of the Wonders of the World screen, the city screen and
+the end-of-game screen.
 
     python ArtGen/screens/build.py
 
@@ -11,6 +12,9 @@ Civ3's):
     Art/city screen/CityIcons.png         the city screen's icons          (city_icons.py)
     Art/city screen/draftButton.png       the draft button                 (city_buttons.py)
     Art/city screen/govern.png            the governor button              (city_buttons.py)
+    Art/VictoryScreen/*.png               the end-of-game screen's seven
+                                          backgrounds, its bubble, frames
+                                          and buttons                      (victory.py)
 
 They're used with the Modern graphics option, and in standalone mode for
 the files the standalone asset pack doesn't have (the box and the two
@@ -24,9 +28,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import city_buttons  # noqa: E402
 import city_icons  # noqa: E402
+import victory  # noqa: E402
 import wonders  # noqa: E402
 
 if __name__ == '__main__':
     wonders.build()
     city_icons.build()
     city_buttons.build()
+    victory.build()
