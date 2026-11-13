@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.AI;
 using C7GameData;
@@ -73,76 +74,161 @@ public class PillageAITest : MapBase, IDisposable {
 	private bool IsBare(Tile tile) => !tile.overlays.HasImprovement(road) && !tile.overlays.HasImprovement(mine);
 
 	[Fact]
-	public void AtWarAUnitWithMovesLeftPillagesEnemyLand() {
+	public async Task AtWarAUnitWithMovesLeftPillagesEnemyLand() {
 		MapUnit raider = MakeUnit(us, row[1]);
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(1, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(1, await PillageAI.PlayTurn(us, gameData));
 		Assert.True(IsBare(row[1]));
 		Assert.True(raider.hasPillagedThisTurn);
 	}
 
 	[Fact]
-	public void NotAtPeace() {
+	public async Task NotAtPeace() {
 		MakeUnit(us, row[1]);
 
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(0, await PillageAI.PlayTurn(us, gameData));
 		Assert.False(IsBare(row[1]));
 	}
 
 	[Fact]
-	public void NotOurOwnLand() {
+	public async Task NotOurOwnLand() {
 		MakeUnit(us, row[0]);
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(0, await PillageAI.PlayTurn(us, gameData));
 		Assert.True(row[0].overlays.HasImprovement(road));
 	}
 
+	// A wounded unit that hasn't moved rests: acting would cost it its
+	// healing.
 	[Fact]
-	public void NotWithAnEnemyAttackerNextToIt() {
-		MakeUnit(us, row[1]);
-		MakeUnit(them, row[2]);
-		us.DeclareWarOn(them, gameData.turn);
-
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
-		Assert.False(IsBare(row[1]));
-	}
-
-	[Fact]
-	public void NotWhenBadlyWounded() {
+	public async Task NotAWoundedUnitThatIsResting() {
 		MapUnit raider = MakeUnit(us, row[1]);
 		raider.hitPointsRemaining = 1;
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(0, await PillageAI.PlayTurn(us, gameData));
 	}
 
 	[Fact]
-	public void NotWithNoMovesLeft() {
+	public async Task AWoundedUnitThatHasMovedPillages() {
+		MapUnit raider = MakeUnit(us, row[1]);
+		raider.hitPointsRemaining = 1;
+		raider.movementPoints.onUnitMove(1);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Equal(1, await PillageAI.PlayTurn(us, gameData));
+	}
+
+	// With enemies about, too: its moves were spent anyway, and it
+	// fortifies again.
+	[Fact]
+	public async Task EvenWithAnEnemyNextToIt() {
+		MakeUnit(us, row[1]);
+		MakeUnit(them, row[2]);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Equal(1, await PillageAI.PlayTurn(us, gameData));
+	}
+
+	[Fact]
+	public async Task NotWithNoMovesLeft() {
 		MapUnit raider = MakeUnit(us, row[1]);
 		raider.movementPoints.onConsumeAll();
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(0, await PillageAI.PlayTurn(us, gameData));
 	}
 
 	[Fact]
-	public void AHumansUnitsAreLeftAlone() {
+	public async Task AHumansUnitsAreLeftAlone() {
 		us.isHuman = true;
 		MakeUnit(us, row[1]);
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(0, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(0, await PillageAI.PlayTurn(us, gameData));
 	}
 
 	[Fact]
-	public void AFortifiedUnitFortifiesAgain() {
+	public async Task AFortifiedUnitFortifiesAgain() {
 		MapUnit raider = MakeUnit(us, row[1]);
 		raider.Fortify();
 		us.DeclareWarOn(them, gameData.turn);
 
-		Assert.Equal(1, PillageAI.PlayTurn(us, gameData));
+		Assert.Equal(1, await PillageAI.PlayTurn(us, gameData));
 		Assert.True(raider.isFortified);
+	}
+
+	// A unit on bare land would step onto a next improved tile to pillage
+	// it, if it still has a move to pillage with. (The step itself is
+	// MapUnit.Move.)
+	[Fact]
+	public void AUnitOnBareLandRaidsANextImprovedTile() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		MapUnit raider = MakeUnit(us, row[1], movement: 2);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Same(row[2], PillageAI.RaidTarget(raider, us));
+	}
+
+	[Fact]
+	public void NotAtPeaceEither() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		MapUnit raider = MakeUnit(us, row[1], movement: 2);
+
+		Assert.Null(PillageAI.RaidTarget(raider, us));
+	}
+
+	[Fact]
+	public void NotWithTooFewMovesToPillageAfterTheStep() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		MapUnit raider = MakeUnit(us, row[1], movement: 1);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Null(PillageAI.RaidTarget(raider, us));
+	}
+
+	[Fact]
+	public void NotNextToAnEnemyThatCouldAttack() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		MapUnit raider = MakeUnit(us, row[1], movement: 2);
+		MakeUnit(them, row[3]);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Null(PillageAI.RaidTarget(raider, us));
+	}
+
+	// Ours already there make it safe enough.
+	[Fact]
+	public void UnlessOursAreThereAlready() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		MapUnit raider = MakeUnit(us, row[1], movement: 2);
+		MakeUnit(us, row[2]).movementPoints.onConsumeAll();
+		MakeUnit(them, row[3]);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Same(row[2], PillageAI.RaidTarget(raider, us));
+	}
+
+	// A road comes before a mine.
+	[Fact]
+	public void RoadsComeFirst() {
+		row[1].overlays.Remove(road);
+		row[1].overlays.Remove(mine);
+		row[2].overlays.Remove(road);
+		Tile north = AddNeighborsAndUpdateMap(row[1], MakePlainsTile(), TileDirection.NORTH);
+		AddNeighborsAndUpdateMap(north, row[1], TileDirection.SOUTH);
+		north.owningCity = row[2].owningCity;
+		north.overlays.Add(road);
+		MapUnit raider = MakeUnit(us, row[1], movement: 2);
+		us.DeclareWarOn(them, gameData.turn);
+
+		Assert.Same(north, PillageAI.RaidTarget(raider, us));
 	}
 }
