@@ -2657,8 +2657,9 @@ public partial class Game : Node {
 		if (!over) {
 			RecordInHallOfFame(HallOfFame.ForRetirement);
 			// Civ3 sees a retiring player off with its loss announcement and
-			// defeat screen (Civ3 FUN_004f9fb0's ending 6), then the Hall of
-			// Fame, before the main menu.
+			// defeat screen (Civ3 FUN_004f9fb0's ending 6), then the replay
+			// and the Hall of Fame, before the main menu. Without Civ3
+			// (standalone mode) it's the same, in our own words and art.
 			popupOverlay.OnHidePopup();
 			EndOfGame.ShowReplay = (host, done) => gameViews.ShowReplay(done);
 			if (EndOfGame.Show(this, popupOverlay, GameEndReason.Retirement, null, recordedInHallOfFame, OnRetire)) {
@@ -3563,6 +3564,10 @@ public partial class Game : Node {
 			return true;
 
 		if (advisor.Visible || gameViews.Visible || civilopedia.Visible)
+			return true;
+
+		// The end of the game's pages (see EndOfGame).
+		if (EndOfGame.InProgress)
 			return true;
 
 		return false;
