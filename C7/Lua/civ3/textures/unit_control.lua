@@ -28,6 +28,9 @@ local unit_control = {
   unit_fortify = make_entry(2, 0),
   unit_disband = make_entry(3, 0),
   unit_goto = make_entry(4, 0),
+  -- Go to City (Ctrl-Shift-G) has no button of its own in Civ3; it shares
+  -- Go To's picture.
+  unit_goto_city = make_entry(4, 0),
   unit_explore = make_entry(5, 0),
   unit_sentry = make_entry(6, 0),
   unit_sentry_enemy_only = make_entry(2, 5),
