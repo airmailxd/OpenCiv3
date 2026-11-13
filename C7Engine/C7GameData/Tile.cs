@@ -520,6 +520,14 @@ namespace C7GameData {
 			return false;
 		}
 
+		// The civ, at peace with the player, whose borders the tile is in, or
+		// null if none (no one's land, the player's own, or an enemy's).
+		// Founding a city there is an act of war on that civ, as in Civ3
+		// (compendium 6.10; see MapUnit.BuildCity).
+		public Player? PeacefulOwnerFor(Player player) {
+			return OwningPlayer() is Player owner && owner != player && !PlayerRelationship.AtWar(player, owner) ? owner : null;
+		}
+
 		public Player? OwningPlayer() {
 			if (cityAtTile != null) {
 				return cityAtTile.owner;

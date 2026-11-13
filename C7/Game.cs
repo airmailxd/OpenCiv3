@@ -3783,8 +3783,18 @@ public partial class Game : Node {
 				MapUnit currentUnit = gameData.GetUnit(CurrentlySelectedUnit.id);
 				log.Debug(currentUnit.Describe());
 				if (currentUnit.canBuildCity()) {
-					popupOverlay.ShowPopup(new BuildCityDialog(controller.GetNextCityName()),
+					Action nameCity = () => popupOverlay.ShowPopup(new BuildCityDialog(controller.GetNextCityName()),
 						PopupOverlay.PopupCategory.Advisor);
+					// In the land of a civ at peace with us, founding a city
+					// means war, so the Foreign Advisor asks first ("this
+					// will cause war with the $CIVADJ0 people", script.txt
+					// DECLARE_WAR; compendium 6.10). The engine declares the
+					// war when the city is founded.
+					if (currentUnit.location.PeacefulOwnerFor(controller) is Player landOwner) {
+						popupOverlay.ShowPopup(new WarConfirmation(landOwner, nameCity), PopupOverlay.PopupCategory.Advisor);
+					} else {
+						nameCity();
+					}
 				}
 			});
 		}

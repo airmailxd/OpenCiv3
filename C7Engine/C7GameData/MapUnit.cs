@@ -1446,6 +1446,12 @@ namespace C7GameData {
 			if (location.HasCity() || !location.IsAllowCities()) {
 				return false;
 			}
+			// A city may be founded inside another civ's borders, which at
+			// peace declares war on it (see BuildCity), so not in the land of
+			// a civ we're locked in peace with, such as a teammate.
+			if (location.PeacefulOwnerFor(owner) is Player landOwner && EngineStorage.gameData?.AreInLockedPeace(owner, landOwner) == true) {
+				return false;
+			}
 			foreach (Tile tile in location.neighbors.Values) {
 				if (tile.HasCity())
 					return false;
