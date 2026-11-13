@@ -345,6 +345,11 @@ return function(civ3_textures)
     end
     c7_textures.ui.unit_control[action] = { normal = cell(0), hover = cell(1), pressed = cell(2) }
   end
+  -- Nor does it have Civ3's automated bombarding buttons, which show their
+  -- orders' own buttons instead.
+  c7_textures.ui.unit_control.unit_auto_bombard = c7_textures.ui.unit_control.unit_bombard
+  c7_textures.ui.unit_control.unit_auto_bombing = c7_textures.ui.unit_control.unit_bombing
+  c7_textures.ui.unit_control.unit_auto_precision_bombing = c7_textures.ui.unit_control.unit_precision_bombing
   -- The asset pack's NormButtons.png has blank buttons where Civ3's has
   -- Build Outpost, Build Colony, Build Airfield, Build Radar Tower,
   -- Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry

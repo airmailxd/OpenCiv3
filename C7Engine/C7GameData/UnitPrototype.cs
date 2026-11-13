@@ -51,6 +51,11 @@ namespace C7GameData {
 		// A captive is sacrificed in one of its owner's cities for culture
 		// (see MapUnit_Sacrifice.cs).
 		Sacrifice,
+		// Civ3's automated bombarding (see MapUnit_AutoBombard.cs): not BIQ
+		// abilities, but orders for units that bombard or fly bombing runs.
+		AutoBombard,
+		AutoBombing,
+		AutoPrecisionBombing,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {

@@ -102,7 +102,7 @@ namespace C7GameData {
 		}
 
 		public bool IsBusy() {
-			return isFortified || isSentried || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
+			return isFortified || isSentried || IsAutoBombarding() || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
 		}
 
 		public bool IsLandUnit() {
@@ -1586,6 +1586,11 @@ namespace C7GameData {
 				result.Add(UnitAction.Sacrifice);
 			}
 			AddAvailableAirMissions(result);
+			foreach (AutoBombardMode mode in new[] { AutoBombardMode.Bombard, AutoBombardMode.Bombing, AutoBombardMode.PrecisionBombing }) {
+				if (CanAutomateBombard(mode) && movementPoints.canMove) {
+					result.Add(ActionFor(mode));
+				}
+			}
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.
 			// unit.availableActions.Add("rename");

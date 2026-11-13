@@ -141,6 +141,7 @@ public partial class MapUnit {
 	}
 
 	public void Fortify() {
+		StopAutoBombard();
 		ResetFacingDirection();
 		isFortified = true;
 		animate(MapUnit.AnimatedAction.FORTIFY);
@@ -150,9 +151,11 @@ public partial class MapUnit {
 		isFortified = false;
 		isSentried = false;
 		sentryEnemyOnly = false;
+		StopAutoBombard();
 	}
 
 	public void Sentry(bool enemyOnly) {
+		StopAutoBombard();
 		ResetFacingDirection();
 		isSentried = true;
 		sentryEnemyOnly = enemyOnly;
@@ -444,6 +447,7 @@ public partial class MapUnit {
 	}
 
 	public async Task SetUnitPath(TilePath path) {
+		StopAutoBombard();
 		this.path = path;
 		await MoveAlongPath();
 	}
@@ -487,6 +491,11 @@ public partial class MapUnit {
 
 	public async Task PerformBusyAction() {
 		if (isFortified) {
+			return;
+		}
+
+		if (IsAutoBombarding()) {
+			await PerformAutoBombard();
 			return;
 		}
 

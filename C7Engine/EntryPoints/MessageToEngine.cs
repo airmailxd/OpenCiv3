@@ -264,6 +264,30 @@ namespace C7Engine {
 		}
 	}
 
+	// Sets a unit bombarding the tile automatically, every turn (see
+	// MapUnit_AutoBombard.cs).
+	public class MsgAutoBombard : MessageToEngine {
+		public ID unitID;
+		public MapUnit.AutoBombardMode mode;
+		public Tile tile;
+
+		public MsgAutoBombard(ID unitID, MapUnit.AutoBombardMode mode, Tile tile) {
+			this.unitID = unitID;
+			this.mode = mode;
+			this.tile = tile;
+		}
+
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || tile == null || tile == Tile.NONE) return;
+
+			await unit.StartAutoBombard(mode, tile);
+			if (unit.owner.isHuman) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	// An aircraft's mission (see MapUnit_Air.cs), a paratrooper's airdrop,
 	// or an airlift (see MapUnit_Airlift.cs), at the tile. Air superiority needs no tile.
 	public class MsgAirMission : MessageToEngine {
@@ -467,6 +491,9 @@ namespace C7Engine {
 				unit.isAutomated = false;
 				unit.currentAI = null;
 			}
+			// Selecting a unit stops its automated bombarding, even once it
+			// has fired for the turn.
+			unit.StopAutoBombard();
 			if (unit.movementPoints.canMove) {
 				unit.Wake();
 			}
