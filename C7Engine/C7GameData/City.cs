@@ -411,7 +411,7 @@ namespace C7GameData {
 			internal List<CityBuilding> buildings;
 			internal int grantedStart;
 
-			// The same less any great wonder obsolete for the owner: the
+			// The same less any building obsolete for the owner: the
 			// buildings whose effects apply (see EffectiveBuildings). The
 			// same list as buildings when none is obsolete.
 			internal List<CityBuilding> active;
@@ -495,9 +495,9 @@ namespace C7GameData {
 
 			cache.buildings = result;
 			cache.active = result;
-			foreach (CityBuilding cb in constructed_buildings) {
-				if (cb.building.isGreatWonderObsolete(owner)) {
-					cache.active = result.Where(x => !x.building.isGreatWonderObsolete(owner)).ToList();
+			foreach (CityBuilding cb in result) {
+				if (cb.building.IsObsoleteFor(owner)) {
+					cache.active = result.Where(x => !x.building.IsObsoleteFor(owner)).ToList();
 					break;
 				}
 			}
@@ -507,12 +507,13 @@ namespace C7GameData {
 		}
 
 		// The buildings whose effects apply in this city: the same buildings
-		// as GetBuildings, without allocating, less any great wonder that is
-		// obsolete for the owner. An obsolete great wonder loses its effects,
-		// which the shipped game's code forgets to check, but keeps making
-		// culture (owner's decision, 2026-10-21): "The cultural benefits of a
-		// Wonder continue to accrue unless the Wonder is destroyed" (the
-		// manual, p.130; compendium 04). The list is shared and must not be
+		// as GetBuildings, without allocating, less any building that is
+		// obsolete for the owner (see Building.IsObsoleteFor). An obsolete
+		// great wonder loses its effects, which the shipped game's code
+		// forgets to check, but keeps making culture (owner's decision,
+		// 2026-10-21): "The cultural benefits of a Wonder continue to accrue
+		// unless the Wonder is destroyed" (the manual, p.130; compendium 04).
+		// Other obsolete buildings do the same. The list is shared and must not be
 		// modified, nor its granted entries (which GetBuildings hands out
 		// fresh copies of).
 		internal List<CityBuilding> EffectiveBuildings() {
@@ -1890,7 +1891,7 @@ namespace C7GameData {
 			// improvement" (the C3X mod's notes on the 1.22 executable,
 			// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
 			// The intended rule, not the bug.
-			if (b.renderedObsoleteBy != null && owner != null && owner.knownTechs.Contains(b.renderedObsoleteBy.id)) {
+			if (b.IsObsoleteFor(owner)) {
 				return 0;
 			}
 			return b.maintenanceCost;
@@ -2921,7 +2922,7 @@ namespace C7GameData {
 		//  - a wonder's faces in all cities (the Hanging Gardens' one, Cure
 		//    for Cancer's one, JS Bach's two), limited to the wonder's
 		//    continent when it has continental mood effects (JS Bach).
-		// An obsolete great wonder does none of this, not even in its own city.
+		// An obsolete building does none of this, not even in its own city.
 		//
 		// Assumption: the all-cities faces don't add to the wonder's own city,
 		// which only gets its in-city faces. That matches the Civilopedia: the
@@ -2934,7 +2935,7 @@ namespace C7GameData {
 		internal int BuildingContentFaces(List<CityBuilding> buildings) {
 			int result = 0;
 			foreach (CityBuilding cb in buildings) {
-				if (cb.building.isGreatWonderObsolete(owner)) {
+				if (cb.building.IsObsoleteFor(owner)) {
 					continue;
 				}
 				result -= cb.building.unhappyFacesInCity;

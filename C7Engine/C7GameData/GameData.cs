@@ -160,6 +160,9 @@ namespace C7GameData {
 		// The United Nations elections (see C7Engine.UnitedNations).
 		public UnitedNationsState unitedNations = new();
 
+		// A scenario's plague (see C7Engine.Plague).
+		public PlagueState plague = new();
+
 		// The turn's Staging, in a scenario that has it (see C7Engine.Staging).
 		public StagingState staging = new();
 

@@ -78,8 +78,8 @@ namespace C7Engine {
 	//   chapter to reflect workers are immune to disease." (README.txt;
 	//   perhaps that PRTO field). We keep the cure: a jungle a tech cures
 	//   (none in the standard rules) spares the units of civs that know it.
-	// - Plague is off in the standard rules (conquests.biq PermitPlagues=0)
-	//   and isn't modelled.
+	// - Plague is off in the standard rules (conquests.biq PermitPlagues=0);
+	//   scenarios that permit it get it from Plague.
 	// - The messages are Civ3's (Conquests/Text/Script.txt):
 	//   SUMMARY_DISEASE, "Disease strikes $CITY0.", and UNITJUNGLEDISEASE,
 	//   "Our $UNIT0 has died of disease from the jungle!".

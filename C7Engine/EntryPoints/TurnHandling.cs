@@ -209,6 +209,10 @@ namespace C7Engine {
 				// Strategic resources in use may run out.
 				ResourceDepletion.ProcessEndOfRound(gameData);
 
+				// A scenario's plague may break out, end or strike (before
+				// the volcanoes, as in Civ3).
+				Plague.ProcessEndOfRound(gameData);
+
 				// Volcanoes may erupt.
 				Volcano.ProcessEndOfRound(gameData);
 

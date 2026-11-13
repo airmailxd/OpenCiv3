@@ -31,6 +31,9 @@ namespace C7GameData.Save {
 		// True for multiple types of automation, including worker automation
 		// and automated exploring.
 		public bool isAutomated;
+		// Which one: "work" or "explore" (MapUnit.AutomationKind). Saves made
+		// before it was saved have none, and the unit guesses by its type.
+		public string automation;
 
 		// The kind of worker automation (a WorkerAutomation.Kind), or null
 		// for plain automation, and its city or destination. Older saves
@@ -106,6 +109,7 @@ namespace C7GameData.Save {
 					workerAutomationTarget = new TileLocation(unit.workerAutomation.target);
 				}
 			}
+			automation = unit.AutomationKind();
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			hasPillagedThisTurn = unit.hasPillagedThisTurn;
@@ -232,6 +236,9 @@ namespace C7GameData.Save {
 			unit.workerAutomation = ToWorkerAutomation(map);
 			unit.movementPoints.reset(movePointsRemaining);
 			unit.name = string.IsNullOrEmpty(name) ? unit.unitType.name : name;
+			if (isAutomated) {
+				unit.resumeAutomation = automation;
+			}
 
 			Player originalNationality = Lookups.Find(lookups.playersByCivilizationName, nationality);
 			if (originalNationality != null) {

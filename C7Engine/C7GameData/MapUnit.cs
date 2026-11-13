@@ -103,6 +103,10 @@ namespace C7GameData {
 		public ID loadedOnUnitId { get; set; }
 
 		public UnitAI currentAI;
+		// The automation a unit loaded from a save resumes on its next turn
+		// ("work" or "explore", see AutomationKind), since its plan isn't
+		// saved.
+		public string resumeAutomation;
 
 		public MapUnit(ID id) {
 			this.id = id;

@@ -108,6 +108,7 @@ namespace C7GameData.Save {
 				PlayByEmail = data.playByEmail,
 				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
+				Plague = data.plague,
 				// Left out of games without Staging.
 				Staging = data.rules.StagingUnits ? data.staging : null,
 				// Left out of games without Rising Tide.
@@ -401,6 +402,7 @@ namespace C7GameData.Save {
 				gameHistory = new GameHistory { Events = Replay ?? new() },
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
+				plague = Plague ?? new PlagueState(),
 				staging = Staging ?? new StagingState(),
 				risingTide = RisingTide ?? new RisingTideState(),
 				tutorial = Tutorial ?? new TutorialState(),
@@ -772,6 +774,8 @@ namespace C7GameData.Save {
 		// mode.
 		public bool DebugMode { get; set; }
 		public UnitedNationsState UnitedNations = new();
+		// A scenario's plague; saves from before it have none under way.
+		public PlagueState Plague = new();
 		// The turn's Staging (see C7Engine.Staging); null in games without it.
 		public StagingState Staging;
 		// The tide (see C7Engine.RisingTide); null in games without it.

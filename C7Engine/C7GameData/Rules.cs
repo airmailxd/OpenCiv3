@@ -228,6 +228,21 @@ namespace C7GameData {
 		// 0 or less, volcanoes never erupt. See Volcano.
 		public int VolcanoEruptionPeriod = 5000;
 
+		// A scenario's plague: the BIQ GAME section's Disasters settings
+		// (PermitPlagues is 0 in conquests.biq, so the standard rules have
+		// none). The times are in years. See Plague.
+		public bool PermitPlagues = false;
+		public string PlagueName = "Plague";
+		public int PlagueEarliestStart;
+		// How far past the earliest start the first outbreak may come, as a
+		// percentage of the grace period.
+		public int PlagueVariance;
+		public int PlagueDuration;
+		// 0 to 100.
+		public int PlagueStrength;
+		public int PlagueGracePeriod;
+		public int PlagueMaxOccurrences;
+
 		// The civilopedia name of the first era, which civs start a new game
 		// in.
 		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";
