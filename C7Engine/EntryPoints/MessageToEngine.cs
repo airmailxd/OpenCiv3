@@ -169,6 +169,46 @@ namespace C7Engine {
 		}
 	}
 
+	// Civ3's Upgrade All (Shift-U): every unit of the given unit's type that
+	// can upgrade, if the gold covers them all (MapUnit.UpgradeAll).
+	public class MsgUpgradeAll : MessageToEngine {
+		public ID unitID;
+
+		public MsgUpgradeAll(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) {
+				return;
+			}
+			foreach (MapUnit upgraded in MapUnit.UpgradeAll(unit.owner, unit.unitType)) {
+				if (upgraded.owner.isHuman) {
+					new MsgUnitMoved(upgraded).send();
+				}
+			}
+		}
+	}
+
+	// Civ3's Rename Unit (Shift-N; MapUnit.Rename).
+	public class MsgRenameUnit : MessageToEngine {
+		public ID unitID;
+		public string name;
+
+		public MsgRenameUnit(ID unitID, string name) {
+			this.unitID = unitID;
+			this.name = name;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit != null && unit.Rename(name)) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	public class MsgSentry : MessageToEngine {
 		public ID unitID;
 		public bool enemyOnly;

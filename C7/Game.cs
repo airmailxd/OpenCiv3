@@ -70,6 +70,8 @@ public class BombardInfo {
 	// For automated bombarding, its kind: the target picked is bombarded
 	// every turn (see MapUnit_AutoBombard.cs).
 	public MapUnit.AutoBombardMode autoMode;
+	// For a re-base, whether the other planes on the tile go too (J).
+	public bool wholeStack;
 
 	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null, MapUnit.AutoBombardMode autoMode = MapUnit.AutoBombardMode.None) {
 		this.bombardingUnit = bombardingUnit;
@@ -3204,7 +3206,7 @@ public partial class Game : Node {
 	}
 
 	private void HandleKeyboardInput(InputEventKey eventKeyDown) {
-		if (HandleDebugKey(eventKeyDown)) {
+		if (HandleDebugKey(eventKeyDown) || HandleCiv3Key(eventKeyDown)) {
 			return;
 		}
 
@@ -4304,6 +4306,10 @@ public partial class Game : Node {
 					MaybeDeclareWar(victim, gameData.turn, () => {
 						new MsgAirMission(bombarderID, mission, tile).send();
 					});
+				} else if (mission == UnitAction.Rebase && info.wholeStack) {
+					foreach (MapUnit plane in UnitInteractions.StackRebasers(gameData.GetUnit(bombarderID), tile)) {
+						new MsgAirMission(plane.id, mission, tile).send();
+					}
 				} else {
 					new MsgAirMission(bombarderID, mission, tile).send();
 				}
