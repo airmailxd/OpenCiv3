@@ -261,18 +261,35 @@ public class OutpostAndColonyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		Assert.True(gameData.GetTradeNetwork().HasResourceAccess(gameData, city.location, us, iron));
 	}
 
+	// A colony's tile counts as road, as a city's does: a road up to the
+	// colony joins it up without one on its own tile, but a gap in the road
+	// leaves it out.
 	[Fact]
-	public void AColonyWithoutARoadGivesNothing() {
+	public void ARoadUpToAColonyJoinsItUp() {
 		(City city, List<Tile> line, Resource iron) = CityWithIronThreeAway();
 		line[0].overlays.Add(road);
-		line[1].overlays.Add(road);
 
 		MapUnit worker = gameData.SpawnUnit(us, Worker, line[2]);
 		Assert.True(worker.BuildColony());
+		Assert.False(line[2].IsRoaded());
 		Assert.False(CityHas(city, iron));
 
-		// Roading the colony's tile joins it up.
-		line[2].overlays.Add(road);
+		line[1].overlays.Add(road);
+		Assert.True(CityHas(city, iron));
+	}
+
+	// Founding a colony on a roaded tile already in the network brings its
+	// resource in at once, without waiting for the network to be recomputed
+	// for some other reason.
+	[Fact]
+	public void FoundingAColonyOnTheNetworkBringsItsResourceAtOnce() {
+		(City city, List<Tile> line, Resource iron) = CityWithIronThreeAway();
+		foreach (Tile t in line) {
+			t.overlays.Add(road);
+		}
+		Assert.False(CityHas(city, iron));
+
+		Assert.True(gameData.SpawnUnit(us, Worker, line[2]).BuildColony());
 		Assert.True(CityHas(city, iron));
 	}
 

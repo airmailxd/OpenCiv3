@@ -295,8 +295,23 @@ namespace C7Engine.Pathing {
 		// overlay if one was there or next to it when it was founded, so a
 		// road built up to it later would otherwise stop one tile short and
 		// leave the city off the network.
+		//
+		// A colony's tile counts as road too: in Civ3 "City and colony tiles
+		// count as road only if their owner knows the Build Road job's tech"
+		// (C3X's Trade Net X, has_road_open_to, a re-implementation of the
+		// stock trade net; compendium 2, "How the network is built"). So a
+		// road built up to a colony reaches its resource without one on the
+		// colony's own tile.
 		private static bool CarriesTrade(Tile t) {
-			return t.IsRoaded() || t.HasCity();
+			return t.IsRoaded() || t.HasCity() || (t.HasColony() && KnowsRoads(t.holdingOwner));
+		}
+
+		private static bool KnowsRoads(Player owner) {
+			if (owner == null) {
+				return false;
+			}
+			Terraform road = EngineStorage.gameData?.Terraforms?.Find(t => t.UIAction == C7Action.UnitBuildRoad);
+			return road == null || owner.HasTech(road.RequiredTech);
 		}
 
 		private static bool InEnemyTerritory(Tile t, HashSet<Player> enemies) {
