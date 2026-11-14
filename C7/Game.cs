@@ -2366,21 +2366,46 @@ public partial class Game : Node {
 		if (!window.HasFocus()) {
 			return;
 		}
-		// The viewport keeps the last position the mouse had in the window
-		// after it leaves, so ask where it really is.
-		Rect2I windowRect = new(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
-		if (!windowRect.HasPoint(DisplayServer.MouseGetPosition())) {
-			return;
-		}
-		Vector2 mouse = GetViewport().GetMousePosition();
-		Vector2 size = GetViewport().GetVisibleRect().Size;
-		float margin = EdgeScrolling.Margin;
-		Vector2 direction = new(
-			mouse.X < margin ? -1 : mouse.X >= size.X - margin ? 1 : 0,
-			mouse.Y < margin ? -1 : mouse.Y >= size.Y - margin ? 1 : 0);
+		Vector2 direction = EdgeScrollDirection();
 		if (direction != Vector2.Zero) {
 			mapView.moveCamera(direction * EdgeScrolling.Speed * (float)delta);
 		}
+	}
+
+	// Which way the mouse is pushing the map, worked out on the screen, in
+	// physical pixels: the viewport keeps the last position the mouse had in
+	// the window after it leaves, so ask where it really is. The scrolling
+	// band runs from the margin inside the map's edge out to the window's
+	// frame (its title bar, say), and, where the window reaches an edge of
+	// the screen's usable area, as a maximized one does, on out to the edge of
+	// the screen (the taskbar), so the mouse pushed all the way into a corner
+	// of the screen keeps the map moving. A mouse anywhere else outside the
+	// window doesn't.
+	private Vector2 EdgeScrollDirection() {
+		int screen = DisplayServer.WindowGetCurrentScreen();
+		Rect2I client = new(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+		Rect2I frame = new(DisplayServer.WindowGetPositionWithDecorations(), DisplayServer.WindowGetSizeWithDecorations());
+		Rect2I usable = DisplayServer.ScreenGetUsableRect(screen);
+		Rect2I full = new(DisplayServer.ScreenGetPosition(screen), DisplayServer.ScreenGetSize(screen));
+		if (client.Size.X <= 0 || client.Size.Y <= 0) {
+			return Vector2.Zero;
+		}
+		frame = frame.Merge(client);
+		int left = frame.Position.X <= usable.Position.X ? Math.Min(frame.Position.X, full.Position.X) : frame.Position.X;
+		int top = frame.Position.Y <= usable.Position.Y ? Math.Min(frame.Position.Y, full.Position.Y) : frame.Position.Y;
+		int right = frame.End.X >= usable.End.X ? Math.Max(frame.End.X, full.End.X) : frame.End.X;
+		int bottom = frame.End.Y >= usable.End.Y ? Math.Max(frame.End.Y, full.End.Y) : frame.End.Y;
+		Vector2I mouse = DisplayServer.MouseGetPosition();
+		if (mouse.X < left || mouse.X >= right || mouse.Y < top || mouse.Y >= bottom) {
+			return Vector2.Zero;
+		}
+		// The margin is in the UI's logical pixels; the window's are physical.
+		Vector2 logical = GetViewport().GetVisibleRect().Size;
+		float marginX = EdgeScrolling.Margin * client.Size.X / Math.Max(1f, logical.X);
+		float marginY = EdgeScrolling.Margin * client.Size.Y / Math.Max(1f, logical.Y);
+		return new Vector2(
+			mouse.X < client.Position.X + marginX ? -1 : mouse.X >= client.End.X - marginX ? 1 : 0,
+			mouse.Y < client.Position.Y + marginY ? -1 : mouse.Y >= client.End.Y - marginY ? 1 : 0);
 	}
 
 	// Set once no unit needs orders this turn, until one does again.
