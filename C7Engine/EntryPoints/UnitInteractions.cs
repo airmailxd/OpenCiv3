@@ -153,13 +153,18 @@ namespace C7Engine {
 		// MP" (ynot56, C3X thread, post-16163674). A stack that had walked
 		// along our roads up to a border, say, still goes into the land
 		// beyond together.
-		public static List<(MapUnit unit, TilePath path)> StackMoveOrders(MapUnit leader, TilePath leaderPath, Tile destination) {
+		//
+		// With sameTypeOnly (Ctrl-J or Ctrl-X), only the units of the leader's
+		// type go.
+		public static List<(MapUnit unit, TilePath path)> StackMoveOrders(MapUnit leader, TilePath leaderPath, Tile destination,
+				bool sameTypeOnly = false) {
 			List<(MapUnit, TilePath)> moves = [(leader, leaderPath)];
 			foreach (MapUnit unit in leader.location.unitsOnTile) {
 				// Loaded units ride along with their transport. Fortified
 				// units stay put, as do units out of moves and workers at work
 				// or automated.
 				if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
+					|| (sameTypeOnly && unit.unitType != leader.unitType)
 					|| unit.isFortified || unit.WorkerJob != null || unit.isAutomated
 					|| !unit.movementPoints.canMove
 					|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
@@ -177,14 +182,17 @@ namespace C7Engine {
 		// Go to" for aircraft) sends to the destination: the leader and every
 		// other aircraft of ours on its tile, aboard a carrier or not, that
 		// can re-base there (MapUnit.CanRebaseTo), the leader first.
-		public static List<MapUnit> StackRebasers(MapUnit leader, Tile destination) {
+		// With sameTypeOnly (Ctrl-J or Ctrl-X), only the planes of the
+		// leader's type.
+		public static List<MapUnit> StackRebasers(MapUnit leader, Tile destination, bool sameTypeOnly = false) {
 			List<MapUnit> planes = [];
 			if (leader?.location == null || !leader.CanRebaseTo(destination)) {
 				return planes;
 			}
 			planes.Add(leader);
 			foreach (MapUnit unit in leader.location.unitsOnTile) {
-				if (unit != leader && unit.owner == leader.owner && unit.IsAirUnit() && unit.CanRebaseTo(destination)) {
+				if (unit != leader && unit.owner == leader.owner && unit.IsAirUnit() && unit.CanRebaseTo(destination)
+					&& (!sameTypeOnly || unit.unitType == leader.unitType)) {
 					planes.Add(unit);
 				}
 			}

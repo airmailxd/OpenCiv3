@@ -46,15 +46,17 @@ public partial class Game {
 			case Key.E when shift && !ctrl && playerTurn:
 				ShowEspionageMissions();
 				return true;
-			// "Stack Go to X, J" (GCON_Hotkeys_Units): for a plane, a re-base
-			// of the planes on its tile. Other units' stack go-to is in
+			// Stack go to, J or X (Civ3 takes either; Ctrl with it moves only
+			// the units of the selected one's type): for a plane, a re-base of
+			// the planes on its tile. Other units' stack go-to is in
 			// HandleKeyboardInput.
-			case Key.J when !shift && !ctrl && unitSelected
+			case Key.J or Key.X when !shift && unitSelected
 					&& CurrentlySelectedUnit.GetAvailableActions().Contains(UnitAction.Rebase):
 				EngineStorage.ReadGameData((GameData gameData) => {
 					setBombard(gameData.GetUnit(CurrentlySelectedUnit.id), UnitAction.Rebase);
 					if (bombardInfo != null) {
 						bombardInfo.wholeStack = true;
+						bombardInfo.sameTypeOnly = ctrl;
 					}
 				});
 				return true;

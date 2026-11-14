@@ -108,4 +108,18 @@ public class StackMoveTest : IClassFixture<SaveGameFixture> {
 
 		Assert.Equal([leader], orders.Select(o => o.unit));
 	}
+
+	// Ctrl-J (or Ctrl-X) sends only the units of the leader's type.
+	[Fact]
+	public void SameTypeOnlyLeavesTheOtherTypes() {
+		(Tile outside, Tile inside) = FindBorder();
+		MapUnit leader = Warrior(outside);
+		MapUnit another = Warrior(outside);
+		MapUnit worker = gameData.SpawnUnit(human, gameData.unitPrototypes.First(p => p.isWorker), outside);
+
+		TilePath leaderPath = PathingAlgorithmChooser.GetAlgorithm(leader).PathFrom(outside, inside, leader);
+
+		Assert.Equal([leader, another], UnitInteractions.StackMoveOrders(leader, leaderPath, inside, sameTypeOnly: true).Select(o => o.unit));
+		Assert.Equal([leader, another, worker], UnitInteractions.StackMoveOrders(leader, leaderPath, inside).Select(o => o.unit));
+	}
 }

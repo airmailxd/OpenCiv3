@@ -21,8 +21,11 @@ public class GotoInfo {
 	public Player requiresWarDeclarationOnPlayer = null;
 	public Intent intent = Intent.Disabled;
 	// Whether every unit on the selected unit's tile goes, not just the
-	// selected one (the J key).
+	// selected one (the J or X key).
 	public bool wholeStack = false;
+	// With wholeStack, whether only the units of the selected unit's type go
+	// (Ctrl-J or Ctrl-X).
+	public bool sameTypeOnly = false;
 	// Road or rail to (Ctrl-R, Ctrl-Shift-R): the tile picked is the
 	// worker's destination, rather than where it goes now.
 	public WorkerAutomation.Kind? workerAutomation = null;
@@ -70,8 +73,10 @@ public class BombardInfo {
 	// For automated bombarding, its kind: the target picked is bombarded
 	// every turn (see MapUnit_AutoBombard.cs).
 	public MapUnit.AutoBombardMode autoMode;
-	// For a re-base, whether the other planes on the tile go too (J).
+	// For a re-base, whether the other planes on the tile go too (J or X),
+	// and whether only those of the selected plane's type (Ctrl-J, Ctrl-X).
 	public bool wholeStack;
+	public bool sameTypeOnly;
 
 	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null, MapUnit.AutoBombardMode autoMode = MapUnit.AutoBombardMode.None) {
 		this.bombardingUnit = bombardingUnit;
@@ -2953,8 +2958,8 @@ public partial class Game : Node {
 			return false;
 		}
 
-		// Keep moving the whole stack if J was pressed first.
-		SetGotoMode(true, gotoInfo?.wholeStack ?? false);
+		// Keep moving the whole stack if J or X was pressed first.
+		SetGotoMode(true, gotoInfo?.wholeStack ?? false, sameTypeOnly: gotoInfo?.sameTypeOnly ?? false);
 		draggingUnit = true;
 		return true;
 	}
@@ -3329,14 +3334,14 @@ public partial class Game : Node {
 			}
 		}
 
-		// Go-to for every unit on the selected unit's tile.
-		if (eventKeyDown.Keycode == Godot.Key.J
-			&& !eventKeyDown.IsCommandOrControlPressed()
+		// Go-to for every unit on the selected unit's tile (J, or X, as in
+		// Civ3), or with Ctrl only for those of the selected unit's type.
+		if ((eventKeyDown.Keycode == Godot.Key.J || eventKeyDown.Keycode == Godot.Key.X)
 			&& !eventKeyDown.ShiftPressed
 			&& !eventKeyDown.AltPressed
 			&& CurrentState == GameState.PlayerTurn
 			&& IsMapUnitValid(CurrentlySelectedUnit)) {
-			SetGotoMode(true, wholeStack: true);
+			SetGotoMode(true, wholeStack: true, sameTypeOnly: eventKeyDown.IsCommandOrControlPressed());
 		}
 
 		// Show only the terrain and resources, hiding cities, units, roads and the like.
@@ -4052,10 +4057,10 @@ public partial class Game : Node {
 	// Whether the player is dragging the selected unit to pick its destination.
 	private bool draggingUnit = false;
 
-	private void SetGotoMode(bool isOn, bool wholeStack = false, WorkerAutomation.Kind? workerAutomation = null) {
+	private void SetGotoMode(bool isOn, bool wholeStack = false, WorkerAutomation.Kind? workerAutomation = null, bool sameTypeOnly = false) {
 		this.lastTile = null;
 		if (isOn) {
-			this.gotoInfo = new() { wholeStack = wholeStack, workerAutomation = workerAutomation };
+			this.gotoInfo = new() { wholeStack = wholeStack, sameTypeOnly = wholeStack && sameTypeOnly, workerAutomation = workerAutomation };
 		} else {
 			this.gotoInfo = null;
 			this.draggingUnit = false;
@@ -4198,7 +4203,7 @@ public partial class Game : Node {
 		if (leader == null) {
 			return;
 		}
-		List<(ID, TilePath)> moves = UnitInteractions.StackMoveOrders(leader, info.path, info.destinationTile)
+		List<(ID, TilePath)> moves = UnitInteractions.StackMoveOrders(leader, info.path, info.destinationTile, info.sameTypeOnly)
 			.ConvertAll(move => (move.unit.id, move.path));
 		foreach ((ID id, TilePath path) in moves) {
 			new MsgSetUnitPath(id, path).send();
@@ -4255,7 +4260,11 @@ public partial class Game : Node {
 	}
 
 	private GotoInfo GetGotoInfo(Tile tile) {
-		GotoInfo result = new() { wholeStack = this.gotoInfo?.wholeStack ?? false, workerAutomation = this.gotoInfo?.workerAutomation };
+		GotoInfo result = new() {
+			wholeStack = this.gotoInfo?.wholeStack ?? false,
+			sameTypeOnly = this.gotoInfo?.sameTypeOnly ?? false,
+			workerAutomation = this.gotoInfo?.workerAutomation,
+		};
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			if (tile == this.lastTile && this.gotoInfo != null) {
@@ -4338,7 +4347,7 @@ public partial class Game : Node {
 						new MsgAirMission(bombarderID, mission, tile).send();
 					});
 				} else if (mission == UnitAction.Rebase && info.wholeStack) {
-					foreach (MapUnit plane in UnitInteractions.StackRebasers(gameData.GetUnit(bombarderID), tile)) {
+					foreach (MapUnit plane in UnitInteractions.StackRebasers(gameData.GetUnit(bombarderID), tile, info.sameTypeOnly)) {
 						new MsgAirMission(plane.id, mission, tile).send();
 					}
 				} else {
