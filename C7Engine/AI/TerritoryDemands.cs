@@ -293,7 +293,16 @@ namespace C7Engine.AI {
 		// Hidden nationality units stay, as they aren't removed by
 		// diplomacy (PTW readme, 1.21f), and units aboard go with their
 		// transport. Returns how many units moved out.
+		//
+		// Only when an AI is one of the two: between humans, as in a
+		// multiplayer game, units stay where they are, which is what players
+		// report of Civ3's multiplayer (owner's ruling, 2026-11-13: "That's
+		// something that doesn't happen in multiplayer (at least not with
+		// humans). Maybe it's an AI only mechanic").
 		public static int WithdrawAfterPeace(Player left, Player right) {
+			if (left.isHuman && right.isHuman) {
+				return 0;
+			}
 			int withdrawn = 0;
 			foreach ((Player us, Player them) in new[] { (left, right), (right, left) }) {
 				List<MapUnit> units = them.units.FindAll(u => !u.IsLoaded() && u.location != null && u.location != Tile.NONE

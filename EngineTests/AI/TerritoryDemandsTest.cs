@@ -65,6 +65,21 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		return unit;
 	}
 
+	// Making peace moves units out of the other's territory when an AI is
+	// one of the two, but not between two humans.
+	[Theory]
+	[InlineData(false, true)]
+	[InlineData(true, false)]
+	public void PeaceMovesUnitsOutUnlessBothAreHuman(bool bothHuman, bool movesOut) {
+		us.isHuman = bothHuman;
+		them.isHuman = true;
+		MapUnit intruder = MakeUnit(them, row[1]);
+
+		TerritoryDemands.WithdrawAfterPeace(us, them);
+
+		Assert.Equal(movesOut, intruder.location != row[1]);
+	}
+
 	[Fact]
 	public void UnitsInOurTerritoryAreTrespassing() {
 		MapUnit intruder = MakeUnit(them, row[1]);

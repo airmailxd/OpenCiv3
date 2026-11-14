@@ -1142,8 +1142,10 @@ In this study a negative number is good.
   side's units in the other's territory are moved out at once,** by the same
   teleport as an ejection. The manual's peace terms (6.5: not to "even enter
   the other's territory with military units") support it, but no Civ3 source
-  was found that describes units moving on signing itself. See open
-  question 12.
+  was found that describes units moving on signing itself. Between two
+  humans it doesn't happen (owner's ruling, 2026-11-13: "That's something
+  that doesn't happen in multiplayer (at least not with humans). Maybe it's
+  an AI only mechanic"). See open question 12.
 - **A city may be founded inside another civ's borders, and at peace that is
   an act of war (community).** Inverse Icarus (Apolyton "combat settlers",
   https://apolyton.net/forum/civilization-series/civilization-iii/126826-combat-settlers
@@ -1695,7 +1697,8 @@ war (6.11, informal test).
     effect per version were not checked here. It belongs to the wonders
     section.
 12. **Whether signing peace itself moves units out of the other's territory.**
-    The engine does (owner's ruling, 6.10). Civ3 sources only describe units
+    The engine does when an AI is one of the two, not between humans
+    (owner's rulings, 6.10). Civ3 sources only describe units
     teleported out when told to leave; none was found for the signing. A test
     in Civ3 (make peace with units inside the AI's borders) would settle it.
 13. **Founding a city inside another civ's borders.** The engine follows the
