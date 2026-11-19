@@ -113,6 +113,7 @@ public partial class EspionageScreen : Control {
 
 		title = AdvisorUtils.CreateLabel(this, "ESPIONAGE", new Rect2(170, 14, 690, 36), 20, HorizontalAlignment.Center);
 		title.AddThemeColorOverride("font_color", Ink);
+		title.ClipText = true;
 
 		// The opponents.
 		(civScroll, civList) = MakeScrollList(new Rect2(CivListPosition, new Vector2(CivButtonSize.X, CivScrollBar.Size.Y)), CivButtonGap, CivScrollBar);
@@ -488,6 +489,9 @@ public partial class EspionageScreen : Control {
 			missionBoxes.AddChild(label);
 		}
 
+		// The mission picked's own title, if the rules give it one (Civ3's
+		// Description), else the screen's.
+		title.Text = (selectedMission is EspionageMission titled ? Espionage.Title(titled) : null) ?? "ESPIONAGE";
 		if (target == null) {
 			info.Text = "";
 		} else if (selectedMission is EspionageMission chosen) {
@@ -591,7 +595,7 @@ public partial class EspionageScreen : Control {
 			$"Diplomatic Advance: {YesNo(Knows(diplomatic))}",
 			$"Espionage Advance: {YesNo(Knows(espionage))}",
 			$"Intelligence Center: {YesNo(Espionage.HasIntelligenceAgency(player))}",
-			$"Spy Experience: {(Espionage.SpyLevel(player) == Espionage.Agent.VeteranSpy ? "Veteran" : "Regular")}",
+			$"Spy Experience: {Espionage.SpyLevelName(Espionage.SpyLevel(player))}",
 		];
 		assets.Text = string.Join("\n", lines);
 	}

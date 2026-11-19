@@ -136,6 +136,7 @@ namespace C7GameData {
 			}
 			ImportDifficulties();
 			ImportRules();
+			ImportFlavors();
 		}
 
 		public static SaveGame ImportSav(string savePath, string defaultBicPath, Func<string, string> getPediaIconsPath) {
@@ -271,6 +272,7 @@ namespace C7GameData {
 
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
+
 
 			return save;
 		}
@@ -493,14 +495,15 @@ namespace C7GameData {
 			// the randomly generated number for something such as a battle or
 			// anarchy calculation will be stored in the game so that you
 			// cannot save your game and reload continuously to get a favored
-			// outcome" (https://civfanatics.com/civ3/faq/). C7 always saves
-			// its random state (GameRandom), so it always behaves that way.
+			// outcome" (https://civfanatics.com/civ3/faq/). C7 saves its
+			// random state (GameRandom); see Rules.PreserveRandomSeed.
 			// Without a map, GameSetup.Populate sets the seed of the map it
 			// generates.
 			save.Seed = hasMap ? biq.Wmap[0].MapSeed : Random.Shared.Next(int.MaxValue);
 
 			ImportSharedBiqData();
 			ImportBiqVictory();
+			ImportPlayableCivilizations();
 			if (hasMap) {
 				ImportBicLeaders();
 				ImportBicUnits();
@@ -543,6 +546,9 @@ namespace C7GameData {
 				// "0: VPL, -1: Not a VPL"
 				if (civ3Tile.VictoryPointLocation == 0) {
 					tile.features.Add(SaveTile.VictoryLocationFeature);
+				}
+				if (civ3Tile.IsLandmark) {
+					tile.features.Add(SaveTile.LandmarkFeature);
 				}
 				if (civ3Tile.Ruin > 0) {
 					tile.overlays.Add(RUINS);
@@ -663,6 +669,15 @@ namespace C7GameData {
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
 
+			// Players with nothing on the map and nowhere to start (some Play
+			// the World scenarios) are placed at setup in Civ3: the game
+			// chooses them then, as for a map without player data (their own
+			// settings, such as gold or advances, are lost).
+			if (save.Map.tiles.Count > 0 && save.Units.Count == 0 && save.Cities.Count == 0 && save.Map.startingLocations.Count == 0 && save.Players.Count > 0) {
+				log.Information("The players have no units, cities or starts; they're chosen at setup");
+				save.Players.Clear();
+			}
+
 			return save;
 		}
 
@@ -736,6 +751,11 @@ namespace C7GameData {
 				return;
 			}
 			QueryCiv3.Biq.GAME game = games[0];
+			save.Rules ??= new Rules();
+			save.Rules.CulturallyLinkedStart = game.CulturallyLinkedStart;
+			save.Rules.RespawnAiPlayers = game.RespawnAiPlayers;
+			save.Rules.PreserveRandomSeed = game.PreserveRandomSeed;
+			save.Rules.RetainCultureOnCapture = game.RetainCulture != 0;
 			save.VictoryConditions = new VictoryConditions {
 				// A scenario that turns on its time limit keeps it.
 				UseTurnLimit = game.UseTimeLimit != 0,
@@ -771,6 +791,11 @@ namespace C7GameData {
 		private static void ImportInstantElimination(VictoryConditions conditions, QueryCiv3.Biq.GAME game) {
 			conditions.AutoPlaceKings = game.AutoPlaceKings != 0;
 			conditions.AutoPlaceVictoryLocations = game.AutoPlaceVictoryLocations != 0;
+			conditions.AutoPlaceCaptureUnits = game.PlaceCaptureUnits != 0;
+			conditions.AnyoneCapturesAnyFlag = game.CaptureAnyFlag != 0;
+			conditions.RespawnFlagUnits = game.RespawnFlagUnits != 0;
+			conditions.CaptureFlagVictoryPoints = System.Math.Max(0, game.CapturingSpecialUnit);
+			conditions.GoldForCapture = System.Math.Max(0, game.GoldForCapture);
 			conditions.VictoryLocationPoints = Math.Max(0, game.VictoryPointScoring);
 			if (game.CityEliminationCount > 0) {
 				conditions.CityEliminationCount = game.CityEliminationCount;
@@ -933,6 +958,18 @@ namespace C7GameData {
 				civ.civilopediaEntry = race.CivilopediaEntry?.Trim();
 				civ.kingUnit = KingUnitName(race.UnitTypeForKing);
 				LoadBuildFlags(race, civ);
+				civ.greatLeaderNames = theBiq.RaceGreatLeaderName?[i]?.Select(n => n.Name).ToList() ?? [];
+				civ.scientificLeaderNames = theBiq.RaceScientificLeaderName?[i]?.Select(n => n.Name).ToList() ?? [];
+				civ.pluralName = race.Plurality != 0;
+				civ.nameGender = race.CivilizationGender == 0 ? Gender.Male : Gender.Female;
+				civ.diplomacyTextIndex = race.DiplomacyTextIndex;
+				civ.governorManagesCitizens = race.ManageCitizens;
+				civ.governorEmphasizesFood = race.EmphasizeFood;
+				civ.governorEmphasizesShields = race.EmphasizeShields;
+				civ.governorEmphasizesTrade = race.EmphasizeTrade;
+				civ.governorManagesProduction = race.ManageProduction;
+				civ.governorNoWonders = race.NoWonders;
+				civ.governorNoSmallWonders = race.NoSmallWonders;
 
 				// Look up the image for non-barbarian civs.
 				string artName = pediaIcons.GetLeaderArtName(race.CivilopediaEntry);
@@ -1022,6 +1059,20 @@ namespace C7GameData {
 			.Select(t => t.Item2);
 		}
 
+		// Civ3's Playable Civilizations (the GAME section's list, by the
+		// civs' places in RACE), by name; none when every civ is listed.
+		private void ImportPlayableCivilizations() {
+			int[] playable = GameBiq?.GameCiv?[0];
+			if (playable is not { Length: > 0 }) {
+				return;
+			}
+			List<string> names = playable.Where(i => i >= 0 && i < save.Civilizations.Count && !save.Civilizations[i].isBarbarian)
+				.Select(i => save.Civilizations[i].name).Distinct().ToList();
+			if (names.Count > 0 && names.Count < save.Civilizations.Count(c => !c.isBarbarian)) {
+				save.PlayableCivilizations = names;
+			}
+		}
+
 		private void ImportBicLeaders() {
 			// The playable civs are part of the scenario's game settings. An
 			// empty list means every civ may play, as in Civ3.
@@ -1032,6 +1083,11 @@ namespace C7GameData {
 
 			Government defaultGovernment = save.Governments.Find(g => g.defaultType) ?? save.Governments[0];
 
+			// A BIQ with only a map (no LEAD) has no players: they're chosen at
+			// setup, as for a new game on its map.
+			if (biq.Lead is null && biq.Tile is not null && LeadBiq == null) {
+				return;
+			}
 			// Make a player for each civ. The barbarians are always civ 0.
 			for (int i = 0; i < save.Civilizations.Count; ++i) {
 				Civilization civ = save.Civilizations[i];
@@ -1582,18 +1638,20 @@ namespace C7GameData {
 					var wwa = theBiq.Game[0].WarWithAlliance[a, e];
 
 					if (wwa != 0) {
-						save.AllianceWars.TryAdd(
-							alliances.First(al => al.name == theBiq.Game[0].AllianceNames[a]).name,
-							alliances.First(al => al.name == theBiq.Game[0].AllianceNames[e]).name
-							);
+						string one = alliances.First(al => al.name == theBiq.Game[0].AllianceNames[a]).name;
+						string other = alliances.First(al => al.name == theBiq.Game[0].AllianceNames[e]).name;
+						save.AllianceWars.TryAdd(one, other);
+						if (!save.AllianceWarPairs.Any(p => (p[0] == one && p[1] == other) || (p[0] == other && p[1] == one))) {
+							save.AllianceWarPairs.Add([one, other]);
+						}
 					}
 				}
 			}
 
 			// "Declare" war for rival alliances
-			foreach (KeyValuePair<string, string> kvp in save.AllianceWars) {
-				var playerAllianceA = save.Players.Where(p => p.alliance == kvp.Key).ToList();
-				var playerAllianceB = save.Players.Where(p => p.alliance == kvp.Value).ToList();
+			foreach ((string allianceA, string allianceB) in save.AllAllianceWars()) {
+				var playerAllianceA = save.Players.Where(p => p.alliance == allianceA).ToList();
+				var playerAllianceB = save.Players.Where(p => p.alliance == allianceB).ToList();
 
 				foreach (var playerInAllianceA in playerAllianceA) {
 					foreach (var playerInAllianceB in playerAllianceB) {
@@ -1702,7 +1760,9 @@ namespace C7GameData {
 					continue;
 				}
 				ExperienceLevel experience = save.ExperienceLevels[unit.ExperienceLevel];
-				save.Units.Add(createUnitAtLocation(player, unit.Name, unit.UnitType, experience.key, experience.baseHitPoints, unit.X, unit.Y));
+				SaveUnit placed = createUnitAtLocation(player, unit.Name, unit.UnitType, experience.key, experience.baseHitPoints, unit.X, unit.Y);
+				placed.useCivSpecificKing = unit.UseCivilizationKing != 0;
+				save.Units.Add(placed);
 			}
 
 			// Each civ's starting location gets the starting units, at the
@@ -1837,7 +1897,7 @@ namespace C7GameData {
 
 				if (building.BuiltByPlayer != -1 && city.Bitm.IsBuildingUsable(buildingIndex)) {
 					BLDG bldg = theBiq.Bldg[buildingIndex];
-					string buildingName = bldg.Name;
+					string buildingName = BuildingName(theBiq.Bldg, buildingIndex);
 					res.Add(new SaveCityBuilding {
 						building = buildingName,
 						// Buildings the save doesn't say who built are
@@ -1863,7 +1923,7 @@ namespace C7GameData {
 
 			for (int buildingIndex = 0; buildingIndex < cityBuildings.Length; ++buildingIndex) {
 				BLDG building = bldgs[cityBuildings[buildingIndex]];
-				string buildingName = building.Name;
+				string buildingName = BuildingName(bldgs, cityBuildings[buildingIndex]);
 
 				res.Add(new SaveCityBuilding {
 					building = buildingName,
@@ -1893,7 +1953,7 @@ namespace C7GameData {
 
 			return city.ConstructingType switch {
 				0 => (theBiq.Bldg[city.Constructing].Name, ProducibleType.INFLOW),
-				1 => (theBiq.Bldg[city.Constructing].Name, ProducibleType.BUILDING),
+				1 => (BuildingName(theBiq.Bldg, city.Constructing), ProducibleType.BUILDING),
 				2 => (unitPrototypes[city.Constructing].Name, ProducibleType.UNIT),
 				_ => throw new NotImplementedException()
 			};
@@ -2297,26 +2357,61 @@ namespace C7GameData {
 			return upgradePairs;
 		}
 
+		// Civ3 tells buildings apart by their place in its list, so a mod may
+		// give several the same name (Modern has three Barracks and three
+		// Airports); C7 tells them apart by name. So the first with a name
+		// keeps it, and the others get " (2)", " (3)" and so on, in the
+		// list's order, everywhere a building is named.
+		private readonly Dictionary<BLDG[], string[]> buildingNames = new(ReferenceEqualityComparer.Instance);
+
+		private string BuildingName(BLDG[] buildings, int index) {
+			if (!buildingNames.TryGetValue(buildings, out string[] names)) {
+				names = UniqueNames(buildings.Select(b => b.Name).ToArray());
+				buildingNames[buildings] = names;
+			}
+			return names[index];
+		}
+
+		// The names, with each name that came before given a number.
+		internal static string[] UniqueNames(string[] names) {
+			// A numbered name never takes one another building has as its own.
+			HashSet<string> own = new(names);
+			HashSet<string> used = new();
+			string[] unique = new string[names.Length];
+			for (int i = 0; i < names.Length; ++i) {
+				string name = names[i];
+				for (int n = 2; used.Contains(name) || (n > 2 && own.Contains(name)); ++n) {
+					name = $"{names[i]} ({n})";
+				}
+				used.Add(name);
+				unique[i] = name;
+			}
+			return unique;
+		}
+
 		private void ImportBuildings() {
 			BLDG[] Bldg = biq.Bldg ?? defaultBiq.Bldg;
 
-			foreach (BLDG bldg in Bldg) {
+			for (int index = 0; index < Bldg.Length; ++index) {
+				BLDG bldg = Bldg[index];
 				// Civ3's Wealth is a building with the capitalization flag,
 				// but in C7 it is an inflow.
 				if (bldg.Capitalization) {
 					SaveInflow inflow = new () {
 						name = bldg.Name,
-						iconRowIndex = pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
+						iconRowIndex = BuildingIconRow(bldg.CivilopediaEntry),
 						localYield = [
 							new SaveLocalYield(InflowYield.commerce, "inflows.result.wealth.commerce"),
 						],
+						// Its Required Advance: Civ3 offers it only then.
+						requiredTech = bldg.RequiredAdvance >= 0 && bldg.RequiredAdvance < save.Techs.Count ? save.Techs[bldg.RequiredAdvance].id : null,
 					};
 					save.Inflows.Add(inflow);
 					continue; // We don't consider Wealth as a building
 				}
 
 				SaveBuilding building = new() {
-					name=bldg.Name,
+					name=BuildingName(Bldg, index),
 					civilopediaEntry=bldg.CivilopediaEntry?.Trim(),
 					shieldCost=bldg.Cost * 10, // In Civ3 files, building costs are stored at 1/10th of their actual value
 					populationCost=0, // In Civ3, a building cannot have a population cost
@@ -2324,7 +2419,7 @@ namespace C7GameData {
 					greatWonderProperties=bldg.Wonder ? new SaveBuilding.GreatWonderProperties() : null,
 					culturePerTurn=bldg.Culture,
 					contentFacesInCity=bldg.ContentFaces - bldg.UnhappyFaces,
-					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
+					iconRowIndex=BuildingIconRow(bldg.CivilopediaEntry),
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
 					navalDefenseBonus=bldg.NavalDefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
@@ -2338,7 +2433,7 @@ namespace C7GameData {
 				}
 
 				if (bldg.RequiredBuilding != -1) {
-					building.requiredBuilding = Bldg[bldg.RequiredBuilding].Name;
+					building.requiredBuilding = BuildingName(Bldg, bldg.RequiredBuilding);
 					building.requiredBuildingCount = bldg.NumberOfRequiredBuildings;
 				}
 
@@ -2355,7 +2450,7 @@ namespace C7GameData {
 					building.spaceshipPart = bldg.SpaceshipPart;
 				}
 				if (bldg.DoublesHappiness >= 0) {
-					building.doublesHappinessOf = Bldg[bldg.DoublesHappiness].Name;
+					building.doublesHappinessOf = BuildingName(Bldg, bldg.DoublesHappiness);
 				}
 				if (bldg.CanBuildUnits && bldg.UnitProduced >= 0) {
 					PRTO[] prto = biq.Prto ?? defaultBiq.Prto;
@@ -2376,10 +2471,10 @@ namespace C7GameData {
 				}
 
 				if (bldg.GainInEveryCity >= 0) {
-					building.greatWonderProperties.buildingGainedInEveryCity = Bldg[bldg.GainInEveryCity].Name;
+					building.greatWonderProperties.buildingGainedInEveryCity = BuildingName(Bldg, bldg.GainInEveryCity);
 				}
 				if (bldg.GainInEveryCityOnContinent >= 0) {
-					building.greatWonderProperties.buildingGainedInEveryCityOnContinent = Bldg[bldg.GainInEveryCityOnContinent].Name;
+					building.greatWonderProperties.buildingGainedInEveryCityOnContinent = BuildingName(Bldg, bldg.GainInEveryCityOnContinent);
 				}
 
 				building.flags = LoadBuildingFlags(bldg).ToHashSet();
@@ -2537,12 +2632,27 @@ namespace C7GameData {
 			int civ3Index = 0;
 			foreach (TERR terrain in Terr) {
 				TerrainType c7TerrainType = TerrainType.ImportFromCiv3(civ3Index, terrain);
-				for (int i = 0; i < TerrGood.GetLength(1); ++i) {
+				// The default rules' table may have more resources than an
+				// older file's own list (26 against Play the World's 22).
+				for (int i = 0; i < TerrGood.GetLength(1) && i < save.Resources.Count; ++i) {
 					if (TerrGood[civ3Index, i]) {
 						c7TerrainType.allowedResources.Add(save.Resources[i].Key);
 					}
 				}
 				AddYieldBonusesForTerrainImprovements(c7TerrainType.Key, terrain);
+				c7TerrainType.landmark = new TerrainLandmark {
+					enabled = terrain.LandmarkEnabled != 0,
+					name = terrain.LandmarkName ?? "",
+					civilopediaEntry = terrain.LandmarkCivilopediaEntry ?? "",
+					food = terrain.LandmarkFood,
+					shields = terrain.LandmarkShields,
+					commerce = terrain.LandmarkCommerce,
+					irrigationBonus = terrain.LandmarkIrrigationBonus,
+					miningBonus = terrain.LandmarkMiningBonus,
+					roadBonus = terrain.LandmarkRoadBonus,
+					movementCost = terrain.LandmarkMovementBonus,
+					defenseBonus = terrain.LandmarkDefensiveBonus,
+				};
 				save.TerrainTypes.Add(c7TerrainType);
 				civ3Index++;
 			}
@@ -2600,6 +2710,13 @@ namespace C7GameData {
 				description = "Metropolis",
 				amount = Rule.MetropolisDefenseBonus / 100.0
 			});
+		}
+
+		// The building's row of icons in PediaIcons.txt, or 0 (the first) if
+		// the mod's file hasn't it (some Play the World mods leave buildings
+		// out).
+		private int BuildingIconRow(string civilopediaEntry) {
+			return civilopediaEntry != null && pediaIcons.buildingToRowNumberMapping.TryGetValue(civilopediaEntry, out int row) ? row : 0;
 		}
 
 		private SaveUnitPrototype MatchCiv3IndexToImportedUnit(int civ3Index) {
@@ -2759,7 +2876,7 @@ namespace C7GameData {
 			for (int i = 0; i < theBiq.Tfrm.Length; ++i) {
 				TFRM t = theBiq.Tfrm[i];
 
-				TerraformKey tfKey = ConvertCiv3Order(t.Order);
+				TerraformKey tfKey = ConvertCiv3Order(t.Order, i);
 
 				SaveTerraform tf = new() {
 					Id = ids.CreateID("Terraform"),
@@ -2809,7 +2926,19 @@ namespace C7GameData {
 			}
 		}
 
-		private static TerraformKey ConvertCiv3Order(string order) {
+		// Civ3's worker jobs, in the order its rules list them. A scenario
+		// may rename a job and its order ("Determines the verbiage used to
+		// explain the orders of a worker", Civ3's editor help) but has the
+		// same jobs in the same places: Space Opera's "Build Station" is the
+		// fortress.
+		private static readonly TerraformKey[] Civ3JobOrder = [
+			TerraformKey.BuildMine, TerraformKey.Irrigate, TerraformKey.BuildFortress, TerraformKey.BuildRoad,
+			TerraformKey.BuildRailroad, TerraformKey.PlantForest, TerraformKey.ClearForest, TerraformKey.ClearWetlands,
+			TerraformKey.ClearDamage, TerraformKey.BuildAirfield, TerraformKey.BuildRadarTower, TerraformKey.BuildOutpost,
+			TerraformKey.BuildBarricade,
+		];
+
+		private static TerraformKey ConvertCiv3Order(string order, int index) {
 			return order switch {
 				"Build Mine" => TerraformKey.BuildMine,
 				"Irrigate" => TerraformKey.Irrigate,
@@ -2824,6 +2953,7 @@ namespace C7GameData {
 				"Build Radar Tower" => TerraformKey.BuildRadarTower,
 				"Build Outpost" => TerraformKey.BuildOutpost,
 				"Build Barricade" or "Build Barricades" => TerraformKey.BuildBarricade,
+				_ when index >= 0 && index < Civ3JobOrder.Length => Civ3JobOrder[index],
 				_ => throw new NotSupportedException($"Unknown order: {order}"),
 			};
 		}
@@ -2858,6 +2988,10 @@ namespace C7GameData {
 				g.freeUnitsPerCity = govt.FreeUnitsPerCity;
 				g.freeUnitsPerMetropolis = govt.FreeUnitsPerMetropolis;
 				g.unitCost = govt.UnitCost;
+				g.assimilationChance = govt.AssimilationChance;
+				g.immuneTo = govt.ImmuneTo;
+				g.diplomatLevel = ExperienceKey(govt.DiplomatsAre);
+				g.spyLevel = ExperienceKey(govt.SpiesAre);
 				string[] maleTitles = [govt.MaleRulerTitle1, govt.MaleRulerTitle2, govt.MaleRulerTitle3, govt.MaleRulerTitle4];
 				string[] femaleTitles = [govt.FemaleRulerTitle1, govt.FemaleRulerTitle2, govt.FemaleRulerTitle3, govt.FemaleRulerTitle4];
 				for (int i = 0; i < Math.Clamp(govt.RulerTitlePairsUsed, 1, maleTitles.Length); i++) {
@@ -2866,6 +3000,60 @@ namespace C7GameData {
 				}
 
 				save.Governments.Add(g);
+			}
+			// How each government stands against each other one.
+			for (int a = 0; a < save.Governments.Count && theBiq.GovtGovt != null && a < theBiq.GovtGovt.GetLength(0); ++a) {
+				for (int b = 0; b < save.Governments.Count && b < theBiq.GovtGovt.GetLength(1); ++b) {
+					QueryCiv3.Biq.GOVT_GOVT r = theBiq.GovtGovt[a, b];
+					save.Governments[a].relations.Add(new GovernmentRelation {
+						government = save.Governments[b].name,
+						canBribe = r.CanBribe != 0,
+						briberyModifier = r.BriberyModifier,
+						resistanceModifier = r.ResistanceModifier,
+					});
+				}
+			}
+		}
+
+		// The key of the experience level at the index, or null.
+		private string ExperienceKey(int index) {
+			return index >= 0 && index < save.ExperienceLevels.Count ? save.ExperienceLevels[index].key : null;
+		}
+
+		// Civ3's flavors, and which advances, improvements and civilizations
+		// have each (a bit per flavor in their Flavors field).
+		private void ImportFlavors() {
+			FLAV[] flavors = biq.Flav ?? defaultBiq?.Flav;
+			if (flavors == null) {
+				return;
+			}
+			save.Rules.Flavors = [];
+			for (int i = 0; i < flavors.Length; ++i) {
+				FLAV f = flavors[i];
+				save.Rules.Flavors.Add(new FlavorRule {
+					Name = f.Name,
+					Relationships = Enumerable.Range(0, Math.Clamp(f.NumberOfFlavors, 0, 7)).Select(j => f.FlavorRelationship[j]).ToList(),
+				});
+			}
+			List<FlavorRule> list = save.Rules.Flavors;
+			void Mark(int bits, string name, Func<FlavorRule, List<string>> into) {
+				for (int i = 0; i < list.Count && i < 31; ++i) {
+					if ((bits & (1 << i)) != 0) {
+						into(list[i]).Add(name);
+					}
+				}
+			}
+			TECH[] techs = biq.Tech ?? defaultBiq?.Tech;
+			for (int i = 0; techs != null && i < techs.Length && i < save.Techs.Count; ++i) {
+				Mark(techs[i].Flavors, save.Techs[i].Name, f => f.Techs);
+			}
+			BLDG[] buildings = biq.Bldg ?? defaultBiq?.Bldg;
+			for (int i = 0; buildings != null && i < buildings.Length; ++i) {
+				Mark(buildings[i].Flavors, BuildingName(buildings, i), f => f.Buildings);
+			}
+			RACE[] races = biq.Race ?? defaultBiq?.Race;
+			for (int i = 0; races != null && i < races.Length && i < save.Civilizations.Count; ++i) {
+				Mark(races[i].Flavors, save.Civilizations[i].name, f => f.Civilizations);
 			}
 		}
 
@@ -2948,6 +3136,28 @@ namespace C7GameData {
 				}
 			}
 			save.Rules.FoodConsumptionPerCitizen = rule.FoodConsumptionPerCitizen;
+			save.Rules.CityLevelNames = [rule.CitySizeLevel1Name, rule.CitySizeLevel2Name, rule.CitySizeLevel3Name];
+			if (rule.DefaultDifficultyLevel >= 0 && rule.DefaultDifficultyLevel < save.Difficulties.Count) {
+				save.Rules.DefaultDifficulty = save.Difficulties[rule.DefaultDifficultyLevel].Name;
+			}
+			GOOD[] goods = biq.Good ?? defaultBiq?.Good;
+			if (goods != null && rule.DefaultMoneyResource >= 0 && rule.DefaultMoneyResource < goods.Length) {
+				save.Rules.DefaultMoneyResource = goods[rule.DefaultMoneyResource].Name;
+			}
+			// The missions by their place in the BIQ (Civ3's order); their
+			// names stay the game's own (as the era names do), so an imported
+			// game reads as before.
+			ESPN[] missions = biq.Espn ?? defaultBiq?.Espn;
+			if (missions?.Length > 0) {
+				for (int i = 0; i < missions.Length && i < save.Rules.EspionageMissions.Count; ++i) {
+					EspionageMissionRule m = save.Rules.EspionageMissions[i];
+					m.CivilopediaEntry = missions[i].CivilopediaEntry;
+					m.Description = missions[i].Description;
+					m.Diplomat = missions[i].Diplomat;
+					m.Spy = missions[i].Spy;
+					m.BaseCost = missions[i].BaseCost;
+				}
+			}
 			save.Rules.MovementAlongRoads = rule.MovementAlongRoads;
 			save.Rules.FortressDefensiveBonus = rule.FortressDefensiveBonus;
 			save.Rules.ChanceToInterceptAirMissions = rule.ChanceToInterceptEnemyAirMissions;
@@ -3004,6 +3214,9 @@ namespace C7GameData {
 						Name = c.Name,
 						Numerator = c.CultureRatioNumerator,
 						Denominator = c.CultureRatioDenominator,
+						PropagandaChance = c.ChanceOfSuccessfulPropaganda,
+						InitialResistanceChance = c.InitialResistanceChance,
+						ContinuedResistanceChance = c.ContinuedResistanceChance,
 					})
 					.OrderByDescending(o => (double)o.Numerator / o.Denominator)
 					.ToList();
@@ -3014,6 +3227,7 @@ namespace C7GameData {
 			if (civ3Save is not null && civ3Save.Wrld.Height > 0 && civ3Save.Wrld.Width > 0) {
 				save.Map.wrapHorizontally = civ3Save.Wrld.XWrapping;
 				save.Map.wrapVertically = civ3Save.Wrld.YWrapping;
+				save.Map.polarIceCaps = civ3Save.Wrld.PolarIceCaps;
 			}
 		}
 
@@ -3029,7 +3243,7 @@ namespace C7GameData {
 		// sizes are left for the rules to give (Civ3's are kept in the
 		// bundled ruleset, see RegenerateRuleset).
 		private void ImportWorldSizes() {
-			if (biq?.Wsiz is not WSIZ[] sizes || sizes.Length == 0) {
+			if ((biq?.Wsiz ?? defaultBiq?.Wsiz) is not WSIZ[] sizes || sizes.Length == 0) {
 				return;
 			}
 			save.WorldSizes = sizes.Select((w, i) => new WorldSize {
@@ -3048,6 +3262,7 @@ namespace C7GameData {
 			if (biq is not null && biq.Wmap is not null && biq.Wmap.Length > 0) {
 				save.Map.wrapHorizontally = biq.Wmap[0].XWrapping;
 				save.Map.wrapVertically = biq.Wmap[0].YWrapping;
+				save.Map.polarIceCaps = biq.Wmap[0].PolarIceCaps;
 			}
 		}
 

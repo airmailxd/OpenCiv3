@@ -470,6 +470,10 @@ namespace C7GameData {
 		// (see SaveGame.ConvertCities).
 		public bool receivedStartUnits = false;
 
+		// A computer player's own difficulty level, by name, or null for the
+		// game's (see GameData.AiBonusDifficulty).
+		public string difficulty;
+
 		// How many of the civ's King units have died, and how many of its
 		// cities enemies have taken, for Regicide and Elimination (see
 		// InstantElimination).
@@ -478,6 +482,8 @@ namespace C7GameData {
 
 		// The civ's victory points (see VictoryPoints).
 		public int victoryPoints = 0;
+		// Enemy flags brought to our capital (see CaptureTheFlag).
+		public int flagsCaptured = 0;
 
 		// Under PersistentResources (MDJ), the keys of the resources the civ
 		// has had, which stay its own (see RecordObtainedResources).
@@ -679,6 +685,11 @@ namespace C7GameData {
 		}
 
 		public Player() {
+			tileKnowledge = new TileKnowledge(this);
+		}
+
+		// Knows nothing of the map, as at the start of a game (see AiRespawn).
+		internal void ForgetTheMap() {
 			tileKnowledge = new TileKnowledge(this);
 		}
 
@@ -1860,6 +1871,7 @@ namespace C7GameData {
 				}
 
 				c.UpdateResistance(gameData);
+				c.Assimilate();
 				int sizeBefore = c.residents.Count;
 				bool starvedOut = c.HandleCityGrowth(gameData);
 				if ((starvedOut || c.residents.Count < sizeBefore) && IsToldNews) {

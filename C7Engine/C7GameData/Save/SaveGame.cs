@@ -72,6 +72,8 @@ namespace C7GameData.Save {
 				Seed = data.seed,
 				RngState = (data.random as GameRandom)?.State,
 				TurnNumber = data.turn,
+				PlayedSeconds = data.playedSeconds,
+				FallenCivilizations = data.fallenCivilizations.Select(c => c.name).ToList(),
 				Civilizations = data.civilizations,
 				CultureGroups = data.cultureGroups,
 				Alliances = data.alliances,
@@ -138,6 +140,7 @@ namespace C7GameData.Save {
 
 			foreach (KeyValuePair<Alliance, Alliance> kvp in data.allianceWars) {
 				save.AllianceWars.TryAdd(kvp.Key.name, kvp.Value.name);
+				save.AllianceWarPairs.Add([kvp.Key.name, kvp.Value.name]);
 			}
 
 			return save;
@@ -261,15 +264,30 @@ namespace C7GameData.Save {
 			if (conditions?.CityElimination == true) {
 				data.victories.Add(new EliminationCondition(conditions.CityEliminationCount));
 			}
+			// Capture the Flag wins by bringing in a flag, unless victory
+			// points decide (see CaptureTheFlag).
+			if (conditions?.CaptureTheFlag == true && !conditions.VictoryLocations) {
+				data.victories.Add(new CaptureTheFlagVictory());
+			}
 
 			// The game ends at the turn limit only if that was chosen;
-			// otherwise it goes on until someone wins.
-			if (conditions?.UseTurnLimit == true) {
-				data.victories.Add(new TimeLimitVictory(data.timeOptions.turnLimit));
+			// otherwise it goes on until someone wins. A time limit in
+			// minutes (Rules.TimeLimitMinutes) ends it too.
+			if (conditions?.UseTurnLimit == true || data.rules?.TimeLimitMinutes > 0) {
+				data.victories.Add(new TimeLimitVictory(conditions?.UseTurnLimit == true ? data.timeOptions.turnLimit : 0));
 			}
 		}
 
 		private void OnGameCreation() {
+			// Each civ's flag, at the start of a Capture the Flag game.
+			C7Engine.CaptureTheFlag.PlaceFlags(EngineStorage.gameData);
+			// Civ3's Civ-Specific Abilities off: no civilization has its
+			// traits in this game (Rules.CivSpecificAbilities).
+			if (EngineStorage.gameData.rules?.CivSpecificAbilities == false) {
+				foreach (Civilization civ in EngineStorage.gameData.civilizations) {
+					civ.traits.Clear();
+				}
+			}
 			foreach (Player p in EngineStorage.gameData.players) {
 				// Backfill citizen assignments for scenarios that don't specify
 				// them.
@@ -330,8 +348,16 @@ namespace C7GameData.Save {
 		// The game's random number generator, carrying on from where it was
 		// when the game was saved. Saves made before its state was saved
 		// start it afresh each turn from the seed.
+		//
+		// Unless the rules don't preserve the random seed (Civ3's Preserve
+		// Random Seed, Rules.PreserveRandomSeed): then a game loaded part way
+		// through gets new random numbers, so playing a turn again may turn
+		// out differently.
 		private Random CreateRandom(int seed) {
 			if (RngState is ulong state) {
+				if (Rules?.PreserveRandomSeed == false) {
+					return new GameRandom(GameRandom.InitialState(Random.Shared.Next(), TurnNumber));
+				}
 				return new GameRandom(state);
 			}
 			return new GameRandom(GameRandom.InitialState(seed, TurnNumber));
@@ -381,11 +407,13 @@ namespace C7GameData.Save {
 			// copy data without references
 			var data = new GameData(Seed) {
 				turn = TurnNumber,
+				playedSeconds = PlayedSeconds,
 				terrainTypes = TerrainTypes,
 				Resources = Resources,
 				scenarioSearchPath = ScenarioSearchPath,
 				scenarioName = ScenarioName,
 				civilizations = Civilizations,
+				fallenCivilizations = Civilizations.Where(c => FallenCivilizations.Contains(c.name)).ToList(),
 				cultureGroups = CultureGroups,
 				alliances = Alliances,
 				citizenTypes = CitizenTypes,
@@ -491,7 +519,9 @@ namespace C7GameData.Save {
 		}
 
 		private void ConvertInflow(GameData data) {
-			data.Inflows = Inflows.ConvertAll(saveInflow => new Inflow(saveInflow, data.luaBehaviorEngine));
+			data.Inflows = Inflows.ConvertAll(saveInflow => new Inflow(saveInflow, data.luaBehaviorEngine) {
+				requiredTech = saveInflow.requiredTech == null ? null : data.techs.Find(t => t.id == saveInflow.requiredTech),
+			});
 		}
 
 		private void ConvertBuildings(GameData data) {
@@ -709,9 +739,22 @@ namespace C7GameData.Save {
 		}
 
 		private void ConvertAllianceWars(GameData data) {
-			foreach (var allianceWar in AllianceWars) {
-				data.allianceWars.TryAdd(data.alliances.FirstOrDefault(a => a.name == allianceWar.Key), data.alliances.FirstOrDefault(a => a.name == allianceWar.Value));
+			foreach ((string one, string other) in AllAllianceWars()) {
+				Alliance a = data.alliances?.FirstOrDefault(x => x.name == one);
+				Alliance b = data.alliances?.FirstOrDefault(x => x.name == other);
+				if (a != null && b != null && !data.allianceWars.Any(w => (w.Key == a && w.Value == b) || (w.Key == b && w.Value == a))) {
+					data.allianceWars.Add(new(a, b));
+				}
 			}
+		}
+
+		// The alliance wars: AllianceWarPairs, or in older saves
+		// AllianceWars (which holds one war per alliance).
+		public List<(string, string)> AllAllianceWars() {
+			if (AllianceWarPairs.Count > 0) {
+				return AllianceWarPairs.Where(p => p?.Length == 2).Select(p => (p[0], p[1])).ToList();
+			}
+			return AllianceWars.Select(kvp => (kvp.Key, kvp.Value)).ToList();
 		}
 
 		// The version of the save format this build writes. Bump it when the
@@ -737,6 +780,10 @@ namespace C7GameData.Save {
 		// or null in saves made before it was saved.
 		public ulong? RngState;
 		public int TurnNumber = 0;
+		// Seconds of real time played (GameData.playedSeconds).
+		public double PlayedSeconds;
+		// GameData.fallenCivilizations, by name.
+		public List<string> FallenCivilizations = [];
 		public SaveMap Map = new SaveMap();
 		public List<TerrainType> TerrainTypes = new List<TerrainType>();
 		public List<SaveTerrainImprovement> TerrainImprovements = [];
@@ -755,6 +802,9 @@ namespace C7GameData.Save {
 		public HashSet<CultureGroup> CultureGroups = new HashSet<CultureGroup>();
 		public HashSet<Alliance> Alliances = new HashSet<Alliance>();
 		public Dictionary<string, string> AllianceWars = new Dictionary<string, string>();
+		// Every pair of alliances locked at war, by name. AllianceWars keeps
+		// one war per alliance, for older versions; older saves have only it.
+		public List<string[]> AllianceWarPairs = new();
 		public List<StrengthBonus> StrengthBonuses = new List<StrengthBonus>();
 		public Dictionary<string, int> HealRates = new Dictionary<string, int>();
 		public Rules Rules = new();
@@ -810,6 +860,12 @@ namespace C7GameData.Save {
 		// Conquests' campaigns goes into the Campaign Record by it.
 		public string ScenarioName;
 
+		// Civ3's Playable Civilizations, from a Civ3 scenario file (its GAME
+		// section), by name; null when every civilization may play. The
+		// scenario editor keeps them in Scenario.playableCivs instead (see
+		// C7Engine.Editor.ScenarioRules.IsPlayable).
+		public List<string> PlayableCivilizations;
+
 		public List<Difficulty> Difficulties = new();
 		public Difficulty GameDifficulty = new();
 		// GameDifficulty's place in Difficulties, or null in saves made
@@ -817,6 +873,10 @@ namespace C7GameData.Save {
 		public int? GameDifficultyIndex;
 
 		public GameMode.Config GameModeConfig = new("civ3");
+
+		// What a scenario made in the scenario editor says about itself
+		// (see C7Engine.Editor.ScenarioFiles); null in other saves.
+		public C7Engine.Editor.ScenarioInfo Scenario;
 
 		public void Save(string path) {
 			FormatVersion ??= CurrentFormatVersion;
@@ -852,6 +912,13 @@ namespace C7GameData.Save {
 			}
 			save.FormatVersion = CurrentFormatVersion;
 			return save;
+		}
+
+		// A deep copy of one of a save's items (a unit type, a building...),
+		// as the save would write and read it.
+		public static T DeepCopy<T>(T item) {
+			byte[] json = JsonSerializer.SerializeToUtf8Bytes(item, JsonOptions);
+			return JsonSerializer.Deserialize<T>(json, JsonOptions);
 		}
 
 		// Makes a deep copy of a SaveGame instance via JSON serialization

@@ -188,6 +188,28 @@ namespace C7GameData {
 		// leaders" flag.
 		public bool ScientificLeaders = true;
 
+		// Civ3's Scenario Properties switches (the BIQ and SAV GAME section),
+		// the scenario editor's Scenario tab:
+		// - Civ-Specific Abilities: off, no civilization has its traits (see
+		//   SaveGame.OnGameCreation). The GAME section's bit is clear even in
+		//   conquests.biq, so it isn't imported.
+		// - Culturally-Linked Start: civilizations of a culture group start
+		//   near each other (see GameSetup).
+		// - Respawn AI Players: a computer civilization destroyed comes back
+		//   (see AiRespawn).
+		// - Preserve Random Seed: a loaded game goes on with the random
+		//   numbers it was saved with; off, they're new each load (see
+		//   SaveGame.CreateRandom). On by default, as the game always was.
+		// - Retain Culture on Capture: a captured city keeps its culture for
+		//   its captor (see CityInteractions).
+		// - The time limit in minutes of play (0 none; see PlayTime).
+		public bool CivSpecificAbilities = true;
+		public bool CulturallyLinkedStart;
+		public bool RespawnAiPlayers;
+		public bool PreserveRandomSeed = true;
+		public bool RetainCultureOnCapture;
+		public int TimeLimitMinutes;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;
@@ -323,16 +345,63 @@ namespace C7GameData {
 		// imported from Civ3 take them from the BIQ.
 		public List<string> CultureLevelNames = ["Fledgling", "Weak", "Fragile", "Solid", "Strong", "Glorious"];
 
+		// The rules' names for the four eras, by Civilopedia key (none: the
+		// standard names, EraUtils).
+		public Dictionary<string, string> EraNames = new();
+
+		// What cities of each size level are called (the BIQ RULE's three
+		// labels). Kept for scenarios; the game doesn't show them yet.
+		public List<string> CityLevelNames = ["Town", "City", "Metropolis"];
+
+		// The BIQ RULE's default difficulty level and default money resource,
+		// by name (null: none). Kept for scenarios; the game doesn't use them
+		// yet (a scenario's difficulty is the player's choice).
+		public string DefaultDifficulty;
+		public string DefaultMoneyResource;
+
+		// The diplomatic and espionage missions (the BIQ's ESPN section), in
+		// the BIQ's order (a mission is known by its place there, as Civ3
+		// knows it). These are conquests.biq's, with the game's own names.
+		public List<EspionageMissionRule> EspionageMissions = [
+			new() { Mission = "EstablishEmbassy", Name = "Establish Embassy", CivilopediaEntry = "ESPN_Build_an_Embassy", Diplomat = true, BaseCost = 20 },
+			new() { Mission = "InvestigateCity", Name = "Investigate City", CivilopediaEntry = "ESPN_Investigate_City", Diplomat = true, Spy = true, BaseCost = 10 },
+			new() { Mission = "StealTechnology", Name = "Steal Technology", CivilopediaEntry = "ESPN_Steal_Technology", Diplomat = true, Spy = true, BaseCost = 10 },
+			new() { Mission = "StealWorldMap", Name = "Steal World Map", CivilopediaEntry = "ESPN_Steal_World_Map", Spy = true, BaseCost = 1 },
+			new() { Mission = "PlantSpy", Name = "Plant Spy", CivilopediaEntry = "ESPN_Plant_Spy", Spy = true, BaseCost = 60 },
+			new() { Mission = "StealPlans", Name = "Steal Plans", CivilopediaEntry = "ESPN_Steal_Plans", Spy = true, BaseCost = 10 },
+			new() { Mission = "Propaganda", Name = "Initiate Propaganda", CivilopediaEntry = "ESPN_Initiate_Propaganda", Spy = true, BaseCost = 100 },
+			new() { Mission = "SabotageProduction", Name = "Sabotage Production", CivilopediaEntry = "ESPN_Sabotage_Production", Spy = true, BaseCost = 10 },
+			new() { Mission = "ExposeEnemySpy", Name = "Expose Enemy Spy", CivilopediaEntry = "ESPN_Expose_Enemy_Mole", Spy = true, BaseCost = 80 },
+		];
+
+		// Civ3's flavors: named leanings that steer the AI's research and
+		// building (the BIQ's FLAV, and the flavors of each advance,
+		// improvement and civilization, kept here by name; see
+		// C7Engine.AI.Flavors).
+		public List<FlavorRule> Flavors = [];
+		// Not Civ3's (its weighting is undocumented): how much more (%) an
+		// advance or improvement of its own flavor is worth to a computer
+		// civilization.
+		public int FlavorPreferencePercent = 50;
+
+		// A scenario's own Civilopedia articles, laid over the game's
+		// Civilopedia.txt (CivilopediaText.With): a new unit's, or another
+		// text for one of the game's. The scenario editor writes them.
+		public List<CivilopediaEntryRule> CivilopediaEntries = [];
+
+		// The rules' entry for the mission, or null.
+		public EspionageMissionRule EspionageMissionRuleFor(string mission) => EspionageMissions?.Find(m => m.Mission == mission);
+
 		// How the people of a civ regard another civ's culture, from the
 		// highest ratio of the other's culture to theirs to the lowest, as in
 		// "The Romans are in awe of our culture."
 		public List<CultureOpinion> CultureOpinions = [
-			new() { Name = "in awe of", Numerator = 3, Denominator = 1 },
-			new() { Name = "admirers of", Numerator = 2, Denominator = 1 },
-			new() { Name = "impressed with", Numerator = 1, Denominator = 1 },
-			new() { Name = "unimpressed by", Numerator = 3, Denominator = 4 },
-			new() { Name = "dismissive of", Numerator = 1, Denominator = 2 },
-			new() { Name = "disdainful of", Numerator = 1, Denominator = 3 },
+			new() { Name = "in awe of", Numerator = 3, Denominator = 1, PropagandaChance = 30, InitialResistanceChance = 40, ContinuedResistanceChance = 30 },
+			new() { Name = "admirers of", Numerator = 2, Denominator = 1, PropagandaChance = 25, InitialResistanceChance = 50, ContinuedResistanceChance = 40 },
+			new() { Name = "impressed with", Numerator = 1, Denominator = 1, PropagandaChance = 20, InitialResistanceChance = 60, ContinuedResistanceChance = 50 },
+			new() { Name = "unimpressed by", Numerator = 3, Denominator = 4, PropagandaChance = 10, InitialResistanceChance = 70, ContinuedResistanceChance = 60 },
+			new() { Name = "dismissive of", Numerator = 1, Denominator = 2, PropagandaChance = 5, InitialResistanceChance = 80, ContinuedResistanceChance = 70 },
+			new() { Name = "disdainful of", Numerator = 1, Denominator = 3, PropagandaChance = 3, InitialResistanceChance = 90, ContinuedResistanceChance = 80 },
 		];
 	}
 
@@ -342,5 +411,47 @@ namespace C7GameData {
 		public string Name;
 		public int Numerator;
 		public int Denominator;
+		// The BIQ's CULT chances, in %: propaganda succeeding, a captured
+		// city resisting, and resisting again (see Espionage's propaganda
+		// and City.ResistancePercent; rules without them, all 0, play by
+		// conquests.biq's numbers).
+		public int PropagandaChance;
+		public int InitialResistanceChance;
+		public int ContinuedResistanceChance;
+	}
+
+	// One of a scenario's Civilopedia articles (Rules.CivilopediaEntries):
+	// its key (PRTO_Knight...), its text and its history (Civ3's DESC_
+	// article), in Civilopedia.txt's markup, a line each.
+	public class CivilopediaEntryRule {
+		public string Key;
+		public List<string> Text = [];
+		public List<string> History = [];
+	}
+
+	// A flavor (see Rules.Flavors): its relationship (%) with each flavor,
+	// in Flavors' order, and the advances, improvements and civilizations
+	// that have it, by name.
+	public class FlavorRule {
+		public string Name;
+		public List<int> Relationships = [];
+		public List<string> Techs = [];
+		public List<string> Buildings = [];
+		public List<string> Civilizations = [];
+	}
+
+	// A diplomatic or espionage mission as the rules name and price it (the
+	// BIQ's ESPN section): Mission is the EspionageMission it is, by name.
+	// The game uses the name and the base cost; who performs it (diplomat or
+	// spy) and the description are kept for scenarios, the game's own
+	// rules decide who may (Espionage.IsEspionageMission).
+	public class EspionageMissionRule {
+		public string Mission;
+		public string Name;
+		public string CivilopediaEntry;
+		public string Description;
+		public bool Diplomat;
+		public bool Spy;
+		public int BaseCost;
 	}
 }

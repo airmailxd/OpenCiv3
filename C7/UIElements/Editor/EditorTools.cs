@@ -1,0 +1,113 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using C7Engine;
+using C7GameData;
+using Godot;
+
+// What the scenario editor paints with: Civ3's editor's brushes (its
+// toolbar and Map menu), their keys, and the game art each is shown with,
+// which is there with Civ3 and without.
+// Move Map is ours (the user's request, 2026-11-18): Civ3's editor
+// moves the view with the scroll bars and the minimap only.
+public enum EditorTool { Terrain, Resources, Overlays, Cities, Units, FogOfWar, MoveMap }
+
+public static class EditorTools {
+	public record Info(EditorTool Tool, string Name, string Tooltip, Key Hotkey);
+
+	public static readonly Info[] All = [
+		new(EditorTool.MoveMap, "Move Map", "Drag the map to move around it (H). The middle button drags it with any brush.", Key.H),
+		new(EditorTool.Terrain, "Terrain", "Paint terrain (T)", Key.T),
+		new(EditorTool.Resources, "Resources", "Place natural resources (R)", Key.R),
+		new(EditorTool.Overlays, "Overlays", "Rivers, roads, irrigation, mines, huts, camps, starting locations... (O)", Key.O),
+		new(EditorTool.Cities, "Cities", "Place cities", Key.None),
+		new(EditorTool.Units, "Units", "Place units", Key.None),
+		new(EditorTool.FogOfWar, "Fog of War", "What each player has seen when the game starts", Key.None),
+	];
+
+	// Civ3's brush sizes: a square this many tiles across.
+	public static readonly int[] Sizes = [1, 3, 5, 7];
+
+	public static Info Of(EditorTool tool) => All.First(t => t.Tool == tool);
+
+	// The game's button for a worker's job, or a command, that goes with the
+	// tool (a tree for terrain, a road for overlays...).
+	public static string ButtonKey(EditorTool tool) {
+		string action = tool switch {
+			EditorTool.Terrain => "unit_plant_forest",
+			EditorTool.Resources => "unit_irrigate",
+			EditorTool.Overlays => "unit_build_road",
+			EditorTool.Cities => "unit_build_city",
+			EditorTool.Units => "unit_fortify",
+			EditorTool.MoveMap => "unit_goto",
+			_ => "unit_explore",
+		};
+		return "ui.unit_control." + action;
+	}
+
+	// The tool's picture: its button's, or for resources a resource's own
+	// icon.
+	public static Texture2D Icon(EditorTool tool) {
+		if (tool == EditorTool.Resources) {
+			C7GameData.Resource resource = EngineStorage.gameData?.Resources
+				.FirstOrDefault(r => r.Category == ResourceCategory.BONUS && r.Name is "Wheat" or "Cattle")
+				?? EngineStorage.gameData?.Resources.FirstOrDefault(r => r.Category != ResourceCategory.NONE);
+			if (resource != null) {
+				try {
+					return TextureLoader.Load("resources.icon", resource, useCache: true);
+				} catch (Exception) {
+					// The button's picture below.
+				}
+			}
+		}
+		return TextureLoader.TryLoad(ButtonKey(tool) + ".normal");
+	}
+}
+
+// What's on a tile, as Civ3's Tile Properties dialog lists it.
+public static class TileFacts {
+	public record Flag(string Name, bool On);
+
+	// In the dialog's two columns, row by row, as Civ3's.
+	public static List<Flag> Flags(Tile tile, GameMap map) {
+		bool has(string key) => tile.overlays.GetImprovements().Any(i => i.key == key);
+		return [
+			new("Irrigation", tile.HasIrrigation()), new("Mine", has(Tile.TileOverlays.MINE)),
+			new("Road", tile.HasRoad()), new("Railroad", tile.HasRailroad()),
+			new("Fortress", has(Tile.TileOverlays.FORTRESS)), new("Pollution", tile.HasPollution()),
+			new("Goody Hut", tile.hasGoodyHut), new("Barbarian Camp", tile.hasBarbarianCamp),
+			new("Starting Location", map.startingLocations.Contains(tile)), new("Colony", has(Tile.TileOverlays.COLONY)),
+			new("Airfield", has(Tile.TileOverlays.AIRFIELD)), new("Radar Tower", has(Tile.TileOverlays.RADAR_TOWER)),
+			new("Outpost", has(Tile.TileOverlays.OUTPOST)), new("Victory Location", tile.isVictoryLocation),
+			new("Ruins", tile.HasRuins()), new("Landmark", tile.isLandmark),
+		];
+	}
+
+	public static string Terrain(Tile tile) {
+		string terrain = tile.TerrainName();
+		if (tile.baseTerrainType != null && tile.baseTerrainType != tile.overlayTerrainType) {
+			terrain += $" on {tile.baseTerrainType.DisplayName}";
+		}
+		return terrain;
+	}
+
+	public static string Owner(Tile tile) => tile.OwningPlayer()?.civilization?.name ?? "Nobody";
+
+	// "None" and the rules' resources, and which of them the tile has.
+	public static (List<string> names, int selected) Resources(Tile tile, GameData gameData) {
+		List<C7GameData.Resource> resources = gameData.Resources.Where(r => r.Category != ResourceCategory.NONE).ToList();
+		List<string> names = ["None", .. resources.Select(r => r.Name)];
+		int selected = resources.IndexOf(tile.Resource) + 1;
+		return (names, selected);
+	}
+
+	public static string City(Tile tile) {
+		return tile.HasCity(out City city)
+			? $"{city.name}, size {city.residents.Count}, {city.owner?.civilization?.name ?? "nobody's"}"
+			: null;
+	}
+
+	public static List<string> Units(Tile tile) {
+		return tile.unitsOnTile.Select(u => $"{u.unitType.name} ({u.owner?.civilization?.name ?? "nobody's"})").ToList();
+	}
+}

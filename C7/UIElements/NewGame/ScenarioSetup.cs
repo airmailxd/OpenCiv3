@@ -24,25 +24,48 @@ public partial class ScenarioSetup : Control {
 
 	Difficulty difficulty = null;
 	ButtonGroup difficultyButtonGroup = new();
+	// The difficulty buttons, by level's name.
+	private readonly Dictionary<string, Civ3MenuButton> difficultyButtons = [];
+
+	// The civilization picked and the player it makes the human (an
+	// editor scenario's "Any" and "Random" players, ScenarioStart).
+	private C7Engine.Editor.ScenarioStart.HumanChoice choice;
+	private SaveGame shownSave;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
 
 	[Export] Label loadingLabel;
 
+	// A scenario made in the editor: the victory conditions and rules it
+	// allows, each a box the player may untick (ScenarioRules).
+	private readonly List<(C7Engine.Editor.ScenarioRules.Toggle toggle, Civ3Checkbox box)> ruleBoxes = [];
+
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		SaveGame save = GetSave();
+		// A scenario of rules alone has no players to pick from: its game is
+		// set up as a new one (see ScenarioPlay).
+		if (ScenarioPlay.SetUpAsNewGame(save, GetNode<GlobalSingleton>("/root/GlobalSingleton").LoadGamePath, GetTree())) {
+			return;
+		}
 
 		// Set up buttons for the civs the player can play as.
 		civilizations = save.Civilizations;
 		playerListContainer.Columns = (int)Math.Ceiling(civilizations.Count / 12.0);
 
-		List<SavePlayer> pickablePlayers = save.Players.Where(p => p.canBePicked).ToList();
-		string initiallySelectedCiv = pickablePlayers.First(p => p.canBePicked).civilization;
+		// Only the civilizations the scenario lets a player pick (its
+		// players a human may play; for an editor scenario's "Any" player,
+		// every civilization no other player has; for a "Random" one, one
+		// drawn now).
+		shownSave = save;
+		List<C7Engine.Editor.ScenarioStart.HumanChoice> choices = C7Engine.Editor.ScenarioRules.IsEditorScenario(save)
+			? C7Engine.Editor.ScenarioStart.HumanChoices(save, new Random())
+			: save.Players.Where(p => p.canBePicked).Select(p => new C7Engine.Editor.ScenarioStart.HumanChoice(p.civilization, p.id.ToString())).ToList();
+		string initiallySelectedCiv = choices.First().Civilization;
 
-		foreach (SavePlayer player in pickablePlayers) {
-			Civilization civ = civilizations.Find(c => c.name == player.civilization);
+		foreach (C7Engine.Editor.ScenarioStart.HumanChoice option in choices) {
+			Civilization civ = civilizations.Find(c => c.name == option.Civilization);
 
 			Civ3MenuButton button = new() {
 				Text = civ.name,
@@ -53,13 +76,16 @@ public partial class ScenarioSetup : Control {
 			};
 			button.Pressed += () => {
 				this.civilization = civ;
+				choice = option;
 				DisplaySelectedLeader();
+				LockDifficulty();
 			};
 			playerListContainer.AddChild(button);
 
-			if (civ.name == initiallySelectedCiv) {
+			if (civ.name == initiallySelectedCiv && choice == null) {
 				button.ButtonPressed = true;
 				this.civilization = civ;
+				choice = option;
 			}
 		}
 		background.AddChild(leaderHead);
@@ -67,8 +93,10 @@ public partial class ScenarioSetup : Control {
 
 		// Set up the difficulty buttons
 		difficultyContainer.Columns = save.Difficulties.Count;
-		// The difficulty chosen for the last game, if the scenario has it.
-		string initiallySelectedDifficulty = NewGameChoices.Load().ChosenDifficulty(save.Difficulties).Name;
+		// The scenario's default level, else the one chosen for the last
+		// game, if the scenario has it.
+		string initiallySelectedDifficulty = NewGameChoices.Load().ChosenDifficulty(save.Difficulties,
+			NewGameChoices.ScenarioDifficulty(save), save.Rules?.DefaultDifficulty).Name;
 		foreach (Difficulty difficulty in save.Difficulties) {
 			CenterContainer container = new();
 			difficultyContainer.AddChild(container);
@@ -80,6 +108,7 @@ public partial class ScenarioSetup : Control {
 			};
 			button.Pressed += () => { this.difficulty = difficulty; };
 			container.AddChild(button);
+			difficultyButtons[difficulty.Name] = button;
 			if (difficulty.Name == initiallySelectedDifficulty) {
 				button.ButtonPressed = true;
 				this.difficulty = difficulty;
@@ -87,8 +116,56 @@ public partial class ScenarioSetup : Control {
 			container.CustomMinimumSize = new Vector2(843.0f / difficultyContainer.Columns, 0);
 		}
 
+		AddScenarioInfo(save);
+		LockDifficulty();
+
 		confirm.Pressed += CreateGame;
 		cancel.Pressed += BackToMainMenu;
+	}
+
+	// A scenario made in the editor shows its title and description (Civ3's
+	// scenario intro), and what it allows as boxes to keep or untick.
+	private void AddScenarioInfo(SaveGame save) {
+		if (!C7Engine.Editor.ScenarioRules.IsEditorScenario(save)) {
+			return;
+		}
+		// In the panel under the civilizations, empty on this screen.
+		VBoxContainer box = new() { Name = "ScenarioInfo", Position = new Vector2(72, 506), Size = new Vector2(610, 0) };
+		box.AddThemeConstantOverride("separation", 2);
+		Label title = new() { Text = save.Scenario.title ?? "" };
+		title.AddThemeFontSizeOverride("font_size", 17);
+		box.AddChild(title);
+		if (!string.IsNullOrWhiteSpace(save.Scenario.description)) {
+			Label description = new() {
+				Text = save.Scenario.description,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				CustomMinimumSize = new Vector2(610, 0),
+			};
+			description.AddThemeFontSizeOverride("font_size", 13);
+			box.AddChild(description);
+		}
+		background.AddChild(box);
+
+		List<C7Engine.Editor.ScenarioRules.Toggle> allowed = C7Engine.Editor.ScenarioRules.Allowed(save);
+		if (allowed.Count == 0) {
+			return;
+		}
+		VBoxContainer rules = new() { Name = "ScenarioRules", Position = new Vector2(740, 120), Size = new Vector2(220, 0) };
+		rules.AddThemeConstantOverride("separation", 0);
+		Label header = new() { Text = "GAME RULES" };
+		header.AddThemeFontSizeOverride("font_size", 15);
+		rules.AddChild(header);
+		foreach (C7Engine.Editor.ScenarioRules.Toggle toggle in allowed) {
+			Civ3Checkbox check = new() {
+				Text = toggle.Name,
+				FontSize = 13,
+				ButtonPressed = true,
+				TooltipText = "Allowed by the scenario; untick to play without it.",
+			};
+			rules.AddChild(check);
+			ruleBoxes.Add((toggle, check));
+		}
+		background.AddChild(rules);
 	}
 
 	private void BackToMainMenu() {
@@ -101,7 +178,23 @@ public partial class ScenarioSetup : Control {
 		leaderHead.SetPosition(new Vector2(414, 46));
 
 		string traits = string.Join(", ", civilization.traits);
-		civLabel.Text = $"{civilization.leader} of the {civilization.noun}\n({traits})";
+		// An editor scenario's player may have a leader of its own.
+		string leader = shownSave?.Scenario?.players.Find(s => s.player == choice?.Player) is { civDefaults: false, leaderName: string own }
+			? own : civilization.leader;
+		civLabel.Text = $"{leader} of the {civilization.noun}\n({traits})";
+	}
+
+	// A difficulty the scenario sets for the chosen player is the only one
+	// (Civ3's Player Properties); otherwise any.
+	private void LockDifficulty() {
+		string fixedLevel = choice == null || shownSave == null ? null : C7Engine.Editor.ScenarioStart.DifficultyFor(shownSave, choice.Player);
+		foreach ((string name, Civ3MenuButton button) in difficultyButtons) {
+			button.Disabled = fixedLevel != null && name != fixedLevel;
+			if (name == fixedLevel) {
+				button.ButtonPressed = true;
+				difficulty = shownSave.Difficulties.Find(d => d.Name == name);
+			}
+		}
 	}
 
 	private SaveGame GetSave() {
@@ -110,9 +203,8 @@ public partial class ScenarioSetup : Control {
 									GamePaths.DefaultBicPath,
 									(string scenarioSearchPath) => {
 										// See corresponding logic in Game.cs
-										Util.setModPath(scenarioSearchPath);
 										log.Debug("RelativeModPath ", scenarioSearchPath);
-										return Util.Civ3MediaPath("Text/PediaIcons.txt");
+										return Util.PediaIconsPathFor(scenarioSearchPath);
 									});
 	}
 
@@ -166,12 +258,24 @@ public partial class ScenarioSetup : Control {
 	}
 
 	private void UpdateSaveAndStartGame(SaveGame save, GlobalSingleton global) {
-		foreach (SavePlayer sp in save.Players) {
-			sp.human = sp.civilization == this.civilization.name;
+		// A scenario without Custom Rules plays the game's standard rules.
+		C7Engine.Editor.RuleEditing.UseStandardRulesIfNotCustom(save, global.GameMode.GetSave());
+		// The human's player and civilization, and the other "Any" and
+		// "Random" players' (ScenarioStart).
+		if (C7Engine.Editor.ScenarioRules.IsEditorScenario(save)) {
+			C7Engine.Editor.ScenarioStart.AssignCivilizations(save, choice, new Random());
+		} else {
+			foreach (SavePlayer sp in save.Players) {
+				sp.human = sp.civilization == this.civilization.name;
+			}
 		}
 		save.GameDifficulty = difficulty;
+		// What the player unticked of what the scenario allows.
+		C7Engine.Editor.ScenarioRules.TurnOff(save, ruleBoxes.Where(r => !r.box.ButtonPressed).Select(r => r.toggle));
 		// Under Regicide, civs the scenario gives no King get theirs.
 		GameSetup.PlaceScenarioKings(save);
+		// What a scenario made in the editor asks of the game as it starts.
+		C7Engine.Editor.ScenarioStart.Apply(save);
 
 		log.Information("saving updated scenario");
 		global.SaveGame = save;

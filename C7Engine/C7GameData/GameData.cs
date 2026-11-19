@@ -89,9 +89,16 @@ namespace C7GameData {
 		// The civ's place in the rules' list of civilizations, the BIQ's RACE
 		// order (which Civ3's per-civ text in diplomacy.txt follows), or -1.
 		public int CivilizationIndex(Civilization civ) => civ == null ? -1 : civilizations.IndexOf(civ);
+
+		// Which civ's lines of Civ3's diplomacy.txt the civ speaks: its
+		// diplomacy text index (Civ3's editor's "Diplomacy Text Index"), or
+		// without one (0, the barbarians', which no civ speaks) its place in
+		// the list.
+		public int DiplomacyTextIndex(Civilization civ) => civ?.diplomacyTextIndex > 0 ? civ.diplomacyTextIndex : CivilizationIndex(civ);
 		internal HashSet<CultureGroup> cultureGroups = new HashSet<CultureGroup>();
 		internal HashSet<Alliance> alliances;
-		internal Dictionary<Alliance, Alliance> allianceWars = new Dictionary<Alliance, Alliance>();
+		// Each pair of alliances locked at war, once.
+		internal List<KeyValuePair<Alliance, Alliance>> allianceWars = new();
 
 		public List<ExperienceLevel> experienceLevels = new List<ExperienceLevel>();
 		public List<Tech> techs = new();
@@ -133,7 +140,13 @@ namespace C7GameData {
 		// except for an Advanced AI, which gets Regent's, where Civ3 gives
 		// the AI none. The Advanced AI is meant to beat a human with no
 		// advantage over one (see doc/ai-roadmap.md).
+		//
+		// A computer player a scenario gives a level of its own (Civ3's Player
+		// Properties' difficulty, SavePlayer.difficulty) gets that level's.
 		public Difficulty AiBonusDifficulty(Player player) {
+			if (player != null && !player.isHuman && player.difficulty != null && difficulties.Find(d => d.Name == player.difficulty) is Difficulty own) {
+				return own;
+			}
 			return player != null && player.IsAdvancedAi ? AiRulesDifficulty() : gameDifficulty;
 		}
 
@@ -151,6 +164,11 @@ namespace C7GameData {
 		public VictoryConditions victoryConditions;
 		public List<IVictory> victories = new();
 		public bool gameOver;
+		// The civilizations computer players were before they respawned as
+		// others, which don't come back (see AiRespawn).
+		public List<Civilization> fallenCivilizations = new();
+		// Seconds of real time the game has been played (see PlayTime).
+		public double playedSeconds;
 		public Player winner;
 		// What the winner earned for winning before 2050 AD, added to their
 		// score (see ScoreVictory.EarlyWinBonus).
@@ -301,7 +319,7 @@ namespace C7GameData {
 			}
 		}
 
-		private void RemoveMapUnit(MapUnit unit) {
+		internal void RemoveMapUnit(MapUnit unit) {
 			if (!_mapUnits.Remove(unit)) {
 				return;
 			}
@@ -961,7 +979,10 @@ namespace C7GameData {
 			// TODO: consolidate unit spawning routines (here)
 
 			var defaultExpLevel = this.defaultExperienceLevel;
-			var barbExpLevel = this.experienceLevels.First(e => e.baseHitPoints == this.barbarianInfo.maxHitpoints);
+			// A mod's experience levels may have none with the barbarians'
+			// hit points: then their weakest.
+			var barbExpLevel = this.experienceLevels.FirstOrDefault(e => e.baseHitPoints == this.barbarianInfo.maxHitpoints)
+				?? this.experienceLevels.MinBy(e => e.baseHitPoints);
 
 			MapUnit newUnit = proto.GetInstance(this.GenerateID(proto.name), proto, player, location: tile);
 

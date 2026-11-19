@@ -109,6 +109,9 @@ namespace C7GameData.Save {
 		// saves from before this was saved, and loading works it out (see
 		// SaveGame.ConvertCities).
 		public bool? receivedStartUnits;
+		// A computer player's own difficulty level, by name (Civ3's Player
+		// Properties); null: the game's (see GameData.AiBonusDifficulty).
+		public string difficulty;
 
 		// For Regicide and Elimination: the King units the civ has lost,
 		// and the cities enemies have taken from it.
@@ -118,6 +121,7 @@ namespace C7GameData.Save {
 		public int citiesLost;
 		// The civ's victory points.
 		public int victoryPoints;
+		public int flagsCaptured;
 		// For the Rising Tide score: enemy units defeated, cities taken
 		// and turns survived.
 		public int unitsKilled;
@@ -225,10 +229,12 @@ namespace C7GameData.Save {
 				stats = stats ?? new(),
 				neverHadCityOrSettler = neverHadCityOrSettler,
 				receivedStartUnits = receivedStartUnits ?? false,
+				difficulty = difficulty,
 				kingsLost = kingsLost,
 				obtainedResources = obtainedResources == null ? new() : new HashSet<string>(obtainedResources),
 				citiesLost = citiesLost,
 				victoryPoints = victoryPoints,
+				flagsCaptured = flagsCaptured,
 				unitsKilled = unitsKilled,
 				citiesCaptured = citiesCaptured,
 				turnsSurvived = turnsSurvived,
@@ -374,10 +380,12 @@ namespace C7GameData.Save {
 			stats = player.stats.IsEmpty ? null : player.stats;
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			receivedStartUnits = player.receivedStartUnits;
+			difficulty = player.difficulty;
 			kingsLost = player.kingsLost;
 			obtainedResources = player.obtainedResources.Count == 0 ? null : player.obtainedResources.Order().ToList();
 			citiesLost = player.citiesLost;
 			victoryPoints = player.victoryPoints;
+			flagsCaptured = player.flagsCaptured;
 			unitsKilled = player.unitsKilled;
 			citiesCaptured = player.citiesCaptured;
 			turnsSurvived = player.turnsSurvived;

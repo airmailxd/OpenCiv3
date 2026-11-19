@@ -56,6 +56,10 @@ public partial class Tile {
 			// tile penalty" (https://civfanatics.com/civ3/faq/). Mobilization
 			// adds the same shield in a city building a military unit, and
 			// the two don't add up (see Mobilization).
+			// No player (the scenario editor's view): the terrain's own yields.
+			if (player == null) {
+				return this;
+			}
 			if (player.InGoldenAge && type != YieldType.Food && baseYield > 0) {
 				bonus += 1;
 			} else if (mobilizationBonus && type == YieldType.Production && baseYield > 0) {
@@ -98,10 +102,16 @@ public partial class Tile {
 	}
 
 	// Food yield
+	// Whether the player gets the tile's resource; with no player (the
+	// scenario editor's view), every resource counts.
+	private bool KnowsResource(Player player) {
+		return player == null || player.KnowsAboutResource(Resource);
+	}
+
 	private int BaseFoodYield(Player player) {
 		if (this.HasFallout()) return 0;
-		int yield = overlayTerrainType.baseFoodProduction;
-		if (this.Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
+		int yield = Landmark?.food ?? overlayTerrainType.baseFoodProduction;
+		if (this.Resource != Resource.NONE && KnowsResource(player)) {
 			yield += this.Resource.FoodBonus;
 		}
 
@@ -118,8 +128,9 @@ public partial class Tile {
 		if (this.HasCity()) {
 			// All city centers have a food yield of 2, regardless of bonus
 			// food. See https://wiki.civforum.de/wiki/Stadtfeldertrag_(Civ3).
-			// A scenario may set more (Rules.CityCenterFood).
-			yield = cityAtTile.owner?.rules?.CityCenterFood ?? 2;
+			// That's one citizen's food: QC's 4 a citizen makes it 4 (see
+			// City.CenterFood). A scenario may set more (Rules.CityCenterFood).
+			yield = City.CenterFood(cityAtTile.owner);
 
 			// Agricultural civilizations get a third. (The despotism penalty
 			// takes it away again, except in the cases FoodYield exempts.)
@@ -130,7 +141,8 @@ public partial class Tile {
 			// A Kings & Nomads city-state's center makes more, the more so the
 			// bigger it is (see CityStates).
 			if (CityStateTrade.IsCityState(cityAtTile)) {
-				yield += CityStates.CenterFood + CityStates.CenterFoodPerCitizen * cityAtTile.residents.Count;
+				// Its citizens fed as the rules feed them (2 food each in Civ3's).
+				yield += CityStates.CenterFood + CityStates.CenterFoodPerCitizen * City.FoodPerCitizen(cityAtTile.owner) / 2 * cityAtTile.residents.Count;
 			}
 		}
 
@@ -138,7 +150,7 @@ public partial class Tile {
 
 		// Agricultural civilizations get an extra food from irrigated desert.
 		if (!HasCity() && overlayTerrainType.IsDesert && HasIrrigation()
-			&& player.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true) {
+			&& player?.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true) {
 			yield += 1;
 		}
 
@@ -183,7 +195,7 @@ public partial class Tile {
 		// A scenario's richer city center (Rules.CityCenterFood) keeps its
 		// food under the despotism penalty; an agricultural city's third
 		// still needs the fresh water above (owner's ruling, 2026-10-24).
-		if (result.penalty > 0 && cityAtTile == city && (city.owner?.rules?.CityCenterFood ?? 2) > 2
+		if (result.penalty > 0 && cityAtTile == city && City.CenterFood(city.owner) > 2
 			&& city.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) != true) {
 			result.penalty -= 1;
 		}
@@ -193,14 +205,14 @@ public partial class Tile {
 	// Production yield
 	private int BaseProductionYield(Player player) {
 		if (this.HasFallout()) return 0;
-		int yield = overlayTerrainType.baseShieldProduction;
+		int yield = Landmark?.shields ?? overlayTerrainType.baseShieldProduction;
 		if (this.isBonusShield && overlayTerrainType.IsGrassland) {
 			yield++;
 		}
 
 		// Bonus resources provide a boost in yield regardless of whether
 		// there is a city.
-		if (Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
+		if (Resource != Resource.NONE && KnowsResource(player)) {
 			yield += this.Resource.ShieldsBonus;
 		}
 
@@ -267,8 +279,8 @@ public partial class Tile {
 	// Commerce yield
 	private int BaseCommerceYield(Player player) {
 		if (this.HasFallout()) return 0;
-		int yield = overlayTerrainType.baseCommerceProduction;
-		if (this.Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
+		int yield = Landmark?.commerce ?? overlayTerrainType.baseCommerceProduction;
+		if (this.Resource != Resource.NONE && KnowsResource(player)) {
 			yield += this.Resource.CommerceBonus;
 		}
 
@@ -299,7 +311,7 @@ public partial class Tile {
 			if (borderRiver) {
 				regularCityYield += 1;
 			}
-			if (this.Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
+			if (this.Resource != Resource.NONE && KnowsResource(player)) {
 				regularCityYield += this.Resource.CommerceBonus;
 			}
 

@@ -109,8 +109,12 @@ public partial class PlayerSetup : Control {
 		// The civilizations and Random (the barbarians aren't listed).
 		playerListContainer.Columns = (int)Math.Ceiling(save.Civilizations.Count / 12.0);
 		string initiallySelectedCiv = choices.ChosenCivilization(save.Civilizations).name;
+		// A scenario's playable civilizations only (Civ3's Scenario tab).
+		if (!C7Engine.Editor.ScenarioRules.IsPlayable(save, initiallySelectedCiv)) {
+			initiallySelectedCiv = save.Civilizations.FirstOrDefault(c => !c.isBarbarian && C7Engine.Editor.ScenarioRules.IsPlayable(save, c.name))?.name;
+		}
 		foreach (Civilization civ in save.Civilizations) {
-			if (civ.isBarbarian) {
+			if (civ.isBarbarian || !C7Engine.Editor.ScenarioRules.IsPlayable(save, civ.name)) {
 				continue;
 			}
 
@@ -172,6 +176,14 @@ public partial class PlayerSetup : Control {
 		int numberOfCivs = global.Scenario == GameScenario.KingsAndNomads
 			? GameSetup.KingsAndNomadsCivs(global.WorldCharacteristics.worldSize.numberOfCivs)
 			: global.WorldCharacteristics.worldSize.numberOfCivs;
+		// A scenario's own map has room for as many civs as it has starts.
+		if (ScenarioPlay.StartsOnMap(save) is int starts) {
+			numberOfCivs = System.Math.Clamp(starts, 1, numberOfCivs);
+		}
+		// A scenario's number of players (Civ3's Scenario tab).
+		if (save.Scenario?.numberOfPlayers > 0) {
+			numberOfCivs = System.Math.Clamp(save.Scenario.numberOfPlayers, 1, numberOfCivs);
+		}
 		teamCount = numberOfCivs;
 		defaultTeamCount = GameSetup.DefaultTeamCount(global.WorldCharacteristics.worldSize);
 		AddTeamChoices();
@@ -182,10 +194,12 @@ public partial class PlayerSetup : Control {
 
 		// Set up game rules
 		AddRules();
+		LimitToScenario();
 
 		// Set up the difficulty buttons
 		difficultyContainer.Columns = save.Difficulties.Count;
-		string initiallySelectedDifficulty = choices.ChosenDifficulty(save.Difficulties).Name;
+		string initiallySelectedDifficulty = choices.ChosenDifficulty(save.Difficulties,
+			ScenarioPlay.RulesForNewGame != null ? NewGameChoices.ScenarioDifficulty(save) : null, save.Rules?.DefaultDifficulty).Name;
 		foreach (Difficulty difficulty in save.Difficulties) {
 			CenterContainer container = new();
 			difficultyContainer.AddChild(container);
@@ -208,10 +222,37 @@ public partial class PlayerSetup : Control {
 		cancel.Pressed += BackToMainMenu;
 	}
 
+	// A scenario made in the editor: what it doesn't allow can't be turned
+	// on (Civ3's help: players "cannot enable any conditions that have been
+	// disabled"), so its box is greyed out.
+	private void LimitToScenario() {
+		if (!C7Engine.Editor.ScenarioRules.IsEditorScenario(save)) {
+			return;
+		}
+		HashSet<string> allowed = C7Engine.Editor.ScenarioRules.Allowed(save).Select(t => t.Name).ToHashSet();
+		HashSet<string> limited = C7Engine.Editor.ScenarioRules.All.Select(t => t.Name).ToHashSet();
+		foreach (Civ3Checkbox box in background.FindChildren("*", nameof(Civ3Checkbox), true, false).OfType<Civ3Checkbox>()) {
+			if (limited.Contains(box.Text) && !allowed.Contains(box.Text)) {
+				box.ButtonPressed = false;
+				box.Disabled = true;
+				box.TooltipText = "This scenario doesn't allow it.";
+			}
+		}
+	}
+
+	// A scenario of rules alone (see ScenarioPlay): its game rules and
+	// victory conditions are where the boxes start, not the last game's
+	// (a scenario such as QC plays with Accelerated Production on), and
+	// what's chosen for it isn't remembered for the next normal game.
+	private static bool PlayingScenario => ScenarioPlay.RulesForNewGame != null;
+
 	private void AddRules() {
 		// The victory types allowed last time (or by default), with the
-		// thresholds (domination, culture) the scenario or ruleset sets.
-		victoryConditions = choices.ChosenVictoryConditions(save.VictoryConditions);
+		// thresholds (domination, culture) the scenario or ruleset sets; a
+		// scenario's own.
+		victoryConditions = PlayingScenario && save.VictoryConditions != null
+			? save.VictoryConditions
+			: choices.ChosenVictoryConditions(save.VictoryConditions);
 		rulesContainer.Columns = 3;
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 		rulesContainer.AddThemeConstantOverride("h_separation", 12);
@@ -270,7 +311,7 @@ public partial class PlayerSetup : Control {
 		showScoreboard = new Civ3Checkbox {
 			Text = "Show scoreboard",
 			FontSize = 14,
-			ButtonPressed = choices.ShowScoreboard ?? true,
+			ButtonPressed = PlayingScenario ? save.Rules.ShowScoreboard : choices.ShowScoreboard ?? true,
 			TooltipText = "With more than one human player, show everyone's score and how long the current turn has taken.",
 		};
 		rulesContainer.AddChild(showScoreboard);
@@ -298,7 +339,7 @@ public partial class PlayerSetup : Control {
 			Text = "No corruption near capital",
 			FontSize = 12,
 			// Off unless it was chosen for the last game, like the rule itself.
-			ButtonPressed = choices.CoreCitiesFreeOfCorruption ?? false,
+			ButtonPressed = PlayingScenario ? save.Rules.CoreCitiesFreeOfCorruption : choices.CoreCitiesFreeOfCorruption ?? false,
 			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
 		};
 		corruptionBox.AddChild(coreCitiesFreeOfCorruption);
@@ -310,7 +351,7 @@ public partial class PlayerSetup : Control {
 			// like in Civ3. Rising Tide always starts with it on (owner's
 			// ruling, 2026-10-24).
 			ButtonPressed = GetNode<GlobalSingleton>("/root/GlobalSingleton").Scenario == GameScenario.RisingTide
-				|| (choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
+				|| (PlayingScenario ? save.Rules.AcceleratedProduction : choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
 			TooltipText = "Cities need half the food to grow and half the shields to build, as in Civ3.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
@@ -320,7 +361,7 @@ public partial class PlayerSetup : Control {
 			FontSize = 14,
 			// As chosen last time, or as the scenario or ruleset sets it,
 			// like in Civ3.
-			ButtonPressed = choices.CultureFlips ?? save.Rules.AllowCultureFlips,
+			ButtonPressed = PlayingScenario ? save.Rules.AllowCultureFlips : choices.CultureFlips ?? save.Rules.AllowCultureFlips,
 			TooltipText = "Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.",
 		};
 		rulesContainer.AddChild(cultureFlips);
@@ -330,7 +371,7 @@ public partial class PlayerSetup : Control {
 			FontSize = 14,
 			// As chosen last time, or as the scenario or ruleset sets it,
 			// like in Civ3.
-			ButtonPressed = choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
+			ButtonPressed = PlayingScenario ? save.Rules.ScientificLeaders : choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
 			TooltipText = "The first civilization to discover an advance may gain a scientific leader (3% chance, 5% for scientific civilizations), who can complete anything a city is building, wonders included.",
 		};
 		rulesContainer.AddChild(scientificLeaders);
@@ -405,7 +446,7 @@ public partial class PlayerSetup : Control {
 			MinValue = Rules.MinCorruptionRate,
 			MaxValue = Rules.MaxCorruptionRate,
 			Step = 0.05,
-			Value = choices.CorruptionRate ?? save.Rules.CorruptionRate,
+			Value = PlayingScenario ? save.Rules.CorruptionRate : choices.CorruptionRate ?? save.Rules.CorruptionRate,
 			CustomMinimumSize = new Vector2(140, 20),
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 			TooltipText = tooltip,
@@ -782,7 +823,8 @@ public partial class PlayerSetup : Control {
 	// The civilization chosen, or for Random one drawn now from those no
 	// rival slot has.
 	private Civilization PlayerCivilization() {
-		return selectedCivilization ?? NewGameChoices.RandomCivilization(save.Civilizations,
+		return selectedCivilization ?? NewGameChoices.RandomCivilization(
+			save.Civilizations.Where(c => C7Engine.Editor.ScenarioRules.IsPlayable(save, c.name)).ToList(),
 			opponentSelectors.Select(ob => ob.GetItemText(ob.Selected)).Where(n => n != NewGameChoices.Random), new Random());
 	}
 
@@ -896,6 +938,11 @@ public partial class PlayerSetup : Control {
 		Task.Run(() => {
 			try {
 				gameSetup.Populate(save);
+				// What a scenario made in the editor asks of the game as it
+				// starts (the revealed map, the fog painted clear).
+				if (C7Engine.Editor.ScenarioRules.IsEditorScenario(save)) {
+					C7Engine.Editor.ScenarioStart.Apply(save);
+				}
 			} catch (Exception e) {
 				Callable.From(() => OnCreateGameFailed(e)).CallDeferred();
 				return;
@@ -936,6 +983,11 @@ public partial class PlayerSetup : Control {
 				}
 			}
 
+			if (PlayingScenario) {
+				// The scenario's rules aren't the next normal game's.
+				choices.Save();
+				return;
+			}
 			choices.SetVictoryConditions(gameSetup.victoryConditions);
 			choices.ShowScoreboard = gameSetup.showScoreboard;
 			choices.CoreCitiesFreeOfCorruption = gameSetup.coreCitiesFreeOfCorruption;

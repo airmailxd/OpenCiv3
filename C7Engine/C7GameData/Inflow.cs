@@ -39,9 +39,11 @@ public class Inflow : IProducible {
 	}
 
 	public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
-		// TODO: add the option to unlock after researching a tech, or have a certain building, or having a certain resource
+		// The advance it needs (a Civ3 Wealth-type improvement's Required
+		// Advance).
+		// TODO: add the option to have a certain building, or having a certain resource
 		// as well as rendering it obsolete by a building/tech/resource. Basically make this as configurable as it can be
-		return true;
+		return city?.owner == null || city.owner.HasRequiredTechnology(this);
 	}
 
 	public Inflow(SaveInflow saveInflow, BehaviorEngine luaRulesEngine) {
@@ -76,10 +78,14 @@ public class Inflow : IProducible {
 public struct LocalYield {
 	public InflowYield yieldType { get; set; }
 	public readonly Func<ScriptContext, int> yieldCalculation;
+	// The Lua function it comes from, kept for saving: the inflow's name
+	// needn't match it, since a mod may call its Wealth anything.
+	public readonly string yieldCalculationPath;
 
 	public LocalYield() { }
 	public LocalYield(InflowYield type, BehaviorEngine rulesEngine, string yieldCalculation = null) {
 		this.yieldType = type;
+		this.yieldCalculationPath = yieldCalculation;
 		if (yieldCalculation != null) {
 			this.yieldCalculation = rulesEngine.ImportFunc<Func<ScriptContext, int>>(yieldCalculation);
 		}

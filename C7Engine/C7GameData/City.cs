@@ -2009,9 +2009,25 @@ namespace C7GameData {
 			}
 		}
 
-		// Resisters don't eat (see StartResistance).
+		// Resisters don't eat (see StartResistance). Each citizen eats the
+		// rules' Food Consumption/Citizen (Civ3's General Settings: "how
+		// much food each citizen in a city consumes. Default is 2 food").
 		public int FoodConsumedPerTurn() {
-			return (residents.Count - ResistersInCity()) * 2;
+			return (residents.Count - ResistersInCity()) * FoodPerCitizen(owner);
+		}
+
+		public static int FoodPerCitizen(Player owner) {
+			return Math.Max(0, owner?.rules?.FoodConsumptionPerCitizen ?? 2);
+		}
+
+		// The food a city's center makes, whatever it stands on, before the
+		// agricultural bonus: Rules.CityCenterFood (2, Civ3's) in units of
+		// 2 food a citizen, so with the rules' Food Consumption/Citizen it
+		// feeds the city's first citizen. Civ3's saves show it: 4,990
+		// cities in the user's (2026-11-18) made 2 on every terrain under
+		// 2 food a citizen, and 4 under QC's 4 (Agricultural +1 in both).
+		public static int CenterFood(Player owner) {
+			return Math.Max(0, (owner?.rules?.CityCenterFood ?? 2) * FoodPerCitizen(owner) / 2);
 		}
 
 		// Civ3's resistance in a city taken by force, after
@@ -2061,6 +2077,30 @@ namespace C7GameData {
 		}
 
 		// Whether the resident is resisting.
+		// Each turn each foreign citizen who isn't resisting takes the city's
+		// nationality with its government's chance (Civ3's editor: "the
+		// percentage chance, per turn, that a foreign national in city with
+		// the selected government type will assimilate into the current
+		// nationality of that city"; Government.assimilationChance). The
+		// game had no assimilation before, so rules without the field (0)
+		// keep foreign citizens as they are.
+		public int Assimilate() {
+			int chance = owner?.government?.assimilationChance ?? 0;
+			if (chance <= 0 || owner.civilization == null) {
+				return 0;
+			}
+			int assimilated = 0;
+			int working = residents.Count - ResistersInCity();
+			for (int i = 0; i < working; ++i) {
+				CityResident r = residents[i];
+				if (r.nationality != null && r.nationality != owner.civilization && GameData.rng.Next(100) < chance) {
+					r.nationality = owner.civilization;
+					++assimilated;
+				}
+			}
+			return assimilated;
+		}
+
 		public bool IsResisting(CityResident resident) {
 			int index = residents.IndexOf(resident);
 			return index >= 0 && index >= residents.Count - ResistersInCity();
@@ -2112,9 +2152,22 @@ namespace C7GameData {
 		// is 5% more (see ResistanceGovernmentModifiers, which also has
 		// Feudalism and Fascism). Where the steps fall between the article's
 		// ratios is our reading of it.
+		//
+		// The rules say it (Civ3's editor, Culture's "Resistance Chance" and
+		// "Continued Resistance" for the opinion "the defeated civ holds ...
+		// of the capturing civilization", and each government's "Resistance
+		// Modifier" against the other's); the article's numbers above are
+		// conquests.biq's, kept for saves whose rules haven't them.
 		internal int ResistancePercent(Player formerOwner, bool continuing) {
 			int ours = CultureReport.TotalCulture(owner);
 			int theirs = CultureReport.TotalCulture(formerOwner);
+			Rules rules = EngineStorage.gameData?.rules;
+			int modifier = ResistanceGovernmentModifier(owner.government, formerOwner.government);
+			if (rules?.CultureOpinions?.Any(o => o.InitialResistanceChance != 0 || o.ContinuedResistanceChance != 0) == true) {
+				// No culture of ours: the lowest opinion, as the article.
+				CultureOpinion opinion = ours <= 0 ? rules.CultureOpinions[^1] : CultureReport.Opinion(rules, theirs, ours);
+				return (continuing ? opinion.ContinuedResistanceChance : opinion.InitialResistanceChance) + modifier;
+			}
 			int percent;
 			if (ours <= 0 || theirs >= 3 * ours) {
 				percent = 90;
@@ -2132,7 +2185,7 @@ namespace C7GameData {
 			if (continuing) {
 				percent -= 10;
 			}
-			return percent + ResistanceGovernmentModifier(owner.government, formerOwner.government);
+			return percent + modifier;
 		}
 
 		// conquests.biq's GOVT "Resistance Modifier", by our government (row)
@@ -2154,7 +2207,13 @@ namespace C7GameData {
 			{ -5, -5, 5, 5, 0, 0, 5, 0 },
 		};
 
+		// Our government's modifier against theirs, from the rules (see
+		// Government.relations), else the table above.
 		private static int ResistanceGovernmentModifier(Government ours, Government theirs) {
+			GovernmentRelation relation = ours?.relations?.Find(r => r.government == theirs?.name);
+			if (relation != null) {
+				return relation.resistanceModifier;
+			}
 			int row = Array.IndexOf(ResistanceGovernmentOrder, ours?.name);
 			int column = Array.IndexOf(ResistanceGovernmentOrder, theirs?.name);
 			return row < 0 || column < 0 ? 0 : ResistanceGovernmentModifiers[row, column];
@@ -2736,6 +2795,19 @@ namespace C7GameData {
 			}
 		}
 
+		// The difficulty level's corruption modifier (Civ3's editor: "the
+		// percentage of normal corruption experienced on the selected
+		// difficulty level", 100 at every level in the standard rules; "no
+		// effect on players whose government experiences catastrophic
+		// corruption", and the capital has none anyway). The player's level
+		// (GameData.DifficultyFor).
+		private float DifficultyCorruptionFactor(GameData gameData) {
+			if (owner.government?.corruptionType == Government.CorruptionType.Catastrophic) {
+				return 1f;
+			}
+			return (gameData.DifficultyFor(owner)?.CorruptionPercentage ?? 100) / 100f;
+		}
+
 		public void CalculateCorruption(GameData gameData) {
 			CalculateCorruption(gameData, owner.GetAdjustedOptimalCityNumber(gameData));
 		}
@@ -2763,7 +2835,7 @@ namespace C7GameData {
 
 			// A house rule may spare the AI some corruption and waste (see
 			// AiHouseRules).
-			float houseCorruptionFactor = AiHouseRules.CorruptionFactor(owner);
+			float houseCorruptionFactor = AiHouseRules.CorruptionFactor(owner) * DifficultyCorruptionFactor(gameData);
 			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
 					* gameData.rules.CorruptionRate * houseCorruptionFactor;

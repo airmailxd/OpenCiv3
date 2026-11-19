@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Linq;
 using C7Engine;
 using C7Engine.Network;
 using Serilog;
@@ -48,6 +49,12 @@ public partial class MainMenu : Node {
 				devWatchUsed = true;
 				PlayMusic();
 				CallDeferred(nameof(WatchAiQuickStart));
+			} else if (!devEditorUsed && OS.GetCmdlineUserArgs().FirstOrDefault(a => a == "--edit-scenario" || a.StartsWith("--edit-scenario=")) is string editArg) {
+				// The --edit-scenario[=<file>] developer option opens the scenario
+				// editor on a new scenario, or on the file, the first time the menu
+				// shows.
+				devEditorUsed = true;
+				CallDeferred(nameof(OpenScenarioEditorFromCommandLine), editArg.Contains('=') ? editArg[(editArg.IndexOf('=') + 1)..] : "");
 			} else {
 				PlayIntroThenMusic();
 			}
@@ -94,16 +101,19 @@ public partial class MainMenu : Node {
 		LanSession.ResumeGame = null;
 		Global.WatchNextGame = false;
 		Global.Scenario = GameScenario.None;
+		ScenarioPlay.Clear();
+		// A Civ3 scenario or save played in Civ3's mode only for its game.
+		Global.ActivatePreferredGameMode();
 
 		LoadDialog.SetDirectoryForLoadingSaves();
-		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
+		LoadScenarioDialog.SetDirectoryForLoadingScenarios();
 		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
 
 		// Without a Civ3 install, play in standalone mode rather than asking.
 		// The Settings page switches between the two.
 		if (!C7Settings.UseStandaloneMode() && !GamePaths.Civ3Available()) {
 			log.Information("No Civ3 install found, switching to standalone mode");
-			Global.ActivateGameMode(GamePaths.standalone);
+			Global.ActivateGameMode(GamePaths.standalone, remember: true);
 		}
 
 		ButtonContainer.Visible = true;
@@ -125,6 +135,7 @@ public partial class MainMenu : Node {
 		ButtonContainer.Tutorial.Visible = false;
 		ButtonContainer.LoadGame.Pressed += LoadGame;
 		ButtonContainer.LoadScenario.Pressed += LoadScenario;
+		ButtonContainer.ScenarioEditor.Pressed += OpenScenarioEditor;
 		ButtonContainer.HostLan.Pressed += HostLanGame;
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
 		ButtonContainer.BrowseOnline.Pressed += BrowseOnlineGames;
@@ -144,6 +155,25 @@ public partial class MainMenu : Node {
 	public void GoToWorldSetup() {
 		PlayButtonPressedSound();
 		GetTree().ChangeSceneToFile("res://UIElements/NewGame/world_setup.tscn");
+	}
+
+	private static bool devEditorUsed = false;
+
+	private void OpenScenarioEditorFromCommandLine(string path) {
+		if (path == "") {
+			OpenScenarioEditor();
+			return;
+		}
+		ScenarioEditorSession.Open(ScenarioEditorSession.OpenFile(path, out bool isScenario), isScenario ? path : null);
+		GetTree().ChangeSceneToFile("res://C7Game.tscn");
+	}
+
+	// The scenario editor, on a new scenario of the current rules (see
+	// Game_Editor.cs).
+	public void OpenScenarioEditor() {
+		PlayButtonPressedSound();
+		ScenarioEditorSession.Open(C7Engine.Editor.ScenarioFiles.NewScenario(Global.GameMode.GetSave()), null);
+		GetTree().ChangeSceneToFile("res://C7Game.tscn");
 	}
 
 	public void QuickStartGame() {
@@ -337,7 +367,7 @@ public partial class MainMenu : Node {
 	}
 
 	private void UseStandaloneModePressed() {
-		Global.ActivateGameMode(GamePaths.standalone);
+		Global.ActivateGameMode(GamePaths.standalone, remember: true);
 		DisplayTitleScreen();
 	}
 

@@ -285,6 +285,73 @@ public partial class WorldSetup : Control {
 
 		InitBarbarianActivityOptions();
 		InitMapSizes();
+		LimitToScenarioWorld();
+	}
+
+	// A scenario's world (see C7Engine.Editor.ScenarioWorldSetup): the
+	// screen starts on its settings, and what it doesn't allow is greyed.
+	private void LimitToScenarioWorld() {
+		C7Engine.Editor.ScenarioWorldSetup world = ScenarioPlay.RulesForNewGame?.Scenario?.world;
+		if (world == null) {
+			return;
+		}
+		string Note(C7Engine.Editor.ScenarioWorld.Setting setting, C7Engine.Editor.WorldChoice choice) =>
+			C7Engine.Editor.ScenarioWorld.OnlyNote(setting, choice, _saveGame.WorldSizes.Select(w => w.name));
+		WorldCharacteristics.Landform? scenarioLandform = C7Engine.Editor.ScenarioWorld.Value<WorldCharacteristics.Landform>(world.landform);
+		WorldCharacteristics.OceanCoverage? scenarioOcean = C7Engine.Editor.ScenarioWorld.Value<WorldCharacteristics.OceanCoverage>(world.water);
+		if (scenarioLandform != null || scenarioOcean != null) {
+			Choose(LandformButton(scenarioLandform ?? landform, scenarioOcean ?? ocean));
+		}
+		foreach (WorldCharacteristics.Landform l in Enum.GetValues<WorldCharacteristics.Landform>()) {
+			foreach (WorldCharacteristics.OceanCoverage o in Enum.GetValues<WorldCharacteristics.OceanCoverage>()) {
+				string why = !C7Engine.Editor.ScenarioWorld.Allows(world.landform, l.ToString()) ? Note(C7Engine.Editor.ScenarioWorld.Setting.Landform, world.landform)
+					: !C7Engine.Editor.ScenarioWorld.Allows(world.water, o.ToString()) ? Note(C7Engine.Editor.ScenarioWorld.Setting.Water, world.water)
+					: null;
+				Grey(LandformButton(l, o), why);
+			}
+		}
+		void Limit<T>(C7Engine.Editor.ScenarioWorld.Setting setting, C7Engine.Editor.WorldChoice choice, (T value, BaseButton button)[] buttons) where T : struct, Enum {
+			if (C7Engine.Editor.ScenarioWorld.Value<T>(choice) is T chosen) {
+				Choose(buttons.First(b => b.value.Equals(chosen)).button);
+			}
+			foreach ((T value, BaseButton button) in buttons) {
+				Grey(button, C7Engine.Editor.ScenarioWorld.Allows(choice, value.ToString()) ? null : Note(setting, choice));
+			}
+		}
+		Limit(C7Engine.Editor.ScenarioWorld.Setting.Climate, world.climate,
+			[(WorldCharacteristics.Climate.Arid, arid), (WorldCharacteristics.Climate.Normal, normal), (WorldCharacteristics.Climate.Wet, wet)]);
+		Limit(C7Engine.Editor.ScenarioWorld.Setting.Temperature, world.temperature,
+			[(WorldCharacteristics.Temperature.Cool, cool), (WorldCharacteristics.Temperature.Temperate, temperate), (WorldCharacteristics.Temperature.Warm, warm)]);
+		Limit(C7Engine.Editor.ScenarioWorld.Setting.Age, world.age,
+			[(WorldCharacteristics.Age.Billion_3, billion3), (WorldCharacteristics.Age.Billion_4, billion4), (WorldCharacteristics.Age.Billion_5, billion5)]);
+
+		// The barbarians' and world sizes' buttons, named by their text
+		// ("Random" last).
+		void LimitList(C7Engine.Editor.ScenarioWorld.Setting setting, C7Engine.Editor.WorldChoice choice, Container list) {
+			if (choice.value == null) {
+				return;
+			}
+			foreach (BaseButton button in list.GetChildren().OfType<BaseButton>()) {
+				string value = ((Civ3MenuButton)button).Text;
+				if (value == choice.value) {
+					Choose(button);
+				}
+				Grey(button, choice.only && value != choice.value ? Note(setting, choice) : null);
+			}
+		}
+		LimitList(C7Engine.Editor.ScenarioWorld.Setting.Barbarians, world.barbarians, barbActivityButtonsContainer);
+		if (C7Engine.Editor.ScenarioWorld.Size(world.worldSize, _saveGame.WorldSizes) != null) {
+			LimitList(C7Engine.Editor.ScenarioWorld.Setting.WorldSize, world.worldSize, worldSizeButtonsContainer);
+		}
+	}
+
+	// Greys a choice out with why, or makes it choosable again (why null).
+	private static void Grey(BaseButton button, string why) {
+		button.Disabled = why != null;
+		button.Modulate = why != null ? new Color(1, 1, 1, 0.35f) : Colors.White;
+		if (why != null) {
+			button.TooltipText = why;
+		}
 	}
 
 	// The game types a new game may be, in the order they're listed.
@@ -320,14 +387,17 @@ public partial class WorldSetup : Control {
 			return;
 		}
 		SaveGame rules = null;
-		if (mdj) {
+		if (ScenarioPlay.RulesForNewGame != null) {
+			// A scenario of rules alone, from Load Scenario.
+			rules = ScenarioPlay.RulesForNewGame;
+		} else if (mdj) {
 			try {
 				rules = GameSetup.LoadMdjRules(GamePaths.GameModesDir, GamePaths.GameMode);
 			} catch (Exception e) {
 				log.Error(e, "Could not load MPTournamentMDJ's rules; playing under the usual ones");
 			}
 		}
-		mdjRulesLoaded = rules != null;
+		mdjRulesLoaded = mdj && rules != null;
 		_saveGame = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
 		// The player setup screen shows the civs' leaders, whose Civ3 art
 		// MDJ keeps in the scenario's folders (the Sengoku conquest's; none
@@ -351,6 +421,22 @@ public partial class WorldSetup : Control {
 	// before coming back to this screen.
 	private void AddGameTypeSelector() {
 		GlobalSingleton global = GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton");
+		// A scenario of rules alone (see ScenarioPlay) is the game type.
+		if (ScenarioPlay.RulesForNewGame != null) {
+			Label scenarioName = new() {
+				Position = new Vector2(432, 17),
+				CustomMinimumSize = new Vector2(160, 32),
+				VerticalAlignment = VerticalAlignment.Center,
+				Text = ScenarioPlay.Title,
+				TooltipText = "The scenario being set up: its rules, on a world made for it.",
+				MouseFilter = Control.MouseFilterEnum.Pass,
+			};
+			scenarioName.AddThemeFontSizeOverride("font_size", 15);
+			scenarioName.AddThemeColorOverride("font_color", Colors.Black);
+			background.AddChild(scenarioName);
+			ChooseGameType(global, GameScenario.None);
+			return;
+		}
 		OptionButton selector = new() {
 			Position = new Vector2(432, 17),
 			CustomMinimumSize = new Vector2(160, 32),
@@ -595,6 +681,15 @@ public partial class WorldSetup : Control {
 		};
 
 		Global.SaveGame = _saveGame;
+		// The scenario's rules go with the game, and stay chosen for the
+		// player setup screen (which starts from the scenario's game rules);
+		// the main menu, or a new game from the game, lets them go.
+		if (ScenarioPlay.RulesForNewGame != null) {
+			// A scenario's world isn't the next normal game's.
+			Global.NewGameChoices = _choices;
+			GetTree().ChangeSceneToFile("res://UIElements/NewGame/player_setup.tscn");
+			return;
+		}
 
 		// Remembered once the game starts, with the choices made on the
 		// player setup screen.
