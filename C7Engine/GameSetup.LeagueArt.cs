@@ -73,6 +73,26 @@ public partial class GameSetup {
 		return JsonSerializer.Deserialize<LeagueArtTable>(File.ReadAllText(path)) ?? new LeagueArtTable();
 	}
 
+	// Whether a League mode gives the civilization (by name) this leader,
+	// with a portrait of its own: stem is the portrait's file stem
+	// (Art/Leaderheads/<stem>.png), or null while it is still to be made.
+	// standalone/textures.lua has the same table for the leader heads the
+	// texture config maps; this is for the screens that show portraits
+	// themselves (the end of the game's).
+	public static bool LeagueLeaderPortrait(LeagueArtTable table, string civ, string leader, out string stem) {
+		stem = null;
+		if (table == null || civ == null || leader == null) {
+			return false;
+		}
+		foreach (string mode in table.modes.Keys) {
+			if (table.Section(mode, "leaders").TryGetValue(civ, out LeagueArtEntry entry) && entry.leader == leader) {
+				stem = entry.Drawn ? entry.art : null;
+				return true;
+			}
+		}
+		return false;
+	}
+
 	// Gives the items of the mode's rules (by its rules folder, like
 	// "modern") their own keys and art, in standalone mode.
 	internal static void UseLeagueArt(SaveGame save, LeagueArtTable table, string mode) {

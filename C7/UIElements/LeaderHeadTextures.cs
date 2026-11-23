@@ -62,6 +62,14 @@ public static class LeaderHeadTextures {
 	// there's none to use: the civ isn't one of the game's, or a scenario
 	// has its own art of its leader.
 	public static ImageTexture Portrait(Civilization civilization) {
+		// A League mode's leader of a civ named as a stock one (Modern's
+		// Egypt is Sisi's): their own portrait, by civ and leader, or none
+		// yet, rather than the stock civ's leader (GameSetup.LeagueArt.cs).
+		if (C7Engine.C7Settings.UseStandaloneMode() && civilization != null
+			&& C7Engine.GameSetup.LeagueLeaderPortrait(LeagueArt, civilization.name, civilization.leader, out string stem)) {
+			string path = stem == null ? null : $"Art/Leaderheads/{stem}.png";
+			return path != null && ModernGraphics.HasRemadeArt(path) ? ModernGraphics.Load(path, null) : null;
+		}
 		if (string.IsNullOrEmpty(civilization?.name)
 			|| (!C7Engine.C7Settings.UseStandaloneMode() && Util.ScenarioHasArt(civilization.leaderArtFile))
 			|| !ModernGraphics.HasRemadeArt(RemadePath(civilization))) {
@@ -69,6 +77,9 @@ public static class LeaderHeadTextures {
 		}
 		return RemadeHead(civilization);
 	}
+
+	private static C7Engine.GameSetup.LeagueArtTable leagueArt;
+	private static C7Engine.GameSetup.LeagueArtTable LeagueArt => leagueArt ??= C7Engine.GameSetup.LoadLeagueArt(GamePaths.GameModesDir);
 
 	private static string RemadePath(Civilization civilization) => $"Art/Leaderheads/{civilization.name}.png";
 

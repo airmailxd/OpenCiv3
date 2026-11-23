@@ -207,6 +207,31 @@ for _, name in ipairs({
   leader_head_civs[name] = true
 end
 
+-- Leaders the League modes give civilizations, by civ name and leader
+-- ("Egypt|Sisi"), whose portraits are their own: Modern's Egypt is led
+-- by Sisi, not by the stock Egypt's Cleopatra (see leader_heads below).
+-- The portrait's file stem (Art/Leaderheads/<stem>.png, as
+-- C7/Lua/standalone/league_art.json names it), or false while it is
+-- still to be made: the placeholder, rather than another person's face.
+local league_leader_heads = {
+  ["Egypt|Sisi"] = false, -- modern
+  ["European Union|Merkel"] = false, -- modern
+  ["USSR|Gorbachev"] = false, -- modern
+  ["China|Zemin"] = false, -- modern
+  ["America|Reagan"] = false, -- modern
+  ["Japan|Sato"] = false, -- modern
+  ["Iran|Khomeini"] = false, -- modern
+  ["Mexico|Fox"] = false, -- modern
+  ["Nigeria|Jonathan"] = false, -- modern
+  ["Canada|Diefenbaker"] = false, -- modern
+  ["Brazil|Rousseff"] = false, -- modern
+  ["Australia|Holt"] = false, -- modern
+  ["Saudi Arabia|Salman"] = false, -- modern
+  ["Indonesia|Jokowi"] = false, -- modern
+  ["Israel|Netanyahu"] = false, -- modern
+  ["Pakistan|Sharif"] = false, -- modern
+}
+
 -- MDJ's clans' banners, by Civilopedia entry (see leader_heads below).
 local mdj_leader_heads = {}
 for _, clan in ipairs({
@@ -309,6 +334,13 @@ return function(civ3_textures)
     elseif type_name == "LeaderPortrait" then
       -- Our portraits have one face for every mood.
       civ = player_or_civ.player.civilization
+    end
+    -- A League mode's leader (league_leader_heads), by civ and leader.
+    if civ and civ.name and civ.leader then
+      local stem = league_leader_heads[civ.name .. "|" .. civ.leader]
+      if stem ~= nil then
+        return { path = stem and ("Art/Leaderheads/" .. stem .. ".png") or "Art/Advisors/placeholder_leaderhead.png" }
+      end
     end
     if civ and leader_head_civs[civ.name] then
       return { path = "Art/Leaderheads/" .. civ.name .. ".png" }
