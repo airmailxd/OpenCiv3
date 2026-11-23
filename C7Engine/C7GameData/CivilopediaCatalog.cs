@@ -236,9 +236,11 @@ namespace C7GameData {
 
 		// A terrain's key: made from its name, or, if the text has no
 		// article by that key, the stock terrain's it is an alias of.
-		public string TerrainKey(string displayName) {
+		public string TerrainKey(string displayName) => TerrainKey(displayName, Text);
+
+		public static string TerrainKey(string displayName, CivilopediaText text) {
 			string key = KeyFromName("TERR_", displayName);
-			if (TerrainKeyAliases.TryGetValue(displayName.Trim(), out string alias) && !Text.Has(key)) {
+			if (TerrainKeyAliases.TryGetValue(displayName.Trim(), out string alias) && !(text?.Has(key) ?? false)) {
 				return alias;
 			}
 			return key;

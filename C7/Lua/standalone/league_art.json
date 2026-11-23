@@ -56,6 +56,13 @@
      "status": "stock",
      "priority": "P1",
      "note": "pointer; The Pyramids keeps BLDG_Pyramids"
+    },
+    "Commerical Dock(+1 Gold Sea)": {
+     "from": "BLDG_Commercial_Dock",
+     "key": "BLDG_Commercial_Dock",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
     }
    },
    "resources": {
@@ -1092,6 +1099,13 @@
      "cell": 29,
      "priority": "P3",
      "note": "map cell 29"
+    },
+    "Bananas": {
+     "from": "GOOD_Bananas",
+     "key": "GOOD_Bananas",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
     }
    },
    "civs": {
@@ -1647,6 +1661,69 @@
      "status": "stock",
      "priority": "P3",
      "note": "commercial copy"
+    },
+    "Sun Tzu's (Mil/Exp/Com)": {
+     "from": "BLDG_Art_of_War",
+     "key": "BLDG_Art_of_War",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Magellan's (Ind/Exp/Com/Sea)": {
+     "from": "BLDG_Circumnavigation",
+     "key": "BLDG_Circumnavigation",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Copernicus' (Mil/Exp/Sci)": {
+     "from": "BLDG_Solar_System",
+     "key": "BLDG_Solar_System",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Leonardo's (Mil/Rel/Sea)": {
+     "from": "BLDG_Inventor's_Workshop",
+     "key": "BLDG_Inventor's_Workshop",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "JS Bach's (Sci/Rel)": {
+     "from": "BLDG_Grand_Cathedral",
+     "key": "BLDG_Grand_Cathedral",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Newton's (Ind/Sci/Com)": {
+     "from": "BLDG_Great_University",
+     "key": "BLDG_Great_University",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Smith's (Exp/Rel/Com)": {
+     "from": "BLDG_Trading_Company",
+     "key": "BLDG_Trading_Company",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Dock": {
+     "from": "BLDG_Commercial_Dock",
+     "key": "BLDG_Commercial_Dock",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
+    },
+    "Mausoleum (Sci/Sea)": {
+     "from": "BLDG_Mausoleum",
+     "key": "BLDG_Mausoleum",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
     }
    },
    "units": {
@@ -1973,6 +2050,13 @@
      "art": "Cathedral",
      "status": "stock",
      "priority": "P3"
+    },
+    "Sun Tzu's (GA)": {
+     "from": "BLDG_Art_of_War",
+     "key": "BLDG_Art_of_War",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
     }
    },
    "governments": {
@@ -2107,6 +2191,13 @@
      "status": "stock",
      "priority": "P3",
      "note": "own page (was the Leader's)"
+    },
+    "Tokugawa Shogun (Amphib)": {
+     "from": "PRTO_Tokugawa",
+     "key": "PRTO_Tokugawa",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock item, renamed: keeps its key, picture and article"
     }
    },
    "terrain": {
