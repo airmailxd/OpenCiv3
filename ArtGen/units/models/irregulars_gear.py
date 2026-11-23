@@ -136,15 +136,17 @@ def enfield(mats, muzzle=0.80):
     g = G.gunmetal(mats)
     st = steel(mats)
     sl = mat(mats, 'sling_web', '#a89a72', spec=0.05)
+    d = mat(mats, 'gun_dark', '#1c1d20')
     parts = [G._stock_wood(mats, -0.36, 0.02, depth=0.075, wrist=0.03, m=s)]
     parts.append(M.box(0.008, 0.078, 0.012, sd, (0, 0.032, -0.355)))                   # butt plate
     # the fore-end, deep at the receiver, slimming to the nose cap
-    parts.append(M.box(0.040, 0.050, 0.62, s, (0, 0.014, 0.37)).transformed(M.translate(0, 0, 0)))
+    parts.append(M.box(0.042, 0.058, 0.30, s, (0, 0.018, 0.21)))                      # deep at the receiver
+    parts.append(M.box(0.036, 0.044, 0.34, s, (0, 0.012, 0.51)))                      # the step, slimmer forward
     parts.append(M.box(0.034, 0.018, 0.50, sd, (0, -0.022, 0.43)))                    # upper handguard
     parts.append(M.box(0.042, 0.054, 0.012, g, (0, 0.012, 0.36)))                     # bands
     parts.append(M.box(0.042, 0.054, 0.012, g, (0, 0.012, 0.58)))
-    parts.append(M.box(0.042, 0.054, 0.06, st, (0, 0.006, 0.70)))                     # nose cap
-    parts.append(M.box(0.012, 0.03, 0.03, st, (0, -0.03, 0.72)))                       # its sight ears
+    parts.append(M.box(0.042, 0.052, 0.07, d, (0, 0.006, 0.70)))                      # nose cap
+    parts.append(M.box(0.012, 0.03, 0.03, d, (0, -0.03, 0.72)))                        # its sight ears
     parts.append(M.cylinder(0.011, 0.011, muzzle - 0.68, g, seg=8, z0=0.68))          # the bare muzzle
     parts.append(M.box(0.006, 0.026, 0.016, g, (0, -0.026, 0.715)))                   # front sight
     # receiver, bolt and knob, aperture sight, magazine, trigger guard
@@ -197,14 +199,14 @@ def ppsh41(mats, muzzle=0.50):
     # the drum: a flat disc, its face to the side, a rim and the winding key
     drum = mat(mats, 'drum', '#55565c', spec=0.55, gloss=22, metal=True)
     # (drawn squashed in y: the soldier thickens guns 1.6x across, which makes it round)
-    D = M.translate(0, 0.075, 0.15) @ M.scale(1, 0.66, 1) @ M.rot_y(90)
-    parts.append(M.cylinder(0.085, 0.085, 0.050, drum, seg=20, z0=-0.025).transformed(D))
-    parts.append(M.cylinder(0.088, 0.088, 0.012, d, seg=20, z0=-0.006).transformed(D))
-    parts.append(M.cylinder(0.08, 0.08, 0.006, d, seg=20, z0=0.024).transformed(D))
+    D = M.translate(0, 0.082, 0.15) @ M.scale(1, 0.66, 1) @ M.rot_y(90)
+    parts.append(M.cylinder(0.10, 0.10, 0.056, drum, seg=22, z0=-0.028).transformed(D))
+    parts.append(M.cylinder(0.103, 0.103, 0.012, d, seg=22, z0=-0.006).transformed(D))
+    parts.append(M.cylinder(0.095, 0.095, 0.006, d, seg=22, z0=0.027).transformed(D))
     # the front plate (a lighter dished cover), its rim, the winding key and its lever
     plate = mat(mats, 'drum_plate', '#7a7c82', spec=0.6, gloss=24, metal=True)
-    parts.append(M.cylinder(0.07, 0.06, 0.01, plate, seg=20, z0=0.028).transformed(D))
-    parts.append(M.cylinder(0.07, 0.06, 0.01, plate, seg=20, z0=-0.038).transformed(D))
+    parts.append(M.cylinder(0.085, 0.07, 0.012, plate, seg=22, z0=0.03).transformed(D))
+    parts.append(M.cylinder(0.085, 0.07, 0.012, plate, seg=22, z0=-0.042).transformed(D))
     parts.append(M.cylinder(0.02, 0.02, 0.02, steel(mats), seg=8, z0=0.035).transformed(D))
     parts.append(M.box(0.008, 0.012, 0.06, steel(mats), (0.05, 0.0, 0.025)).transformed(D @ M.rot_y(-90)))
     parts.append(M.box(0.03, 0.03, 0.04, g, (0, 0.03, 0.15)))                          # drum's neck

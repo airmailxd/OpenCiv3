@@ -138,18 +138,25 @@ class IrregularBody(LF.LeagueBody):
             out.append((bone, mesh, tag))
 
         top = p.get('top')
-        # -- under a sleeve the skin's shoulder ball would show through the
-        # sleeve's top: leave it out (the sleeve covers the joint)
-        if top in ('sleeved', 'long_sleeved'):
-            skin = self.mats['skin']
-            keep = []
-            for bone, m, tag in out:
-                if bone in ('arm_r', 'arm_l') and len(m) and (m.M == skin).all():
-                    V = m.V.reshape(-1, 3)
-                    if V[:, 2].max() > 0.05:          # the ball, centered at the joint
-                        continue
-                keep.append((bone, m, tag))
-            out[:] = keep
+        # -- as the regulars do: the skin's shoulder ball under a sleeve takes
+        # the sleeve's material (the sleeve's elbow break stays), and the
+        # skin under trousers the trousers'
+        skin = self.mats['skin']
+        sleeve = self.mats['top'] if top in ('sleeved', 'long_sleeved') and 'top' in self.mats else None
+        legs = self.mats['trousers'] if p.get('legs') == 'trousers' and 'trousers' in self.mats else None
+        res = []
+        for bone, m, tag in out:
+            if len(m) and np.all(m.M == skin):
+                if bone.startswith('arm_') and sleeve is not None and m.V[..., 2].min() > -0.12:
+                    m = m.with_material(sleeve)
+                elif bone.startswith(('thigh_', 'shin_')) and legs is not None:
+                    m = m.with_material(legs)
+            res.append((bone, m, tag))
+        out[:] = res
+        if top == 'long_sleeved' and p.get('elbow_cuff', True):
+            cm = self.mm('cuff_seam', '#3a3830')
+            for side in 'rl':
+                add(f'forearm_{side}', M.cylinder(0.058 * lb, 0.057 * lb, 0.03, cm, seg=12, z0=-0.215))
         # -- arms: rolled sleeves
         if p.get('rolled'):
             tm = self.mm(p.get('roll_mat', 'top'), '#888888')
@@ -234,7 +241,7 @@ class IrregularBody(LF.LeagueBody):
                 add('chest', M.sphere(0.012, bm, _on(cr, z, 77, g + 0.006), seg=6))
         # -- the quilted jacket
         if p.get('quilted'):
-            qm = self.mm('top', '#5a5a4a')
+            qm = self.mm('quilt_seam', '#3a3a34')
             cm = self.mm('coat', '#5a5a4a') if p.get('coat') else qm
             for ang in range(0, 360, 24):
                 if 80 <= ang <= 100:
@@ -416,7 +423,7 @@ class IrregularBody(LF.LeagueBody):
             rm = self.mm('rig', '#7e7656')
             rd = self.mm('rig_dark', '#5e5840')
             g = 0.03 + (0.03 if p.get('vest') else 0.0)
-            z0 = 0.06
+            z0 = float(p.get('rig_z', 0.06))
             x0, y0, _ = _on(cr, z0, 90, g)
             add('chest', M.rounded_box(0.40, 0.022, 0.20, rm, (0, y0 - 0.004, z0), r=0.01, seg=6, p=4))
             for k, x in enumerate((-0.092, 0.0, 0.092)):
@@ -508,6 +515,24 @@ class IrregularBody(LF.LeagueBody):
             add('pelvis', M.ellipsoid(0.04, 0.035, 0.035, sm, (x, y, 0.07), seg=8))
             add('pelvis', _strip((x, y + 0.02, 0.06), (x - 0.03, y + 0.03, -0.24), 0.06, 0.012, sm, up=(-0.5, 1, 0)))
             add('pelvis', _strip((x + 0.02, y + 0.025, 0.05), (x + 0.035, y + 0.045, -0.19), 0.055, 0.012, sm, up=(-0.5, 1, 0)))
+        if p.get('coat_hem'):
+            hm_ = self.mm('coat_hem', '#3a3428')
+            low = -float(p['coat'])
+            fl = 0.03 + 0.08 * float(p['coat'])
+            r0 = (0.19 + fl) * tw + 0.004
+            r1 = (0.15 + fl) * (1 + (tw - 1) * 0.8) + 0.004
+            add('pelvis', M.loft([(low, r0, r1), (low + 0.03, r0 - 0.003, r1 - 0.003)], hm_, seg=20, cap_bottom=False,
+                                 cap_top=False))
+            for ang in (0, 180):
+                a_ = math.radians(ang)
+                add('pelvis', M.box(0.02, 0.05, 0.10, self.mm('trousers', '#555555'),
+                                    (r0 * math.cos(a_), 0.0, low + 0.04)))
+            cm_ = self.mm('coat', '#555555')
+            for ang in (55, 80, 105, 130, 235, 270, 305):
+                a_ = math.radians(ang)
+                add('pelvis', M.capsule((r0 * math.cos(a_), r1 * math.sin(a_), low + 0.03),
+                                        ((r0 - 0.02) * math.cos(a_), (r1 - 0.02) * math.sin(a_), -0.02), 0.012, 0.012,
+                                        cm_, seg=6, rings=1))
         # -- folds down the kameez panels
         if km and p.get('kameez_folds'):
             tm = self.mm('top', '#d8d0b8')
@@ -654,9 +679,11 @@ class IrregularBody(LF.LeagueBody):
                                cap_bottom=False, cap_top=False).transformed(T))
             # the veil over the nose and mouth, down over the throat
             # the loose end wound round the jaw and throat, the mouth and chin open
-            add(M.loft([(-0.07, 0.085, 0.09), (-0.02, 0.095, 0.10, 0, -0.005), (0.03, 0.10, 0.10, 0, -0.012)], hm, seg=14,
-                       cap_bottom=True, cap_top=False))
-            add(M.ellipsoid(0.07, 0.05, 0.035, hm, (0, 0.06, -0.035), seg=10))
+            add(M.cylinder(0.075, 0.082, 0.07, hm, seg=12, z0=-0.07))                   # round the neck only
+            # the shadowed gap the eyes look out of under the turns
+            add(M.ellipsoid(0.08, 0.02, 0.016, self.mm('eye_gap', '#3a2618'), (0, 0.104, 0.128), seg=10))
+            for sx in (1, -1):
+                add(M.ellipsoid(0.016, 0.01, 0.01, self.mm('eyes', '#1a120c'), (sx * 0.036, 0.118, 0.128), seg=6))
             # the check: dark stripes along the turns and across the crown
             for z in (0.125, 0.215):
                 add(M.loft([(z - 0.005, 0.116, 0.126), (z + 0.005, 0.116, 0.126)], st, seg=18, cap_bottom=False,
@@ -669,61 +696,64 @@ class IrregularBody(LF.LeagueBody):
             for i, (a, b) in enumerate(zip(pts[:-1], pts[1:])):
                 add(_strip(a, b, 0.012, 0.024, st, up=(0, -1, 0)))
             add(_strip((0.06, -0.163, -0.04), (0.061, -0.166, -0.065), 0.07, 0.024, st, up=(0, -1, 0)))
+        elif hat == 'cloth_cap':
+            hm = self.mm('hat', '#3a3632', spec=0.04)
+            hd = self.mm('hat_peak', '#24221e', spec=0.2, gloss=16)
+            # the soft crown, full and pulled forward over the peak, a button on top
+            add(M.ellipsoid(0.142, 0.158, 0.07, hm, (0, 0.016, 0.192), seg=18))
+            add(M.cylinder(0.12, 0.124, 0.06, hm, seg=18, z0=0.13).transformed(M.scale(1, 1.07, 1)))
+            add(M.sphere(0.016, hm, (0, 0.016, 0.262), seg=6))
+            for ang in (30, 90, 150, 210, 270, 330):
+                a_ = math.radians(ang)
+                add(M.capsule((0, 0.016, 0.26), (0.13 * math.cos(a_), 0.016 + 0.145 * math.sin(a_), 0.20), 0.005, 0.005,
+                              self.mm('hat_seam', '#24221e'), seg=4, rings=1))
+            # the peak: a stiff visor well out over the brow
+            add(M.ellipsoid(0.12, 0.085, 0.014, hd, (0, 0.0, 0.0), seg=14).transformed(
+                M.translate(0, 0.15, 0.145) @ M.rot_x(10)))
         elif hat == 'pakol':
             hm = self.mm('hat', '#8a7c62', spec=0.03)
             hd = self.mm('hat_seam', '#6e624c', spec=0.03)
             # the rolled brim: a fat ring round the head
-            add(M.loft([(0.11, 0.112, 0.124), (0.125, 0.126, 0.138), (0.15, 0.133, 0.145), (0.175, 0.13, 0.142),
-                        (0.19, 0.118, 0.13)], hm, seg=20, cap_bottom=True, cap_top=False))
+            add(M.loft([(0.11, 0.112, 0.124), (0.13, 0.13, 0.142), (0.16, 0.138, 0.15), (0.19, 0.134, 0.146),
+                        (0.21, 0.12, 0.132), (0.215, 0.105, 0.117)], hm, seg=22, cap_bottom=True, cap_top=False))
             # the flat top, wider than the roll's inside, a seam where they meet
-            add(M.loft([(0.185, 0.122, 0.134), (0.205, 0.128, 0.14), (0.222, 0.122, 0.134), (0.232, 0.095, 0.105),
-                        (0.236, 0.0, 0.0)], hm, seg=20, cap_bottom=False, cap_top=False))
-            add(M.loft([(0.183, 0.124, 0.136), (0.192, 0.124, 0.136)], hd, seg=20, cap_bottom=False, cap_top=False))
+            # the crown: a flat cloth top sunk a little inside the roll, its seam ring
+            add(M.loft([(0.19, 0.108, 0.12), (0.205, 0.104, 0.116), (0.208, 0.07, 0.08), (0.209, 0.0, 0.0)],
+                       self.mm('hat_crown', '#6a5c48', spec=0.03), seg=22, cap_bottom=False, cap_top=False))
+            add(M.loft([(0.204, 0.106, 0.118), (0.21, 0.106, 0.118)], hd, seg=22, cap_bottom=False, cap_top=False))
             # the roll's lower edge, and a fold where it's rolled
             add(M.loft([(0.109, 0.114, 0.126), (0.117, 0.12, 0.132)], hd, seg=20, cap_bottom=False, cap_top=False))
         elif hat == 'ushanka':
-            lift = M.translate(0, -0.012, 0.04) @ M.rot_x(-7)
-            add0_ = add
-
-            def add(mesh, tag='hat'):
-                add0_(mesh.transformed(lift), tag)
             fm = self.mm('hat', '#5e4e3c', spec=0.02)
             fd = self.mm('fur_dark', '#46392c', spec=0.02)
-            cm = self.mm('hat_top', '#3e3e36', spec=0.08)
-            # the crown: a cloth top domed above the fur, its seams
-            add(H._dome(0.128, 0.138, 0.13, cm, (0, -0.008, 0.17), 0.0))
-            sd = self.mm('hat_seam', '#2a2a24')
-            for ang in (0, 90):
-                add(M.loft([(-0.004, 0.129, 0.139), (0.004, 0.129, 0.139)], sd, seg=18, cap_bottom=False,
-                           cap_top=False).transformed(M.translate(0, -0.008, 0.17) @ M.rot_z(ang) @ M.rot_y(90)
-                                                      @ M.scale(1, 1, 1)))
-            # the fur band round it: tufted, two rings
-            add(M.loft([(0.10, 0.128, 0.14), (0.12, 0.145, 0.157), (0.17, 0.15, 0.162), (0.20, 0.142, 0.154),
-                        (0.21, 0.13, 0.142)], fm, seg=20, cap_bottom=True, cap_top=False))
-            # tufts along the band's top edge and the flap's edge (the fur's nap)
+            # the fur crown: a full rounded cap over the head, its nap in tufts
+            add(M.ellipsoid(0.14, 0.15, 0.11, fm, (0, -0.01, 0.17), seg=18))
             rng = np.random.default_rng(11)
-            for k in range(26):
-                a = 2 * math.pi * k / 26 + rng.uniform(-0.05, 0.05)
-                add(M.ellipsoid(0.026, 0.026, 0.02, fm if k % 3 else fd,
-                                (0.142 * math.cos(a), 0.152 * math.sin(a) - 0.008, 0.20 + rng.uniform(-0.006, 0.006)), seg=6))
-            # the front flap turned up
-            add(M.rounded_box(0.22, 0.05, 0.09, fm, (0, 0.0, 0.04), r=0.024, seg=8, p=3).transformed(
-                M.translate(0, 0.128, 0.165) @ M.rot_x(-12)))
-            add(M.rounded_box(0.20, 0.02, 0.012, fd, (0, 0.0, 0.0), r=0.006, seg=4, p=4).transformed(
-                M.translate(0, 0.15, 0.168) @ M.rot_x(-12)))
-            # the ear flaps folded up the sides against the crown and tied over it
+            for k in range(16):
+                a_ = rng.uniform(0, 2 * math.pi)
+                e = rng.uniform(0.1, 1.1)
+                x, y = 0.135 * math.cos(e) * math.cos(a_), 0.145 * math.cos(e) * math.sin(a_) - 0.01
+                add(M.ellipsoid(0.02, 0.02, 0.012, fm, (x, y, 0.17 + 0.105 * math.sin(e)), seg=6))
+            # the front flap turned up against the crown
+            add(M.rounded_box(0.20, 0.045, 0.085, fm, (0, 0.0, 0.0), r=0.02, seg=8, p=3).transformed(
+                M.translate(0, 0.142, 0.17) @ M.rot_x(-16)))
+            # the ear flaps folded up the sides, lying on the crown, tied over the top
             for sx in (1, -1):
-                add(M.rounded_box(0.04, 0.14, 0.075, fm, (0, 0, 0.03), r=0.02, seg=8, p=3).transformed(
-                    M.translate(sx * 0.132, -0.025, 0.17) @ M.rot_y(sx * 30)))
+                add(M.ellipsoid(0.03, 0.075, 0.06, fm, (0, 0, 0), seg=10).transformed(
+                    M.translate(sx * 0.118, -0.02, 0.235) @ M.rot_y(sx * 40)))
             tie = self.mm('tie', '#2a2218')
-            add(M.capsule((0.11, -0.025, 0.235), (0.0, -0.02, 0.283), 0.008, 0.008, tie, seg=4, rings=1))
-            add(M.capsule((-0.11, -0.025, 0.235), (0.0, -0.02, 0.283), 0.008, 0.008, tie, seg=4, rings=1))
-            add(M.sphere(0.014, tie, (0.0, -0.02, 0.286), seg=6))
+            add(M.capsule((0.09, -0.02, 0.268), (-0.09, -0.02, 0.268), 0.008, 0.008, tie, seg=4, rings=1))
+            add(M.sphere(0.014, tie, (0.0, -0.02, 0.28), seg=6))
             rb = p.get('ribbon')
             if rb:
+                # the star on the front flap
                 rm = self.mm(rb, '#c03028')
-                add(M.rounded_box(0.23, 0.014, 0.034, rm, (0, 0, 0), r=0.006, seg=4, p=4).transformed(
-                    M.translate(0, 0.158, 0.205) @ M.rot_x(-12) @ M.rot_y(-28)))
+                pts = []
+                for i in range(10):
+                    r_ = 0.042 if i % 2 == 0 else 0.018
+                    a_ = math.pi / 2 + i * math.pi / 5
+                    pts.append((r_ * math.cos(a_), r_ * math.sin(a_)))
+                add(M.extrude([(x * 1.4, y * 1.4) for x, y in pts], 0.014, rm).transformed(M.translate(0, 0.17, 0.172) @ M.rot_x(90 - 16)))
         else:
             super()._hat(add0)
         if p.get('chinstraps'):
@@ -816,57 +846,45 @@ class Irregular(LF.LeagueSoldier):
 
     # -- dying: struck, the knees go, he slumps onto his left side, the gun still in his hands
     def anim_slump(self, ctx):
-        B = self.base
-        down = ctx.event('down', 0.6) if ctx is not None else 0.6
-        down = min(max(down or 0.6, 0.4), 0.85)
-        fk = {'thigh_r': (0, 0, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 0, 0), 'shin_l': (0, 0, 0),
-              'root_rot': (0, 0, 0)}
-        z = {c: B[c] for c in ('root_pos', 'chest', 'spine', 'head') if c in B}
+        """Shot: the knees buckle, he sits back and falls flat on his back,
+        the feet on the ground all the way (legs on IK); the weapon falls
+        from his hands early and lands clear at his side (the stock drop)."""
+        B = dict(self.base)
+        down = ctx.event('down', 0.55) if ctx is not None else 0.55
+        down = min(max(down or 0.55, 0.35), 0.85)
+        A_ = H.ANKLE_H
         lo = float(self.p.get('death_low', 0.0))
+        fr, fl = tuple(B['foot_r']), tuple(B['foot_l'])
+        slack = {'hand_r': (0.34, 0.02, 0.84), 'hand_l': (-0.36, 0.06, 0.86), 'support': 0.0,
+                 'elbow_r': (0.9, -0.3, -0.2), 'elbow_l': (-0.9, -0.2, -0.2)}
+        up = {'hand_r': (0.32, 0.10, 1.10), 'hand_l': (-0.32, 0.12, 1.10), 'support': 0.0,
+              'elbow_r': (0.9, -0.3, -0.3), 'elbow_l': (-0.9, -0.3, -0.3)}
         k0 = {}
         if lo:
-            # the cell is short: he is already doubled over when the death starts
-            k0 = {'root_pos': (0, 0.0, -lo), 'thigh_r': (30, 0, 0), 'shin_r': (-55, 0, 0), 'thigh_l': (22, 0, 0),
-                  'shin_l': (-40, 0, 0), 'chest': (-14, 0, -6), 'head': (14, 0, 0), 'root_rot': (-8, 0, 0)}
+            k0 = {'root_pos': (0, -0.03, -lo), 'root_rot': (6, 0, 2), 'chest': (8, 0, 4), 'head': (14, 0, 0),
+                  'foot_r': fr, 'foot_l': fl}
         k = [
             (0.0, k0),
-            (0.14, {'root_rot': (6 if not lo else -10, -4, 0), 'root_pos': (0, -0.04, -0.02 - lo),
-                    'chest': (6 if not lo else -16, 0, -6), 'head': (10, 0, 0),
-                    'thigh_r': (4 + (30 if lo else 0), 0, 0), 'shin_r': (-6 - (55 if lo else 0), 0, 0),
-                    'thigh_l': (22 if lo else 0, 0, 0), 'shin_l': (-40 if lo else 0, 0, 0)}),
-            (0.34, {'root_rot': (-14, -8, 0), 'root_pos': (0, 0.02, -0.27), 'chest': (-12, 0, -6), 'head': (12, 0, 0),
-                    'thigh_r': (45, 0, 0), 'shin_r': (-82, 0, 0), 'thigh_l': (32, 0, 0), 'shin_l': (-64, 0, 0)}),
-            (0.55, {'root_rot': (-20, -24, 0), 'root_pos': (-0.04, 0.05, -0.42), 'chest': (-14, 0, -4),
-                    'head': (14, -6, 0), 'thigh_r': (22, 0, 0), 'shin_r': (-98, 0, 0), 'thigh_l': (18, 0, 0),
-                    'shin_l': (-96, 0, 0)}),
-            (0.76, {'root_rot': (-12, -66, 0), 'root_pos': (-0.30, 0.05, -0.64), 'chest': (-6, 0, 6),
-                    'head': (6, -14, 0), 'thigh_r': (48, 0, 0), 'shin_r': (-74, 0, 0), 'thigh_l': (36, 0, 0),
-                    'shin_l': (-58, 0, 0), 'elbow_r': (0.2, -0.4, 1.0), 'elbow_l': (-0.4, -0.6, 0.6)}),
-            (0.88, {'root_rot': (-6, -86, 0), 'root_pos': (-0.42, 0.05, -0.75), 'chest': (0, -4, 6),
-                    'head': (4, -20, 0), 'thigh_r': (52, 0, 0), 'shin_r': (-70, 0, 0), 'thigh_l': (34, 0, 0),
-                    'shin_l': (-56, 0, 0), 'elbow_r': (0.2, -0.4, 1.0), 'elbow_l': (-0.4, -0.6, 0.6)}),
-            (1.0, {'root_rot': (-6, -88, 0), 'root_pos': (-0.43, 0.05, -0.76), 'chest': (0, -4, 8),
-                   'head': (6, -24, 0), 'thigh_r': (54, 0, 0), 'shin_r': (-72, 0, 0), 'thigh_l': (34, 0, 0),
-                   'shin_l': (-56, 0, 0), 'elbow_r': (0.2, -0.4, 1.0), 'elbow_l': (-0.4, -0.6, 0.6)}),
+            (0.14, dict(up, root_rot=(8, 0, 4), root_pos=(0, -0.04, -0.03 - lo), chest=(10, 0, 6), head=(18, 0, 0),
+                        foot_r=fr, foot_l=fl)),
+            (0.30, dict(up, root_rot=(14, 0, 8), root_pos=(0, -0.10, -0.36), spine=(8, 0, 0), chest=(14, 0, 6),
+                        head=(20, 0, 0), foot_r=fr, foot_l=fl)),
+            (0.52, dict(slack, root_rot=(46, 0, 8), root_pos=(0, -0.32, -0.62), spine=(6, 0, 0), chest=(8, 0, 4),
+                        head=(14, 0, 8), foot_r=(0.18, 0.06, A_), foot_l=(-0.17, 0.12, A_))),
+            (0.74, dict(slack, root_rot=(86, 0, 6), root_pos=(0, -0.52, -0.75), spine=(0, 0, 0), chest=(0, 0, 2),
+                        head=(-6, 0, 18), foot_r=(0.22, 0.22, A_), foot_l=(-0.18, 0.26, A_))),
+            (1.0, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.54, -0.77), spine=(0, 0, 0), chest=(0, 0, 2),
+                       head=(-8, 0, 22), foot_r=(0.24, 0.24, A_), foot_l=(-0.18, 0.28, A_),
+                       toe_r=-30.0, toe_l=-30.0)),
         ]
-        hold = {c: B[c] for c in ('hand_r', 'hand_l', 'w_main', 'w_off') if c in B}
-        k = [(t, dict({c: _v(v) for c, v in d.items()})) for t, d in k]
-        base = dict(B, **{c: _v(v) for c, v in fk.items()})
-        base.update(z)
-        anim = H.keys(base, k)
+        anim = H.keys(B, k)
 
         def fn(t):
-            p = anim(H._warp(t, [(0.76, down)]))
-            for c, v in hold.items():
-                p[c] = v
-            # the hands loosen a little as he goes down
-            u = min(1.0, max(0.0, (t - 0.3) / 0.5))
-            p['hand_r'] = p['hand_r'] + _v((0.0, -0.04, -0.10)) * u
-            p['hand_l'] = p['hand_l'] + _v((0.0, -0.04, -0.10)) * u
+            p = anim(H._warp(t, [(0.52, down)]))
             p['follow'] = _v(1.0)
             p['dead_t'] = _v(t)
             return p
-        return FM.Act(fn, legs='fk', arms='ik')
+        return FM.Act(fn, legs='ik', arms='ik', drop_t=float(self.p.get('drop_t', 0.16)))
 
     # -- the thrower: the bottle in the left hand
     def anim_throw(self, ctx):
@@ -892,15 +910,17 @@ class Irregular(LF.LeagueSoldier):
         rest = {c: B[c] for c in ('hand_l', 'w_off', 'elbow_l', 'chest', 'spine', 'head',
                                   'root_pos', 'foot_l', 'foot_r', 'fyaw_l', 'toe_l') if c in B}
         rest['in_hand'] = 1.0
-        k = [(0.0, {'in_hand': 1.0}), (0.22, wind), (0.30, wind), (0.45, rel), (0.58, foll), (0.74, bag),
-             (0.80, dict(bag, in_hand=1.0)), (1.0, rest)]
+        reach = dict(bag, hand_l=(-0.30, 0.06, 0.96))
+        lift = dict(bag, hand_l=(-0.34, 0.10, 0.94), head=(6, 0, -12))
+        k = [(0.0, {'in_hand': 1.0}), (0.22, wind), (0.30, wind), (0.45, rel), (0.56, foll), (0.66, reach),
+             (0.74, bag), (0.80, bag), (0.88, lift), (1.0, rest)]
         k = [(t, {c: _v(v) for c, v in d.items()}) for t, d in k]
         anim = H.keys(dict(B, in_hand=_v(1.0), fyaw_l=_v(B.get('fyaw_l', 12.0)), toe_l=_v(0.0)), k)
 
         def fn(t):
             tt = H._warp(t, [(0.45, st)])
             p = anim(tt)
-            p['in_hand'] = _v(1.0 if (tt < 0.455 or tt >= 0.77) else 0.0)
+            p['in_hand'] = _v(1.0 if (tt < 0.455 or tt >= 0.75) else 0.0)
             p['throw_t'] = _v(tt)
             p['follow'] = _v(0.0)
             return p
@@ -937,23 +957,30 @@ class Irregular(LF.LeagueSoldier):
         pose = act.fn(t)
         in_hand = float(pose.get('in_hand', 1.0)) > 0.5
         dead_t = float(pose.get('dead_t', -1.0))
-        dropped = dead_t >= 0.30
-        mesh, info = self.pose_full(pose, act, self.weapon, 'molotov' if (in_hand and not dropped) else None)
+        dropped = act.drop_t is not None and t >= act.drop_t
+        mesh, info = self.pose_full(pose, act, None if dropped else self.weapon,
+                                    'molotov' if (in_hand and not dropped) else None)
         extra = []
         fx = []
         flames = []
+        if dropped:
+            off, self.offhand = self.offhand, None
+            try:
+                extra += self._dropped(act, t, self.weapon)
+            finally:
+                self.offhand = off
         if in_hand and not dropped:
             T = info['T']['l']
             flames.append((T[:3, :3] @ _v(IG.FLAME_AT) + T[:3, 3], 1.0))
         if dropped:
-            # the bottle fell from his hand as he went down and burns where it lies
+            # the bottle flies from his hand as he falls and burns where it lies, clear of him on his left
             key = ('dropbottle', id(act))
             if key not in self._cache:
-                _, Ts, _ = self._solve(act.fn(0.30), act)
+                _, Ts, _ = self._solve(act.fn(act.drop_t), act)
                 p0 = Ts['l'][:3, 3].copy()
-                self._cache[key] = (p0, _v((p0[0] - 0.22, p0[1] + 0.30, 0.04)))
+                self._cache[key] = (p0, _v((p0[0] - 0.55, p0[1] + 0.35, 0.04)))
             p0, land = self._cache[key]
-            u = min(1.0, (dead_t - 0.30) / 0.15)
+            u = min(1.0, (dead_t - act.drop_t) / 0.2)
             pos = p0 * (1 - u) + land * u
             pos[2] = p0[2] * (1 - u * u) + land[2] * u * u
             T = M.translate(*pos) @ M.rot_z(30) @ M.rot_x(-90 * u)
