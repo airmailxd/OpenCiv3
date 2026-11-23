@@ -1,0 +1,2124 @@
+{
+ "comment": [
+  "The League modes' own Civilopedia keys and art in standalone mode (batch 0).",
+  "Made by hand from the art audit (C:/Dev/_handoff/audit/missing-art.md); read by",
+  "C7Engine/GameSetup.LeagueArt.cs (keys, unit art, leader heads), ArtGen/civilopedia_icons",
+  "(league entries for PediaIcons.txt and icon_files.lua) and EngineTests (LeagueArtTest).",
+  "Per mode and section, by the item's exact name: key = its Civilopedia key in standalone",
+  "mode; art = the stem of its picture; status: new (a new picture, pending until it lands),",
+  "stock (an existing picture), done (drawn already). Units: art is the art folder name.",
+  "Leaders: by civ name, with the leader name and the portrait stem (Art/Leaderheads/<art>.png)."
+ ],
+ "modes": {
+  "mptournament": {
+   "techs": {
+    "Radio": {
+     "from": "TECH_Radio",
+     "key": "TECH_Radio",
+     "art": "Radio",
+     "status": "new",
+     "priority": "P1",
+     "note": "TECH_Radio is its own key; one icon serves Future too"
+    }
+   }
+  },
+  "qc": {
+   "techs": {
+    "Amphibious Assault": {
+     "from": "TECH_Ironclads",
+     "key": "TECH_QC_Amphibious_Assault",
+     "art": "QC_Amphibious_Assault",
+     "status": "new",
+     "priority": "P1"
+    },
+    "The Tech Tree Is Done": {
+     "from": "TECH_Electronics",
+     "key": "TECH_QC_The_Tech_Tree_Is_Done",
+     "art": "QC_The_Tech_Tree_Is_Done",
+     "status": "new",
+     "priority": "P2",
+     "note": "end marker"
+    },
+    "End Of Game": {
+     "from": "TECH_Stealth",
+     "key": "TECH_QC_End_Of_Game",
+     "art": "QC_End_Of_Game",
+     "status": "new",
+     "priority": "P2",
+     "note": "end marker"
+    }
+   },
+   "buildings": {
+    "Palace": {
+     "from": "BLDG_Pyramids",
+     "key": "BLDG_Palace",
+     "art": "Palace",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer; The Pyramids keeps BLDG_Pyramids"
+    }
+   },
+   "resources": {
+    "Wheat ": {
+     "from": "GOOD_Oil",
+     "key": "GOOD_QC_Wheat_Strategic",
+     "art": "Wheat",
+     "status": "stock",
+     "priority": "P2",
+     "note": "strategic copy; pointer to the Wheat icon"
+    },
+    "Game ": {
+     "from": "GOOD_Aluminum",
+     "key": "GOOD_QC_Game_Strategic",
+     "art": "Game",
+     "status": "stock",
+     "priority": "P2",
+     "note": "strategic copy; pointer to the Game icon"
+    },
+    "Oasis ": {
+     "from": "GOOD_Uranium",
+     "key": "GOOD_QC_Oasis_Strategic",
+     "art": "Oasis",
+     "status": "stock",
+     "priority": "P2",
+     "note": "strategic copy; pointer to the Oasis icon"
+    },
+    "Whale  ": {
+     "from": "GOOD_Whales",
+     "key": "GOOD_QC_Whale_Strategic",
+     "art": "Whales",
+     "status": "stock",
+     "priority": "P3",
+     "note": "copy; own page"
+    }
+   },
+   "units": {
+    "Teutonic Knight": {
+     "from": "PRTO_Knight",
+     "key": "PRTO_QC_Teutonic_Knight",
+     "art": "Teutonic Knight",
+     "status": "new",
+     "priority": "P2",
+     "note": "Germany's unique unit"
+    },
+    "Ama": {
+     "from": "PRTO_Curragh",
+     "key": "PRTO_QC_Ama",
+     "art": "Curragh",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Ama\""
+    },
+    "Sub Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_QC_Sub_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Sub Cruise\""
+    },
+    "Coal Transport": {
+     "from": "PRTO_Transport",
+     "key": "PRTO_QC_Coal_Transport",
+     "art": "Transport",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Coal Transport\""
+    },
+    "Basilica Cannon": {
+     "from": "PRTO_Cannon",
+     "key": "PRTO_QC_Basilica_Cannon",
+     "art": "Cannon",
+     "status": "stock",
+     "priority": "P3",
+     "note": "can't be built"
+    },
+    "English Longbow": {
+     "from": "PRTO_Longbowman",
+     "key": "PRTO_QC_English_Longbow",
+     "art": "Longbowman",
+     "status": "stock",
+     "priority": "P3",
+     "note": "own page"
+    },
+    "Janissary Slave(Foot Transport)": {
+     "from": "PRTO_Brennus",
+     "key": "PRTO_QC_Janissary_Slave",
+     "art": "King Celtic",
+     "status": "stock",
+     "priority": "P3",
+     "note": "can't be built; drawn as King Celtic as in the BIQ"
+    }
+   }
+  },
+  "modern": {
+   "techs": {
+    "Wartime (Draft)": {
+     "from": "TECH_Chivalry",
+     "key": "TECH_MODERN_Wartime",
+     "art": "MODERN_Wartime",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Cold War": {
+     "from": "TECH_Space_Flight",
+     "key": "TECH_MODERN_Cold_War",
+     "art": "MODERN_Cold_War",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Cargo": {
+     "from": "TECH_Flight",
+     "key": "TECH_MODERN_Cargo",
+     "art": "MODERN_Cargo",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Explosives": {
+     "from": "TECH_Chemistry",
+     "key": "TECH_MODERN_Explosives",
+     "art": "MODERN_Explosives",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Transportation": {
+     "from": "TECH_Superconductor",
+     "key": "TECH_MODERN_Transportation",
+     "art": "MODERN_Transportation",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Protection": {
+     "from": "TECH_Espionage",
+     "key": "TECH_MODERN_Protection",
+     "art": "MODERN_Protection",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Tour Of Duty": {
+     "from": "TECH_Ironclads",
+     "key": "TECH_MODERN_Tour_Of_Duty",
+     "art": "MODERN_Tour_Of_Duty",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Warships": {
+     "from": "TECH_Mass_Production",
+     "key": "TECH_MODERN_Warships",
+     "art": "MODERN_Warships",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Munitions": {
+     "from": "TECH_Metallurgy",
+     "key": "TECH_MODERN_Munitions",
+     "art": "MODERN_Munitions",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Combat Stims": {
+     "from": "TECH_Medicine",
+     "key": "TECH_MODERN_Combat_Stims",
+     "art": "MODERN_Combat_Stims",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Seapower": {
+     "from": "TECH_Combustion",
+     "key": "TECH_MODERN_Seapower",
+     "art": "MODERN_Seapower",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Tactics": {
+     "from": "TECH_Motorized_Transportation",
+     "key": "TECH_MODERN_Tactics",
+     "art": "MODERN_Tactics",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Commandos": {
+     "from": "TECH_Military_Tradition",
+     "key": "TECH_MODERN_Commandos",
+     "art": "MODERN_Commandos",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Thermobarics": {
+     "from": "TECH_Bronze_Working",
+     "key": "TECH_MODERN_Thermobarics",
+     "art": "MODERN_Thermobarics",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Railroads": {
+     "from": "TECH_Electronics",
+     "key": "TECH_MODERN_Railroads",
+     "art": "MODERN_Railroads",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Hegemony": {
+     "from": "TECH_Invention",
+     "key": "TECH_MODERN_Hegemony",
+     "art": "MODERN_Hegemony",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Barrier Tech": {
+     "from": "TECH_Integrated_Defense",
+     "key": "TECH_MODERN_Barrier_Tech",
+     "art": "MODERN_Barrier_Tech",
+     "status": "new",
+     "priority": "P2",
+     "note": "one shared icon"
+    },
+    "Barrier Tech 2": {
+     "from": "TECH_Integrated_Defense",
+     "key": "TECH_MODERN_Barrier_Tech_2",
+     "art": "MODERN_Barrier_Tech",
+     "status": "new",
+     "priority": "P2",
+     "note": "one shared icon"
+    },
+    "Modern Barrier Tech": {
+     "from": "TECH_Integrated_Defense",
+     "key": "TECH_MODERN_Modern_Barrier_Tech",
+     "art": "MODERN_Barrier_Tech",
+     "status": "new",
+     "priority": "P2",
+     "note": "one shared icon"
+    },
+    "Ideology": {
+     "from": "TECH_Communism",
+     "key": "TECH_MODERN_Ideology",
+     "art": "Communism",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Death Robots": {
+     "from": "TECH_Robotics",
+     "key": "TECH_MODERN_Death_Robots",
+     "art": "Robotics",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Nuclear War": {
+     "from": "TECH_Nuclear_Power",
+     "key": "TECH_MODERN_Nuclear_War",
+     "art": "Nuclear_Power",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Lasers": {
+     "from": "TECH_The_Laser",
+     "key": "TECH_The_Laser",
+     "art": "The_Laser",
+     "status": "stock",
+     "priority": "P3",
+     "note": "same thing as The Laser"
+    },
+    "Gene Splicing": {
+     "from": "TECH_Genetics",
+     "key": "TECH_Genetics",
+     "art": "Genetics",
+     "status": "stock",
+     "priority": "P3",
+     "note": "same thing as Genetics"
+    },
+    "Mysticism": {
+     "from": "TECH_Communism",
+     "key": "TECH_Mysticism",
+     "art": "Mysticism",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    },
+    "Currency": {
+     "from": "TECH_Fascism",
+     "key": "TECH_Currency",
+     "art": "Currency",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    },
+    "Democracy": {
+     "from": "TECH_Currency",
+     "key": "TECH_Democracy",
+     "art": "Democracy",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    }
+   },
+   "buildings": {
+    "O Experiments Pt1 (PowerCruz/9)": {
+     "from": "BLDG_Mausoleum",
+     "key": "BLDG_MODERN_O_Experiments",
+     "art": "MODERN_O_Experiments",
+     "status": "new",
+     "priority": "P1"
+    },
+    "T Service (Worker/2, +7 GPT)": {
+     "from": "BLDG_Universal_Suffrage",
+     "key": "BLDG_MODERN_T_Service",
+     "art": "MODERN_T_Service",
+     "status": "new",
+     "priority": "P1"
+    },
+    "F Fighters (Fighter/5t)": {
+     "from": "BLDG_SETI_Program",
+     "key": "BLDG_MODERN_F_Fighters",
+     "art": "MODERN_F_Fighters",
+     "status": "new",
+     "priority": "P1"
+    },
+    "F Prosperity": {
+     "from": "BLDG_Longevity",
+     "key": "BLDG_MODERN_F_Prosperity",
+     "art": "MODERN_F_Prosperity",
+     "status": "new",
+     "priority": "P1"
+    },
+    "E Utopia (+4 Happy All Cities)": {
+     "from": "BLDG_Solar_System",
+     "key": "BLDG_MODERN_E_Utopia",
+     "art": "MODERN_E_Utopia",
+     "status": "new",
+     "priority": "P1"
+    },
+    "T Guard (+5 GPT, Marine/4t)": {
+     "from": "BLDG_Knights_Templar",
+     "key": "BLDG_MODERN_T_Guard",
+     "art": "MODERN_T_Guard",
+     "status": "new",
+     "priority": "P1"
+    },
+    "O Propaganda (+17 Culture)": {
+     "from": "BLDG_SAM_Missile_Battery",
+     "key": "BLDG_MODERN_O_Propaganda",
+     "art": "MODERN_O_Propaganda",
+     "status": "new",
+     "priority": "P1"
+    },
+    "O CCTV (+25% Prod + Happy /GPT)": {
+     "from": "BLDG_Mass_Transit_System",
+     "key": "BLDG_MODERN_O_CCTV",
+     "art": "MODERN_O_CCTV",
+     "status": "new",
+     "priority": "P1"
+    },
+    "O Subjugation (Hospital)": {
+     "from": "BLDG_Battlefield_Medicine",
+     "key": "BLDG_MODERN_O_Subjugation",
+     "art": "MODERN_O_Subjugation",
+     "status": "new",
+     "priority": "P1"
+    },
+    "O Experiments Part 2 (European Union)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_European_Union",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (European Union)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_European_Union",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (USSR)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_USSR",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (China)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_China",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (America)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_America",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Japan)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Japan",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (India)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_India",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Brazil)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Brazil",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Saudi Arabia)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Saudi_Arabia",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Iran)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Iran",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Indonesia)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Indonesia",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Mexico)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Mexico",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Egypt)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Egypt",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Nigeria)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Nigeria",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Canada)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Canada",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Australia)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Australia",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Vietnam)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Vietnam",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Pakistan)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Pakistan",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "T Service Part 2 (Israel)": {
+     "from": "BLDG_United_Nations",
+     "key": "BLDG_MODERN_T_Service_Part_2_Israel",
+     "art": "MODERN_T_Service_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (USSR)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_USSR",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (China)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_China",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (America)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_America",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Japan)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Japan",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (India)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_India",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Brazil)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Brazil",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Saudi Arabia)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Saudi_Arabia",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Iran)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Iran",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Indonesia)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Indonesia",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Mexico)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Mexico",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Egypt)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Egypt",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Nigeria)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Nigeria",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Canada)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Canada",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Australia)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Australia",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Pakistan)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Pakistan",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Experiments Part 2 (Israel)": {
+     "from": "BLDG_Theory_of_Evolution",
+     "key": "BLDG_MODERN_O_Experiments_Part_2_Israel",
+     "art": "MODERN_O_Experiments_Part_2",
+     "status": "new",
+     "priority": "P1",
+     "note": "one icon for all the civs' copies"
+    },
+    "O Barracks (+1 Gold)": {
+     "from": "BLDG_Barracks",
+     "key": "BLDG_MODERN_O_Barracks",
+     "art": "Barracks",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Barracks": {
+     "from": "BLDG_Barracks",
+     "key": "BLDG_MODERN_E_Barracks",
+     "art": "Barracks",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Barracks": {
+     "from": "BLDG_Barracks",
+     "key": "BLDG_MODERN_T_Barracks",
+     "art": "Barracks",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Barracks": {
+     "from": "BLDG_Barracks",
+     "key": "BLDG_MODERN_F_Barracks",
+     "art": "Barracks",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Granary (+1 Happy)": {
+     "from": "BLDG_Granary",
+     "key": "BLDG_MODERN_E_Granary",
+     "art": "Granary",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Granary": {
+     "from": "BLDG_Granary",
+     "key": "BLDG_MODERN_F_Granary",
+     "art": "Granary",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Granary (+1 Happy)": {
+     "from": "BLDG_Granary",
+     "key": "BLDG_MODERN_O_Granary",
+     "art": "Granary",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Granary": {
+     "from": "BLDG_Granary",
+     "key": "BLDG_MODERN_T_Granary",
+     "art": "Granary",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Temple (+3 Happy and +1 GPT)": {
+     "from": "BLDG_Temple",
+     "key": "BLDG_MODERN_T_Temple",
+     "art": "Temple",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Cathedral (Courthouse)": {
+     "from": "BLDG_Cathedral",
+     "key": "BLDG_MODERN_T_Cathedral",
+     "art": "Cathedral",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Marketplace": {
+     "from": "BLDG_Marketplace",
+     "key": "BLDG_MODERN_T_Marketplace",
+     "art": "Marketplace",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Market (Less Corruption)": {
+     "from": "BLDG_Marketplace",
+     "key": "BLDG_MODERN_F_Market",
+     "art": "Marketplace",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Bank (+50% Sci, Less Corrupt)": {
+     "from": "BLDG_Bank",
+     "key": "BLDG_MODERN_F_Bank",
+     "art": "Bank",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Exchange (+50%Lux +2Happy)": {
+     "from": "BLDG_Stock_Exchange",
+     "key": "BLDG_MODERN_F_Exchange",
+     "art": "Stock_Exchange",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Harbor": {
+     "from": "BLDG_Harbor",
+     "key": "BLDG_MODERN_E_Harbor",
+     "art": "Harbor",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Harbor (+1 Culture)": {
+     "from": "BLDG_Harbor",
+     "key": "BLDG_MODERN_F_Harbor",
+     "art": "Harbor",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Harbour": {
+     "from": "BLDG_Harbor",
+     "key": "BLDG_MODERN_O_Harbour",
+     "art": "Harbor",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Harbor": {
+     "from": "BLDG_Harbor",
+     "key": "BLDG_MODERN_T_Harbor",
+     "art": "Harbor",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Offshore": {
+     "from": "BLDG_Offshore_Platform",
+     "key": "BLDG_MODERN_E_Offshore",
+     "art": "Offshore_Platform",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Offshore": {
+     "from": "BLDG_Offshore_Platform",
+     "key": "BLDG_MODERN_F_Offshore",
+     "art": "Offshore_Platform",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Offshore": {
+     "from": "BLDG_Offshore_Platform",
+     "key": "BLDG_MODERN_O_Offshore",
+     "art": "Offshore_Platform",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Offshore": {
+     "from": "BLDG_Offshore_Platform",
+     "key": "BLDG_MODERN_T_Offshore",
+     "art": "Offshore_Platform",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Airport": {
+     "from": "BLDG_Airport",
+     "key": "BLDG_MODERN_T_Airport",
+     "art": "Airport",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Airport": {
+     "from": "BLDG_Airport",
+     "key": "BLDG_MODERN_F_Airport",
+     "art": "Airport",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Airport": {
+     "from": "BLDG_Airport",
+     "key": "BLDG_MODERN_O_Airport",
+     "art": "Airport",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Airport (+25%Prod +1Happy)": {
+     "from": "BLDG_Airport",
+     "key": "BLDG_MODERN_E_Airport",
+     "art": "Airport",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Coal Plant": {
+     "from": "BLDG_Coal_Plant",
+     "key": "BLDG_MODERN_E_Coal_Plant",
+     "art": "Coal_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Coal Plant": {
+     "from": "BLDG_Coal_Plant",
+     "key": "BLDG_MODERN_F_Coal_Plant",
+     "art": "Coal_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Coal Plant": {
+     "from": "BLDG_Coal_Plant",
+     "key": "BLDG_MODERN_O_Coal_Plant",
+     "art": "Coal_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Coal Plant": {
+     "from": "BLDG_Coal_Plant",
+     "key": "BLDG_MODERN_T_Coal_Plant",
+     "art": "Coal_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Hydro Plant": {
+     "from": "BLDG_Hydro_Plant",
+     "key": "BLDG_MODERN_E_Hydro_Plant",
+     "art": "Hydro_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "F Hydro Plant": {
+     "from": "BLDG_Hydro_Plant",
+     "key": "BLDG_MODERN_F_Hydro_Plant",
+     "art": "Hydro_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "O Hydro Plant": {
+     "from": "BLDG_Hydro_Plant",
+     "key": "BLDG_MODERN_O_Hydro_Plant",
+     "art": "Hydro_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Hydro Plant": {
+     "from": "BLDG_Hydro_Plant",
+     "key": "BLDG_MODERN_T_Hydro_Plant",
+     "art": "Hydro_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "T Nuclear Plant  (+75% Shields)": {
+     "from": "BLDG_Nuclear_Plant",
+     "key": "BLDG_MODERN_T_Nuclear_Plant",
+     "art": "Nuclear_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "government copy; optional badge icon later"
+    },
+    "E Statue (Colossus, +3 Happy)": {
+     "from": "BLDG_Colossus",
+     "key": "BLDG_MODERN_E_Statue",
+     "art": "Colossus",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "+2 Ship Moves": {
+     "from": "BLDG_Circumnavigation",
+     "key": "BLDG_MODERN_2_Ship_Moves",
+     "art": "Circumnavigation",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Spectator Center": {
+     "from": "BLDG_Intelligence_Center",
+     "key": "BLDG_MODERN_Spectator_Center",
+     "art": "Intelligence_Center",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Barracks": {
+     "from": "BLDG_Barracks",
+     "key": "BLDG_Barracks",
+     "art": "Barracks",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock building"
+    },
+    "Nuclear Plant (+75% Shields)": {
+     "from": "BLDG_Nuclear_Plant",
+     "key": "BLDG_Nuclear_Plant",
+     "art": "Nuclear_Plant",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock building"
+    },
+    "Sun Tzu's": {
+     "from": "BLDG_Art_of_War",
+     "key": "BLDG_Art_of_War",
+     "art": "Art_of_War",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock building"
+    },
+    "Military Acad (+7 GPT)": {
+     "from": "BLDG_Military_Academy",
+     "key": "BLDG_Military_Academy",
+     "art": "Military_Academy",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock building"
+    },
+    "Intelligence Agency": {
+     "from": "BLDG_Intelligence_Center",
+     "key": "BLDG_Intelligence_Center",
+     "art": "Intelligence_Center",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock building"
+    }
+   },
+   "governments": {
+    "Equality": {
+     "from": "GOVT_Communism",
+     "key": "GOVT_MODERN_Equality",
+     "art": "MODERN_Equality",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Tradition": {
+     "from": "GOVT_Republic",
+     "key": "GOVT_MODERN_Tradition",
+     "art": "MODERN_Tradition",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Freedom": {
+     "from": "GOVT_Democracy",
+     "key": "GOVT_MODERN_Freedom",
+     "art": "MODERN_Freedom",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Order": {
+     "from": "GOVT_Fascism",
+     "key": "GOVT_MODERN_Order",
+     "art": "MODERN_Order",
+     "status": "new",
+     "priority": "P2"
+    },
+    "!Switch Governments!": {
+     "from": "GOVT_Despotism",
+     "key": "GOVT_MODERN_Switch_Governments",
+     "art": "Despotism",
+     "status": "stock",
+     "priority": "P3"
+    }
+   },
+   "resources": {
+    "Pearls": {
+     "from": "GOOD_Diamonds",
+     "key": "GOOD_MODERN_Pearls",
+     "art": "LEAGUE_Pearls",
+     "status": "new",
+     "cell": 28,
+     "priority": "P3",
+     "note": "map cell 28 (shared with MDJ)"
+    },
+    "Beach Resort": {
+     "from": "GOOD_Oasis",
+     "key": "GOOD_MODERN_Beach_Resort",
+     "art": "MODERN_Beach_Resort",
+     "status": "new",
+     "cell": 29,
+     "priority": "P3",
+     "note": "map cell 29"
+    }
+   },
+   "civs": {
+    "European Union": {
+     "from": "RACE_GERMANS",
+     "key": "RACE_MODERN_European_Union",
+     "art": "MODERN_European_Union",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_GERMANS's"
+    },
+    "USSR": {
+     "from": "RACE_RUSSIAN",
+     "key": "RACE_MODERN_USSR",
+     "art": "MODERN_USSR",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_RUSSIAN's"
+    },
+    "Iran": {
+     "from": "RACE_PERSIAN",
+     "key": "RACE_MODERN_Iran",
+     "art": "MODERN_Iran",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_PERSIAN's"
+    },
+    "Mexico": {
+     "from": "RACE_AZTECS",
+     "key": "RACE_MODERN_Mexico",
+     "art": "MODERN_Mexico",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_AZTECS's"
+    },
+    "Nigeria": {
+     "from": "RACE_ZULU",
+     "key": "RACE_MODERN_Nigeria",
+     "art": "MODERN_Nigeria",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_ZULU's"
+    },
+    "Canada": {
+     "from": "RACE_IROQUOIS",
+     "key": "RACE_MODERN_Canada",
+     "art": "MODERN_Canada",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_IROQUOIS's"
+    },
+    "Brazil": {
+     "from": "RACE_ENGLISH",
+     "key": "RACE_MODERN_Brazil",
+     "art": "MODERN_Brazil",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_ENGLISH's"
+    },
+    "Australia": {
+     "from": "RACE_Vikings",
+     "key": "RACE_MODERN_Australia",
+     "art": "MODERN_Australia",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_Vikings's"
+    },
+    "Saudi Arabia": {
+     "from": "RACE_Arabs",
+     "key": "RACE_MODERN_Saudi_Arabia",
+     "art": "MODERN_Saudi_Arabia",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_Arabs's"
+    },
+    "Indonesia": {
+     "from": "RACE_Carthaginians",
+     "key": "RACE_MODERN_Indonesia",
+     "art": "MODERN_Indonesia",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_Carthaginians's"
+    },
+    "Israel": {
+     "from": "RACE_SUMERIA",
+     "key": "RACE_MODERN_Israel",
+     "art": "MODERN_Israel",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_SUMERIA's"
+    },
+    "Pakistan": {
+     "from": "RACE_HATTI",
+     "key": "RACE_MODERN_Pakistan",
+     "art": "MODERN_Pakistan",
+     "status": "new",
+     "priority": "P2",
+     "note": "emblem; was RACE_HATTI's"
+    }
+   },
+   "units": {
+    "Partisans (8/4/1)": {
+     "from": "PRTO_TOW_Infantry",
+     "key": "PRTO_MODERN_Partisans",
+     "art": "Partisans",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Roughrider (Enslaves Worker)": {
+     "from": "PRTO_Cossack",
+     "key": "PRTO_MODERN_Roughrider",
+     "art": "Roughrider",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Special Forces": {
+     "from": "PRTO_Guerilla",
+     "key": "PRTO_MODERN_Special_Forces",
+     "art": "Special Forces",
+     "status": "new",
+     "priority": "P2",
+     "note": "same art as Future's"
+    },
+    "Fighter": {
+     "from": "PRTO_Fighter",
+     "key": "PRTO_Fighter",
+     "art": "Wildcat",
+     "status": "new",
+     "priority": "P2",
+     "note": "R: the mod reskins it as a Wildcat (Modern/Art/Units/Fighter)"
+    },
+    "Infantry": {
+     "from": "PRTO_Infantry",
+     "key": "PRTO_Infantry",
+     "art": "Japanese Rifleman",
+     "status": "new",
+     "priority": "P2",
+     "note": "R: the mod reskins it as a Japanese rifleman (Modern/Art/Units/Infantry)"
+    },
+    "RAD Marine (9/4/1)": {
+     "from": "PRTO_Marine",
+     "key": "PRTO_MODERN_RAD_Marine",
+     "art": "Marine",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"RAD Marine\""
+    },
+    "Modern Trooper (9 Range)": {
+     "from": "PRTO_Paratrooper",
+     "key": "PRTO_MODERN_Modern_Trooper",
+     "art": "Paratrooper",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Modern Trooper\""
+    },
+    "Mini Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_MODERN_Mini_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Mini Cruise\""
+    },
+    "Sub Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_MODERN_Sub_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Sub Cruise\""
+    },
+    "Super Sub Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_MODERN_Super_Sub_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Super Sub Cruise\""
+    },
+    "Power Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_MODERN_Power_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Power Cruise\""
+    },
+    "AEGIS (Stealth Attack)": {
+     "from": "PRTO_AEGIS_Cruiser",
+     "key": "PRTO_MODERN_AEGIS",
+     "art": "AEGIS Cruiser",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"AEGIS\""
+    },
+    "Chinook (8 Range)": {
+     "from": "PRTO_Helicopter",
+     "key": "PRTO_MODERN_Chinook",
+     "art": "Helicopter",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Chinook\""
+    },
+    "Megadropper (19 Range)": {
+     "from": "PRTO_Helicopter",
+     "key": "PRTO_MODERN_Megadropper",
+     "art": "Helicopter",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Megadropper\""
+    },
+    "Spectator Plane": {
+     "from": "PRTO_Mursilis",
+     "key": "PRTO_MODERN_Spectator_Plane",
+     "art": "King Hatti",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Spectator Plane\""
+    },
+    "Super Trooper (+2 HP)": {
+     "from": "PRTO_Samurai",
+     "key": "PRTO_MODERN_Super_Trooper",
+     "art": "Super Trooper",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Laser Tank (+1 HP)": {
+     "from": "PRTO_Modern_Armor",
+     "key": "PRTO_MODERN_Laser_Tank",
+     "art": "Laser Tank",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Bradley": {
+     "from": "PRTO_Tank",
+     "key": "PRTO_MODERN_Bradley",
+     "art": "Bradley",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Convoy (No Terrain Penalty)": {
+     "from": "PRTO_Panzer",
+     "key": "PRTO_MODERN_Convoy",
+     "art": "Convoy",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Iron Dome (Air Unit)": {
+     "from": "PRTO_Cannon",
+     "key": "PRTO_MODERN_Iron_Dome",
+     "art": "Iron Dome",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Battalion (+3 HP)": {
+     "from": "PRTO_Musketeer",
+     "key": "PRTO_MODERN_Battalion",
+     "art": "Battalion",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Combat Engineer": {
+     "from": "PRTO_Longbowman",
+     "key": "PRTO_MODERN_Combat_Engineer",
+     "art": "Combat Engineer",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "RPG Trooper (6 Range Blitz Rdr)": {
+     "from": "PRTO_WWII_Paratrooper",
+     "key": "PRTO_MODERN_RPG_Trooper",
+     "art": "RPG Trooper",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Insurgent": {
+     "from": "PRTO_Gallic_Swordsman",
+     "key": "PRTO_MODERN_Insurgent",
+     "art": "Insurgent",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Rebel": {
+     "from": "PRTO_Warrior",
+     "key": "PRTO_MODERN_Rebel",
+     "art": "Rebel",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Militant": {
+     "from": "PRTO_Knight",
+     "key": "PRTO_MODERN_Militant",
+     "art": "Militant",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Militia": {
+     "from": "PRTO_Musketman",
+     "key": "PRTO_MODERN_Militia",
+     "art": "Militia",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Skirmisher": {
+     "from": "PRTO_Rifleman",
+     "key": "PRTO_MODERN_Skirmisher",
+     "art": "Skirmisher",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Pirate (Carries 2, Radar)": {
+     "from": "PRTO_Man-O-War",
+     "key": "PRTO_MODERN_Pirate",
+     "art": "Pirate",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Troop Ship": {
+     "from": "PRTO_Galleon",
+     "key": "PRTO_MODERN_Troop_Ship",
+     "art": "Troop Ship",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    },
+    "Fighter/Bomber": {
+     "from": "PRTO_F-15",
+     "key": "PRTO_MODERN_Fighter_Bomber",
+     "art": "Fighter Bomber",
+     "status": "done",
+     "priority": "done",
+     "note": "art done (ModernUnitArt)"
+    }
+   },
+   "leaders": {
+    "Egypt": {
+     "from": "RACE_EGYPTIANS",
+     "leader": "Sisi",
+     "art": "MODERN_Sisi",
+     "status": "new",
+     "priority": "P1",
+     "note": "now shows Egypt's stock leader"
+    },
+    "European Union": {
+     "from": "RACE_GERMANS",
+     "leader": "Merkel",
+     "art": "MODERN_Merkel",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "USSR": {
+     "from": "RACE_RUSSIAN",
+     "leader": "Gorbachev",
+     "art": "MODERN_Gorbachev",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "China": {
+     "from": "RACE_CHINESE",
+     "leader": "Zemin",
+     "art": "MODERN_Zemin",
+     "status": "new",
+     "priority": "P1",
+     "note": "now shows China's stock leader"
+    },
+    "America": {
+     "from": "RACE_AMERICAN",
+     "leader": "Reagan",
+     "art": "MODERN_Reagan",
+     "status": "new",
+     "priority": "P1",
+     "note": "now shows America's stock leader"
+    },
+    "Japan": {
+     "from": "RACE_JAPANESE",
+     "leader": "Sato",
+     "art": "MODERN_Sato",
+     "status": "new",
+     "priority": "P1",
+     "note": "now shows Japan's stock leader"
+    },
+    "Iran": {
+     "from": "RACE_PERSIAN",
+     "leader": "Khomeini",
+     "art": "MODERN_Khomeini",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Mexico": {
+     "from": "RACE_AZTECS",
+     "leader": "Fox",
+     "art": "MODERN_Fox",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Nigeria": {
+     "from": "RACE_ZULU",
+     "leader": "Jonathan",
+     "art": "MODERN_Jonathan",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Canada": {
+     "from": "RACE_IROQUOIS",
+     "leader": "Diefenbaker",
+     "art": "MODERN_Diefenbaker",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Brazil": {
+     "from": "RACE_ENGLISH",
+     "leader": "Rousseff",
+     "art": "MODERN_Rousseff",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Australia": {
+     "from": "RACE_Vikings",
+     "leader": "Holt",
+     "art": "MODERN_Holt",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Saudi Arabia": {
+     "from": "RACE_Arabs",
+     "leader": "Salman",
+     "art": "MODERN_Salman",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Indonesia": {
+     "from": "RACE_Carthaginians",
+     "leader": "Jokowi",
+     "art": "MODERN_Jokowi",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Israel": {
+     "from": "RACE_SUMERIA",
+     "leader": "Netanyahu",
+     "art": "MODERN_Netanyahu",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    },
+    "Pakistan": {
+     "from": "RACE_HATTI",
+     "leader": "Sharif",
+     "art": "MODERN_Sharif",
+     "status": "new",
+     "priority": "P1",
+     "note": "now the placeholder"
+    }
+   },
+   "terrain": {
+    "Mountain (No Airfields)": {
+     "from": "TERR_Mountain_(No_Airfields)",
+     "key": "TERR_Mountains",
+     "art": "Mountains",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    }
+   }
+  },
+  "future": {
+   "techs": {
+    "Radio": {
+     "from": "TECH_Radio",
+     "key": "TECH_Radio",
+     "art": "Radio",
+     "status": "new",
+     "priority": "P1",
+     "note": "same icon as MP Tournament"
+    },
+    "ICBM": {
+     "from": "TECH_Satellites",
+     "key": "TECH_FUTURE_ICBM",
+     "art": "FUTURE_ICBM",
+     "status": "new",
+     "priority": "P2",
+     "note": "Satellites keeps TECH_Satellites"
+    }
+   },
+   "buildings": {
+    "Naval Academy": {
+     "from": "BLDG_Circumnavigation",
+     "key": "BLDG_FUTURE_Naval_Academy",
+     "art": "FUTURE_Naval_Academy",
+     "status": "new",
+     "priority": "P2"
+    },
+    "C. Market": {
+     "from": "BLDG_Marketplace",
+     "key": "BLDG_FUTURE_C_Market",
+     "art": "Marketplace",
+     "status": "stock",
+     "priority": "P3",
+     "note": "commercial copy"
+    },
+    "C. Wall Street": {
+     "from": "BLDG_Wall_Street",
+     "key": "BLDG_FUTURE_C_Wall_Street",
+     "art": "Wall_Street",
+     "status": "stock",
+     "priority": "P3",
+     "note": "commercial copy"
+    },
+    "C. Dock": {
+     "from": "BLDG_Commercial_Dock",
+     "key": "BLDG_FUTURE_C_Dock",
+     "art": "Commercial_Dock",
+     "status": "stock",
+     "priority": "P3",
+     "note": "commercial copy"
+    },
+    "C. Bank": {
+     "from": "BLDG_Bank",
+     "key": "BLDG_FUTURE_C_Bank",
+     "art": "Bank",
+     "status": "stock",
+     "priority": "P3",
+     "note": "commercial copy"
+    },
+    "C. Stock Exchange (+50% Lux)": {
+     "from": "BLDG_Stock_Exchange",
+     "key": "BLDG_FUTURE_C_Stock_Exchange",
+     "art": "Stock_Exchange",
+     "status": "stock",
+     "priority": "P3",
+     "note": "commercial copy"
+    }
+   },
+   "units": {
+    "Bradley": {
+     "from": "PRTO_Panzer",
+     "key": "PRTO_FUTURE_Bradley",
+     "art": "Bradley",
+     "status": "done",
+     "priority": "P1",
+     "note": "pointer to Modern's Bradley art"
+    },
+    "Special Forces": {
+     "from": "PRTO_Guerilla",
+     "key": "PRTO_FUTURE_Special_Forces",
+     "art": "Special Forces",
+     "status": "new",
+     "priority": "P2",
+     "note": "same art as Modern's"
+    },
+    "Sub Cruise": {
+     "from": "PRTO_Cruise_Missile",
+     "key": "PRTO_FUTURE_Sub_Cruise",
+     "art": "Cruise Missile",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Sub Cruise\""
+    },
+    "Com Marine": {
+     "from": "PRTO_Marine",
+     "key": "PRTO_FUTURE_Com_Marine",
+     "art": "Marine",
+     "status": "stock",
+     "priority": "P3",
+     "note": "can't be built"
+    },
+    "Shit of da Sea": {
+     "from": "PRTO_Battleship",
+     "key": "PRTO_FUTURE_Shit_of_da_Sea",
+     "art": "Battleship",
+     "status": "stock",
+     "priority": "P3",
+     "note": "can't be built"
+    }
+   }
+  },
+  "mdj": {
+   "techs": {
+    "2x Worker Speed": {
+     "from": "TECH_The_Wheel",
+     "key": "TECH_MDJ_2x_Worker_Speed",
+     "art": "MDJ_2x_Worker_Speed",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Sea Travel": {
+     "from": "TECH_Gunpowder",
+     "key": "TECH_MDJ_Sea_Travel",
+     "art": "MDJ_Sea_Travel",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Harbors": {
+     "from": "TECH_Mysticism",
+     "key": "TECH_MDJ_Harbors",
+     "art": "MDJ_Harbors",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Warships": {
+     "from": "TECH_Mathematics",
+     "key": "TECH_MDJ_Warships",
+     "art": "MDJ_Warships",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Banditry": {
+     "from": "TECH_Code_of_Laws",
+     "key": "TECH_MDJ_Banditry",
+     "art": "MDJ_Banditry",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Super Fast Workers": {
+     "from": "TECH_Literature",
+     "key": "TECH_MDJ_Super_Fast_Workers",
+     "art": "MDJ_Super_Fast_Workers",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Line Infantry": {
+     "from": "TECH_Currency",
+     "key": "TECH_MDJ_Line_Infantry",
+     "art": "MDJ_Line_Infantry",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Mortal Combat": {
+     "from": "TECH_Construction",
+     "key": "TECH_MDJ_Mortal_Combat",
+     "art": "MDJ_Mortal_Combat",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Bridge Building": {
+     "from": "TECH_Construction",
+     "key": "TECH_MDJ_Bridge_Building",
+     "art": "MDJ_Bridge_Building",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Longbows": {
+     "from": "TECH_Invention",
+     "key": "TECH_MDJ_Longbows",
+     "art": "MDJ_Longbows",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Barrier Tech 2": {
+     "from": "TECH_Philosophy",
+     "key": "TECH_MDJ_Barrier_Tech_2",
+     "art": "MDJ_Barrier_Tech_2",
+     "status": "new",
+     "priority": "P2",
+     "note": "marker; Philosophy keeps TECH_Philosophy"
+    },
+    "Late Era Tech": {
+     "from": "TECH_Gunpowder",
+     "key": "TECH_MDJ_Late_Era_Tech",
+     "art": "MDJ_Late_Era_Tech",
+     "status": "new",
+     "priority": "P2",
+     "note": "marker"
+    },
+    "Warrior Code": {
+     "from": "TECH_Alphabet",
+     "key": "TECH_Warrior_Code",
+     "art": "Warrior_Code",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    },
+    "Literature": {
+     "from": "TECH_Pottery",
+     "key": "TECH_Literature",
+     "art": "Literature",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    },
+    "Mathematics": {
+     "from": "TECH_Bronze_Working",
+     "key": "TECH_Mathematics",
+     "art": "Mathematics",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    },
+    "Ocean Trade": {
+     "from": "TECH_Suieijutsu",
+     "key": "TECH_MDJ_Ocean_Trade",
+     "art": "Suieijutsu",
+     "status": "stock",
+     "priority": "P3",
+     "note": "shares its icon with Ronins by design (adv_mdj.py)"
+    },
+    "Rifling": {
+     "from": "TECH_Heihojutsu",
+     "key": "TECH_MDJ_Rifling",
+     "art": "Heihojutsu",
+     "status": "stock",
+     "priority": "P3",
+     "note": "shares its icon with Heihojutsu by design"
+    },
+    "Contact  : Portuguese": {
+     "from": "TECH_Portuguese",
+     "key": "TECH_MDJ_Contact_Portuguese",
+     "art": "Portuguese",
+     "status": "stock",
+     "priority": "P3",
+     "note": "shares its icon with Ninjutsu by design"
+    },
+    "Barrier Tech 3": {
+     "from": "TECH_Diplomatic",
+     "key": "TECH_MDJ_Barrier_Tech_3",
+     "art": "Diplomatic",
+     "status": "stock",
+     "priority": "P3",
+     "note": "shares its icon with Metal Working by design"
+    }
+   },
+   "buildings": {
+    "Mausoleum (GA)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Mausoleum",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Urakami Wonder (Worker/7t)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Urakami_Wonder",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Hospital": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Hospital",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "10 Culture + Battlefield Med": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Culture_Battlefield_Med",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Otomo Wonder (+25% Prod)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Otomo_Wonder",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Hojo Wonder (+2 Ship Move)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Hojo_Wonder",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Mori Wonder (Settler/13)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Mori_Wonder",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Oda Wonder (+100% Sci)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Oda_Wonder",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Tokugawa (Aqueduct Everywhere)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Tokugawa",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Uesugi (1/2 Upgrade Cost)": {
+     "from": "BLDG_Great_Playhouse",
+     "key": "BLDG_MDJ_Uesugi",
+     "art": "MDJ_Kabuki",
+     "status": "new",
+     "priority": "P1",
+     "note": "R: Civ3 mode shows Sengoku's Kabuki (reference shipped); one icon for the ten"
+    },
+    "Foundry (+50% Prod)": {
+     "from": "BLDG_Police_Station",
+     "key": "BLDG_MDJ_Foundry",
+     "art": "MDJ_Foundry",
+     "status": "new",
+     "priority": "P1"
+    },
+    "Noh-Kyogen Theatre": {
+     "from": "BLDG_Colosseum",
+     "key": "BLDG_MDJ_Noh_Kyogen_Theatre",
+     "art": "MDJ_Noh_Kyogen_Theatre",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Trading Port": {
+     "from": "BLDG_Trading_Company",
+     "key": "BLDG_MDJ_Trading_Port",
+     "art": "MDJ_Trading_Port",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Ainu Wonder (+12 GPT)": {
+     "from": "BLDG_Epic",
+     "key": "BLDG_MDJ_Ainu_Wonder",
+     "art": "MDJ_Ainu_Wonder",
+     "status": "new",
+     "priority": "P2"
+    },
+    "+1 Ship Move": {
+     "from": "BLDG_Military_Academy",
+     "key": "BLDG_MDJ_1_Ship_Move",
+     "art": "MDJ_1_Ship_Move",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Local Magistrate": {
+     "from": "BLDG_Courthouse",
+     "key": "BLDG_MDJ_Local_Magistrate",
+     "art": "Courthouse",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Treasury": {
+     "from": "BLDG_Bank",
+     "key": "BLDG_MDJ_Treasury",
+     "art": "Bank",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Jesuit Cathedral": {
+     "from": "BLDG_Cathedral",
+     "key": "BLDG_MDJ_Jesuit_Cathedral",
+     "art": "Cathedral",
+     "status": "stock",
+     "priority": "P3"
+    }
+   },
+   "governments": {
+    "Feudalism": {
+     "from": "GOVT_Despotism",
+     "key": "GOVT_Feudalism",
+     "art": "Feudalism",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    }
+   },
+   "resources": {
+    "Pearls": {
+     "from": "GOOD_Diamonds",
+     "key": "GOOD_MDJ_Pearls",
+     "art": "LEAGUE_Pearls",
+     "status": "new",
+     "cell": 28,
+     "priority": "P3",
+     "note": "map cell 28 (shared with Modern)"
+    },
+    "Precious Stones": {
+     "from": "GOOD_Gold",
+     "key": "GOOD_MDJ_Precious_Stones",
+     "art": "MDJ_Precious_Stones",
+     "status": "new",
+     "cell": 30,
+     "priority": "P3",
+     "note": "map cell 30"
+    },
+    "Sandbar": {
+     "from": "GOOD_Spice",
+     "key": "GOOD_MDJ_Sandbar",
+     "art": "MDJ_Sandbar",
+     "status": "new",
+     "cell": 31,
+     "priority": "P3",
+     "note": "map cell 31"
+    },
+    "Olive Oil": {
+     "from": "GOOD_Oil",
+     "key": "GOOD_MDJ_Olive_Oil",
+     "art": "MDJ_Olive_Oil",
+     "status": "new",
+     "cell": 32,
+     "priority": "P3",
+     "note": "map cell 32"
+    }
+   },
+   "units": {
+    "Ashigaru": {
+     "from": "PRTO_Footman",
+     "key": "PRTO_MDJ_Ashigaru",
+     "art": "Ashigaru Spearman",
+     "status": "stock",
+     "priority": "P2",
+     "note": "pointer to PTW's Ashigaru Spearman art"
+    },
+    "Uesugi Horseman": {
+     "from": "PRTO_Horseman",
+     "key": "PRTO_MDJ_Uesugi_Horseman",
+     "art": "Nakamaro Horseman",
+     "status": "stock",
+     "priority": "P2",
+     "note": "pointer to the Nakamaro Horseman art"
+    },
+    "Warship (1 Capacity)": {
+     "from": "PRTO_Galley",
+     "key": "PRTO_MDJ_Warship",
+     "art": "Japanese Warship",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Hojo General (Amphib)": {
+     "from": "PRTO_Army",
+     "key": "PRTO_MDJ_Hojo_General",
+     "art": "Hojo General",
+     "status": "new",
+     "priority": "P2"
+    },
+    "Scout": {
+     "from": "PRTO_Horseman",
+     "key": "PRTO_MDJ_Scout",
+     "art": "Horseman",
+     "status": "stock",
+     "priority": "P3",
+     "note": "optional new art \"Mounted Scout\""
+    },
+    "Curragh (1 Capacity)": {
+     "from": "PRTO_Galley",
+     "key": "PRTO_MDJ_Curragh",
+     "art": "Galley",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Galleon": {
+     "from": "PRTO_Caravel",
+     "key": "PRTO_MDJ_Galleon",
+     "art": "Caravel",
+     "status": "stock",
+     "priority": "P3"
+    },
+    "Fast Worker (Ignores Move Cost)": {
+     "from": "PRTO_Peasant_Worker",
+     "key": "PRTO_MDJ_Fast_Worker",
+     "art": "Medieval Japanese Worker",
+     "status": "stock",
+     "priority": "P3",
+     "note": "own page"
+    },
+    "Spearman": {
+     "from": "PRTO_Otomo_Spearman",
+     "key": "PRTO_MDJ_Spearman",
+     "art": "Otomo Spearman",
+     "status": "stock",
+     "priority": "P3",
+     "note": "own page; Otomo Spearman keeps PRTO_Otomo_Spearman"
+    },
+    "Date Samurai Bow (Amphib)": {
+     "from": "PRTO_Samurai_Archer",
+     "key": "PRTO_MDJ_Date_Samurai_Bow",
+     "art": "Otomo no Makuta",
+     "status": "stock",
+     "priority": "P3",
+     "note": "own page"
+    },
+    "Infiltrator (Amphib)": {
+     "from": "PRTO_Leader",
+     "key": "PRTO_MDJ_Infiltrator",
+     "art": "Medieval Japanese Leader",
+     "status": "stock",
+     "priority": "P3",
+     "note": "own page (was the Leader's)"
+    }
+   },
+   "terrain": {
+    "Floodplain": {
+     "from": "TERR_Floodplain",
+     "key": "TERR_Flood_Plain",
+     "art": "Flood_Plain",
+     "status": "stock",
+     "priority": "P1",
+     "note": "pointer"
+    }
+   }
+  }
+ }
+}
