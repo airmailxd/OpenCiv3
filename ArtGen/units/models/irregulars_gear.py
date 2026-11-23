@@ -21,6 +21,7 @@ GUNS = {
     'enfield': {'muzzle': 0.80, 'support': (0.03, 0.34), 'butt': -0.36},
     'ppsh41': {'muzzle': 0.50, 'support': (0.05, 0.22), 'butt': -0.36},
     'molotov': {'muzzle': 0.20, 'support': (0.0, 0.0), 'butt': -0.08},
+    'shotgun': {'muzzle': 0.74, 'support': (0.03, 0.22), 'butt': -0.36},
 }
 
 
@@ -129,7 +130,7 @@ def enfield(mats, muzzle=0.80):
     sd = mat(mats, 'stock_dark', '#4e3018', spec=0.12, gloss=14)
     g = G.gunmetal(mats)
     st = steel(mats)
-    sl = mat(mats, 'sling', '#6a5a3a', spec=0.05)
+    sl = mat(mats, 'sling_web', '#a89a72', spec=0.05)
     parts = [G._stock_wood(mats, -0.36, 0.02, depth=0.075, wrist=0.03, m=s)]
     parts.append(M.box(0.008, 0.078, 0.012, sd, (0, 0.032, -0.355)))                   # butt plate
     # the fore-end, deep at the receiver, slimming to the nose cap
@@ -143,15 +144,18 @@ def enfield(mats, muzzle=0.80):
     # receiver, bolt and knob, aperture sight, magazine, trigger guard
     parts.append(M.box(0.036, 0.040, 0.17, g, (0, -0.012, 0.04)))
     parts.append(M.box(0.022, 0.016, 0.07, st, (0, -0.036, 0.0)))                     # bolt body
-    parts.append(_bar((0.012, -0.028, -0.02), (0.050, -0.006, -0.03), 0.006, st))
-    parts.append(M.sphere(0.014, st, (0.054, -0.002, -0.032), seg=8))                 # bolt knob
+    parts.append(_bar((0.012, -0.028, -0.02), (0.058, -0.004, -0.03), 0.007, st))
+    parts.append(M.sphere(0.02, st, (0.064, 0.0, -0.032), seg=8))                     # bolt knob
     parts.append(M.box(0.016, 0.030, 0.022, g, (0, -0.048, -0.03)))                   # rear sight
-    parts.append(M.box(0.030, 0.06, 0.07, g, (0, 0.052, 0.07)))                       # magazine
+    parts.append(M.box(0.032, 0.075, 0.085, g, (0, 0.06, 0.075)))                     # magazine
+    parts.append(M.box(0.034, 0.012, 0.09, mat(mats, 'gun_dark', '#1c1d20'), (0, 0.10, 0.075)))
     parts.append(_bar((0, 0.04, -0.01), (0, 0.06, 0.035), 0.005, g))
     # the sling, slack under the gun from the front swivel to the butt
-    pts = [(0, 0.045, 0.56), (0, 0.10, 0.36), (0, 0.12, 0.10), (0, 0.10, -0.14), (0, 0.07, -0.26)]
+    pts = [(0, 0.045, 0.56), (0, 0.13, 0.36), (0, 0.16, 0.10), (0, 0.13, -0.14), (0, 0.07, -0.26)]
     for a, b in zip(pts[:-1], pts[1:]):
-        parts.append(M.capsule(a, b, 0.006, 0.006, sl, seg=4, rings=1).transformed(M.scale(1.5, 1, 1)))
+        parts.append(M.capsule(a, b, 0.009, 0.009, sl, seg=4, rings=1).transformed(M.scale(1.5, 1, 1)))
+    for z in (0.56, -0.26):
+        parts.append(M.box(0.012, 0.03, 0.02, g, (0, 0.05, z)))                        # swivels
     return M.Mesh.concat(parts)
 
 
@@ -174,10 +178,12 @@ def ppsh41(mats, muzzle=0.50):
     parts.append(_bar((0.02, -0.02, 0.08), (0.05, -0.02, 0.08), 0.007, d))            # bolt handle
     # the jacket and its slots, the compensator cut at a slant
     parts.append(M.cylinder(0.024, 0.024, muzzle - 0.24, g, seg=12, z0=0.20).transformed(M.translate(0, -0.016, 0)))
-    for z in (0.25, 0.31, 0.37):
-        for a in (0, 60, 120, 180, 240, 300):
+    for z in (0.235, 0.285, 0.335, 0.385):
+        for a in (0, 45, 135, 180, 225, 270, 315):
             ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
-            parts.append(M.box(0.007, 0.007, 0.035, d, (0.024 * ca, -0.016 + 0.024 * sa, z)))
+            parts.append(M.box(0.009, 0.009, 0.03, d, (0.0245 * ca, -0.016 + 0.0245 * sa, z)).transformed(
+                M.translate(0.0245 * ca, -0.016 + 0.0245 * sa, z) @ M.rot_z(a)
+                @ M.translate(-0.0245 * ca, 0.016 - 0.0245 * sa, -z)))
     parts.append(M.box(0.050, 0.030, 0.035, g, (0, -0.016, muzzle - 0.02)).transformed(
         M.translate(0, -0.016, muzzle - 0.02) @ M.rot_x(-28) @ M.translate(0, 0.016, -(muzzle - 0.02))))
     parts.append(M.box(0.008, 0.02, 0.02, g, (0, -0.048, muzzle - 0.06)))              # front sight
@@ -188,7 +194,12 @@ def ppsh41(mats, muzzle=0.50):
     parts.append(M.cylinder(0.085, 0.085, 0.050, drum, seg=20, z0=-0.025).transformed(D))
     parts.append(M.cylinder(0.088, 0.088, 0.012, d, seg=20, z0=-0.006).transformed(D))
     parts.append(M.cylinder(0.08, 0.08, 0.006, d, seg=20, z0=0.024).transformed(D))
-    parts.append(M.cylinder(0.02, 0.02, 0.016, steel(mats), seg=8, z0=0.025).transformed(D))
+    # the front plate (a lighter dished cover), its rim, the winding key and its lever
+    plate = mat(mats, 'drum_plate', '#7a7c82', spec=0.6, gloss=24, metal=True)
+    parts.append(M.cylinder(0.07, 0.06, 0.01, plate, seg=20, z0=0.028).transformed(D))
+    parts.append(M.cylinder(0.07, 0.06, 0.01, plate, seg=20, z0=-0.038).transformed(D))
+    parts.append(M.cylinder(0.02, 0.02, 0.02, steel(mats), seg=8, z0=0.035).transformed(D))
+    parts.append(M.box(0.008, 0.012, 0.06, steel(mats), (0.05, 0.0, 0.025)).transformed(D @ M.rot_y(-90)))
     parts.append(M.box(0.03, 0.03, 0.04, g, (0, 0.03, 0.15)))                          # drum's neck
     parts.append(_bar((0, 0.035, -0.02), (0, 0.05, 0.05), 0.005, g))                  # trigger guard
     # the sling
@@ -249,4 +260,32 @@ def bottle_bag(mats):
         T = M.translate(0, dy, 0.0) @ M.rot_x(tilt)
         parts.append(M.cylinder(0.016, 0.012, 0.09, gl, seg=8, z0=-0.02).transformed(T))
         parts.append(M.ellipsoid(0.016, 0.016, 0.025, rag, (0, 0, 0.08), seg=6).transformed(T))
+    return M.Mesh.concat(parts)
+
+
+# ------------------------------------------------------------ the shotgun
+
+def shotgun(mats, muzzle=0.74):
+    """An old side-by-side hunting gun: a wooden butt with its wrist, the
+    two barrels side by side with a rib between them, the wooden fore-end
+    under them, the action with two hammers, the trigger guard and a
+    leather sling."""
+    s = G.stock(mats)
+    g = G.gunmetal(mats)
+    st = steel(mats)
+    sl = mat(mats, 'sling', '#5a4228', spec=0.05)
+    parts = [G._stock_wood(mats, -0.36, 0.0, depth=0.075, wrist=0.028, m=s)]
+    parts.append(M.box(0.044, 0.05, 0.08, g, (0, -0.004, 0.03)))                        # the action
+    for sx in (1, -1):
+        parts.append(M.cylinder(0.0135, 0.012, muzzle - 0.06, g, seg=10, z0=0.06).transformed(
+            M.translate(sx * 0.013, -0.012, 0)))
+        parts.append(M.cylinder(0.015, 0.015, 0.012, g, seg=10, z0=muzzle - 0.012).transformed(
+            M.translate(sx * 0.013, -0.012, 0)))
+        parts.append(_bar((sx * 0.014, -0.03, 0.0), (sx * 0.016, -0.05, 0.03), 0.006, g))     # hammers
+    parts.append(M.box(0.006, 0.008, muzzle - 0.08, g, (0, -0.027, (muzzle + 0.08) / 2)))   # rib
+    parts.append(M.rounded_box(0.036, 0.03, 0.20, s, (0, 0.012, 0.17), r=0.01, seg=6, p=4))  # fore-end
+    parts.append(_bar((0, 0.03, -0.01), (0, 0.05, 0.05), 0.005, g))                        # trigger guard
+    pts = [(0, 0.03, 0.40), (0, 0.10, 0.20), (0, 0.12, -0.02), (0, 0.09, -0.20), (0, 0.06, -0.28)]
+    for a, b in zip(pts[:-1], pts[1:]):
+        parts.append(M.capsule(a, b, 0.008, 0.008, sl, seg=4, rings=1).transformed(M.scale(1.5, 1, 1)))
     return M.Mesh.concat(parts)

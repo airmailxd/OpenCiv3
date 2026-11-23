@@ -11,20 +11,23 @@ the original fires.
 UNITS = {
     # A Soviet partisan of 1942-44 (models/irregulars.py): an ushanka with
     # the ear flaps tied up and a ribbon in the civ's color across it, a
-    # quilted telogreika, a rolled greatcoat over the left shoulder in the
-    # civ's color, tall boots, a stick grenade and a bread bag, and a PPSh-41
-    # with its drum held across the chest; fires from the hip.
+    # scarf and armband in the civ's color, a quilted telogreika, a sack
+    # pack, tall boots, grenades and a bread bag,
+    # and a PPSh-41 with its drum at the hip; fires from the hip.
     'Partisans': {
         'archetype': 'irregular',
-        'colors': {'skin': '#c89c78', 'hair': '#2a2018', 'top': '#5c5a4a', 'coat': '#5c5a4a', 'trousers': '#3e3c36',
+        'colors': {'skin': '#c89c78', 'hair': '#2a2018', 'top': '#7e7e78', 'coat': '#7e7e78', 'trousers': '#4a4840',
                    'boots': '#24201c', 'belt': '#2e2218', 'strap': '#3a2c20', 'hat': '#6a5642', 'fur_dark': '#4a3c2e',
-                   'hat_top': '#3e3e36', 'button': '#1c1a18'},
-        'camo': {'trousers': ['#34322c', '#4a483e']}, 'camo_density': 1.2, 'camo_size': 0.04,
-        'tint': ['ribbon', 'skatka'],
-        'hair': 'short', 'hat': 'ushanka', 'ribbon': 'ribbon', 'top': 'long_sleeved', 'coat': 0.20, 'quilted': True,
-        'jacket': {'buttons': 5}, 'belt_over': True, 'skatka': 'skatka', 'bag': 'bread', 'grenade': True,
+                   'hat_top': '#3e3e36', 'button': '#1c1a18', 'skatka': '#5e5c54', 'stock': '#8a5a30'},
+        'camo': {'trousers': ['#3e3c36', '#56544a']}, 'camo_density': 1.2, 'camo_size': 0.04,
+        'tint': ['ribbon', 'scarf', 'armband'],
+        'hair': 'short', 'hat': 'ushanka', 'ribbon': 'ribbon', 'scarf': 'scarf', 'armband2': 'armband', 'top': 'long_sleeved', 'coat': 0.20,
+        'quilted': True, 'jacket': {'buttons': 5}, 'belt_over': True, 'bag': 'bread',
+        'grenade': True, 'f1': True, 'sack': True,
         'legs': 'trousers', 'feet': 'tall_boots', 'boot_folds': True,
-        'gun': 'ppsh41', 'hold': 'across', 'aim': 'hip', 'fire_start': 'carry', 'fire_end': 'carry',
+        'gun': 'ppsh41', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'carry', 'fire_end': 'carry',
+        'poses': {'carry': {'hand_r': (0.18, 0.16, 1.00), 'w_main': (-96, 0, 8)}},
+        'run_hold': {'hand_r': (0.20, 0.16, 1.00), 'w_main': (-14, -38, 0), 'support': 1.0, 'elbow_l': (-0.5, -0.5, -0.7)},
         'flash': 'burst', 'smoke': 'light', 'flash_size': 0.24, 'shots': {'ATTACK1': [5, 6, 7, 8, 9]},
         'fortify': 'kneel', 'victory': 'fire_air',
         'actions': {'ATTACK1': 'fire'},
