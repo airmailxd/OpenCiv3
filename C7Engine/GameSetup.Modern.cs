@@ -53,7 +53,7 @@ public partial class GameSetup {
 		["RPG Trooper"] = "RPG Trooper",
 		["Insurgent"] = "Insurgent",
 		["Rebel"] = "Rebel",
-		["Militant"] = "Militant",
+		// Militant keeps the stock Knight look: its own art did not reach the bar (2026-11-23).
 		["Militia"] = "Militia",
 		["Skirmisher"] = "Skirmisher",
 		["Pirate"] = "Pirate",

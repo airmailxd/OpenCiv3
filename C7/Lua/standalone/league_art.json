@@ -1250,9 +1250,10 @@
     "Partisans (8/4/1)": {
      "from": "PRTO_TOW_Infantry",
      "key": "PRTO_MODERN_Partisans",
-     "art": "Partisans",
-     "status": "done",
-     "priority": "P1"
+     "art": "TOW Infantry",
+     "status": "stock",
+     "priority": "P1",
+     "note": "round-2 art not at the bar; the stock look it had before"
     },
     "Roughrider (Enslaves Worker)": {
      "from": "PRTO_Cossack",
@@ -1448,10 +1449,10 @@
     "Militant": {
      "from": "PRTO_Knight",
      "key": "PRTO_MODERN_Militant",
-     "art": "Militant",
-     "status": "done",
+     "art": "Knight",
+     "status": "stock",
      "priority": "done",
-     "note": "art done (ModernUnitArt)"
+     "note": "round-2 art not at the bar; the stock look it had before"
     },
     "Militia": {
      "from": "PRTO_Musketman",
