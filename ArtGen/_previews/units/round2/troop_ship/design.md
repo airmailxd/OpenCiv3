@@ -47,3 +47,8 @@ hawse pipes; jack and ensign; forestay and backstay.
 - Attack has 6 frames and run 4: those are the mod's own flics (its Galleon folder's INI), which the
   framework keeps frame for frame; the strips now show every frame.
 - Death: the `ship_r2` death; the explosions' smoke stays low and short-lived.
+
+## After the second review (passed; one optional)
+- The two outer hatches are solid civ tarps (like the Destroyer's patches) on grey coamings; the two
+  under the stacked landing craft are neutral canvas. Civ blue 6.4% (6.8-6.9).
+- Death: the shared `ship_r2` change (on her side, then down together).

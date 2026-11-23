@@ -48,3 +48,10 @@ mouths, 2 civ boom bands, 2 boom insignia; 2 pylons, 2 bombs (body, nose, tail c
   vanishing in one frame (the stock Fighter does that).
 - **Measured:** civ blue 6.3% (Fighter 6.3, Bomber 3.1) after narrowing the civ tips and dropping the boom
   insignia; brightness 96 (95-104).
+
+## After the second review (model passed; animations failed)
+- Death: the pieces fall only to about half the altitude before shrinking away, and drift less, so
+  the whole death stays inside the cell (closest 26 px from the bottom, 2x).
+- Attack: `aircraft_r2` overrides the gun attack with shorter tracers (0.75 x the plane's length).
+- Bombs: dark teardrops (1,000 lb, yellow nose band, box fins) on longer inboard pylons, hung forward so
+  their noses show ahead of the wing.

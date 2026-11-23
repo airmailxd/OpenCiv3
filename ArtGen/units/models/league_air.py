@@ -116,6 +116,19 @@ def canopy_frames(c, radii, ys, mat, r=0.03, k=1.03):
 
 # ------------------------------------------------------------ the Wildcat
 
+def edged(painter, top, under, le=None, w=0.14):
+    """A wing painter whose edges show the light under-colour: the edge
+    faces themselves and a feathered strip along the outline on top (the
+    1942 scheme's soft demarcation wrapping round the leading edge and tips)."""
+    def f(C, N, ids):
+        ids = painter(C, N, ids)
+        ids[(np.abs(N[:, 2]) < 0.45) & (ids == top)] = under
+        if le is not None:
+            ids[(ids == top) & (C[:, 1] > le(np.abs(C[:, 0])) - w)] = under
+        return ids
+    return f
+
+
 def build_wildcat(V):
     m = V.mats
     L = 8.8
@@ -125,7 +138,15 @@ def build_wildcat(V):
     fus = AC.fuselage(prof, paint, seg=18, sx=0.82, sz=1.06)
     belly = M.ellipsoid(0.5, 1.75, 0.42, paint, center=(0, 1.1, -0.42), seg=16)
     frames = lambda C, N: near(C[:, 1], (-3.6, -2.7, -1.3, 1.6), 0.035) & (C[:, 2] > -0.3)
-    body = [paintn(M.Mesh.concat([fus, belly]), two_tone(paint, under, line, z_split=0.08, lines=frames), 0.12)]
+    tt_body = two_tone(paint, under, line, z_split=0.08, lines=frames)
+
+    def body_paint(C, N, ids):
+        ids = tt_body(C, N, ids)
+        # exhaust staining: a dark streak along each side aft of the stubs
+        st = (np.abs(C[:, 0]) > 0.3) & (C[:, 1] < 2.0) & (C[:, 1] > 0.2) &              (np.abs(C[:, 2] + 0.28 - (2.0 - C[:, 1]) * 0.05) < 0.07 + (2.0 - C[:, 1]) * 0.04)
+        ids[st] = m['stain']
+        return ids
+    body = [paintn(M.Mesh.concat([fus, belly]), body_paint, 0.1)]
     # a civ-colored band round the rear fuselage
     body.append(AC.fuselage([(-3.15, 0.485), (-2.9, 0.505)], m['band'], seg=18, sx=0.84, sz=1.09))
     # the main wheels folded into the belly's sides
@@ -134,7 +155,7 @@ def build_wildcat(V):
         body.append(VP.axle_x(0.14, 0.1, m['steel'], center=(sx * 0.45, 1.45, -0.5)))
     # the cowling: its lip in the civ color, the engine's face and cylinders inside, the cowl flaps
     body.append(AC.fuselage([(2.3, 0.72), (3.25, 0.74), (3.4, 0.7)], paint, seg=22))
-    body.append(AC.fuselage([(3.3, 0.745), (3.46, 0.7)], m['line'], seg=22))
+    body.append(AC.fuselage([(3.3, 0.745), (3.46, 0.7)], m['line_dark'], seg=22))
     body.append(AC.fuselage([(3.2, 0.58), (3.25, 0.0)], m['steel'], seg=18))
     for i in range(14):
         a = 2 * math.pi * i / 14
@@ -180,7 +201,8 @@ def build_wildcat(V):
     ws = {}
     for side, name in ((1, 'wing_r'), (-1, 'wing_l')):
         w = AC.wing(poly, 0.2, paint, z=-0.12, dihedral=4, side=side)
-        parts = [paintn(w, two_tone(paint, under, line, lines=wl), 0.14)]
+        yle = lambda x: np.minimum(1.32 - (x - 0.35) * (0.52 / 5.15), np.where(x > 5.5, 0.8 - (x - 5.5) * 0.6, 9.0))
+        parts = [paintn(w, edged(two_tone(paint, under, line, lines=wl), paint, under, le=yle), 0.1)]
         zt = -0.12 + 0.105 + 4.2 * math.tan(math.radians(4))
         parts.append(insignia(0.52, m['band'], m['star'], bar_k=0.4).transformed(
             M.translate(side * 4.15, 0.22, zt) @ M.rot_z(90)))
@@ -196,7 +218,7 @@ def build_wildcat(V):
     el = lambda C, N: near(C[:, 1], (-4.18,), 0.035)
     tail = []
     for s in (1, -1):
-        tail.append(paintn(AC.wing(tp, 0.12, paint, z=0.12, side=s), two_tone(paint, under, line, lines=el), 0.14))
+        tail.append(paintn(AC.wing(tp, 0.12, paint, z=0.12, side=s), edged(two_tone(paint, under, line, lines=el), paint, under), 0.12))
     fin = VP.side_prism([(-3.5, 0.45), (-3.95, 1.45), (-4.2, 1.82), (-4.55, 1.9), (-4.88, 1.65), (-5.0, 1.2),
                          (-4.98, 0.25)], 0.14, paint)
     rl = lambda C, N: near(C[:, 1], (-4.42,), 0.035) & (C[:, 2] > 0.35)
@@ -217,10 +239,10 @@ def build_wildcat(V):
 
 
 AC.BUILDERS.setdefault('wildcat', build_wildcat)
-AC.PAINTS.setdefault('wildcat', {'paint': '#56606c', 'under': '#a4aab0', 'line': '#4a5464', 'line_dark': '#2c3038',
+AC.PAINTS.setdefault('wildcat', {'paint': '#505a66', 'under': '#a4aab0', 'line': '#4a5464', 'line_dark': '#2c3038',
                                  'paint_dark': '#4a5468', 'band': '#e8e8e8', 'star': '#f2f2f0',
                                  'glass': ('#9ab8c8', 0.7, 40), 'glass_dark': ('#3a4a58', 0.7, 40),
-                                 'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222', 'walk': '#34383e',
+                                 'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222', 'walk': '#34383e', 'stain': '#3a3a3a',
                                  'blade': '#262626', 'blade_tip': '#d8c040', 'bomb': '#3c3e38'})
 
 
@@ -257,7 +279,7 @@ class AircraftR2(AC.Aircraft):
         pieces = []
 
         def piece(mesh, dx, spin_axis, spin, fwd):
-            z = max(0.15, alt * (1 - fall * fall))
+            z = alt * (1 - 0.55 * fall * fall)
             c = mesh.V.reshape(-1, 3).mean(0)
             Tm = (M.translate(dx * fall, fwd * fall, z) @ spin_axis(spin * fall) @ M.translate(*c)
                   @ M.scale(shrink) @ M.translate(*(-c)))
@@ -268,18 +290,47 @@ class AircraftR2(AC.Aircraft):
                 pieces.append(piece(self.plane(), 0.0, M.rot_y, 0, 0))
             else:
                 main = M.Mesh.concat([P_['body'], P_['tail'], P_['wing_r'], self.props_mesh(0)])
-                pieces.append(piece(main, L * 0.08, M.rot_y, 120, L * 0.3))
+                pieces.append(piece(main, L * 0.06, M.rot_y, 120, L * 0.14))
                 if len(P_['wing_l']):
-                    pieces.append(piece(P_['wing_l'], -L * 0.35, M.rot_x, 260, -L * 0.1))
+                    pieces.append(piece(P_['wing_l'], -L * 0.22, M.rot_x, 260, -L * 0.06))
         fx = []
         if t >= tb:
             air = np.array([0, 0, alt], np.float32)
             fx.append(FX.explosion(m, air, L * 0.36, u / 0.85, seed=2, n=10, rise=0.15, smoke_dark=0.75))
             if 0.03 < u < T_GONE:
                 # the burning wreck trails fire and smoke on its way down
-                zc = max(0.15, alt * (1 - fall * fall))
-                fx.append(FX.puff(m, (L * 0.08 * fall, L * 0.3 * fall, zc), L * 0.07 * max(shrink, 0.3), 'fx_orange',
+                zc = alt * (1 - 0.55 * fall * fall)
+                fx.append(FX.puff(m, (L * 0.06 * fall, L * 0.14 * fall, zc), L * 0.07 * max(shrink, 0.3), 'fx_orange',
                                   seed=41))
                 if fall >= 1.0:
-                    fx.append(FX.puff(m, (L * 0.08, L * 0.3, L * 0.1 * (1 + u)), L * 0.12, 'smoke_dark', seed=43))
+                    fx.append(FX.puff(m, (L * 0.06, L * 0.14, zc + L * 0.05 * u), L * 0.1, 'smoke_dark', seed=43))
         return self.fx(M.Mesh.concat(pieces + fx), pivot_z=alt)
+
+    def attack(self, t, ctx):
+        """The stock gun attack with the tracers kept short (they ran out of
+        the cell on the side views)."""
+        from models import vfx as FX
+        from models.vehicles import flash_time
+        if self.p.get('weapon', 'guns') != 'guns':
+            return super().attack(t, ctx)
+        m = self.mats
+        T = self.flight(bob=0.05 * math.sin(2 * math.pi * t))
+        mesh = self.plane(prop_ang=self.spin(t, 0.8)).transformed(T)
+        fx = []
+        tf = self.p.get('fire')
+        if tf is None:
+            tf = flash_time(ctx, 0.15)
+        reach = self.p.get('tracer_reach', 0.75) * self.b['length']
+        for k, g in enumerate(self.b['guns']):
+            p0 = (T @ np.array([*g, 1.0], np.float32))[:3]
+            fwd = np.array([0, 1.0, -0.12], np.float32)
+            fwd /= np.linalg.norm(fwd)
+            ph = int(t * 20) + k
+            if t > tf * 0.5 and ph % 2 == 0:
+                fx.append(FX.muzzle_flash(m, p0, fwd, 0.7, seed=ph, prongs=4))
+            for j in range(2):
+                u = (t * 4 + j / 2 + k * 0.25) % 1.0
+                if t > tf * 0.5:
+                    p = p0 + fwd * (1.0 + u * reach)
+                    fx.append(VP.tube(p, p + fwd * 1.0, 0.05, 0.05, m['fx_yellow'], seg=4))
+        return FX.FxMesh(M.Mesh.concat([mesh] + fx), m)

@@ -9,7 +9,7 @@ UNITS = {
     # A pirate's steam junk (the mod's picture): a tarred junk hull with
     # gunports and paddle boxes, plain junk sails, the black flag.
     'Pirate': {
-        'archetype': 'ship_r2', 'design': 'steam_junk', 'modern': True, 'billow_k': 1.0, 'scale': 0.84,
+        'archetype': 'ship_r2', 'design': 'steam_junk', 'modern': True, 'billow_k': 1.0, 'scale': 0.82,
         'colors': {'deck_wood': '#8a7254', 'sail': '#d8cbab', 'wood_dark': '#3e3022', 'wood': '#5a4634',
                    'rail': '#9a6a34'},
     },

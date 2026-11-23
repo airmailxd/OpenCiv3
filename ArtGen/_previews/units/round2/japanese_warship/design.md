@@ -64,3 +64,7 @@ ports) and arrows.
   15.6, Dromon 10.7); non-civ brightness 109 -> 142 (stocks 150-155): lighter walls, hull planks, deck,
   roofs, plaster and sail. Brightness stays about 5% under the stocks; most of the difference is the
   broad hull's larger shadow on the water.
+
+## After the second review (passed; one nit)
+- Death: the shared `ship_r2` death now rolls the ship onto her side by the middle of the sinking and
+  then takes everything down at one rate, so the banners, sail and tower go under with the hull.

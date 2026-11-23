@@ -50,3 +50,16 @@ the tan mizzen junk sail (5 panels); 4 masts; 2 flags; forestay, masthead stays,
   the paddle boxes, pennants at three mastheads, the ensign at the stern and an awning over the castle.
   Area was above both neighbours; scale 0.84 brings it inside their range. Brightness 111 (103-158).
 - Death: the `ship_r2` death (rig goes down with the hull, waterline foam, low smoke).
+
+## After the second review (failed: neither junk nor steam read at 1x)
+- **r16:** the sails are broad battened lug sails (battens across the sail, fanning a little from the
+  luff to the leech, the head peaked up), plain tan canvas set flat, dark batten spars over every seam, the
+  sheets fanning to one block. The paddle wheels are raised half-round boxes from the waterline to above
+  the deck (vents, civ rims), nothing under the water. The hull is a junk: a flat raked transom bow
+  board, a high square stern overhanging aft with a tall transom (gallery windows), the great rudder.
+  The civ awning (the stray blue disc) is gone.
+- **r17:** the funnel tall and thick (0.95 high), black with two civ bands, smoking, and the masts moved
+  apart so it stands in a gap and shows in every direction; deckhouse moved clear. Measured: civ blue 6.9%
+  (6.9-8.3), brightness 112 (103-158), area a little over the Privateer's: scale 0.82.
+- **Death (r18):** the ship goes over on her side by mid-sinking and then hull and rig go down together;
+  what stays at the surface is the rig lying on the water in its foam ring, not masts standing up.

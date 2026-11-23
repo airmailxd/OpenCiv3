@@ -335,8 +335,8 @@ def cut_foam(mesh, mat, n=60, r=(0.014, 0.03), seed=5):
 @archetype('ship_r2')
 class ShipR2(Ship):
     """The ship archetype with a death that keeps the ship together: it
-    heels over until the masts lie toward the water (so no rig stands alone
-    above the sea), goes down by the stern, and wherever it crosses the
+    heels over until the masts lie along the water (so no rig stands alone
+    above the sea) and then everything goes down at one rate, and wherever it crosses the
     waterline the sea foams round it; the smoke of a modern ship's
     explosions stays low and thins out instead of hanging in the air."""
 
@@ -351,13 +351,13 @@ class ShipR2(Ship):
         start = self.p.get('sink_start', 0.12 if not modern else 0.25)
         u = _clamp((t - start) / max(end - start, 1e-3))
         side = self.p.get('death_side', -1.0)
-        roll = side * self.p.get('death_roll', 78.0) * _smooth(u * 1.25)
+        roll = side * self.p.get('death_roll', 82.0) * _smooth(u / 0.55)
         pitch = -self.p.get('death_pitch', 12.0) * _smooth(u)
         H = float(self.static.V[..., 2].max()) * self.p.get('height_k', 1.0) + 0.1
         hh = ((self.b.hull.D + self.b.hull.hb) * self.p.get('height_k', 1.0) + 0.08) if self.b.hull else 0.3
         # the hull settles to its deck by u = 0.55, then everything goes under together, the rig
         # (now lying over) last
-        zs = -hh * _smooth(u / 0.5) - (H - hh) * 1.15 * max(0.0, (u - 0.38) / 0.62) ** 1.1
+        zs = -(hh + 0.5 * (H - hh)) * _smooth(u) ** 1.1     # once over on her side the rig is low: all goes down together
         z0, p0, r0 = self._bob(t * 0.5, False)
         ship = self.ship_mesh('DEFAULT', t, billow=1.0 - 0.7 * u, wind=0.5, flag_k=1.0 - 0.6 * u, spin=0.0,
                               oar=(10 * math.sin(TAU * t), 0.6) if b.oars else None)

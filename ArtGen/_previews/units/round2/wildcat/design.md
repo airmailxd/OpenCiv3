@@ -44,3 +44,11 @@ line; 3-blade prop with yellow tips.
 - **r8-r12 (measured):** the blue-grey paint was being counted as civ blue (55%!): the paint is now the
   greyer FS 35189 tone, the cowl lip no longer civ, the insignia smaller: civ blue 6.0% (Fighter 6.3,
   Bomber 3.1), brightness 101.5 (95-104), area within the Fighter's.
+
+## After the second review (model passed; animations failed)
+- Death and attack as the P-38: whole death inside the cell (closest 19 px from the bottom, 2x), the
+  tracers stop 24 px short of the edge.
+- Wings: the light under-colour shows at every edge face and in a feathered strip along the leading
+  edges and tips of wings and tailplane; the walkways, aileron and flap lines stay; exhaust staining
+  along both sides aft of the stubs; the cowl ring a dark line. Paint a shade darker to keep brightness
+  in range (103.2 against 95-104).
