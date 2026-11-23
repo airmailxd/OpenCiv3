@@ -79,6 +79,17 @@ MOD_UNIT_ORIGINALS = {
     'Pirate': (MODERN_MOD, 'Man-O-War'),
     'Troop Ship': (MODERN_MOD, 'Galleon'),
     'Fighter Bomber': (MODERN_MOD, 'F-15'),
+    # The League modes' units that standalone mode drew with a stock unit's
+    # look (catalog/league_*.py). A mod folder of None is the Civ3 install:
+    # the stock unit folder the new art is calibrated against.
+    'Partisans': (None, 'Rifleman'),
+    'Roughrider': (None, 'Cossack'),
+    'Special Forces': (None, 'Guerilla'),
+    'Teutonic Knight': (None, 'Knight'),
+    'Wildcat': (MODERN_MOD, 'Fighter'),
+    'Japanese Rifleman': (MODERN_MOD, 'Infantry'),
+    'Japanese Warship': (None, 'Galley'),
+    'Hojo General': (None, 'Army Ancient Times'),
 }
 
 
@@ -104,6 +115,8 @@ def media_path(rel):
         mod, folder = MOD_UNIT_ORIGINALS[art]
         if name.lower() == f'{art}.ini'.lower():
             name = f'{folder}.INI'
+        if mod is None:
+            return media_path(f'Art/Units/{folder}/{name}')
         found = _find_ignoring_case(mod, f'Art/Units/{folder}/{name}')
         if found:
             return found
