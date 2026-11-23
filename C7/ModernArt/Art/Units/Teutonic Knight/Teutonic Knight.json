@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "KnightDefault",
+    "RUN": "KnightRun",
+    "ATTACK1": "KnightAttackA",
+    "DEATH": "KnightDeath",
+    "FORTIFY": "KnightFortify",
+    "FIDGET": "KnightFidget",
+    "VICTORY": "KnightVictory"
+  },
+  "flics": {
+    "KnightAttackA": {"size": [75, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [81, 56], "canvas": [240, 240]},
+    "KnightDeath": {"size": [116, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [62, 63], "canvas": [240, 240]},
+    "KnightDefault": {"size": [69, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [82, 70], "canvas": [240, 240]},
+    "KnightFidget": {"size": [72, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 69], "canvas": [240, 240]},
+    "KnightFortify": {"size": [67, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 57], "canvas": [240, 240]},
+    "KnightRun": {"size": [73, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [82, 61], "canvas": [240, 240]},
+    "KnightVictory": {"size": [69, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 57], "canvas": [240, 240]}
+  }
+}
