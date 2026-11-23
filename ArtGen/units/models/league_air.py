@@ -1,53 +1,215 @@
 """The League modes' aircraft (catalog/league_air.py): Modern's Fighter,
-which the mod draws as a Grumman F4F Wildcat (its Art/Units/Fighter).
+which the mod draws as a Grumman F4F-4 Wildcat (its Art/Units/Fighter).
 
 Registers the aircraft archetype's model 'wildcat' (models/aircraft.py):
-a short barrel of a fuselage behind a big round engine cowling, a
-greenhouse canopy set high, square-tipped wings set low on the body, a
-squared tailplane and a tall rounded fin. Blue-grey above; the civ color
-on the cowling's ring, the roundels and a band round the rear fuselage.
+the stubby barrel of a fuselage with its deep belly (the main wheels folded
+into its sides), a big round cowling with the engine's cylinders inside and
+its cowl flaps, a framed greenhouse canopy set high, small windows behind
+it, square-tipped wings set at mid-height with three .50s in each leading
+edge, a squared tailplane and a tall rounded fin with its rudder, an
+antenna mast and its wire, the tail hook and tail wheel, exhaust stubs.
+Blue-grey above, light grey below (the 1942 scheme), panel lines; the civ
+color in the national insignia (a star on a disc with bars) on the wings
+and the fuselage sides and on the cowling's lip.
+
+Also holds the helpers the round-2 planes share (models/modern_mod_sea_air.py's
+P-38): `paintn` (pattern by position and normal), `insignia`.
 """
+import math
+
+import numpy as np
+
 import mesh as M
 from models import aircraft as AC
 from models import vparts as VP
 
 
+# ------------------------------------------------------------ shared helpers
+
+def paintn(mesh, fn, max_edge=0.1):
+    """Subdivides a mesh until no edge exceeds max_edge and recolors each
+    triangle by fn(centers, face normals, ids) -> ids."""
+    m = mesh
+    for _ in range(6):
+        e = np.linalg.norm(m.V - np.roll(m.V, 1, axis=1), axis=-1).max()
+        if e <= max_edge:
+            break
+        m = VP.subdivide(m, max_edge)
+    C = m.V.mean(1)
+    N = m.N.mean(1)
+    N /= np.linalg.norm(N, axis=-1, keepdims=True) + 1e-9
+    m.M = np.asarray(fn(C, N, m.M.copy()), np.int32)
+    return m
+
+
+def _in_star(px, py, R, r_in=0.4, rot=90.0):
+    """Point-in-five-pointed-star test (arrays), points up at rot degrees."""
+    ang = np.radians(rot + np.arange(10) * 36.0)
+    rad = np.where(np.arange(10) % 2 == 0, R, R * r_in)
+    vx, vy = rad * np.cos(ang), rad * np.sin(ang)
+    inside = np.zeros(np.shape(px), bool)
+    j = 9
+    for i in range(10):
+        c = ((vy[i] > py) != (vy[j] > py)) & (px < (vx[j] - vx[i]) * (py - vy[i]) / (vy[j] - vy[i] + 1e-12) + vx[i])
+        inside ^= c
+        j = i
+    return inside
+
+
+def insignia(r, disc, star, bar_k=1.0, thick=0.02, seg=24):
+    """The national insignia in the plane z = 0 (facing +z), centered: a disc
+    (the civ color) with a white five-pointed star, white bars to each side
+    along x with a civ-colored outline. bar_k = 0 leaves the bars off."""
+    parts = [M.cylinder(r, r, thick, disc, seg=seg, z0=-thick / 2)]
+    if bar_k > 0:
+        bl, bh = r * 0.95 * bar_k, r * 0.5
+        for s in (-1, 1):
+            parts.append(M.box(bl + 0.06, bh + 0.08, thick * 0.9, disc, center=(s * (r * 0.75 + bl / 2), 0, 0)))
+            parts.append(M.box(bl, bh, thick * 1.1, star, center=(s * (r * 0.75 + bl / 2 + 0.02), 0, 0)))
+    m = M.Mesh.concat(parts)
+
+    def f(C, N, ids):
+        on = (np.hypot(C[:, 0], C[:, 1]) < r * 0.98) & (np.abs(N[:, 2]) > 0.5)
+        ids[on & _in_star(C[:, 0], C[:, 1], r * 0.86)] = star
+        return ids
+    return paintn(m, f, max_edge=r * 0.07)
+
+
+def two_tone(top, under, line=None, z_split=0.0, lines=None):
+    """A painter: `under` on faces turned down (and below z_split on round
+    bodies), `top` elsewhere; `lines` (C, N) -> bool marks panel lines in
+    `line`."""
+    def f(C, N, ids):
+        sel = ids == top
+        ids[sel & ((N[:, 2] < -0.25) | ((C[:, 2] < z_split) & (N[:, 2] < 0.35)))] = under
+        if lines is not None and line is not None:
+            ids[(ids == top) & lines(C, N)] = line
+        return ids
+    return f
+
+
+def near(v, xs, w):
+    """True where v is within w of any of xs."""
+    out = np.zeros(np.shape(v), bool)
+    for x in xs:
+        out |= np.abs(v - x) < w
+    return out
+
+
+def canopy_frames(c, radii, ys, mat, r=0.03, k=1.03):
+    """Frame hoops over an ellipsoid canopy (center c, radii) at the given y
+    offsets, and the spine bar along its top."""
+    cx, cy, cz = c
+    rx, ry, rz = radii
+    out = []
+    for dy in ys:
+        s = math.sqrt(max(0.0, 1 - (dy / ry) ** 2)) * k
+        pts = [(cx + rx * s * math.cos(t), cy + dy, cz + rz * s * math.sin(t)) for t in np.linspace(0.05, math.pi - 0.05, 9)]
+        for i in range(len(pts) - 1):
+            out.append(VP.tube(pts[i], pts[i + 1], r, r, mat, seg=4))
+    out.append(VP.tube((cx, cy - ry * 0.85, cz + rz * 0.55 * k), (cx, cy + ry * 0.8, cz + rz * 0.62 * k), r, r, mat,
+                       seg=4))
+    out.append(VP.tube((cx, cy - ry * 0.4, cz + rz * k), (cx, cy + ry * 0.4, cz + rz * k), r, r, mat, seg=4))
+    return out
+
+
+# ------------------------------------------------------------ the Wildcat
+
 def build_wildcat(V):
     m = V.mats
     L = 8.8
-    body = [AC.fuselage([(-4.7, 0.05), (-4.3, 0.22), (-2.6, 0.48), (-0.8, 0.70), (1.0, 0.80), (2.3, 0.80), (2.9, 0.76)],
-                        m['paint'], sx=0.92, sz=1.0)]
-    # the engine cowling: a fat drum, its front ring in the civ color, the dark engine face inside
-    body.append(AC.fuselage([(2.5, 0.84), (3.3, 0.84), (3.42, 0.78)], m['paint_dark'], seg=16))
-    body.append(AC.fuselage([(3.05, 0.86), (3.38, 0.86)], m['band'], seg=16))
-    body.append(AC.fuselage([(3.38, 0.62), (3.44, 0.0)], m['steel'], seg=14))
-    body.append(AC.fuselage([(3.42, 0.22), (3.6, 0.2), (3.85, 0.0)], m['steel']))                  # spinner
-    # the canopy, high on the back, and the spine behind it
-    body.append(VP.icosphere(0.42, m['glass'], (0, 0.15, 0.72), sub=2, smooth=True, squash=(0.82, 1.9, 0.75)))
-    body.append(M.box(0.32, 2.6, 0.30, m['paint'], center=(0, -1.6, 0.52)).transformed(M.rot_x(-4)))
-    # a band round the rear fuselage
-    body.append(AC.fuselage([(-2.3, 0.53), (-1.95, 0.57)], m['band'], sx=0.95, sz=1.03))
-    # the wing: low on the body, straight and tapered, its tips cut square
-    poly = [(0.35, 1.35), (2.6, 1.15), (5.55, 0.70), (5.75, 0.55), (5.75, -0.30), (5.5, -0.42), (2.6, -0.70), (0.35, -1.0)]
+    paint, under, line = m['paint'], m['under'], m['line']
+    # the fuselage: a stubby barrel, deepest behind the cowling
+    prof = [(-4.95, 0.08), (-4.6, 0.27), (-3.4, 0.45), (-2.0, 0.57), (-0.6, 0.65), (0.8, 0.69), (2.0, 0.7), (2.35, 0.7)]
+    fus = AC.fuselage(prof, paint, seg=18, sx=0.82, sz=1.06)
+    belly = M.ellipsoid(0.5, 1.75, 0.42, paint, center=(0, 1.1, -0.42), seg=16)
+    frames = lambda C, N: near(C[:, 1], (-3.6, -2.7, -1.3, 1.6), 0.035) & (C[:, 2] > -0.3)
+    body = [paintn(M.Mesh.concat([fus, belly]), two_tone(paint, under, line, z_split=-0.15, lines=frames), 0.12)]
+    # the main wheels folded into the belly's sides
+    for sx in (-1, 1):
+        body.append(VP.axle_x(0.3, 0.08, m['tire'], center=(sx * 0.44, 1.45, -0.5)))
+        body.append(VP.axle_x(0.14, 0.1, m['steel'], center=(sx * 0.45, 1.45, -0.5)))
+    # the cowling: its lip in the civ color, the engine's face and cylinders inside, the cowl flaps
+    body.append(AC.fuselage([(2.3, 0.72), (3.25, 0.74), (3.4, 0.7)], paint, seg=22))
+    body.append(AC.fuselage([(3.3, 0.745), (3.46, 0.7)], m['band'], seg=22))
+    body.append(AC.fuselage([(3.2, 0.58), (3.25, 0.0)], m['steel'], seg=18))
+    for i in range(14):
+        a = 2 * math.pi * i / 14
+        body.append(M.box(0.12, 0.12, 0.16, m['steel'], center=(0.46 * math.cos(a), 3.3, 0.46 * math.sin(a))).transformed(
+            M.translate(0, 0, 0)))
+    flaps = AC.fuselage([(2.15, 0.69), (2.38, 0.73)], m['paint'], seg=22)
+
+    def slats(C, N, ids):
+        a = np.degrees(np.arctan2(C[:, 2], C[:, 0]))
+        ids[np.floor(a / 15) % 2 == 1] = line
+        return ids
+    body.append(paintn(flaps, slats, 0.12))
+    body.append(AC.fuselage([(3.3, 0.2), (3.55, 0.16), (3.7, 0.0)], m['steel']))         # prop hub
+    # exhaust stubs under the cowl's rear
+    for sx in (-1, 1):
+        for k in range(2):
+            body.append(VP.tube((sx * 0.5, 2.2 - k * 0.18, -0.32), (sx * 0.62, 1.95 - k * 0.18, -0.36), 0.05, 0.045,
+                                m['exhaust'], seg=6))
+    # the canopy: a framed greenhouse, the windscreen, small windows behind, the spine
+    can = VP.icosphere(0.4, m['glass'], (0, 0.05, 0.68), sub=2, smooth=True, squash=(0.82, 2.1, 0.72))
+    body.append(can)
+    body += canopy_frames((0, 0.05, 0.68), (0.328, 0.84, 0.288), (-0.5, -0.12, 0.28, 0.62), m['line_dark'])
+    spine = AC.fuselage([(-4.0, 0.05), (-2.6, 0.2), (-0.9, 0.3)], paint, sx=1.0, sz=1.0).transformed(
+        M.translate(0, 0, 0.5))
+    body.append(paintn(spine, two_tone(paint, under), 0.2))
+    for sx in (-1, 1):
+        body.append(M.box(0.02, 0.3, 0.16, m['glass_dark'], center=(sx * 0.42, -1.05, 0.42)))
+    # the insignia on the fuselage's sides
+    for sx in (-1, 1):
+        body.append(insignia(0.46, m['band'], m['star'], bar_k=0.6).transformed(
+            M.translate(sx * 0.49, -2.3, 0.02) @ M.rot_y(sx * 90) @ M.rot_z(90)))
+    # the antenna mast behind the canopy, its wire to the fin, the tail hook and tail wheel
+    body.append(VP.tube((0, -0.95, 0.75), (0, -1.15, 1.15), 0.04, 0.025, m['line_dark'], seg=5))
+    body.append(VP.tube((0, -1.15, 1.15), (0, -4.45, 1.75), 0.012, 0.012, m['line_dark'], seg=4))
+    body.append(VP.tube((0, -4.2, -0.22), (0, -4.75, -0.35), 0.03, 0.03, m['steel'], seg=5))
+    body.append(VP.axle_x(0.13, 0.08, m['tire'], center=(0, -4.0, -0.36)))
+
+    # the wings: set at mid-height, square tips, panel lines, ailerons and flaps
+    poly = [(0.35, 1.32), (5.5, 0.8), (5.8, 0.62), (5.8, -0.22), (5.6, -0.38), (0.35, -1.3)]
+    wl = lambda C, N: (near(np.abs(C[:, 0]), (1.6, 2.9, 4.2), 0.04)
+                       | ((np.abs(C[:, 0]) > 3.6) & near(C[:, 1], (-0.06 - 0.12 * (np.abs(C[:, 0]) - 3.6),), 0.04))
+                       | ((np.abs(C[:, 0]) < 3.6) & near(C[:, 1] + 0.16 * np.abs(C[:, 0]), (-0.62,), 0.04)))
     ws = {}
     for side, name in ((1, 'wing_r'), (-1, 'wing_l')):
-        parts = [VP.camo(AC.wing(poly, 0.20, m['paint'], z=-0.42, dihedral=5, side=side), m['paint'],
-                         [(0.12, m['paint_dark'])], max_edge=0.35, seed=3 + side, scale=1.0)]
-        parts.append(AC.roundel(0.68, m['band'], m['star']).transformed(
-            M.translate(side * 4.2, 0.25, -0.42 + 0.11 + 4.2 * 0.087)))
-        parts.append(VP.tube((side * 2.9, 1.1, -0.40), (side * 2.9, 1.7, -0.40), 0.04, 0.035, m['steel'], seg=6))
+        w = AC.wing(poly, 0.2, paint, z=-0.12, dihedral=4, side=side)
+        parts = [paintn(w, two_tone(paint, under, line, lines=wl), 0.14)]
+        zt = -0.12 + 0.105 + 4.2 * math.tan(math.radians(4))
+        parts.append(insignia(0.74, m['band'], m['star'], bar_k=0.55).transformed(
+            M.translate(side * 4.15, 0.22, zt) @ M.rot_z(90)))
+        for k, x in enumerate((2.7, 2.95, 3.2)):
+            yle = 1.32 - (x - 0.35) * (0.52 / 5.15)
+            zg = -0.15 + x * math.tan(math.radians(4))
+            parts.append(VP.tube((side * x, yle - 0.2, zg), (side * x, yle + 0.42, zg), 0.045, 0.04, m['steel'], seg=6))
+        if side > 0:
+            parts.append(VP.tube((5.3, 0.6, 0.25), (5.3, 1.2, 0.25), 0.025, 0.02, m['steel'], seg=5))     # pitot
         ws[name] = M.Mesh.concat(parts)
-    tp = [(0.1, -3.55), (1.7, -3.75), (2.0, -3.95), (2.0, -4.3), (0.1, -4.5)]
-    tail = [AC.wing(tp, 0.10, m['paint'], z=0.05), AC.wing(tp, 0.10, m['paint'], z=0.05, side=-1),
-            VP.side_prism([(-3.4, 0.4), (-3.9, 1.5), (-4.25, 1.75), (-4.6, 1.7), (-4.85, 1.3), (-4.8, 0.2)], 0.12, m['paint'])]
+    # the tail: squared tailplane with elevators, a tall rounded fin with its rudder
+    tp = [(0.1, -3.7), (2.0, -3.92), (2.15, -4.08), (2.15, -4.42), (0.1, -4.62)]
+    el = lambda C, N: near(C[:, 1], (-4.18,), 0.035)
+    tail = []
+    for s in (1, -1):
+        tail.append(paintn(AC.wing(tp, 0.12, paint, z=0.12, side=s), two_tone(paint, under, line, lines=el), 0.14))
+    fin = VP.side_prism([(-3.5, 0.45), (-3.95, 1.45), (-4.2, 1.82), (-4.55, 1.9), (-4.88, 1.65), (-5.0, 1.2),
+                         (-4.98, 0.25)], 0.14, paint)
+    rl = lambda C, N: near(C[:, 1], (-4.42,), 0.035) & (C[:, 2] > 0.35)
+    tail.append(paintn(fin, two_tone(paint, under, line, lines=rl), 0.12))
     parts = dict(ws)
-    parts['body'] = VP.camo(M.Mesh.concat(body), m['paint'], [(0.15, m['paint_dark'])], max_edge=0.35, seed=8, scale=1.0)
+    parts['body'] = M.Mesh.concat(body)
     parts['tail'] = M.Mesh.concat(tail)
-    return dict(parts=parts, props=[((0, 3.55, 0.0), 1.45, 3, 'y')], guns=[(sx * 2.9, 1.75, -0.40) for sx in (-1, 1)],
+    gx = 2.95
+    return dict(parts=parts, props=[((0, 3.62, 0.0), 1.45, 3, 'y')],
+                guns=[(sx * gx, 1.32 - (gx - 0.35) * 0.1 + 0.45, -0.15 + gx * 0.07) for sx in (-1, 1)],
                 pylons=[], length=L)
 
 
 AC.BUILDERS.setdefault('wildcat', build_wildcat)
-AC.PAINTS.setdefault('wildcat', {'paint': '#5e6a82', 'paint_dark': '#4a5468', 'band': '#e8e8e8', 'star': '#e8e8e8',
-                                 'glass': ('#9ab8c8', 0.7, 40), 'steel': ('#3a3a3c', 0.5, 24), 'blade': '#262626',
-                                 'blade_tip': '#d8c040', 'bomb': '#3c3e38'})
+AC.PAINTS.setdefault('wildcat', {'paint': '#566a8e', 'under': '#b4bac0', 'line': '#475876', 'line_dark': '#2c3038',
+                                 'paint_dark': '#4a5468', 'band': '#e8e8e8', 'star': '#f2f2f0',
+                                 'glass': ('#9ab8c8', 0.7, 40), 'glass_dark': ('#3a4a58', 0.7, 40),
+                                 'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222',
+                                 'blade': '#262626', 'blade_tip': '#d8c040', 'bomb': '#3c3e38'})
