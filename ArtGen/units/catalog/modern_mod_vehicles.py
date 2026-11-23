@@ -7,19 +7,19 @@ under Panzer and the Iron Dome's (a Rapier launcher) under Cannon.
 
 UNITS = {
     'Laser Tank': {
-        'archetype': 'mod_armor', 'model': 'laser_tank',
+        'archetype': 'mod_armor', 'model': 'laser_tank', 'size': 1.017,
         'tint': ['decal', 'beam'],
     },
     'Bradley': {
-        'archetype': 'mod_armor', 'model': 'light_ifv',
-        'tint': ['decal'],
+        'archetype': 'mod_armor', 'model': 'light_ifv', 'scale': 1.08, 'anchor': (117.0, 121.3),
+        'tint': ['decal', 'tow'],
     },
     'Convoy': {
-        'archetype': 'mod_armor', 'model': 'humvee', 'turret_off': False,
+        'archetype': 'mod_armor', 'model': 'humvee', 'size': 1.1, 'turret_off': False,
         'tint': ['decal', 'helmet'],
     },
     'Iron Dome': {
-        'archetype': 'mod_armor', 'model': 'battery',
+        'archetype': 'mod_armor', 'model': 'battery', 'size': 1.42,
         'tint': ['decal'],
     },
 }
