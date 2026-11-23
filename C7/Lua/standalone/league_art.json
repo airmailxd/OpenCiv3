@@ -708,7 +708,7 @@
      "art": "Barracks",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Barracks": {
      "from": "BLDG_Barracks",
@@ -716,7 +716,7 @@
      "art": "Barracks",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Barracks": {
      "from": "BLDG_Barracks",
@@ -724,7 +724,7 @@
      "art": "Barracks",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Barracks": {
      "from": "BLDG_Barracks",
@@ -732,7 +732,7 @@
      "art": "Barracks",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Granary (+1 Happy)": {
      "from": "BLDG_Granary",
@@ -740,7 +740,7 @@
      "art": "Granary",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Granary": {
      "from": "BLDG_Granary",
@@ -748,7 +748,7 @@
      "art": "Granary",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Granary (+1 Happy)": {
      "from": "BLDG_Granary",
@@ -756,7 +756,7 @@
      "art": "Granary",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Granary": {
      "from": "BLDG_Granary",
@@ -764,7 +764,7 @@
      "art": "Granary",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Temple (+3 Happy and +1 GPT)": {
      "from": "BLDG_Temple",
@@ -772,7 +772,7 @@
      "art": "Temple",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Cathedral (Courthouse)": {
      "from": "BLDG_Cathedral",
@@ -780,7 +780,7 @@
      "art": "Cathedral",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Marketplace": {
      "from": "BLDG_Marketplace",
@@ -788,7 +788,7 @@
      "art": "Marketplace",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Market (Less Corruption)": {
      "from": "BLDG_Marketplace",
@@ -796,7 +796,7 @@
      "art": "Marketplace",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Bank (+50% Sci, Less Corrupt)": {
      "from": "BLDG_Bank",
@@ -804,7 +804,7 @@
      "art": "Bank",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Exchange (+50%Lux +2Happy)": {
      "from": "BLDG_Stock_Exchange",
@@ -812,7 +812,7 @@
      "art": "Stock_Exchange",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Harbor": {
      "from": "BLDG_Harbor",
@@ -820,7 +820,7 @@
      "art": "Harbor",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Harbor (+1 Culture)": {
      "from": "BLDG_Harbor",
@@ -828,7 +828,7 @@
      "art": "Harbor",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Harbour": {
      "from": "BLDG_Harbor",
@@ -836,7 +836,7 @@
      "art": "Harbor",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Harbor": {
      "from": "BLDG_Harbor",
@@ -844,7 +844,7 @@
      "art": "Harbor",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Offshore": {
      "from": "BLDG_Offshore_Platform",
@@ -852,7 +852,7 @@
      "art": "Offshore_Platform",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Offshore": {
      "from": "BLDG_Offshore_Platform",
@@ -860,7 +860,7 @@
      "art": "Offshore_Platform",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Offshore": {
      "from": "BLDG_Offshore_Platform",
@@ -868,7 +868,7 @@
      "art": "Offshore_Platform",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Offshore": {
      "from": "BLDG_Offshore_Platform",
@@ -876,7 +876,7 @@
      "art": "Offshore_Platform",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Airport": {
      "from": "BLDG_Airport",
@@ -884,7 +884,7 @@
      "art": "Airport",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Airport": {
      "from": "BLDG_Airport",
@@ -892,7 +892,7 @@
      "art": "Airport",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Airport": {
      "from": "BLDG_Airport",
@@ -900,7 +900,7 @@
      "art": "Airport",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Airport (+25%Prod +1Happy)": {
      "from": "BLDG_Airport",
@@ -908,7 +908,7 @@
      "art": "Airport",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Coal Plant": {
      "from": "BLDG_Coal_Plant",
@@ -916,7 +916,7 @@
      "art": "Coal_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Coal Plant": {
      "from": "BLDG_Coal_Plant",
@@ -924,7 +924,7 @@
      "art": "Coal_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Coal Plant": {
      "from": "BLDG_Coal_Plant",
@@ -932,7 +932,7 @@
      "art": "Coal_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Coal Plant": {
      "from": "BLDG_Coal_Plant",
@@ -940,7 +940,7 @@
      "art": "Coal_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Hydro Plant": {
      "from": "BLDG_Hydro_Plant",
@@ -948,7 +948,7 @@
      "art": "Hydro_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "F Hydro Plant": {
      "from": "BLDG_Hydro_Plant",
@@ -956,7 +956,7 @@
      "art": "Hydro_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "O Hydro Plant": {
      "from": "BLDG_Hydro_Plant",
@@ -964,7 +964,7 @@
      "art": "Hydro_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Hydro Plant": {
      "from": "BLDG_Hydro_Plant",
@@ -972,7 +972,7 @@
      "art": "Hydro_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "T Nuclear Plant  (+75% Shields)": {
      "from": "BLDG_Nuclear_Plant",
@@ -980,7 +980,7 @@
      "art": "Nuclear_Plant",
      "status": "stock",
      "priority": "P3",
-     "note": "government copy; optional badge icon later"
+     "note": "government copy; the stock icon by design (its government is in its name)"
     },
     "E Statue (Colossus, +3 Happy)": {
      "from": "BLDG_Colossus",
