@@ -268,7 +268,7 @@ def build_laser_tank(Vh):
                           (y0 + 1.42, [(-0.4, 0.72), (0.4, 0.72), (0.36, 0.86), (-0.36, 0.86)])], m['paint_mid'])
             g = VP.camo(g, m['paint_mid'], [(0.4, P)], max_edge=0.3, seed=73 + int(y0 * 3) + sx, scale=0.42)
             parts.append(g.transformed(M.translate(xc, 0, 0)))
-            parts.append(bx(0.05, 1.7, 0.12, m['decal'], (xc + sx * 0.41, y0, 0.9)))
+            parts.append(bx(0.05, 1.3, 0.12, m['decal'], (xc + sx * 0.41, y0, 0.9)))
             parts += [bx(0.9, 0.06, 0.05, D, (xc, y0 + dy, 0.99)) for dy in (-0.75, 0.75)]     # ribs across the guard
             yn = y0 + (1.42 if front else -1.42)
             parts.append(bx(0.22, 0.06, 0.1, m['light'] if front else m['lamp_red'], (xc, yn + (0.02 if front else -0.02), 0.8)))   # civ stripe on the guard's flank
@@ -422,17 +422,17 @@ def build_light_ifv(Vh):
     tp += bag(m, (-0.45, -1.3, 0.38), (0.6, 0.42, 0.32))
     tp += bag(m, (0.25, -1.32, 0.36), (0.55, 0.4, 0.28), mat='canvas_dk')
     tp.append(VP.axle_x(0.12, 1.4, m['canvas'], seg=10, center=(0, -1.48, 0.6)))
-    tp.append(antenna(m['steel'], D, (0.7, -1.0, 0.62), 1.15))
-    tp.append(antenna(m['steel'], D, (-0.7, -1.0, 0.62), 1.0))
+    tp.append(antenna(m['steel'], D, (0.7, -1.0, 0.62), 0.6))
+    tp.append(antenna(m['steel'], D, (-0.7, -1.0, 0.62), 0.5))
     turret = M.Mesh.concat(tp).transformed(M.scale(1.12))
     # the 25 mm Bushmaster: mantlet, barrel jacket, long thin barrel, muzzle brake; the coax beside it
     gun = M.Mesh.concat([bx(0.36, 0.3, 0.34, P, (0, 0.0, 0), bevel=0.03),
                          VP.tube((0, 0.1, 0), (0, 0.65, 0), 0.085, 0.08, D, seg=10),
-                         VP.tube((0, 0.6, 0), (0, 2.45, 0), 0.045, 0.042, m['steel'], seg=8),
-                         VP.tube((0, 2.3, 0), (0, 2.55, 0), 0.065, 0.065, m['steel_dark'], seg=8),
+                         VP.tube((0, 0.6, 0), (0, 1.85, 0), 0.045, 0.042, m['steel'], seg=8),
+                         VP.tube((0, 1.74, 0), (0, 1.94, 0), 0.065, 0.065, m['steel_dark'], seg=8),
                          VP.tube((0.2, 0.1, -0.05), (0.2, 0.6, -0.05), 0.03, 0.03, m['steel'], seg=6)])
     return dict(hull=hull_mesh, tracks=tracks, turret=turret, turret_pos=(0.25, 0.2, 1.8), gun=gun.transformed(M.scale(1.12)),
-                gun_pos=(0, 1.2, 0.4), muzzle=(0, 2.55, 0), recoil=0.12, scan=40, burst=True)
+                gun_pos=(0, 1.1, 0.4), muzzle=(0, 1.94, 0), recoil=0.12, scan=40, burst=True)
 
 
 # ------------------------------------------------------------ the Humvee
@@ -493,7 +493,8 @@ def build_humvee(Vh):
         parts.append(VP.tube((sx * 0.85, 2.62, 0.68), (sx * 0.85, 2.62, 1.22), 0.035, 0.035, m['steel_dark'], seg=6))
     parts.append(VP.tube((-0.85, 2.62, 1.2), (0.85, 2.62, 1.2), 0.035, 0.035, m['steel_dark'], seg=6))
     # a civ-colored marker panel on the hood, hood latches
-    parts.append(bx(0.62, 0.46, 0.025, m['decal'], (0, 1.6, 1.41)))
+    parts.append(bx(0.52, 0.36, 0.025, m['decal'], (0, 1.6, 1.41)))
+    parts += [bx(0.04, 0.42, 0.035, m['strap'], (x, 1.6, 1.415)) for x in (-0.16, 0.16)]   # its tie-downs
     parts += [bx(0.04, 0.12, 0.08, m['steel_dark'], (sx * 0.85, 2.25, 1.22)) for sx in (-1, 1)]
     # windshield (two thick panes in frames), side windows in the doors, mirrors
     for sx in (-1, 1):
@@ -516,12 +517,10 @@ def build_humvee(Vh):
     parts.append(bx(0.52, 0.06, 0.04, m['steel_dark'], (0.45, -2.15, 1.46)))
     parts.append(bx(0.5, 0.3, 0.26, m['ammo'], (0.45, -1.8, 1.32), bevel=0.02))
     parts += bag(m, (0.05, -1.35, 1.38), (1.7, 0.42, 0.38), straps=3)
-    # whip antennas on the rear corners
-    for sx in (-1, 1):
-        parts.append(M.cylinder(0.07, 0.06, 0.18, m['steel_dark'], seg=8, z0=1.15).transformed(M.translate(sx * 0.95, -2.3, 0)))
-        # whips bent back and tied down, below the gunner's head
-        parts.append(VP.tube((sx * 0.95, -2.3, 1.3), (sx * 0.95, -2.55, 1.9), 0.016, 0.014, m['steel_dark'], seg=4))
-        parts.append(VP.tube((sx * 0.95, -2.55, 1.9), (sx * 0.92, -3.1, 2.15), 0.014, 0.01, m['steel_dark'], seg=4))
+        # one whip on the right rear corner, bent back and tied down low
+    parts.append(M.cylinder(0.07, 0.06, 0.18, m['steel_dark'], seg=8, z0=1.15).transformed(M.translate(0.95, -2.3, 0)))
+    parts.append(VP.tube((0.95, -2.3, 1.3), (0.95, -2.5, 1.7), 0.016, 0.014, m['steel_dark'], seg=4))
+    parts.append(VP.tube((0.95, -2.5, 1.7), (0.93, -3.2, 1.85), 0.014, 0.01, m['steel_dark'], seg=4))
     # the chassis frame and axles seen under the body
     parts += [bx(0.14, 4.6, 0.16, m['steel_dark'], (sx * 0.5, 0.0, 0.5)) for sx in (-1, 1)]
     parts += [bx(1.7, 0.2, 0.2, m['steel_dark'], (0, y, 0.48)) for y in (-1.55, 1.5)]
@@ -647,7 +646,7 @@ def build_battery(Vh):
     for sx in (-1, 1):
         g += [bx(0.06, Lb + 0.04, 0.1, D, (sx * (Wb / 2 + 0.02), Lb / 2, z)) for z in (0.12, Hb - 0.02)]
         g += [bx(0.06, 0.1, Hb, D, (sx * (Wb / 2 + 0.02), y, Hb / 2 + 0.05)) for y in (0.3, 1.3, 2.3, 3.3)]
-        g.append(bx(0.04, 0.85, Hb * 0.6, m['decal'], (sx * (Wb / 2 + 0.03), 1.8, Hb / 2 + 0.05)))
+        g.append(bx(0.04, 1.2, 0.3, m['decal'], (sx * (Wb / 2 + 0.03), 1.85, Hb * 0.62)))
         g.append(bx(0.07, 0.4, 0.3, m['steel_dark'], (sx * (Wb / 2 + 0.05), 0.3, 0.3)))
         g.append(bx(0.03, 0.7, 0.5, D, (sx * (Wb / 2 + 0.015), 0.8, 0.75)))            # an access door
         g.append(bx(0.04, 0.08, 0.12, m['steel_dark'], (sx * (Wb / 2 + 0.03), 1.08, 0.75)))
@@ -701,18 +700,18 @@ BUILDERS = {'laser_tank': build_laser_tank, 'light_ifv': build_light_ifv, 'humve
             'battery': build_battery}
 
 PAINTS = {
-    'laser_tank': {'paint': '#acaaa2', 'paint_mid': '#8e8c84', 'paint_lt': '#bcbab2', 'paint_dark': '#5e5c56',
+    'laser_tank': {'paint': '#9b988f', 'paint_mid': '#807e76', 'paint_lt': '#aba89f', 'paint_dark': '#5e5c56',
                    'track': '#33353a', 'track_link': '#585c62', 'tire': '#2a2b2e', 'wheel': '#6a7076',
                    'wheel_hub': '#2a2c2e', 'steel': ('#8a9096', 0.5, 24), 'steel_dark': '#3c4044',
                    'glass': ('#2e4a5c', 0.6, 40), 'light': '#e8eef0', 'lamp_red': '#9a2a20', 'decal': '#f0f0f0',
                    'fx_beam': '#eef8ff', 'beam': '#f4f4f4'},
-    'light_ifv': {'paint': '#7e8762', 'paint_dark': '#5f6747', 'paint_black': '#41443a', 'tile': '#78815c',
+    'light_ifv': {'paint': '#a6b083', 'paint_dark': '#858f66', 'paint_black': '#6a6e5a', 'tile': '#9ea87a',
                   'track': '#2a2926', 'track_link': '#4c4944', 'tire': '#232220', 'wheel': '#4f573c',
                   'wheel_hub': '#24251f', 'steel': ('#5a5a58', 0.5, 24), 'steel_dark': '#2e302a',
                   'glass': ('#2c3a40', 0.6, 40), 'light': '#e6e2cc', 'lamp_red': '#9a2a20', 'tow': '#56603f',
                   'canvas': '#6e6a4c', 'canvas_dk': '#4e4c38', 'strap': '#2e2c24', 'decal': '#f0f0f0'},
-    'humvee': {'paint': '#8a9462', 'paint_dark': '#5f6744', 'paint_brown': '#86724f', 'paint_black': '#45473a',
-               'tire': '#2a2a28', 'tire_dark': '#1a1a18', 'rim': '#4e5636', 'rim_dark': '#2e3222',
+    'humvee': {'paint': '#b2ba8a', 'paint_dark': '#8e966a', 'paint_brown': '#aa9470', 'paint_black': '#72725c',
+               'tire': '#3c3c38', 'tire_dark': '#2a2a27', 'rim': '#4e5636', 'rim_dark': '#2e3222',
                'wheel_hub': '#262a1e', 'steel': ('#4a4a48', 0.5, 24), 'steel_dark': '#2a2c26',
                'glass': ('#33414a', 0.6, 40), 'light': '#e8e4d0', 'lamp_amber': '#c88a2a', 'lamp_red': '#9a2a20',
                'uniform': '#6e6a4e', 'vest': '#5a5a40', 'vest_dk': '#44442f', 'skin': '#c89a74', 'glove': '#3a3428',
@@ -849,17 +848,17 @@ class ModArmor(V.Armor):
             d = fwd * (1 - min(u * 2, 0.6)) + up * min(u * 2, 0.6)
             d = d / np.linalg.norm(d)
             pos = p0 + d * dist
-            if dist < 16:
+            if dist < 3.0:
                 fx.append(interceptor(mats).transformed(V._orient_y(pos, d)))
                 fx.append(FX.plume(mats, pos, -d, 0.8, 0.1, t=u, seed=k, smoke=False))
-            for i in range(14):
-                s = i / 14 * min(dist, 12)
-                age = (dist - s) / 16.0
+            for i in range(10):
+                s = i / 10 * min(dist, 2.8)
+                age = (dist - s) / 12.0
                 if age < 1:
                     fx.append(FX.puff(mats, p0 + d * (s + 0.3), 0.3 * (1 + age) * (1 - age ** 2),
                                       'smoke_white' if age < 0.4 else 'smoke_light', seed=20 + i + 7 * k))
             if u < 0.1:
-                fx.append(FX.muzzle_flash(mats, p0 - fwd * 0.1, -fwd, 0.5, seed=4 + k))
+                fx.append(FX.muzzle_flash(mats, p0 + fwd * 0.15, fwd, 0.3, seed=4 + k))
                 fx.append(FX.puff(mats, (G @ np.array([cell[0], 0.3, cell[2], 1.0], np.float32))[:3] - fwd * 0.2,
-                                  0.4, 'smoke_white', seed=9 + k))
+                                  0.3, 'smoke_white', seed=9 + k))
         return FX.FxMesh(M.Mesh.concat([mesh] + fx), mats)
