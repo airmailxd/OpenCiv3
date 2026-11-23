@@ -1207,48 +1207,43 @@
     },
     "Egypt": {
      "from": "RACE_EGYPTIANS",
-     "key": "RACE_EGYPTIANS",
+     "key": "RACE_MODERN_Egypt",
      "art": "EGYPTIANS",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+     "priority": "P2",
+     "note": "emblem: the stock civ's; its own article"
     },
     "China": {
      "from": "RACE_CHINESE",
-     "key": "RACE_CHINESE",
+     "key": "RACE_MODERN_China",
      "art": "CHINESE",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+     "priority": "P2",
+     "note": "emblem: the stock civ's; its own article"
     },
     "America": {
      "from": "RACE_AMERICAN",
-     "key": "RACE_AMERICAN",
+     "key": "RACE_MODERN_America",
      "art": "AMERICAN",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+     "priority": "P2",
+     "note": "emblem: the stock civ's; its own article"
     },
     "Japan": {
      "from": "RACE_JAPANESE",
-     "key": "RACE_JAPANESE",
+     "key": "RACE_MODERN_Japan",
      "art": "JAPANESE",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+     "priority": "P2",
+     "note": "emblem: the stock civ's; its own article"
     },
     "India": {
      "from": "RACE_INDIAN",
-     "key": "RACE_INDIAN",
+     "key": "RACE_MODERN_India",
      "art": "INDIAN",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+     "priority": "P2",
+     "note": "emblem: the stock civ's; its own article"
     }
    },
    "units": {
@@ -1500,139 +1495,139 @@
     },
     "Hammurabi": {
      "from": "PRTO_Hammurabi",
-     "key": "PRTO_Hammurabi",
+     "key": "PRTO_MODERN_King_Egypt",
+     "art": "King Babylonian",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Egypt's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Egypt's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Catherine": {
      "from": "PRTO_Catherine",
-     "key": "PRTO_Catherine",
+     "key": "PRTO_MODERN_King_European_Union",
+     "art": "King Russian",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "European Union's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "European Union's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Hannibal": {
      "from": "PRTO_Hannibal",
-     "key": "PRTO_Hannibal",
+     "key": "PRTO_MODERN_King_USSR",
+     "art": "King Carthaginian",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "USSR's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "USSR's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Mao": {
      "from": "PRTO_Mao",
-     "key": "PRTO_Mao",
+     "key": "PRTO_MODERN_King_China",
+     "art": "King Chinese",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "China's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "China's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Lincoln": {
      "from": "PRTO_Lincoln",
-     "key": "PRTO_Lincoln",
+     "key": "PRTO_MODERN_King_America",
+     "art": "King American",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "America's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "America's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Tokugawa": {
      "from": "PRTO_Tokugawa",
-     "key": "PRTO_Tokugawa",
+     "key": "PRTO_MODERN_King_Japan",
+     "art": "King Japanese",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Japan's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Japan's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Gandhi": {
      "from": "PRTO_Gandhi",
-     "key": "PRTO_Gandhi",
+     "key": "PRTO_MODERN_King_India",
+     "art": "King Indian",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "India's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "India's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Xerxes": {
      "from": "PRTO_Xerxes",
-     "key": "PRTO_Xerxes",
+     "key": "PRTO_MODERN_King_Iran",
+     "art": "King Persian",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Iran's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Iran's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Montezuma": {
      "from": "PRTO_Montezuma",
-     "key": "PRTO_Montezuma",
+     "key": "PRTO_MODERN_King_Mexico",
+     "art": "King Aztec",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Mexico's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Mexico's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Shaka": {
      "from": "PRTO_Shaka",
-     "key": "PRTO_Shaka",
+     "key": "PRTO_MODERN_King_Nigeria",
+     "art": "King Zulu",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Nigeria's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Nigeria's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Hiawatha": {
      "from": "PRTO_Hiawatha",
-     "key": "PRTO_Hiawatha",
+     "key": "PRTO_MODERN_King_Canada",
+     "art": "King Iroquois",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Canada's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Canada's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Elizabeth": {
      "from": "PRTO_Elizabeth",
-     "key": "PRTO_Elizabeth",
+     "key": "PRTO_MODERN_King_Brazil",
+     "art": "King English",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Brazil's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Brazil's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Ragnar": {
      "from": "PRTO_Ragnar",
-     "key": "PRTO_Ragnar",
+     "key": "PRTO_MODERN_King_Australia",
+     "art": "King Viking",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Australia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Australia's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Abu": {
      "from": "PRTO_Abu",
-     "key": "PRTO_Abu",
+     "key": "PRTO_MODERN_King_Saudi_Arabia",
+     "art": "King Arab",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Saudi Arabia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Saudi Arabia's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Wang Kon": {
      "from": "PRTO_Wang",
-     "key": "PRTO_Wang",
+     "key": "PRTO_MODERN_King_Indonesia",
+     "art": "King Korean",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Indonesia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Indonesia's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Gilgamesh": {
      "from": "PRTO_Gilgamesh",
-     "key": "PRTO_Gilgamesh",
+     "key": "PRTO_MODERN_King_Israel",
+     "art": "King Sumeria",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Israel's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Israel's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     },
     "Mursilis": {
      "from": "PRTO_Mursilis",
-     "key": "PRTO_Mursilis",
+     "key": "PRTO_MODERN_King_Pakistan",
+     "art": "King Hatti",
      "status": "stock",
-     "pending": "article",
-     "priority": "later",
-     "note": "Pakistan's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+     "priority": "P3",
+     "note": "Pakistan's Regicide king: a stock ancient king's figure (Modern-leader figures would be new units); its own article"
     }
    },
    "leaders": {

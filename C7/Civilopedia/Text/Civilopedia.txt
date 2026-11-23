@@ -6122,6 +6122,44 @@ $LINK<Tradition=GOVT_MODERN_Tradition>.
 ^Pakistan was created in 1947 at the partition of British India. The brothers Nawaz and Shehbaz Sharif have both
 served as its prime minister.
 
+#RACE_MODERN_Egypt
+^[Egypt] is $LINK<Expansionist and Religious=GCON_Strengths> and has no unique unit. President Sisi leads it, and
+it favors $LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_Egypt
+^Egypt became independent of Britain in 1922 and a republic in 1953. Abdel Fattah el-Sisi has been its president
+since 2014.
+
+#RACE_MODERN_China
+^[China] is $LINK<Expansionist and Religious=GCON_Strengths> and has no unique unit. Chairman Zemin leads it, and
+it favors $LINK<Order=GOVT_MODERN_Order> and shuns $LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_China
+^The People's Republic of China was proclaimed in 1949. Jiang Zemin led it as general secretary of the Communist
+Party from 1989 to 2002.
+
+#RACE_MODERN_America
+^[America] is $LINK<Expansionist and Religious=GCON_Strengths> and has no unique unit. President Reagan leads it,
+and it favors $LINK<Freedom=GOVT_MODERN_Freedom> and shuns $LINK<Equality=GOVT_MODERN_Equality>.
+
+#DESC_RACE_MODERN_America
+^The United States declared its independence in 1776. Ronald Reagan was its president from 1981 to 1989.
+
+#RACE_MODERN_Japan
+^[Japan] is $LINK<Expansionist and Religious=GCON_Strengths> and has no unique unit. Sato leads it, and it favors
+$LINK<Tradition=GOVT_MODERN_Tradition> and shuns $LINK<Order=GOVT_MODERN_Order>.
+
+#DESC_RACE_MODERN_Japan
+^Japan's postwar constitution took effect in 1947. Eisaku Sato was prime minister from 1964 to 1972.
+
+#RACE_MODERN_India
+^[India] is $LINK<Expansionist and Religious=GCON_Strengths> and has no unique unit. Prime Minister Gandhi leads
+it, and it favors $LINK<Equality=GOVT_MODERN_Equality>.
+
+#DESC_RACE_MODERN_India
+^India became independent in 1947 and a republic in 1950. Indira Gandhi and her son Rajiv both served as prime
+minister.
+
 #PRTO_MODERN_RAD_Marine
 ^The [RAD Marine] (attack 9, defense 4) can attack from a ship straight onto the shore. It needs
 $LINK<Uranium=GOOD_Uranium>, and the $LINK<T Guard=BLDG_MODERN_T_Guard> turns one out every four turns.
@@ -6293,6 +6331,77 @@ $LINK<Oil=GOOD_Oil> and $LINK<Uranium=GOOD_Uranium>.
 #DESC_PRTO_MODERN_Fighter_Bomber
 ^A fighter-bomber is built both for air combat and for attacking targets on the ground. The American F-15E Strike
 Eagle, in service since 1988, is one.
+
+; Modern's Regicide kings: each civilization's king figure, the stock ancient one the mod gives it.
+
+#PRTO_MODERN_King_America
+^[Lincoln] is America's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Lincoln is killed, America is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Egypt
+^[Hammurabi] is Egypt's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Hammurabi is killed, Egypt is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_China
+^[Mao] is China's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep. If Mao
+is killed, China is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Iran
+^[Xerxes] is Iran's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep. If
+Xerxes is killed, Iran is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Canada
+^[Hiawatha] is Canada's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Hiawatha is killed, Canada is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Nigeria
+^[Shaka] is Nigeria's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep. If
+Shaka is killed, Nigeria is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Mexico
+^[Montezuma] is Mexico's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Montezuma is killed, Mexico is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Brazil
+^[Elizabeth] is Brazil's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Elizabeth is killed, Brazil is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_European_Union
+^[Catherine] is the European Union's king in Regicide games (defense 1, moves 2). It cannot be built and costs
+nothing to keep. If Catherine is killed, the European Union is out of the game; see
+$LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Saudi_Arabia
+^[Abu] is Saudi Arabia's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Abu is killed, Saudi Arabia is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_USSR
+^[Hannibal] is the USSR's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to
+keep. If Hannibal is killed, the USSR is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_India
+^[Gandhi] is India's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep. If
+Gandhi is killed, India is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Australia
+^[Ragnar] is Australia's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Ragnar is killed, Australia is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Japan
+^[Tokugawa] is Japan's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Tokugawa is killed, Japan is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Indonesia
+^[Wang Kon] is Indonesia's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to
+keep. If Wang Kon is killed, Indonesia is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Pakistan
+^[Mursilis] is Pakistan's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to
+keep. If Mursilis is killed, Pakistan is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MODERN_King_Israel
+^[Gilgamesh] is Israel's king in Regicide games (defense 1, moves 2). It cannot be built and costs nothing to keep.
+If Gilgamesh is killed, Israel is out of the game; see $LINK<Short Game Modes=GCON_Short_Game_Modes>.
 
 #BLDG_MODERN_E_Statue
 ^The [E Statue] is a small wonder of $LINK<Equality=GOVT_MODERN_Equality>. It makes three unhappy citizens content
@@ -6807,6 +6916,9 @@ bombardment range of 5 that can start a $LINK<Golden Age=GCON_Golden_Age>.
 ^[2x Worker Speed] makes your workers labor twice as fast. Needs $LINK<Masonry=TECH_Masonry> and
 $LINK<Longbows=TECH_MDJ_Longbows>, and leads to $LINK<Mortal Combat=TECH_MDJ_Mortal_Combat>.
 
+#DESC_TECH_MDJ_2x_Worker_Speed
+^Sengoku lords called up their villagers between harvests to build roads, castle walls and river embankments.
+
 #TECH_MDJ_Sea_Travel
 ^[Sea Travel] brings the Fire Cannon Boat and the $LINK<Caravel=PRTO_Caravel>, opens trade across the sea, and with
 $LINK<Harbors=TECH_MDJ_Harbors> leads to $LINK<Philosophy=TECH_Philosophy>.
@@ -6820,27 +6932,49 @@ far as Siam.
 $LINK<Marketplace=BLDG_Marketplace>, and leads to $LINK<Sea Travel=TECH_MDJ_Sea_Travel>. The Urakami, Ainu and Hojo
 begin with it.
 
+#DESC_TECH_MDJ_Harbors
+^Sakai and Hakata grew rich as harbor towns in the Sengoku period, trading with China and Korea and later with the
+Portuguese. Sakai was governed by a council of its own merchants.
+
 #TECH_MDJ_Warships
 ^[Warships] brings the $LINK<Warship=PRTO_MDJ_Warship>, and leads to $LINK<Ronins=TECH_Suieijutsu> and
 $LINK<Line Infantry=TECH_MDJ_Line_Infantry>. Needs $LINK<Warrior Code=TECH_Warrior_Code>.
+
+#DESC_TECH_MDJ_Warships
+^Most of the period's naval fighting was on the Inland Sea, where lords hired seafaring families such as the
+Murakami to fight for them.
 
 #TECH_MDJ_Banditry
 ^[Banditry] brings the $LINK<Horseman=PRTO_Horseman>, the $LINK<Urakami Crossbow=PRTO_Siege_Crossbow>, the
 $LINK<Uesugi Horseman=PRTO_MDJ_Uesugi_Horseman> and $LINK<Walls=BLDG_Walls>. Needs
 $LINK<Warrior Code=TECH_Warrior_Code>.
 
+#DESC_TECH_MDJ_Banditry
+^With no central power to stop them, bandits and pirates thrived in the Sengoku period. Toyotomi Hideyoshi's sword
+hunt of 1588 took weapons from the peasants.
+
 #TECH_MDJ_Super_Fast_Workers
 ^[Super Fast Workers] needs no other advance. It brings the $LINK<Fast Worker=PRTO_MDJ_Fast_Worker> and leads to
 $LINK<Barrier Tech 2=TECH_MDJ_Barrier_Tech_2>.
+
+#DESC_TECH_MDJ_Super_Fast_Workers
+^Japan's roads were made for travel on foot. Carts were rare, and goods moved on pack horses and on porters' backs.
 
 #TECH_MDJ_Line_Infantry
 ^[Line Infantry] brings the $LINK<Bayonet=PRTO_Samurai_Spearman> and the $LINK<Hojo General=PRTO_MDJ_Hojo_General>,
 and leads to $LINK<Ninjutsu=TECH_Portuguese>. Needs $LINK<Warships=TECH_MDJ_Warships> and
 $LINK<Banditry=TECH_MDJ_Banditry>.
 
+#DESC_TECH_MDJ_Line_Infantry
+^At Nagashino in 1575 Oda Nobunaga's gunners are said to have fired in ranks from behind wooden palisades, breaking
+the charge of the Takeda horsemen.
+
 #TECH_MDJ_Mortal_Combat
 ^[Mortal Combat] brings the $LINK<Ichijo Cavalry=PRTO_Samurai_Horse_Archer> and
 $LINK<Mounted Ronin=PRTO_Mounted_Samurai>, and leads to $LINK<Rifling=TECH_MDJ_Rifling>.
+
+#DESC_TECH_MDJ_Mortal_Combat
+^In the earlier wars a samurai might call out his name and lineage before seeking a worthy opponent to fight alone.
 
 #TECH_MDJ_Bridge_Building
 ^[Bridge Building] lets workers build roads across rivers. It follows $LINK<Longbows=TECH_MDJ_Longbows> and is not
@@ -6854,26 +6988,48 @@ later kept some rivers unbridged to slow any army marching on Edo.
 ^[Longbows] brings the $LINK<Longbow=PRTO_Samurai_Archer>, the $LINK<Date Samurai Bow=PRTO_MDJ_Date_Samurai_Bow>
 and the $LINK<Statue of Zeus=BLDG_Council>. Needs $LINK<Mathematics=TECH_Mathematics>.
 
+#DESC_TECH_MDJ_Longbows
+^Archery decided most samurai battles before guns arrived. The bows were made of bamboo and wood glued in layers.
+
 #TECH_MDJ_Barrier_Tech_2
 ^[Barrier Tech 2] costs far more than any advance before it. It brings the $LINK<University=BLDG_University> and
 $LINK<Civil Defense=BLDG_Civil_Defense>, and leads to $LINK<Barrier Tech 3=TECH_MDJ_Barrier_Tech_3>.
+
+#DESC_TECH_MDJ_Barrier_Tech_2
+^The real Sengoku period had no such pause: the clans fought almost without a break from the Onin War of 1467 to
+the battle of Sekigahara in 1600.
 
 #TECH_MDJ_Barrier_Tech_3
 ^[Barrier Tech 3] costs as much as $LINK<Barrier Tech 2=TECH_MDJ_Barrier_Tech_2>. It brings the
 $LINK<Noh-Kyogen Theatre=BLDG_MDJ_Noh_Kyogen_Theatre> and $LINK<The Great Wall=BLDG_Great_Wall>, and leads to
 $LINK<Bujutsu=TECH_Bujutsu> and $LINK<Contact: Ronin=TECH_Ronin>.
 
+#DESC_TECH_MDJ_Barrier_Tech_3
+^After Sekigahara the Tokugawa shogunate kept Japan largely at peace for more than two and a half centuries.
+
 #TECH_MDJ_Late_Era_Tech
 ^[Late Era Tech] follows $LINK<Contact: Portuguese=TECH_MDJ_Contact_Portuguese> and leads to
 $LINK<Hojutsu=TECH_Hojutsu>.
+
+#DESC_TECH_MDJ_Late_Era_Tech
+^The shogunate expelled the Portuguese in 1639 and from 1641 kept the Dutch, the only Europeans still allowed to
+trade, on the island of Dejima at Nagasaki.
 
 #TECH_MDJ_Ocean_Trade
 ^[Ocean Trade] needs no other advance. It brings the $LINK<Galleon=PRTO_MDJ_Galleon> and opens trade across the
 ocean.
 
+#DESC_TECH_MDJ_Ocean_Trade
+^Japanese merchants settled in trading towns across Southeast Asia, at Hoi An, Manila and Ayutthaya, until the
+shogunate forbade voyages abroad in the 1630s.
+
 #TECH_MDJ_Rifling
 ^[Rifling] brings the $LINK<Arquebusier=PRTO_Arquebusier>. Needs $LINK<Ninjutsu=TECH_Portuguese>,
 $LINK<Mortal Combat=TECH_MDJ_Mortal_Combat> and $LINK<Philosophy=TECH_Philosophy>.
+
+#DESC_TECH_MDJ_Rifling
+^Sengoku guns were smoothbore matchlocks. Rifled barrels, grooved to spin the bullet, came into general use only in
+the nineteenth century.
 
 #TECH_MDJ_Contact_Portuguese
 ^[Contact: Portuguese] brings the $LINK<Local Magistrate=BLDG_MDJ_Local_Magistrate>,
@@ -6889,10 +7045,18 @@ Jesuit missionaries followed within a few years.
 ^
 ^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
 
+#DESC_BLDG_MDJ_Mausoleum
+^Great lords were laid to rest in temple mausoleums. The Toshogu shrine at Nikko, rebuilt in its present form in
+1636, honors Tokugawa Ieyasu.
+
 #BLDG_MDJ_Great_Library
 ^MDJ's [Great Library] gives you every advance already known by two other clans you have met. Costs 240 shields.
 ^
 ^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
+
+#DESC_BLDG_MDJ_Great_Library
+^The Ashikaga Gakko in Shimotsuke kept a large library of Chinese classics, and Francis Xavier described it as the
+greatest university in Japan.
 
 #BLDG_MDJ_Sun_Tzus
 ^MDJ's [Sun Tzu's] gives every city you own on the same continent the effect of a $LINK<Barracks=BLDG_Barracks>,
@@ -6900,39 +7064,84 @@ and makes a $LINK<great leader=GCON_Leaders> more likely after a victory. Costs 
 ^
 ^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
 
+#DESC_BLDG_MDJ_Sun_Tzus
+^The Art of War was studied in Japan from the eighth century. Takeda Shingen took the motto on his banner, swift as
+the wind, quiet as the forest, from it.
+
 #BLDG_MDJ_Tokugawa
 ^The [Tokugawa] wonder puts an $LINK<Aqueduct=BLDG_Aqueduct> in every Tokugawa city.
+
+#DESC_BLDG_MDJ_Tokugawa
+^Edo, the Tokugawa capital, drew its water through the Kanda aqueduct, built in the early 1600s.
 
 #BLDG_MDJ_Urakami_Wonder
 ^The [Urakami Wonder] turns out a $LINK<Peasant Worker=PRTO_Peasant_Worker> every seven turns.
 
+#DESC_BLDG_MDJ_Urakami_Wonder
+^The Urakami ruled Bizen and part of Harima on the Inland Sea until their retainer Ukita Naoie overthrew them in
+the 1570s.
+
 #BLDG_MDJ_Hospital
 ^The Date's [Hospital] lets its city grow beyond size 12. Costs 20 shields.
+
+#DESC_BLDG_MDJ_Hospital
+^Japanese medicine followed Chinese learning until the Portuguese merchant and missionary Luis de Almeida opened a
+hospital at Funai in 1557.
 
 #BLDG_MDJ_Culture_Battlefield_Med
 ^The Imagawa's [10 Culture + Battlefield Med] makes 10 culture a turn and lets your units heal in enemy territory.
 
+#DESC_BLDG_MDJ_Culture_Battlefield_Med
+^The Imagawa capital of Sunpu took in poets and courtiers fleeing the wars around Kyoto, and was known as a little
+Kyoto.
+
 #BLDG_MDJ_Otomo_Wonder
 ^The [Otomo Wonder] raises its city's shields by a quarter.
+
+#DESC_BLDG_MDJ_Otomo_Wonder
+^Otomo Sorin made Funai in Bungo a busy port for Portuguese and Chinese ships.
 
 #BLDG_MDJ_Hojo_Wonder
 ^The [Hojo Wonder] gives all Hojo ships two more moves.
 
+#DESC_BLDG_MDJ_Hojo_Wonder
+^The Hojo kept a fleet on the coast of Izu to guard the Kanto from the sea.
+
 #BLDG_MDJ_Mori_Wonder
 ^The [Mori Wonder] turns out a $LINK<Settler=PRTO_Settler2> every thirteen turns.
+
+#DESC_BLDG_MDJ_Mori_Wonder
+^Mori Motonari is remembered for the lesson of the three arrows: one breaks easily, three together do not. He meant
+it for his sons.
 
 #BLDG_MDJ_Oda_Wonder
 ^The [Oda Wonder] doubles science in its city.
 
+#DESC_BLDG_MDJ_Oda_Wonder
+^Oda Nobunaga drew merchants to his towns by abolishing toll barriers and the guilds' monopolies, making their
+markets free.
+
 #BLDG_MDJ_Uesugi
 ^The [Uesugi] wonder lets the Uesugi upgrade units at half the usual cost.
+
+#DESC_BLDG_MDJ_Uesugi
+^Uesugi Kenshin paid for his wars with the trade in aoso, a plant fiber for cloth that his province of Echigo
+produced.
 
 #BLDG_MDJ_Ainu_Wonder
 ^The [Ainu Wonder] earns 12 gold a turn.
 
+#DESC_BLDG_MDJ_Ainu_Wonder
+^The Ainu of Ezo, today's Hokkaido, traded furs, fish and eagle feathers with the Japanese merchants of the
+Kakizaki clan.
+
 #BLDG_MDJ_Foundry
 ^The [Foundry] raises its city's shields by half, with no upkeep. Comes with $LINK<Masonry=TECH_Masonry>; costs 140
 shields.
+
+#DESC_BLDG_MDJ_Foundry
+^Japanese smiths copied the matchlock within a few years of 1543. Sakai and Kunitomo became the centers of gun
+making.
 
 #BLDG_MDJ_Noh_Kyogen_Theatre
 ^The [Noh-Kyogen Theatre] makes two unhappy citizens content and 2 culture a turn. Costs 100 shields and 2 gold a
@@ -6946,17 +7155,31 @@ Kyogen, short comic plays, were staged between the Noh pieces.
 ^A [Trading Port] links its coastal city by trade to every other city that has one, as an airport would. Costs 50
 shields and 3 gold a turn, half the shields for $LINK<Seafaring=GCON_Strengths> clans.
 
+#DESC_BLDG_MDJ_Trading_Port
+^Nagasaki was opened to Portuguese ships in 1571 and became Japan's chief port for foreign trade.
+
 #BLDG_MDJ_1_Ship_Move
 ^[+1 Ship Move] is a small wonder that gives all your ships one more move. Costs 60 shields.
+
+#DESC_BLDG_MDJ_1_Ship_Move
+^Coastal shipping carried rice and goods along Japan's shores, faster than the mountain roads.
 
 #BLDG_MDJ_Local_Magistrate
 ^The [Local Magistrate] reduces $LINK<corruption and waste=GCON_Corruption> in its city and makes it harder for
 enemy propaganda to sway, like a $LINK<Courthouse=BLDG_Courthouse>. Costs 100 shields and 1 gold a turn, half the
 shields for $LINK<Militaristic or Industrious=GCON_Strengths> clans.
 
+#DESC_BLDG_MDJ_Local_Magistrate
+^Sengoku lords governed their domains through appointed officials, the bugyo, who judged disputes, collected taxes
+and kept order in the towns.
+
 #BLDG_MDJ_Treasury
 ^The [Treasury] raises its city's tax income by half. Needs a $LINK<Marketplace=BLDG_Marketplace>; costs 150
 shields and 1 gold a turn, half the shields for $LINK<Commercial=GCON_Strengths> clans.
+
+#DESC_BLDG_MDJ_Treasury
+^Lords mined gold and silver to pay their armies. The Takeda's Koshu gold coins were among the first coins struck
+in Japan in six centuries.
 
 #BLDG_MDJ_Jesuit_Cathedral
 ^The [Jesuit Cathedral] makes three unhappy citizens content and 2 culture a turn. Needs a
@@ -6980,36 +7203,64 @@ and, later, guns.
 $LINK<Otomo Spearman=PRTO_Otomo_Spearman>. Upgrades to the $LINK<Bayonet=PRTO_Samurai_Spearman>, or for the Hojo to
 the $LINK<Hojo General=PRTO_MDJ_Hojo_General>.
 
+#DESC_PRTO_MDJ_Spearman
+^Spears grew longer as the wars went on. Oda Nobunaga's men are said to have carried yari more than five meters
+long.
+
 #PRTO_MDJ_Scout
 ^The [Scout] (moves 2) explores and cannot fight. Only the Otomo, Mori and Urakami build it.
+
+#DESC_PRTO_MDJ_Scout
+^Mounted scouts rode ahead of Sengoku armies, and lords kept spies to watch their neighbors.
 
 #PRTO_MDJ_Fast_Worker
 ^The [Fast Worker] does a worker's jobs, moves two squares a turn and pays one move for any square whatever the
 ground. Comes with $LINK<Super Fast Workers=TECH_MDJ_Super_Fast_Workers>; the
 $LINK<Peasant Worker=PRTO_Peasant_Worker> upgrades to it.
 
+#DESC_PRTO_MDJ_Fast_Worker
+^Under Tokugawa rule the Tokaido and the other great highways were given post stations, and messengers and
+travelers moved faster along them.
+
 #PRTO_MDJ_Uesugi_Horseman
 ^The [Uesugi Horseman] is the Uesugi's own $LINK<Horseman=PRTO_Horseman> (attack 4, defense 2, moves 2, one extra
 hit point). It may attack more than once a turn and can start a $LINK<Golden Age=GCON_Golden_Age>. Needs
 $LINK<Horses=GOOD_Horses>.
+
+#DESC_PRTO_MDJ_Uesugi_Horseman
+^Uesugi Kenshin's men met the Takeda in 1561 in the fourth and bloodiest battle of Kawanakajima.
 
 #PRTO_MDJ_Hojo_General
 ^The [Hojo General] is the Hojo's own (attack 6, defense 5, one extra hit point). It can attack from a boat and
 start a $LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Saltpeter=GOOD_Saltpeter>. Upgrades to the
 $LINK<Arquebusier=PRTO_Arquebusier>.
 
+#DESC_PRTO_MDJ_Hojo_General
+^Hojo Ujiyasu held his castle at Odawara against both Uesugi Kenshin and Takeda Shingen, neither of whom could take
+it.
+
 #PRTO_MDJ_Date_Samurai_Bow
 ^The [Date Samurai Bow] is the Date's own $LINK<Longbow=PRTO_Samurai_Archer> (attack 6, defense 2, one extra hit
 point). It can attack from a boat and start a $LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Jade=GOOD_Jade>.
+
+#DESC_PRTO_MDJ_Date_Samurai_Bow
+^The Date ruled the north of Honshu. Masamune founded the city of Sendai in 1600.
 
 #PRTO_MDJ_Infiltrator
 ^The [Infiltrator] is the Mori's own $LINK<Ninja=PRTO_Ninja> (attack 10, defense 2, moves 2). It picks its target
 out of a stack, can attack from a boat and can start a $LINK<Golden Age=GCON_Golden_Age>.
 
+#DESC_PRTO_MDJ_Infiltrator
+^Mori Motonari won the battle of Itsukushima in 1555 by luring a larger enemy army onto the island with a show of
+weakness.
+
 #PRTO_MDJ_Tokugawa_Shogun
 ^The [Tokugawa Shogun] (attack 6, defense 4, moves 2) is the Tokugawa's own. It can attack from a boat and start a
 $LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Iron=GOOD_Iron>. In regicide games it is every clan's king; see
 $LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#DESC_PRTO_MDJ_Tokugawa_Shogun
+^Tokugawa Ieyasu was appointed shogun by the emperor in 1603.
 
 #PRTO_MDJ_Warship
 ^The [Warship] (attack 4, defense 4, moves 4) carries one unit. It sinks if it leaves the coast.
@@ -7021,6 +7272,10 @@ carry troops.
 #PRTO_MDJ_Curragh
 ^The [Curragh] (attack 4, defense 3, moves 2) carries one unit, has two fewer hit points than usual, and sinks if
 it leaves the coast. Comes with $LINK<Harbors=TECH_MDJ_Harbors>.
+
+#DESC_PRTO_MDJ_Curragh
+^Japanese fishermen worked the coasts in small open boats of planked wood. The curragh, a boat of hide stretched
+over a frame, is Irish.
 
 #PRTO_MDJ_Galleon
 ^The [Galleon] (attack 2, defense 3, moves 5) carries six units and can cross the ocean.
@@ -7040,10 +7295,21 @@ though nothing needs them.
 ^[Precious Stones] add 1 shield and 3 commerce to their square. They count as a
 $LINK<strategic resource=GCON_ResourcesS>, though nothing needs them.
 
+#DESC_GOOD_MDJ_Precious_Stones
+^Japan has few gems of its own. Rock crystal from Kai province was carved into beads and ornaments.
+
 #GOOD_MDJ_Sandbar
 ^A [Sandbar] adds 1 food, 2 shields and 1 commerce to its square. It counts as a
 $LINK<strategic resource=GCON_ResourcesS>, though nothing needs it.
 
+#DESC_GOOD_MDJ_Sandbar
+^Amanohashidate, a pine-covered sandbar across Miyazu Bay, has been counted among Japan's three finest views since
+the 1600s.
+
 #GOOD_MDJ_Olive_Oil
 ^[Olive Oil] adds 1 food, 1 shield and 1 commerce to its square. It counts as a
 $LINK<strategic resource=GCON_ResourcesS>, though nothing needs it.
+
+#DESC_GOOD_MDJ_Olive_Oil
+^Olives were not grown in Japan until the early 1900s, when trees planted on Shodoshima in the Inland Sea took
+root. Sengoku lamps burned sesame or rapeseed oil.
