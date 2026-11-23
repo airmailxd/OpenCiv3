@@ -154,7 +154,7 @@ UNITS = {
         'gun': 'm14', 'hold': 'low', 'aim': 'shoulder',
         'poses': {'carry': {'hand_r': (0.22, 0.18, 0.94), 'w_main': (-48, -52, 0), 'support': 1.0,
                             'elbow_l': (-0.5, -0.5, -0.7)}}, 'fire_start': 'carry', 'fire_end': 'carry',
-        'flash': 'burst', 'smoke': 'light', 'shots': {'ATTACK1': [3, 4, 5]}, 'death_late_hands': True,
+        'flash': 'burst', 'smoke': 'light', 'shots': {'ATTACK1': [3, 4, 5]}, 'death_late_hands': True, 'death_rest': 'chest',
         'fortify': 'kneel', 'victory': 'raise',
         'actions': dict(_FIRE),
     },

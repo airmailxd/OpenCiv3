@@ -541,7 +541,7 @@ class LineBody(LF.LeagueBody):
 
 # ------------------------------------------------------------ death
 
-def line_death(base, ctx, hold=None, delay=0.0, late_hands=False, head0=22.0):
+def line_death(base, ctx, hold=None, delay=0.0, late_hands=False, head0=22.0, free_left=False):
     """humanoid.anim_death's fall (struck, staggers back, knees buckle, falls
     on the back), started from the figure's own default pose: the legs from
     its stance, the arms by IK following the chest, so frame 0 is the default
@@ -566,6 +566,10 @@ def line_death(base, ctx, hold=None, delay=0.0, late_hands=False, head0=22.0):
     else:
         hands = {'hand_r': (0.12, 0.20, 1.00), 'hand_l': (-0.08, 0.20, 1.04), 'elbow_r': (0.6, -0.5, -0.4),
                  'elbow_l': (-0.6, -0.5, -0.4)}
+    if hold == 'port' and free_left:
+        # the right hand keeps the rifle, the left falls onto the belly
+        hands = dict(hands, support=0.0, hand_l=(-0.06, 0.20, 1.02), elbow_l=(-0.6, -0.5, -0.4),
+                     hand_r=(0.16, 0.18, 1.00))
     k = [
         (0.0, {}),
         (0.18, dict({} if late_hands else hands, root_rot=(12, 0, 6), root_pos=(0, -0.06, -0.02), chest=(12, 0, 8),
@@ -589,6 +593,24 @@ def line_death(base, ctx, hold=None, delay=0.0, late_hands=False, head0=22.0):
     act = FM.Act(fn, legs='fk', arms='ik')
     act.flatten = True
     return act
+
+
+def _slerp_R(R0, R1, u):
+    """Rotation from R0 toward R1 by the fraction u along the shortest arc."""
+    Rd = R0.T @ R1
+    c = max(-1.0, min(1.0, (float(np.trace(Rd)) - 1) / 2))
+    ang = math.acos(c)
+    if ang < 1e-5:
+        return R1.astype(np.float32)
+    axis = _v((Rd[2, 1] - Rd[1, 2], Rd[0, 2] - Rd[2, 0], Rd[1, 0] - Rd[0, 1]))
+    n = np.linalg.norm(axis)
+    if n < 1e-6:
+        return (R0 if u < 0.5 else R1).astype(np.float32)
+    k = axis / n
+    a = ang * u
+    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]], np.float32)
+    Ru = np.eye(3, dtype=np.float32) + math.sin(a) * K + (1 - math.cos(a)) * (K @ K)
+    return (R0 @ Ru).astype(np.float32)
 
 
 def _gun_lie_R(t):
@@ -691,7 +713,8 @@ class LineSoldier(LF.LeagueSoldier):
             if key not in self._cache:
                 self._cache[key] = line_death(self.base, ctx, 'port' if self.gun else None,
                                               late_hands=bool(self.p.get('death_late_hands')),
-                                              head0=float(self.p.get('death_head0', 22.0)))
+                                              head0=float(self.p.get('death_head0', 22.0)),
+                                              free_left=self.p.get('death_rest') == 'chest')
             return self._cache[key]
         return super().action(action, ctx)
 
@@ -705,8 +728,20 @@ class LineSoldier(LF.LeagueSoldier):
             T = self._order_T(info['T']['r'], info['pose']).copy()
             t = float(pose.get('death_t', 0.0))
             u = min(1.0, max(0.0, (t - 0.45) / 0.35))
+            if self.p.get('death_rest') == 'chest':
+                u = min(1.0, max(0.0, (t - 0.22) / 0.55))
             u = u * u * (3 - 2 * u)
-            if u > 0:
+            if u > 0 and self.p.get('death_rest') == 'chest':
+                # laid along the body on the chest, muzzle to the feet, turned over smoothly
+                cz = info['W']['chest'][:3, 2].copy()
+                z = -cz
+                z[2] = 0.0
+                z = z / max(np.linalg.norm(z), 1e-6) if np.linalg.norm(z) > 1e-3 else _v((0, 1, 0))
+                y = _v((0, 0, -1))
+                x = np.cross(y, z)
+                Rf = np.stack([x, y, z], 1).astype(np.float32)
+                T[:3, :3] = _slerp_R(T[:3, :3], Rf, u)
+            elif u > 0:
                 Rm = T[:3, :3]
                 z = Rm[:, 2].copy()
                 z[2] = 0.0
