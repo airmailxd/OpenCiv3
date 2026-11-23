@@ -400,9 +400,9 @@ def hojo_gunbai(mats, size=1.0):
     """The gunbai: a lacquered war fan, a gourd-shaped blade on a stout
     handle; black lacquer, a thick gilt rim, a red sun on both faces, a
     gilt collar at the neck; a red cord from the pommel to a big tassel."""
-    bm = P.mat(mats, 'gunbai', '#1e1c1a', spec=0.35, gloss=22)
+    bm = P.mat(mats, 'gunbai', '#1e1c1a', spec=0.04, gloss=8)   # matte: no pale flash on the turn
     gm = P.mat(mats, 'gold', '#c4a050', spec=0.8, gloss=22, metal=True)
-    rm = P.mat(mats, 'sun', '#b02a1e', spec=0.2)
+    rm = P.mat(mats, 'sun', '#b02a1e', spec=0.03, gloss=8)
     cm = P.mat(mats, 'cord', '#a8322a')
     parts = [M.cylinder(0.022, 0.024, 0.26, bm, seg=8, z0=-0.12)]
     parts.append(M.cylinder(0.03, 0.03, 0.025, gm, seg=8, z0=0.115))
