@@ -1204,6 +1204,51 @@
      "status": "new",
      "priority": "P2",
      "note": "emblem; was RACE_HATTI's"
+    },
+    "Egypt": {
+     "from": "RACE_EGYPTIANS",
+     "key": "RACE_EGYPTIANS",
+     "art": "EGYPTIANS",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+    },
+    "China": {
+     "from": "RACE_CHINESE",
+     "key": "RACE_CHINESE",
+     "art": "CHINESE",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+    },
+    "America": {
+     "from": "RACE_AMERICAN",
+     "key": "RACE_AMERICAN",
+     "art": "AMERICAN",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+    },
+    "Japan": {
+     "from": "RACE_JAPANESE",
+     "key": "RACE_JAPANESE",
+     "art": "JAPANESE",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
+    },
+    "India": {
+     "from": "RACE_INDIAN",
+     "key": "RACE_INDIAN",
+     "art": "INDIAN",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "the stock article gives the stock traits and unique unit; Modern's civs are expansionist and religious with none"
     }
    },
    "units": {
@@ -1452,6 +1497,142 @@
      "status": "done",
      "priority": "done",
      "note": "art done (ModernUnitArt)"
+    },
+    "Hammurabi": {
+     "from": "PRTO_Hammurabi",
+     "key": "PRTO_Hammurabi",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Egypt's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Catherine": {
+     "from": "PRTO_Catherine",
+     "key": "PRTO_Catherine",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "European Union's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Hannibal": {
+     "from": "PRTO_Hannibal",
+     "key": "PRTO_Hannibal",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "USSR's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Mao": {
+     "from": "PRTO_Mao",
+     "key": "PRTO_Mao",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "China's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Lincoln": {
+     "from": "PRTO_Lincoln",
+     "key": "PRTO_Lincoln",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "America's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Tokugawa": {
+     "from": "PRTO_Tokugawa",
+     "key": "PRTO_Tokugawa",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Japan's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Gandhi": {
+     "from": "PRTO_Gandhi",
+     "key": "PRTO_Gandhi",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "India's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Xerxes": {
+     "from": "PRTO_Xerxes",
+     "key": "PRTO_Xerxes",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Iran's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Montezuma": {
+     "from": "PRTO_Montezuma",
+     "key": "PRTO_Montezuma",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Mexico's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Shaka": {
+     "from": "PRTO_Shaka",
+     "key": "PRTO_Shaka",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Nigeria's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Hiawatha": {
+     "from": "PRTO_Hiawatha",
+     "key": "PRTO_Hiawatha",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Canada's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Elizabeth": {
+     "from": "PRTO_Elizabeth",
+     "key": "PRTO_Elizabeth",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Brazil's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Ragnar": {
+     "from": "PRTO_Ragnar",
+     "key": "PRTO_Ragnar",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Australia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Abu": {
+     "from": "PRTO_Abu",
+     "key": "PRTO_Abu",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Saudi Arabia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Wang Kon": {
+     "from": "PRTO_Wang",
+     "key": "PRTO_Wang",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Indonesia's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Gilgamesh": {
+     "from": "PRTO_Gilgamesh",
+     "key": "PRTO_Gilgamesh",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Israel's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
+    },
+    "Mursilis": {
+     "from": "PRTO_Mursilis",
+     "key": "PRTO_Mursilis",
+     "status": "stock",
+     "pending": "article",
+     "priority": "later",
+     "note": "Pakistan's Regicide king: a stock ancient king, art and article (Modern-leader figures would be new units)"
     }
    },
    "leaders": {
@@ -1664,52 +1845,59 @@
     },
     "Sun Tzu's (Mil/Exp/Com)": {
      "from": "BLDG_Art_of_War",
-     "key": "BLDG_Art_of_War",
+     "key": "BLDG_FUTURE_Sun_Tzus",
+     "art": "Art_of_War",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Magellan's (Ind/Exp/Com/Sea)": {
      "from": "BLDG_Circumnavigation",
-     "key": "BLDG_Circumnavigation",
+     "key": "BLDG_FUTURE_Magellans",
+     "art": "Circumnavigation",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Copernicus' (Mil/Exp/Sci)": {
      "from": "BLDG_Solar_System",
-     "key": "BLDG_Solar_System",
+     "key": "BLDG_FUTURE_Copernicus",
+     "art": "Solar_System",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Leonardo's (Mil/Rel/Sea)": {
      "from": "BLDG_Inventor's_Workshop",
-     "key": "BLDG_Inventor's_Workshop",
+     "key": "BLDG_FUTURE_Leonardos",
+     "art": "Inventor_s_Workshop",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "JS Bach's (Sci/Rel)": {
      "from": "BLDG_Grand_Cathedral",
-     "key": "BLDG_Grand_Cathedral",
+     "key": "BLDG_FUTURE_JS_Bachs",
+     "art": "Grand_Cathedral",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Newton's (Ind/Sci/Com)": {
      "from": "BLDG_Great_University",
-     "key": "BLDG_Great_University",
+     "key": "BLDG_FUTURE_Newtons",
+     "art": "Great_University",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Smith's (Exp/Rel/Com)": {
      "from": "BLDG_Trading_Company",
-     "key": "BLDG_Trading_Company",
+     "key": "BLDG_FUTURE_Smiths",
+     "art": "Trading_Company",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     },
     "Dock": {
      "from": "BLDG_Commercial_Dock",
@@ -1720,10 +1908,11 @@
     },
     "Mausoleum (Sci/Sea)": {
      "from": "BLDG_Mausoleum",
-     "key": "BLDG_Mausoleum",
+     "key": "BLDG_FUTURE_Mausoleum",
+     "art": "Mausoleum",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     }
    },
    "units": {
@@ -2053,10 +2242,19 @@
     },
     "Sun Tzu's (GA)": {
      "from": "BLDG_Art_of_War",
-     "key": "BLDG_Art_of_War",
+     "key": "BLDG_MDJ_Sun_Tzus",
+     "art": "Art_of_War",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
+    },
+    "Great Library (GA)": {
+     "from": "BLDG_Great_Library",
+     "key": "BLDG_MDJ_Great_Library",
+     "art": "Great_Library",
+     "status": "stock",
+     "priority": "P3",
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     }
    },
    "governments": {
@@ -2194,10 +2392,11 @@
     },
     "Tokugawa Shogun (Amphib)": {
      "from": "PRTO_Tokugawa",
-     "key": "PRTO_Tokugawa",
+     "key": "PRTO_MDJ_Tokugawa_Shogun",
+     "art": "Shogun",
      "status": "stock",
      "priority": "P3",
-     "note": "the stock item, renamed: keeps its key, picture and article"
+     "note": "the stock wonder or unit with the mode's own rules: own page, stock picture"
     }
    },
    "terrain": {

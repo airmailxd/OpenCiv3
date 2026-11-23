@@ -127,7 +127,9 @@ public class MdjScenarioTest {
 		Assert.Equal(26, save.Resources.First(r => r.Key == "Jade").Icon);
 		Assert.Equal(27, save.Resources.First(r => r.Key == "Sake").Icon);
 		Assert.Equal(7, withCiv3Art.Resources.First(r => r.Key == "Jade").Icon);
-		Assert.Equal(4, save.Resources.First(r => r.Key == "Olive Oil").Icon);
+		// Olive Oil has a cell of its own (C7/Lua/standalone/league_art.json).
+		Assert.Equal(32, save.Resources.First(r => r.Key == "Olive Oil").Icon);
+		Assert.Equal(4, withCiv3Art.Resources.First(r => r.Key == "Olive Oil").Icon);
 	}
 
 	// The bundled rules are what RegenerateRuleset --mdj makes of the
@@ -207,7 +209,8 @@ public class MdjScenarioTest {
 				problems.Add($"{key}: no page");
 				continue;
 			}
-			if (!article.HasDescription) {
+			// The League keys' histories still to write are LeagueArtTest's.
+			if (!article.HasDescription && !LeagueArtTest.IsLeagueKey(key)) {
 				problems.Add($"{key}: no history");
 			}
 			foreach (string link in CivilopediaMarkup.LinkedKeys(article.Lines)) {

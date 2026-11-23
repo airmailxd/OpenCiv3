@@ -125,9 +125,17 @@ public class LeagueArtTest {
 				CivilopediaArticle article = text.Value.Get(item.Key);
 				if (article == null) {
 					Problem(item.Section, item.Name, $"article (none for {item.Key})");
+				} else if (mode == "mdj" && IsLeagueKey(item.Key) && !article.HasDescription) {
+					// MDJ's articles all have a history (MdjScenarioTest).
+					Problem(item.Section, item.Name, $"history (none for {item.Key})");
 				} else if (declared == null && stockNames.Value.TryGetValue((item.Section, item.Key), out HashSet<string> names)
 					&& !names.Contains(Norm(item.Name))) {
 					Problem(item.Section, item.Name, $"article (is {names.First()}'s)");
+				}
+
+				// Known to be wrong still, and left for later.
+				if (declared?.pending != null) {
+					Problem(item.Section, item.Name, $"{declared.pending} (later: {declared.note})");
 				}
 
 				// Its own picture.
@@ -214,6 +222,8 @@ public class LeagueArtTest {
 		return key != null && !hasArticle(key) && LeagueKeys.Value.Contains(key);
 	}
 
+	public static bool IsLeagueKey(string key) => key != null && LeagueKeys.Value.Contains(key);
+
 	private static readonly Lazy<HashSet<string>> LeagueKeys = new(() => table.Value.modes.Values
 		.SelectMany(s => s.Values).SelectMany(e => e.Values).Where(e => e.key != null && e.key != e.from)
 		.Select(e => e.key).ToHashSet());
@@ -223,7 +233,11 @@ public class LeagueArtTest {
 
 	// Strips the detail in brackets after the "what", which may change as
 	// files come and go: "picture (is Chivalry, not MODERN_Wartime)".
-	private static string Kind(string problem) => Regex.Replace(problem, @" \(.*\)$", "");
+	// Item names may have brackets of their own: only the last field's go.
+	private static string Kind(string problem) {
+		int what = problem.LastIndexOf('|') + 1;
+		return problem[..what] + Regex.Replace(problem[what..], @" \(.*$", "");
+	}
 
 	[Fact]
 	public void EveryItemShowsItsOwnPictureAndArticleOrIsPending() {

@@ -45,6 +45,9 @@ public partial class GameSetup {
 		public int? cell { get; set; }
 		public string priority { get; set; }
 		public string note { get; set; }
+		// What of the item is known to be wrong still and left for later
+		// ("article": the stock article it keeps isn't about the mode's own).
+		public string pending { get; set; }
 
 		public bool Drawn => status != "new";
 	}

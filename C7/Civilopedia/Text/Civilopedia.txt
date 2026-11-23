@@ -5340,16 +5340,16 @@ citizens, so settlers carry a clan's people inland ahead of the sea.
 borders of their domains, granting them land in return for their labor and their levies.
 
 #PRTO_Peasant_Worker
-^The [Peasant Worker] builds roads, irrigates, mines and clears the land. The [Fast Worker], which needs
-$LINK<Super Fast Workers=TECH_Literature>, moves two tiles a turn whatever the ground.
+^The [Peasant Worker] builds roads, irrigates, mines and clears the land. It upgrades to the
+$LINK<Fast Worker=PRTO_MDJ_Fast_Worker>.
 
 #DESC_PRTO_Peasant_Worker
 ^Most of Japan's people were peasants who farmed the rice paddies of their lords, paid the rice tax and,
 in time of war, carried supplies or took up the spear themselves.
 
 #PRTO_Otomo_Spearman
-^The [Spearman] (attack 3, defense 3) is the steady foot soldier of every clan but the Otomo, whose own
-[Otomo Spearman] strikes harder (attack 4) and can start a golden age.
+^The [Otomo Spearman] is the Otomo's own $LINK<Spearman=PRTO_MDJ_Spearman>, striking harder (attack 4, defense 3,
+one extra hit point), and can start a $LINK<Golden Age=GCON_Golden_Age>.
 
 #DESC_PRTO_Otomo_Spearman
 ^The spear, the yari, was the most common weapon of Sengoku armies. Massed in disciplined ranks, long
@@ -5396,8 +5396,8 @@ boat. The Miyoshi have their own, which can start a golden age.
 whoever would pay, and the wars of the age gave them plenty of work.
 
 #PRTO_Ninja
-^The [Ninja] (attack 11, defense 2, moves 2) strikes hardest of all, picks its target out of a stack and can
-attack from a boat. The Mori have their own, the Infiltrator (attack 10).
+^The [Ninja] (attack 11, defense 2, moves 2) strikes hardest of all, picks its target out of a stack and can attack
+from a boat. The Mori have their own, the $LINK<Infiltrator=PRTO_MDJ_Infiltrator>.
 
 #DESC_PRTO_Ninja
 ^The shinobi of Iga and Koga were hired as spies, scouts and raiders, slipping into castles and camps by
@@ -5434,7 +5434,7 @@ ordinary soldiers strike from afar.
 
 #PRTO_Samurai_Archer
 ^The [Longbow] (attack 6, defense 2) shoots the tall yumi, and needs $LINK<Jade=GOOD_Jade>. The Date have their
-own, which can attack from a boat and start a golden age.
+own, the $LINK<Date Samurai Bow=PRTO_MDJ_Date_Samurai_Bow>.
 
 #DESC_PRTO_Samurai_Archer
 ^The Japanese yumi is taller than a man, gripped below its middle. Archery was the samurai's first art,
@@ -5455,14 +5455,6 @@ $LINK<Jade=GOOD_Jade>. It can attack from a boat and start a golden age.
 #DESC_PRTO_Rocket_Cart
 ^Oda Nobunaga armed his troops with guns as no lord had before, and used them to win the battle of
 Nagashino in 1575.
-
-#PRTO_Footman
-^The [Ashigaru] (attack 2, defense 2) is the cheapest soldier, and the one every clan starts with. The
-Miyoshi can upgrade it to their $LINK<Myoshi Ronin=PRTO_Samurai_Warrior>.
-
-#DESC_PRTO_Footman
-^The ashigaru, "light feet", were foot soldiers raised from the peasantry. By the end of the Sengoku period
-they made up most of every army, as spearmen, archers and gunners.
 
 #PRTO_Warrior_Monk
 ^The [Impi Monk] is the Imagawa's own warrior monk (attack 3, defense 4, moves 2), which may attack more than
@@ -5487,22 +5479,24 @@ turn and can start a golden age.
 Asia.
 
 #TECH_Suieijutsu
-^[Ronins] brings the $LINK<Ronin=PRTO_Ronin>; Ocean Trade shares this page.
+^[Ronins] brings the $LINK<Ronin=PRTO_Ronin>, the $LINK<Myoshi Ronin=PRTO_Samurai_Warrior> and the
+$LINK<Tokugawa Shogun=PRTO_MDJ_Tokugawa_Shogun>, and with $LINK<Line Infantry=TECH_MDJ_Line_Infantry> leads to
+$LINK<Ninjutsu=TECH_Portuguese>.
 
 #DESC_TECH_Suieijutsu
 ^Suieijutsu, the martial art of swimming in armor, was taught to samurai who might have to cross rivers or
 fight in the water.
 
 #TECH_Portuguese
-^[Ninjutsu] brings the $LINK<Ninja=PRTO_Ninja> and the Oda Rocketeer; contact with the Portuguese shares
-this page.
+^[Ninjutsu] brings the $LINK<Ninja=PRTO_Ninja>, the $LINK<Oda Rocketeer=PRTO_Rocket_Cart> and the
+$LINK<Infiltrator=PRTO_MDJ_Infiltrator>, and leads to $LINK<Rifling=TECH_MDJ_Rifling>.
 
 #DESC_TECH_Portuguese
-^Portuguese ships reached Japan in 1543, bringing guns, Christianity and trade with the wider world.
+^Ninjutsu gathered the skills of the spy and raider: disguise, scouting, escape and the attack by night.
 
 #TECH_Heihojutsu
-^[Rifling] brings the $LINK<Arquebusier=PRTO_Arquebusier>; Heihojutsu, the art of strategy, shares this
-page.
+^[Heihojutsu], the art of strategy, follows $LINK<Bujutsu=TECH_Bujutsu> and leads to
+$LINK<Naginatajutsu=TECH_Naginatajutsu>.
 
 #DESC_TECH_Heihojutsu
 ^Heihojutsu was the study of strategy and tactics: the movement of armies, the choice of ground, and the
@@ -5628,7 +5622,7 @@ $LINK<Otomo Spearman=PRTO_Otomo_Spearman>.
 
 #RACE_MORI
 ^The [Mori] (militaristic, expansionist, religious), led by Mori Motonari, have the
-Infiltrator, a $LINK<Ninja=PRTO_Ninja> of their own.
+$LINK<Infiltrator=PRTO_MDJ_Infiltrator>, a Ninja of their own.
 
 #DESC_RACE_MORI
 ^Mori Motonari rose from a small lord to master of western Honshu by war and cunning alliances.
@@ -5678,27 +5672,1378 @@ $LINK<Jaguar Samurai=PRTO_Swordsman2>.
 at Kawanakajima.
 
 #RACE_HOJO
-^The [Hojo] (religious, industrious, seafaring), led by Hojo Ujiyasu.
+^The [Hojo] (religious, industrious, seafaring), led by Hojo Ujiyasu, have the
+$LINK<Hojo General=PRTO_MDJ_Hojo_General>.
 
 #DESC_RACE_HOJO
 ^The later Hojo ruled the Kanto plain from their great castle at Odawara for five generations.
 
 #RACE_UESUGI
-^The [Uesugi] (scientific, religious, agricultural), led by Uesugi Kenshin.
+^The [Uesugi] (scientific, religious, agricultural), led by Uesugi Kenshin, have the
+$LINK<Uesugi Horseman=PRTO_MDJ_Uesugi_Horseman>.
 
 #DESC_RACE_UESUGI
 ^Uesugi Kenshin of Echigo, a devout Buddhist and a brilliant general, was called the Dragon of Echigo.
 
 #RACE_DATE
 ^The [Date] (religious, agricultural, seafaring), led by Date Masamune, have the
-$LINK<Date Samurai Bow=PRTO_Samurai_Archer>.
+$LINK<Date Samurai Bow=PRTO_MDJ_Date_Samurai_Bow>.
 
 #DESC_RACE_DATE
 ^Date Masamune, the One-Eyed Dragon, made his clan the masters of northern Japan.
 
 #RACE_TOKUGAWA
-^The [Tokugawa] (commercial, religious, agricultural), led by Tokugawa Ieyasu.
+^The [Tokugawa] (commercial, religious, agricultural), led by Tokugawa Ieyasu, have the
+$LINK<Tokugawa Shogun=PRTO_MDJ_Tokugawa_Shogun>.
 
 #DESC_RACE_TOKUGAWA
 ^Tokugawa Ieyasu, the last of the three unifiers, won the battle of Sekigahara in 1600 and founded the
 shogunate that ruled Japan for two and a half centuries.
+
+; ---- QC (C7/Lua/qc): the League mode's own advances, units and resources, keyed <PREFIX>_QC_<Stem>.
+
+#TECH_QC_Amphibious_Assault
+^[Amphibious Assault] brings the $LINK<Marine=PRTO_Marine> and the $LINK<Coal Transport=PRTO_QC_Coal_Transport>,
+and leads to $LINK<The Tech Tree Is Done=TECH_QC_The_Tech_Tree_Is_Done>. Needs $LINK<Steam Power=TECH_Steam_Power>;
+it is not needed to enter the next era.
+
+#DESC_TECH_QC_Amphibious_Assault
+^After the failed landings at Gallipoli in 1915, the United States Marine Corps worked out the methods and landing
+craft that carried its assaults across the Pacific in the Second World War.
+
+#TECH_QC_The_Tech_Tree_Is_Done
+^[The Tech Tree Is Done] closes the Industrial Age. It needs $LINK<Replaceable Parts=TECH_Replaceable_Parts>,
+$LINK<Motorized Transportation=TECH_Motorized_Transportation> and
+$LINK<Amphibious Assault=TECH_QC_Amphibious_Assault>, costs far more than any advance before it, gives nothing, and
+must be learned to enter the Modern Era.
+
+#TECH_QC_End_Of_Game
+^[End Of Game] is the last advance. It follows $LINK<Integrated Defense=TECH_Integrated_Defense> and gives nothing.
+
+#PRTO_QC_Teutonic_Knight
+^The [Teutonic Knight] is Germany's $LINK<Knight=PRTO_Knight> (attack 4, defense 3, moves 2). It also exerts a
+$LINK<zone of control=GCON_ZOC>, and its first victory can start a $LINK<Golden Age=GCON_Golden_Age>. Needs
+$LINK<Horses=GOOD_Horses> and $LINK<Iron=GOOD_Iron>.
+
+#DESC_PRTO_QC_Teutonic_Knight
+^The Teutonic Order, founded at Acre around 1190, became an order of German knights that conquered and ruled
+Prussia and much of the Baltic coast.
+
+#PRTO_QC_Ama
+^The [Ama] is a scouting boat (moves 4, defense 1) that cannot attack and has two fewer hit points than usual. It
+is safe along the coast but sinks in the ocean. Comes with $LINK<Polytheism=TECH_Polytheism> and upgrades to the
+$LINK<Caravel=PRTO_Caravel>.
+
+#DESC_PRTO_QC_Ama
+^The ama of Japan are women who dive without breathing gear for shellfish, seaweed and pearls, a trade practised
+for centuries.
+
+#PRTO_QC_Sub_Cruise
+^The [Sub Cruise] is a one-shot missile (bombard 12, range 4) that submarines and other missile-carrying ships can
+take aboard. Its hit can destroy units on land and at sea. Needs the strategic $LINK<Game=GOOD_QC_Game_Strategic>.
+
+#PRTO_QC_Coal_Transport
+^The [Coal Transport] (defense 2, moves 7) carries six units. Needs $LINK<Coal=GOOD_Coal>.
+
+#PRTO_QC_Basilica_Cannon
+^No civilization can build the [Basilica Cannon]. It cannot move, and its bombardment (9, range 3) can destroy
+units on land and at sea.
+
+#DESC_PRTO_QC_Basilica_Cannon
+^The Basilica was the giant bronze bombard cast by the engineer Orban for Mehmed II, and used against the walls of
+Constantinople in 1453.
+
+#PRTO_QC_English_Longbow
+^No civilization can train the [English Longbow] in QC. It is a $LINK<Longbowman=PRTO_Longbowman> (attack 4,
+defense 1) that may attack more than once a turn, exerts a $LINK<zone of control=GCON_ZOC>, can build
+$LINK<fortresses=GCON_Fortresses> and $LINK<barricades=GCON_Barricades>, and can start a
+$LINK<Golden Age=GCON_Golden_Age>.
+
+#DESC_PRTO_QC_English_Longbow
+^English and Welsh longbowmen won the battles of Crecy in 1346 and Agincourt in 1415 against far larger French
+armies.
+
+#PRTO_QC_Janissary_Slave
+^No civilization can build the [Janissary Slave]. It carries one foot soldier overland (defense 1, moves 1) and
+would cost three citizens.
+
+#GOOD_QC_Wheat_Strategic
+^This [Wheat] is a $LINK<strategic resource=GCON_ResourcesS> that gives its square 4 more food, as
+$LINK<Wheat=GOOD_Wheat> does. It is needed for the $LINK<Paratrooper=PRTO_WWII_Paratrooper> and
+$LINK<Modern Paratrooper=PRTO_Paratrooper>, $LINK<Mech Infantry=PRTO_Mech_Infantry>, the
+$LINK<Carrier=PRTO_Carrier>, the $LINK<Jet Fighter=PRTO_Jet_Fighter> and the stealth aircraft.
+
+#GOOD_QC_Game_Strategic
+^This [Game] is a $LINK<strategic resource=GCON_ResourcesS> that gives its square 4 more food, as
+$LINK<Game=GOOD_Game> does. It is needed for the late missiles, ships and aircraft,
+$LINK<Radar Artillery=PRTO_Radar_Artillery>, the $LINK<SAM Missile Battery=BLDG_SAM_Missile_Battery>, the
+$LINK<Apollo Program=BLDG_Apollo_Project> and the spaceship.
+
+#GOOD_QC_Oasis_Strategic
+^This [Oasis] is a $LINK<strategic resource=GCON_ResourcesS> that gives its square 6 more food, as
+$LINK<Oasis=GOOD_Oasis> does. It is needed for the $LINK<ICBM=PRTO_ICBM>, the
+$LINK<AEGIS Cruiser=PRTO_AEGIS_Cruiser>, the $LINK<Nuclear Submarine=PRTO_Nuclear_Submarine>, the
+$LINK<Nuclear Plant=BLDG_Nuclear_Plant> and two spaceship parts.
+
+#GOOD_QC_Whale_Strategic
+^This [Whale] is a $LINK<strategic resource=GCON_ResourcesS> that adds 4 food, 1 shield and 2 commerce to its
+square, as $LINK<Whales=GOOD_Whales> do. Nothing needs it.
+
+; ---- Modern (C7/Lua/modern): the League mode's own advances, buildings, governments, civilizations, units and
+; resources, keyed <PREFIX>_MODERN_<Stem>. Its buildings carry the initial of the government that may build them:
+; E Equality, F Freedom, O Order, T Tradition.
+
+#TECH_MODERN_Wartime
+^[Wartime (Draft)] is the cheapest advance and needs none before it. It lets you $LINK<draft=GCON_Draft> and
+$LINK<mobilize=GCON_Mobilization>, doubles the speed of workers, and brings the
+$LINK<RAD Marine=PRTO_MODERN_RAD_Marine>, $LINK<Artillery=PRTO_Artillery> and $LINK<Mobile SAM=PRTO_Mobile_SAM>.
+
+#DESC_TECH_MODERN_Wartime
+^Conscription filled the mass armies of the twentieth century. In both world wars most of the soldiers on every
+side were drafted.
+
+#TECH_MODERN_Cold_War
+^[Cold War] brings the $LINK<Skirmisher=PRTO_MODERN_Skirmisher> and $LINK<Radar Artillery=PRTO_Radar_Artillery>,
+and leads to $LINK<Explosives=TECH_MODERN_Explosives>, $LINK<Transportation=TECH_MODERN_Transportation> and
+$LINK<Protection=TECH_MODERN_Protection>.
+
+#DESC_TECH_MODERN_Cold_War
+^From 1947 to 1991 the United States and the Soviet Union competed through arms races, alliances and wars fought by
+others, without fighting each other directly.
+
+#TECH_MODERN_Cargo
+^[Cargo] brings the $LINK<Troop Ship=PRTO_MODERN_Troop_Ship> and $LINK<Flak=PRTO_Flak>, allows precision bombing,
+and leads to $LINK<Ideology=TECH_MODERN_Ideology>, $LINK<Tour Of Duty=TECH_MODERN_Tour_Of_Duty> and
+$LINK<Munitions=TECH_MODERN_Munitions>. It is not needed to enter the next era.
+
+#DESC_TECH_MODERN_Cargo
+^Armies fight on what they can carry. In the Second World War the Allies moved men, fuel and ammunition across the
+Atlantic in convoys of merchant ships.
+
+#TECH_MODERN_Ideology
+^[Ideology] lets each government build its first small wonder: $LINK<E Statue=BLDG_MODERN_E_Statue>,
+$LINK<F Fighters=BLDG_MODERN_F_Fighters>, $LINK<O Experiments=BLDG_MODERN_O_Experiments> or
+$LINK<T Guard=BLDG_MODERN_T_Guard>. Needs $LINK<Cargo=TECH_MODERN_Cargo>.
+
+#DESC_TECH_MODERN_Ideology
+^Liberal democracy, communism and fascism each claimed in the twentieth century to know how society should be run,
+and states went to war over them.
+
+#TECH_MODERN_Explosives
+^[Explosives] brings the $LINK<Mini Cruise=PRTO_MODERN_Mini_Cruise>, $LINK<Sub Cruise=PRTO_MODERN_Sub_Cruise> and
+$LINK<Bomber=PRTO_Bomber>. Needs $LINK<Cold War=TECH_MODERN_Cold_War> and $LINK<Munitions=TECH_MODERN_Munitions>;
+it is not needed to enter the next era.
+
+#DESC_TECH_MODERN_Explosives
+^Alfred Nobel patented dynamite in 1867. Stable military explosives such as TNT filled the shells and bombs of the
+world wars.
+
+#TECH_MODERN_Transportation
+^[Transportation] brings the $LINK<Helicopter=PRTO_Helicopter>, $LINK<Chinook=PRTO_MODERN_Chinook> and
+$LINK<Convoy=PRTO_MODERN_Convoy>. Needs $LINK<Cold War=TECH_MODERN_Cold_War>.
+
+#DESC_TECH_MODERN_Transportation
+^Helicopters carried the wounded in the Korean War, and by the Vietnam War whole units were moved into battle by
+air.
+
+#TECH_MODERN_Protection
+^[Protection] brings the $LINK<Pirate=PRTO_MODERN_Pirate>, $LINK<Jet Fighter=PRTO_Jet_Fighter> and
+$LINK<Iron Dome=PRTO_MODERN_Iron_Dome>, and lets you build the $LINK<Military Academy=BLDG_Military_Academy> and
+$LINK<Intelligence Agency=BLDG_Intelligence_Center>. It is not needed to enter the next era.
+
+#TECH_MODERN_Tour_Of_Duty
+^[Tour Of Duty] brings the $LINK<Roughrider=PRTO_MODERN_Roughrider>, the $LINK<Transport=PRTO_Transport> and the
+$LINK<+2 Ship Moves=BLDG_MODERN_2_Ship_Moves> small wonder, and leads to
+$LINK<Barrier Tech=TECH_MODERN_Barrier_Tech>. It is not needed to enter the next era.
+
+#DESC_TECH_MODERN_Tour_Of_Duty
+^A tour of duty is a soldier's fixed term of service in a war zone. Most American soldiers in Vietnam served a
+one-year tour.
+
+#TECH_MODERN_Warships
+^[Warships] brings the $LINK<Carrier=PRTO_Carrier>, $LINK<Destroyer=PRTO_Destroyer>,
+$LINK<Nuclear Submarine=PRTO_Nuclear_Submarine> and $LINK<Cruiser=PRTO_Cruiser>. Needs
+$LINK<Wartime (Draft)=TECH_MODERN_Wartime>; it is not needed to enter the next era.
+
+#DESC_TECH_MODERN_Warships
+^The aircraft carrier replaced the battleship at the heart of the fleet in the Second World War. At the Coral Sea
+and at Midway the opposing ships never came within sight of each other.
+
+#TECH_MODERN_Munitions
+^[Munitions] brings $LINK<Infantry=PRTO_Infantry> and the $LINK<Fighter=PRTO_Fighter>, and leads to
+$LINK<Explosives=TECH_MODERN_Explosives> and $LINK<Recycling=TECH_Recycling>.
+
+#DESC_TECH_MODERN_Munitions
+^In the First World War whole industries turned to making shells, and in Britain hundreds of thousands of women
+went to work in the munitions factories.
+
+#TECH_MODERN_Combat_Stims
+^[Combat Stims] brings the $LINK<RPG Trooper=PRTO_MODERN_RPG_Trooper> and $LINK<Battalion=PRTO_MODERN_Battalion>,
+and leads to $LINK<Commandos=TECH_MODERN_Commandos>. Needs $LINK<Wartime (Draft)=TECH_MODERN_Wartime> and
+$LINK<Ideology=TECH_MODERN_Ideology>.
+
+#DESC_TECH_MODERN_Combat_Stims
+^Armies in the Second World War issued amphetamines to keep soldiers and pilots awake, and air forces still give
+stimulants to crews on long missions.
+
+#TECH_MODERN_Seapower
+^[Seapower] brings the $LINK<Battleship=PRTO_Battleship> and $LINK<AEGIS=PRTO_MODERN_AEGIS>, and with
+$LINK<Tactics=TECH_MODERN_Tactics> leads to $LINK<Computers=TECH_Computers>.
+
+#DESC_TECH_MODERN_Seapower
+^In 1890 the American officer Alfred Thayer Mahan argued that command of the sea was the basis of national power.
+His book shaped the fleets the great powers built before the First World War.
+
+#TECH_MODERN_Tactics
+^[Tactics] brings the $LINK<Bradley=PRTO_MODERN_Bradley> and $LINK<Stealth Fighter=PRTO_Stealth_Fighter>, and with
+$LINK<Seapower=TECH_MODERN_Seapower> leads to $LINK<Computers=TECH_Computers>.
+
+#DESC_TECH_MODERN_Tactics
+^Since the Second World War, armies have fought with tanks, infantry, artillery and aircraft working as one force
+rather than apart.
+
+#TECH_MODERN_Commandos
+^[Commandos] brings the $LINK<Modern Trooper=PRTO_MODERN_Modern_Trooper> and
+$LINK<Insurgent=PRTO_MODERN_Insurgent>, and leads to $LINK<Hegemony=TECH_MODERN_Hegemony>.
+
+#DESC_TECH_MODERN_Commandos
+^Britain raised its first Commando units in 1940 to raid the coast of occupied Europe.
+
+#TECH_MODERN_Thermobarics
+^[Thermobarics] brings the $LINK<Fighter/Bomber=PRTO_MODERN_Fighter_Bomber>,
+$LINK<Combat Engineer=PRTO_MODERN_Combat_Engineer> and $LINK<Power Cruise=PRTO_MODERN_Power_Cruise>, and with
+$LINK<Computers=TECH_Computers> leads to $LINK<Gene Splicing=TECH_Genetics>.
+
+#DESC_TECH_MODERN_Thermobarics
+^A thermobaric weapon spreads a cloud of fuel and ignites it, burning the oxygen in the air to make a long and
+powerful blast.
+
+#TECH_MODERN_Railroads
+^[Railroads] brings no units or buildings. With $LINK<Hegemony=TECH_MODERN_Hegemony> and
+$LINK<Death Robots=TECH_MODERN_Death_Robots> it leads to $LINK<Nuclear War=TECH_MODERN_Nuclear_War>.
+
+#DESC_TECH_MODERN_Railroads
+^From the American Civil War to the First World War, railways moved armies and their supplies to the front faster
+than they could ever march.
+
+#TECH_MODERN_Hegemony
+^[Hegemony] lets each government build its second small wonder: $LINK<E Utopia=BLDG_MODERN_E_Utopia>,
+$LINK<F Prosperity=BLDG_MODERN_F_Prosperity>, $LINK<O Subjugation=BLDG_MODERN_O_Subjugation> or
+$LINK<T Service=BLDG_MODERN_T_Service>.
+
+#DESC_TECH_MODERN_Hegemony
+^Hegemony is the dominance of one state over others through military, economic or cultural power rather than direct
+rule.
+
+#TECH_MODERN_Death_Robots
+^[Death Robots] brings the $LINK<Laser Tank=PRTO_MODERN_Laser_Tank>, and leads to
+$LINK<Nuclear War=TECH_MODERN_Nuclear_War>.
+
+#TECH_MODERN_Nuclear_War
+^[Nuclear War] brings the $LINK<Tactical Nuke=PRTO_NUKE> and $LINK<ICBM=PRTO_ICBM>, and lets you build
+$LINK<The Manhattan Project=BLDG_Manhattan_Project>. It needs $LINK<Railroads=TECH_MODERN_Railroads>,
+$LINK<Hegemony=TECH_MODERN_Hegemony> and $LINK<Death Robots=TECH_MODERN_Death_Robots>.
+
+#DESC_TECH_MODERN_Nuclear_War
+^Nuclear weapons have been used in war twice, on Hiroshima and Nagasaki in August 1945.
+
+#TECH_MODERN_Barrier_Tech
+^[Barrier Tech] costs far more than any advance before it and gives nothing except
+$LINK<Barrier Tech 2=TECH_MODERN_Barrier_Tech_2>. Both are needed to enter the Modern Era. Needs
+$LINK<Nuclear War=TECH_MODERN_Nuclear_War> and $LINK<Tour Of Duty=TECH_MODERN_Tour_Of_Duty>.
+
+#TECH_MODERN_Barrier_Tech_2
+^[Barrier Tech 2] follows $LINK<Barrier Tech=TECH_MODERN_Barrier_Tech> at the same great cost, and gives nothing.
+
+#TECH_MODERN_Modern_Barrier_Tech
+^[Modern Barrier Tech] opens the Modern Era at the same great cost as $LINK<Barrier Tech=TECH_MODERN_Barrier_Tech>,
+and leads only to $LINK<Integrated Defense=TECH_Integrated_Defense>.
+
+#GOVT_MODERN_Equality
+^Under [Equality] corruption is the same in every city however far it lies from the capital, and production is
+hurried by forced labor. Comes with $LINK<Mysticism=TECH_Mysticism>; its buildings are marked E.
+^
+^Worker speed	100%
+^Hurrying	Forced labor
+^Corruption and waste	Communal
+^War weariness	None
+^Draft per turn	1
+^Military police	None
+^Free units	6 per city, 9 per metropolis
+^Other units	1 gold each
+
+#GOVT_MODERN_Tradition
+^[Tradition] adds one commerce to every worked square that already produces commerce. Production is hurried with
+gold. Comes with $LINK<The Republic=TECH_The_Republic>; its buildings are marked T.
+^
+^Worker speed	150%
+^Hurrying	Paid labor
+^Corruption and waste	Nuisance
+^War weariness	None
+^Draft per turn	1
+^Military police	None
+^Free units	1 per town, 3 per city, 7 per metropolis
+^Other units	1 gold each
+
+#GOVT_MODERN_Freedom
+^[Freedom] has the least corruption and adds one commerce to every worked square that already produces commerce,
+but supports few units for free. Production is hurried with gold. Comes with $LINK<Democracy=TECH_Democracy>; its
+buildings are marked F.
+^
+^Worker speed	200%
+^Hurrying	Paid labor
+^Corruption and waste	Minimal
+^War weariness	None
+^Draft per turn	1
+^Military police	None
+^Free units	1 per city, 4 per metropolis
+^Other units	1 gold each
+
+#GOVT_MODERN_Order
+^Under [Order] workers labor three times as fast, units keep order, and cities support many units for free, but
+corruption is rampant. Production is hurried by forced labor. Comes with $LINK<Currency=TECH_Currency>; its
+buildings are marked O.
+^
+^Worker speed	300%
+^Hurrying	Forced labor
+^Corruption and waste	Rampant
+^War weariness	None
+^Draft per turn	2
+^Military police	Up to 5 units
+^Free units	4 per town, 7 per city, 10 per metropolis
+^Other units	1 gold each
+
+#GOVT_MODERN_Switch_Governments
+^Every civilization starts under [!Switch Governments!]. Its workers labor at half speed and corruption is rampant,
+so leave it for $LINK<Equality=GOVT_MODERN_Equality>, $LINK<Tradition=GOVT_MODERN_Tradition>,
+$LINK<Freedom=GOVT_MODERN_Freedom> or $LINK<Order=GOVT_MODERN_Order> as soon as you can.
+^
+^Worker speed	50%
+^Hurrying	Paid labor
+^Corruption and waste	Rampant
+^War weariness	None
+^Draft per turn	None
+^Military police	Up to 2 units
+^Free units	4 per town, city or metropolis
+^Other units	1 gold each
+
+#RACE_MODERN_European_Union
+^The [European Union] is $LINK<Expansionist and Religious=GCON_Strengths>. Chancellor Merkel leads it, and it
+favors $LINK<Freedom=GOVT_MODERN_Freedom> and shuns $LINK<Order=GOVT_MODERN_Order>.
+
+#DESC_RACE_MODERN_European_Union
+^The European Union grew out of the European Coal and Steel Community of 1951 and took its name under the
+Maastricht Treaty of 1993. Its members share a single market, and most of them the euro.
+
+#RACE_MODERN_USSR
+^The [USSR] is $LINK<Expansionist and Religious=GCON_Strengths>. General Secretary Gorbachev leads it, and it
+favors $LINK<Equality=GOVT_MODERN_Equality> and shuns $LINK<Freedom=GOVT_MODERN_Freedom>.
+
+#DESC_RACE_MODERN_USSR
+^The Union of Soviet Socialist Republics was founded in 1922, five years after the Russian Revolution, and
+dissolved into fifteen states in 1991. Mikhail Gorbachev was its last leader.
+
+#RACE_MODERN_Iran
+^[Iran] is $LINK<Expansionist and Religious=GCON_Strengths>. Ayatollah Khomeini leads it, and it favors
+$LINK<Order=GOVT_MODERN_Order>.
+
+#DESC_RACE_MODERN_Iran
+^Iran, long known abroad as Persia, became an Islamic Republic after the revolution of 1979. Ruhollah Khomeini was
+its Supreme Leader until his death in 1989.
+
+#RACE_MODERN_Mexico
+^[Mexico] is $LINK<Expansionist and Religious=GCON_Strengths>. President Fox leads it, and it favors
+$LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_Mexico
+^Mexico won its independence from Spain in 1821. Vicente Fox, elected in 2000, was the first president in 71 years
+from outside the Institutional Revolutionary Party.
+
+#RACE_MODERN_Nigeria
+^[Nigeria] is $LINK<Expansionist and Religious=GCON_Strengths>. President Jonathan leads it, and it favors
+$LINK<Order=GOVT_MODERN_Order>.
+
+#DESC_RACE_MODERN_Nigeria
+^Nigeria became independent from Britain in 1960 and is the most populous country in Africa. Goodluck Jonathan was
+its president from 2010 to 2015.
+
+#RACE_MODERN_Canada
+^[Canada] is $LINK<Expansionist and Religious=GCON_Strengths>. Diefenbaker leads it, and it favors
+$LINK<Equality=GOVT_MODERN_Equality>.
+
+#DESC_RACE_MODERN_Canada
+^Canada was formed by Confederation in 1867. John Diefenbaker was its prime minister from 1957 to 1963.
+
+#RACE_MODERN_Brazil
+^[Brazil] is $LINK<Expansionist and Religious=GCON_Strengths>. President Rousseff leads it, and it favors
+$LINK<Equality=GOVT_MODERN_Equality>.
+
+#DESC_RACE_MODERN_Brazil
+^Brazil declared its independence from Portugal in 1822 and became a republic in 1889. Dilma Rousseff, its first
+woman president, served from 2011 to 2016.
+
+#RACE_MODERN_Australia
+^[Australia] is $LINK<Expansionist and Religious=GCON_Strengths>. Prime Minister Holt leads it, and it favors
+$LINK<Freedom=GOVT_MODERN_Freedom>.
+
+#DESC_RACE_MODERN_Australia
+^Six British colonies federated as the Commonwealth of Australia in 1901. Harold Holt was prime minister from 1966
+until he disappeared while swimming in 1967.
+
+#RACE_MODERN_Saudi_Arabia
+^[Saudi Arabia] is $LINK<Expansionist and Religious=GCON_Strengths>. King Salman leads it, and it favors
+$LINK<Order=GOVT_MODERN_Order> and shuns $LINK<Freedom=GOVT_MODERN_Freedom>.
+
+#DESC_RACE_MODERN_Saudi_Arabia
+^Abdulaziz ibn Saud proclaimed the Kingdom of Saudi Arabia in 1932, and oil was found there in 1938. His son Salman
+became king in 2015.
+
+#RACE_MODERN_Indonesia
+^[Indonesia] is $LINK<Expansionist and Religious=GCON_Strengths>. President Jokowi leads it, and it favors
+$LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_Indonesia
+^Indonesia proclaimed its independence from the Netherlands in 1945. It spans more than 17,000 islands. Joko
+Widodo, known as Jokowi, was president from 2014 to 2024.
+
+#RACE_MODERN_Israel
+^[Israel] is $LINK<Expansionist and Religious=GCON_Strengths>. Prime Minister Netanyahu leads it, and it favors
+$LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_Israel
+^The State of Israel was proclaimed in 1948. Benjamin Netanyahu has served longer as its prime minister than anyone
+else.
+
+#RACE_MODERN_Pakistan
+^[Pakistan] is $LINK<Expansionist and Religious=GCON_Strengths>. Prime Minister Sharif leads it, and it favors
+$LINK<Tradition=GOVT_MODERN_Tradition>.
+
+#DESC_RACE_MODERN_Pakistan
+^Pakistan was created in 1947 at the partition of British India. The brothers Nawaz and Shehbaz Sharif have both
+served as its prime minister.
+
+#PRTO_MODERN_RAD_Marine
+^The [RAD Marine] (attack 9, defense 4) can attack from a ship straight onto the shore. It needs
+$LINK<Uranium=GOOD_Uranium>, and the $LINK<T Guard=BLDG_MODERN_T_Guard> turns one out every four turns.
+
+#PRTO_MODERN_Modern_Trooper
+^The [Modern Trooper] (attack 12, defense 10, moves 2) can be dropped by air up to 9 squares away. Needs
+$LINK<Iron=GOOD_Iron> and $LINK<Coal=GOOD_Coal>.
+
+#PRTO_MODERN_Partisans
+^[Partisans] (attack 8, defense 4) need no advance and no resources, can be drafted, and bombard attackers when
+they defend.
+
+#DESC_PRTO_MODERN_Partisans
+^Partisans fought behind the German lines in the Second World War, most of all in Yugoslavia and the occupied
+Soviet Union.
+
+#PRTO_MODERN_Roughrider
+^The [Roughrider] (attack 5, defense 3, moves 3) may attack more than once a turn, and when it wins it may capture
+a $LINK<Worker=PRTO_Worker>. Needs $LINK<Iron=GOOD_Iron>.
+
+#DESC_PRTO_MODERN_Roughrider
+^The Rough Riders, the 1st United States Volunteer Cavalry, were raised for the Spanish-American War of 1898.
+Theodore Roosevelt led them in Cuba.
+
+#PRTO_MODERN_Special_Forces
+^[Special Forces] (attack 10, defense 7, moves 2) can attack from a ship, can be drafted, and cross hills, forest,
+jungle and marsh as if they were open ground. They need $LINK<Rubber=GOOD_Rubber> and
+$LINK<Aluminum=GOOD_Aluminum>, and upgrade to the $LINK<Combat Engineer=PRTO_MODERN_Combat_Engineer>.
+
+#DESC_PRTO_MODERN_Special_Forces
+^Special forces are small, highly trained units for raids, scouting and training foreign troops. The British SAS,
+formed in 1941, was one of the first.
+
+#PRTO_MODERN_Mini_Cruise
+^The [Mini Cruise] is a one-shot missile (bombard 6, range 4) whose hit can destroy units on land and at sea. It
+rides in transports, not warships. Needs $LINK<Aluminum=GOOD_Aluminum>; upgrades to the
+$LINK<Power Cruise=PRTO_MODERN_Power_Cruise>.
+
+#PRTO_MODERN_Sub_Cruise
+^The [Sub Cruise] is a one-shot missile (bombard 7, range 4) that rides in submarines, cruisers and the AEGIS
+rather than in transports. Needs $LINK<Coal=GOOD_Coal> and $LINK<Uranium=GOOD_Uranium>.
+
+#DESC_PRTO_MODERN_Sub_Cruise
+^Submarines have carried cruise missiles since the 1950s. American submarines launch the Tomahawk from their
+torpedo tubes.
+
+#PRTO_MODERN_Super_Sub_Cruise
+^The [Super Sub Cruise] is the strongest missile short of a nuclear one (bombard 14, range 6), carried like the
+$LINK<Sub Cruise=PRTO_MODERN_Sub_Cruise>. Needs $LINK<Uranium=GOOD_Uranium>, $LINK<Coal=GOOD_Coal> and
+$LINK<Rubber=GOOD_Rubber>.
+
+#PRTO_MODERN_Power_Cruise
+^The [Power Cruise] is a stronger $LINK<Mini Cruise=PRTO_MODERN_Mini_Cruise> (bombard 11, range 4). Needs
+$LINK<Aluminum=GOOD_Aluminum> and $LINK<Iron=GOOD_Iron>. The $LINK<O Experiments=BLDG_MODERN_O_Experiments> turns
+one out every nine turns.
+
+#PRTO_MODERN_AEGIS
+^The [AEGIS] (attack 17, defense 9, moves 7) picks the weakest ship in a stack to attack, spots submarines, carries
+one $LINK<Sub Cruise=PRTO_MODERN_Sub_Cruise> or other tactical missile, and its bombardment can sink ships and
+destroy land units. Needs $LINK<Aluminum=GOOD_Aluminum> and $LINK<Uranium=GOOD_Uranium>.
+
+#DESC_PRTO_MODERN_AEGIS
+^Aegis is the American radar and fire-control system first fitted to the cruiser Ticonderoga in 1983. It can track
+and engage many aircraft and missiles at once.
+
+#PRTO_MODERN_Chinook
+^The [Chinook] carries any three land units, not only foot soldiers, up to 8 squares, and can drop them from the
+air. Needs $LINK<Coal=GOOD_Coal> and $LINK<Rubber=GOOD_Rubber>.
+
+#DESC_PRTO_MODERN_Chinook
+^The Boeing CH-47 Chinook, a twin-rotor heavy-lift helicopter, first flew in 1961 and is still in service.
+
+#PRTO_MODERN_Megadropper
+^The [Megadropper] carries any six land units up to 19 squares and can drop them from the air. Needs
+$LINK<Oil=GOOD_Oil> and $LINK<Iron=GOOD_Iron>.
+
+#PRTO_MODERN_Spectator_Plane
+^No civilization can build the [Spectator Plane]. It is an aircraft with a range of 100 squares.
+
+#PRTO_MODERN_Super_Trooper
+^The [Super Trooper] (attack 12, defense 9, moves 3, two extra hit points) is the strongest foot soldier, and can
+be dropped by air up to 23 squares away. Needs $LINK<Uranium=GOOD_Uranium>, $LINK<Iron=GOOD_Iron> and
+$LINK<Coal=GOOD_Coal>. The $LINK<O Subjugation=BLDG_MODERN_O_Subjugation> turns one out every four turns.
+
+#PRTO_MODERN_Laser_Tank
+^The [Laser Tank] (attack 24, defense 11, moves 4, one extra hit point) may attack more than once a turn. Needs
+$LINK<Oil=GOOD_Oil>, $LINK<Rubber=GOOD_Rubber> and $LINK<Aluminum=GOOD_Aluminum>.
+
+#PRTO_MODERN_Bradley
+^The [Bradley] (attack 15, defense 7, moves 3) may attack more than once a turn. Needs
+$LINK<Aluminum=GOOD_Aluminum> and $LINK<Oil=GOOD_Oil>.
+
+#DESC_PRTO_MODERN_Bradley
+^The M2 Bradley infantry fighting vehicle entered American service in 1981. It carries a squad of infantry and
+fights beside tanks with a cannon and anti-tank missiles.
+
+#PRTO_MODERN_Convoy
+^The [Convoy] carries three foot soldiers 4 squares a turn over any ground, hills and mountains included. It cannot
+attack. Needs $LINK<Coal=GOOD_Coal>.
+
+#PRTO_MODERN_Iron_Dome
+^The [Iron Dome] (defense 17, seven extra hit points) is an air unit that never leaves the city that builds it,
+where it absorbs bombardment. Needs $LINK<Iron=GOOD_Iron>.
+
+#DESC_PRTO_MODERN_Iron_Dome
+^Israel's Iron Dome system, in service since 2011, fires interceptor missiles at incoming rockets and shells.
+
+#PRTO_MODERN_Battalion
+^The [Battalion] (attack 8, defense 5, three extra hit points) is built to absorb hits. Needs $LINK<Coal=GOOD_Coal>
+and $LINK<Oil=GOOD_Oil>.
+
+#PRTO_MODERN_Combat_Engineer
+^The [Combat Engineer] (attack 17, defense 8, moves 1) hits harder than any other foot soldier and can be drafted.
+Needs $LINK<Uranium=GOOD_Uranium> and $LINK<Rubber=GOOD_Rubber>.
+
+#DESC_PRTO_MODERN_Combat_Engineer
+^Combat engineers clear mines, breach obstacles and bridge rivers under fire to open the way for the rest of the
+army.
+
+#PRTO_MODERN_RPG_Trooper
+^The [RPG Trooper] (attack 6, defense 5, moves 2, one extra hit point) fires at aircraft attacking its square (air
+defense 3), may attack more than once a turn, can be dropped by air up to 6 squares away and can be drafted. Needs
+$LINK<Iron=GOOD_Iron> and $LINK<Uranium=GOOD_Uranium>.
+
+#DESC_PRTO_MODERN_RPG_Trooper
+^The Soviet RPG-7, introduced in 1961, is a cheap shoulder-fired anti-tank launcher carried by armies and irregular
+fighters around the world.
+
+#PRTO_MODERN_Insurgent
+^The [Insurgent] (attack 11, defense 5, moves 2) needs no resources.
+
+#DESC_PRTO_MODERN_Insurgent
+^Insurgents fight a government or an occupying power without a regular army, relying on ambush, sabotage and the
+support of local people.
+
+#PRTO_MODERN_Rebel
+^The [Rebel] (attack 1, defense 1) fights only for the barbarians.
+
+#PRTO_MODERN_Militant
+^No civilization can build the [Militant] (attack 4, defense 3, moves 2).
+
+#PRTO_MODERN_Militia
+^The [Militia] (attack 3, defense 4) needs no advance and no resources, and costs 40 shields.
+
+#DESC_PRTO_MODERN_Militia
+^Militias are citizen soldiers called up in an emergency, as distinct from a standing army.
+
+#PRTO_MODERN_Skirmisher
+^The [Skirmisher] (attack 8, defense 5, moves 2) can be drafted, needs $LINK<Rubber=GOOD_Rubber>, and upgrades to
+the $LINK<RPG Trooper=PRTO_MODERN_RPG_Trooper>.
+
+#PRTO_MODERN_Pirate
+^The [Pirate] (attack 5, defense 3, moves 6) carries two units and has radar.
+
+#DESC_PRTO_MODERN_Pirate
+^Piracy never ended. In the 2000s pirates from Somalia hijacked scores of ships off the Horn of Africa.
+
+#PRTO_MODERN_Troop_Ship
+^The [Troop Ship] (defense 2, moves 5) carries six units and upgrades to the $LINK<Transport=PRTO_Transport>.
+
+#DESC_PRTO_MODERN_Troop_Ship
+^In both world wars ocean liners were taken over as troopships. In 1943 the Queen Mary carried more than 15,000
+soldiers across the Atlantic in a single voyage.
+
+#PRTO_MODERN_Fighter_Bomber
+^The [Fighter/Bomber] (attack 6, defense 3, bombard 8, range 9) both intercepts enemy aircraft and bombs. Needs
+$LINK<Oil=GOOD_Oil> and $LINK<Uranium=GOOD_Uranium>.
+
+#DESC_PRTO_MODERN_Fighter_Bomber
+^A fighter-bomber is built both for air combat and for attacking targets on the ground. The American F-15E Strike
+Eagle, in service since 1988, is one.
+
+#BLDG_MODERN_E_Statue
+^The [E Statue] is a small wonder of $LINK<Equality=GOVT_MODERN_Equality>. It makes three unhappy citizens content
+and adds one commerce to every square its city works that already produces commerce. Costs 50 shields.
+
+#BLDG_MODERN_E_Utopia
+^The [E Utopia] is a small wonder of $LINK<Equality=GOVT_MODERN_Equality>. It makes four unhappy citizens content
+in every city and doubles science in its own. Costs 100 shields.
+
+#BLDG_MODERN_F_Fighters
+^The [F Fighters] is a small wonder of $LINK<Freedom=GOVT_MODERN_Freedom>. It turns out a
+$LINK<Fighter=PRTO_Fighter> every five turns. Costs 40 shields.
+
+#BLDG_MODERN_F_Prosperity
+^The [F Prosperity] is a small wonder of $LINK<Freedom=GOVT_MODERN_Freedom>. Every city grows by two citizens
+instead of one when its food store fills, your $LINK<treasury=GCON_Treasury> earns interest, and its city's science
+rises by half. Costs 100 shields.
+
+#BLDG_MODERN_O_Experiments
+^The [O Experiments] is a small wonder of $LINK<Order=GOVT_MODERN_Order>. It makes one unhappy citizen content,
+earns 2 gold a turn and turns out a $LINK<Power Cruise=PRTO_MODERN_Power_Cruise> every nine turns. Costs 40
+shields.
+^
+^Its second part, O Experiments Part 2, gives you two advances at once. It costs 120 shields and must be built in
+the same city. Each civilization has its own copy, so no one else can take it.
+
+#BLDG_MODERN_O_Subjugation
+^The [O Subjugation] is a small wonder of $LINK<Order=GOVT_MODERN_Order>. It turns out a
+$LINK<Super Trooper=PRTO_MODERN_Super_Trooper> every four turns, lets your units heal in enemy territory, gives
+your ships one more move, raises its city's science by half and lets the city grow beyond size 12. Costs 140
+shields.
+
+#BLDG_MODERN_T_Guard
+^The [T Guard] is a small wonder of $LINK<Tradition=GOVT_MODERN_Tradition>. It earns 5 gold a turn and turns out a
+$LINK<RAD Marine=PRTO_MODERN_RAD_Marine> every four turns. Costs 40 shields.
+
+#BLDG_MODERN_T_Service
+^The [T Service] is a small wonder of $LINK<Tradition=GOVT_MODERN_Tradition>. It earns 7 gold a turn, turns out a
+$LINK<Worker=PRTO_Worker> every two turns and raises its city's science by half. Costs 60 shields.
+^
+^Its second part, T Service Part 2, puts an $LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content
+faces from $LINK<T Temples=BLDG_MODERN_T_Temple>. It costs 60 shields and must be built in the same city. Each
+civilization has its own copy, so no one else can take it.
+
+#BLDG_MODERN_O_Propaganda
+^[O Propaganda] is a building of $LINK<Order=GOVT_MODERN_Order> that makes 17 culture a turn, makes one unhappy
+citizen content and strengthens the city against ships. Costs 90 shields and 1 gold a turn.
+
+#BLDG_MODERN_O_CCTV
+^[O CCTV] is a building of $LINK<Order=GOVT_MODERN_Order> that raises its city's shields by a quarter, makes one
+unhappy citizen content and earns 2 gold a turn. Costs 110 shields.
+
+#DESC_BLDG_MODERN_O_CCTV
+^Closed-circuit television cameras spread through city streets from the 1990s. Britain and China installed them in
+great numbers.
+
+#BLDG_MODERN_2_Ship_Moves
+^[+2 Ship Moves] is a small wonder that gives all your ships two more moves. Costs 60 shields.
+
+#BLDG_MODERN_Spectator_Center
+^The [Spectator Center] has nearly every building effect in the game, but it costs 9000 shields.
+
+#BLDG_MODERN_O_Barracks
+^[O Barracks] is the $LINK<Barracks=BLDG_Barracks> of $LINK<Order=GOVT_MODERN_Order>. It costs 20 shields and earns
+1 gold a turn instead of costing upkeep.
+
+#BLDG_MODERN_E_Barracks
+^[E Barracks] is the $LINK<Barracks=BLDG_Barracks> of $LINK<Equality=GOVT_MODERN_Equality>: 40 shields, 1 gold a
+turn.
+
+#BLDG_MODERN_T_Barracks
+^[T Barracks] is the $LINK<Barracks=BLDG_Barracks> of $LINK<Tradition=GOVT_MODERN_Tradition>: 40 shields, 1 gold a
+turn.
+
+#BLDG_MODERN_F_Barracks
+^[F Barracks] is the $LINK<Barracks=BLDG_Barracks> of $LINK<Freedom=GOVT_MODERN_Freedom>: 40 shields, 1 gold a
+turn.
+
+#BLDG_MODERN_E_Granary
+^[E Granary] is the $LINK<Granary=BLDG_Granary> of $LINK<Equality=GOVT_MODERN_Equality>, and also makes one unhappy
+citizen content. 50 shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Granary
+^[F Granary] is the $LINK<Granary=BLDG_Granary> of $LINK<Freedom=GOVT_MODERN_Freedom>: 60 shields, 2 gold a turn.
+
+#BLDG_MODERN_O_Granary
+^[O Granary] is the $LINK<Granary=BLDG_Granary> of $LINK<Order=GOVT_MODERN_Order>, and also makes one unhappy
+citizen content. 60 shields, no upkeep.
+
+#BLDG_MODERN_T_Granary
+^[T Granary] is the $LINK<Granary=BLDG_Granary> of $LINK<Tradition=GOVT_MODERN_Tradition>: 60 shields, 1 gold a
+turn.
+
+#BLDG_MODERN_T_Temple
+^[T Temple] is the $LINK<Temple=BLDG_Temple> of $LINK<Tradition=GOVT_MODERN_Tradition>. It makes three unhappy
+citizens content and 2 culture a turn, and earns 1 gold a turn instead of costing upkeep. Costs 30 shields.
+
+#BLDG_MODERN_T_Cathedral
+^[T Cathedral] is the $LINK<Cathedral=BLDG_Cathedral> of $LINK<Tradition=GOVT_MODERN_Tradition>. It makes three
+unhappy citizens content and 2 culture a turn, and reduces corruption like a $LINK<Courthouse=BLDG_Courthouse>.
+Needs no temple. 70 shields, no upkeep.
+
+#BLDG_MODERN_T_Marketplace
+^[T Marketplace] is the $LINK<Marketplace=BLDG_Marketplace> of $LINK<Tradition=GOVT_MODERN_Tradition>, and comes
+with $LINK<Currency=TECH_Currency>. 40 shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Market
+^[F Market] is the $LINK<Marketplace=BLDG_Marketplace> of $LINK<Freedom=GOVT_MODERN_Freedom>, and also reduces
+corruption. 40 shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Bank
+^[F Bank] is the $LINK<Bank=BLDG_Bank> of $LINK<Freedom=GOVT_MODERN_Freedom>. Besides raising tax income by half,
+it raises science by half and reduces corruption. Needs an $LINK<F Market=BLDG_MODERN_F_Market>. 60 shields, 2 gold
+a turn.
+
+#BLDG_MODERN_F_Exchange
+^[F Exchange] is the $LINK<Stock Exchange=BLDG_Stock_Exchange> of $LINK<Freedom=GOVT_MODERN_Freedom>. It also makes
+two unhappy citizens content and raises luxuries by half. Needs an $LINK<F Bank=BLDG_MODERN_F_Bank>. 100 shields, 3
+gold a turn.
+
+#BLDG_MODERN_E_Harbor
+^[E Harbor] is the $LINK<Harbor=BLDG_Harbor> of $LINK<Equality=GOVT_MODERN_Equality>: 30 shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Harbor
+^[F Harbor] is the $LINK<Harbor=BLDG_Harbor> of $LINK<Freedom=GOVT_MODERN_Freedom>, and also makes 1 culture a
+turn. 40 shields, 1 gold a turn.
+
+#BLDG_MODERN_O_Harbour
+^[O Harbour] is the $LINK<Harbor=BLDG_Harbor> of $LINK<Order=GOVT_MODERN_Order>: 20 shields, no upkeep.
+
+#BLDG_MODERN_T_Harbor
+^[T Harbor] is the $LINK<Harbor=BLDG_Harbor> of $LINK<Tradition=GOVT_MODERN_Tradition>: 40 shields, 1 gold a turn.
+
+#BLDG_MODERN_E_Offshore
+^[E Offshore] is the $LINK<Offshore Platform=BLDG_Offshore_Platform> of $LINK<Equality=GOVT_MODERN_Equality>, and
+causes no pollution. 60 shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Offshore
+^[F Offshore] is the $LINK<Offshore Platform=BLDG_Offshore_Platform> of $LINK<Freedom=GOVT_MODERN_Freedom>, and
+causes no pollution. 60 shields, 1 gold a turn.
+
+#BLDG_MODERN_O_Offshore
+^[O Offshore] is the $LINK<Offshore Platform=BLDG_Offshore_Platform> of $LINK<Order=GOVT_MODERN_Order>, and causes
+no pollution. 50 shields, no upkeep.
+
+#BLDG_MODERN_T_Offshore
+^[T Offshore] is the $LINK<Offshore Platform=BLDG_Offshore_Platform> of $LINK<Tradition=GOVT_MODERN_Tradition>, and
+causes no pollution. 60 shields, 1 gold a turn.
+
+#BLDG_MODERN_T_Airport
+^[T Airport] is the $LINK<Airport=BLDG_Airport> of $LINK<Tradition=GOVT_MODERN_Tradition>, without pollution. 60
+shields, 1 gold a turn.
+
+#BLDG_MODERN_F_Airport
+^[F Airport] is the $LINK<Airport=BLDG_Airport> of $LINK<Freedom=GOVT_MODERN_Freedom>, without pollution. 60
+shields, 1 gold a turn.
+
+#BLDG_MODERN_O_Airport
+^[O Airport] is the $LINK<Airport=BLDG_Airport> of $LINK<Order=GOVT_MODERN_Order>, without pollution. 60 shields, 1
+gold a turn.
+
+#BLDG_MODERN_E_Airport
+^[E Airport] is the $LINK<Airport=BLDG_Airport> of $LINK<Equality=GOVT_MODERN_Equality>. It also raises its city's
+shields by a quarter and makes one unhappy citizen content. 10 shields, half that for
+$LINK<Religious=GCON_Strengths> civilizations; 1 gold a turn.
+
+#BLDG_MODERN_E_Coal_Plant
+^[E Coal Plant] is the $LINK<Coal Plant=BLDG_Coal_Plant> of $LINK<Equality=GOVT_MODERN_Equality>: 160 shields, 3
+gold a turn.
+
+#BLDG_MODERN_F_Coal_Plant
+^[F Coal Plant] is the $LINK<Coal Plant=BLDG_Coal_Plant> of $LINK<Freedom=GOVT_MODERN_Freedom>: 160 shields, 3 gold
+a turn.
+
+#BLDG_MODERN_O_Coal_Plant
+^[O Coal Plant] is the $LINK<Coal Plant=BLDG_Coal_Plant> of $LINK<Order=GOVT_MODERN_Order>: 160 shields, 3 gold a
+turn.
+
+#BLDG_MODERN_T_Coal_Plant
+^[T Coal Plant] is the $LINK<Coal Plant=BLDG_Coal_Plant> of $LINK<Tradition=GOVT_MODERN_Tradition>, and the
+cheapest: 110 shields, 1 gold a turn.
+
+#BLDG_MODERN_E_Hydro_Plant
+^[E Hydro Plant] is the $LINK<Hydro Plant=BLDG_Hydro_Plant> of $LINK<Equality=GOVT_MODERN_Equality>: 180 shields, 4
+gold a turn.
+
+#BLDG_MODERN_F_Hydro_Plant
+^[F Hydro Plant] is the $LINK<Hydro Plant=BLDG_Hydro_Plant> of $LINK<Freedom=GOVT_MODERN_Freedom>: 180 shields, 4
+gold a turn.
+
+#BLDG_MODERN_O_Hydro_Plant
+^[O Hydro Plant] is the $LINK<Hydro Plant=BLDG_Hydro_Plant> of $LINK<Order=GOVT_MODERN_Order>: 180 shields, 4 gold
+a turn.
+
+#BLDG_MODERN_T_Hydro_Plant
+^[T Hydro Plant] is the $LINK<Hydro Plant=BLDG_Hydro_Plant> of $LINK<Tradition=GOVT_MODERN_Tradition>, and the
+cheapest: 130 shields, 2 gold a turn.
+
+#BLDG_MODERN_T_Nuclear_Plant
+^[T Nuclear Plant] is the $LINK<Nuclear Plant=BLDG_Nuclear_Plant> of $LINK<Tradition=GOVT_MODERN_Tradition>. Like
+Modern's other Nuclear Plant it raises shields by three quarters and needs $LINK<Recycling=TECH_Recycling>, a
+$LINK<Factory=BLDG_Factory> and $LINK<Uranium=GOOD_Uranium>, but costs 170 shields and 3 gold a turn instead of 220
+and 4.
+
+#GOOD_MODERN_Pearls
+^[Pearls] add 1 shield and 3 commerce to their square. They count as a $LINK<strategic resource=GCON_ResourcesS>,
+though nothing needs them.
+
+#DESC_GOOD_MODERN_Pearls
+^Before cultured pearls appeared in the early twentieth century, divers in the Persian Gulf and elsewhere gathered
+natural pearls from wild oysters.
+
+#GOOD_MODERN_Beach_Resort
+^A [Beach Resort] adds 1 food, 2 shields and 1 commerce to its square. It counts as a
+$LINK<strategic resource=GCON_ResourcesS>, though nothing needs it.
+
+#DESC_GOOD_MODERN_Beach_Resort
+^Seaside resorts grew with the railways in the nineteenth century and with cheap air travel in the twentieth.
+
+
+; Each civilization's copy of the second parts of T Service and O Experiments. They are great wonders, so each
+; civilization has its own, which only it can build.
+
+#BLDG_MODERN_T_Service_Part_2_European_Union
+^The European Union's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It
+puts an $LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_USSR
+^The USSR's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_China
+^China's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_America
+^America's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Japan
+^Japan's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_India
+^India's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Brazil
+^Brazil's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Saudi_Arabia
+^Saudi Arabia's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Iran
+^Iran's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Indonesia
+^Indonesia's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Mexico
+^Mexico's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Egypt
+^Egypt's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Nigeria
+^Nigeria's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Canada
+^Canada's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Australia
+^Australia's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Vietnam
+^[T Service Part 2] for Vietnam, which is not among Modern's civilizations, so no one can build it.
+
+#BLDG_MODERN_T_Service_Part_2_Pakistan
+^Pakistan's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_T_Service_Part_2_Israel
+^Israel's copy of [T Service Part 2], the second part of $LINK<T Service=BLDG_MODERN_T_Service>. It puts an
+$LINK<Aqueduct=BLDG_Aqueduct> in every city and doubles the content faces from
+$LINK<T Temples=BLDG_MODERN_T_Temple>. 60 shields, in the city that has T Service.
+
+#BLDG_MODERN_O_Experiments_Part_2_European_Union
+^The European Union's copy of [O Experiments Part 2], the second part of
+$LINK<O Experiments=BLDG_MODERN_O_Experiments>. It gives you two advances at once. 120 shields, in the city that
+has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_USSR
+^The USSR's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_China
+^China's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_America
+^America's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Japan
+^Japan's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_India
+^India's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Brazil
+^Brazil's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Saudi_Arabia
+^Saudi Arabia's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>.
+It gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Iran
+^Iran's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It gives
+you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Indonesia
+^Indonesia's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Mexico
+^Mexico's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Egypt
+^Egypt's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Nigeria
+^Nigeria's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Canada
+^Canada's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Australia
+^Australia's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Pakistan
+^Pakistan's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+#BLDG_MODERN_O_Experiments_Part_2_Israel
+^Israel's copy of [O Experiments Part 2], the second part of $LINK<O Experiments=BLDG_MODERN_O_Experiments>. It
+gives you two advances at once. 120 shields, in the city that has O Experiments.
+
+; ---- Future (C7/Lua/future): the League mode's own items, keyed <PREFIX>_FUTURE_<Stem>. Commercial
+; civilizations build the "C." copies of the trade buildings, the others the plain ones.
+
+#TECH_FUTURE_ICBM
+^[ICBM] brings the $LINK<ICBM=PRTO_ICBM>. Needs $LINK<Integrated Defense=TECH_Integrated_Defense>.
+
+#DESC_TECH_FUTURE_ICBM
+^The Soviet R-7, first launched successfully in 1957, was the first intercontinental ballistic missile. The same
+rocket put Sputnik into orbit that year.
+
+#BLDG_FUTURE_Naval_Academy
+^The [Naval Academy] is a small wonder for a coastal city. Ships built there are $LINK<veterans=GCON_Experience>,
+and all your ships get two more moves. Costs 120 shields.
+
+#DESC_BLDG_FUTURE_Naval_Academy
+^The United States Naval Academy at Annapolis was founded in 1845 to train officers for the navy.
+
+#BLDG_FUTURE_C_Market
+^The [C. Market] is the $LINK<Marketplace=BLDG_Marketplace> of $LINK<Commercial=GCON_Strengths> civilizations,
+which cannot build the plain one: 40 shields instead of 60.
+
+#BLDG_FUTURE_C_Bank
+^The [C. Bank] is the $LINK<Bank=BLDG_Bank> of $LINK<Commercial=GCON_Strengths> civilizations: 60 shields instead
+of 80. Needs a $LINK<C. Market=BLDG_FUTURE_C_Market>.
+
+#BLDG_FUTURE_C_Stock_Exchange
+^The [C. Stock Exchange] is the $LINK<Stock Exchange=BLDG_Stock_Exchange> of $LINK<Commercial=GCON_Strengths>
+civilizations: 100 shields instead of 140, and like the plain one it raises luxuries by half. Needs a
+$LINK<C. Bank=BLDG_FUTURE_C_Bank>.
+
+#BLDG_FUTURE_C_Wall_Street
+^The [C. Wall Street] is the $LINK<Wall Street=BLDG_Wall_Street> of $LINK<Commercial=GCON_Strengths> civilizations:
+120 shields instead of 160, and 2 culture a turn instead of 1. Needs a
+$LINK<C. Stock Exchange=BLDG_FUTURE_C_Stock_Exchange>.
+
+#BLDG_FUTURE_C_Dock
+^The [C. Dock] is the $LINK<Commercial Dock=BLDG_Commercial_Dock> of $LINK<Commercial=GCON_Strengths>
+civilizations: 50 shields and 1 gold a turn instead of 80 and 2.
+
+#BLDG_FUTURE_Sun_Tzus
+^Future's [Sun Tzu's] gives every city you own on the same continent the effect of a $LINK<Barracks=BLDG_Barracks>,
+turns out $LINK<Special Forces=PRTO_FUTURE_Special_Forces> every four turns, and lets its city grow beyond size 12.
+Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Militaristic, Expansionist or Commercial=GCON_Strengths>
+civilizations.
+
+#BLDG_FUTURE_Magellans
+^Future's [Magellan's] gives all your ships two more moves, makes ships built in its city
+$LINK<veterans=GCON_Experience>, turns out a $LINK<Destroyer=PRTO_Destroyer> every five turns, adds one commerce to
+every square its city works that already produces commerce, and lets the city grow beyond size 12. It must be built
+on the coast. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for
+$LINK<Industrious, Expansionist, Commercial or Seafaring=GCON_Strengths> civilizations.
+
+#BLDG_FUTURE_Copernicus
+^Future's [Copernicus'] makes three unhappy citizens content in its city and one in every other, adds one commerce
+to every square its city works that already produces commerce, and lets the city grow beyond size 12. It does not
+double science. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Militaristic, Expansionist or Scientific=GCON_Strengths>
+civilizations.
+
+#BLDG_FUTURE_Leonardos
+^Future's [Leonardo's] lets you upgrade units at half the usual cost, makes four unhappy citizens content in its
+city and one in every other, and lets the city grow beyond size 12. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Militaristic, Religious or Seafaring=GCON_Strengths>
+civilizations.
+
+#BLDG_FUTURE_JS_Bachs
+^Future's [JS Bach's] puts a $LINK<Temple=BLDG_Temple> in every city you own, makes two unhappy citizens content in
+its city and one in every other on the continent, and lets the city grow beyond size 12. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Scientific or Religious=GCON_Strengths> civilizations.
+
+#BLDG_FUTURE_Newtons
+^Future's [Newton's] makes three unhappy citizens content in its city and one in every other, adds one commerce to
+every square its city works that already produces commerce, and lets the city grow beyond size 12. It does not
+double science. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Industrious, Scientific or Commercial=GCON_Strengths>
+civilizations.
+
+#BLDG_FUTURE_Smiths
+^Future's [Smith's] pays the upkeep of your trade buildings, gives your ships one more move, makes four unhappy
+citizens content in its city and one in every other, and lets the city grow beyond size 12. Costs 400 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Expansionist, Religious or Commercial=GCON_Strengths>
+civilizations.
+
+#BLDG_FUTURE_Mausoleum
+^Future's [Mausoleum] makes three unhappy citizens content in its city and lets the city grow beyond size 12. Costs
+200 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for $LINK<Scientific or Seafaring=GCON_Strengths> civilizations.
+
+#PRTO_FUTURE_Bradley
+^The [Bradley] (attack 16, defense 12, moves 2) may attack more than once a turn. Needs $LINK<Oil=GOOD_Oil> and
+$LINK<Aluminum=GOOD_Aluminum>, and upgrades to $LINK<Modern Armor=PRTO_Modern_Armor>.
+
+#DESC_PRTO_FUTURE_Bradley
+^The M2 Bradley infantry fighting vehicle entered American service in 1981. It carries a squad of infantry into
+battle beside the tanks.
+
+#PRTO_FUTURE_Special_Forces
+^[Special Forces] (attack 18, defense 14, moves 2) can attack from a ship, exert a $LINK<zone of control=GCON_ZOC>,
+and cross hills, forest, jungle and marsh as if they were open ground. They need $LINK<Rubber=GOOD_Rubber> and
+$LINK<Aluminum=GOOD_Aluminum>. Future's $LINK<Sun Tzu's=BLDG_FUTURE_Sun_Tzus> turns them out every four turns.
+
+#DESC_PRTO_FUTURE_Special_Forces
+^Special forces are small, highly trained units for raids and scouting behind enemy lines. Britain's SAS was formed
+in the North African desert in 1941.
+
+#PRTO_FUTURE_Sub_Cruise
+^The [Sub Cruise] is a $LINK<Cruise Missile=PRTO_Cruise_Missile> (bombard 12, range 4) that submarines and other
+missile-carrying ships can take aboard. Needs $LINK<Aluminum=GOOD_Aluminum>.
+
+#PRTO_FUTURE_Com_Marine
+^No civilization can build the [Com Marine], a $LINK<Marine=PRTO_Marine> (attack 16, defense 10) that also exerts a
+$LINK<zone of control=GCON_ZOC> and may capture a $LINK<Worker=PRTO_Worker> when it wins.
+
+#PRTO_FUTURE_Shit_of_da_Sea
+^No civilization can build the [Shit of da Sea], a $LINK<Battleship=PRTO_Battleship> with defense 16 and a
+bombardment range of 5 that can start a $LINK<Golden Age=GCON_Golden_Age>.
+
+; ---- MDJ (C7/Lua/mdj): Medieval Japan's items that had to share another item's entry, now keyed
+; <PREFIX>_MDJ_<Stem>. The clan wonders cost nothing; each needs its clan's own hidden advance.
+
+#TECH_MDJ_2x_Worker_Speed
+^[2x Worker Speed] makes your workers labor twice as fast. Needs $LINK<Masonry=TECH_Masonry> and
+$LINK<Longbows=TECH_MDJ_Longbows>, and leads to $LINK<Mortal Combat=TECH_MDJ_Mortal_Combat>.
+
+#TECH_MDJ_Sea_Travel
+^[Sea Travel] brings the Fire Cannon Boat and the $LINK<Caravel=PRTO_Caravel>, opens trade across the sea, and with
+$LINK<Harbors=TECH_MDJ_Harbors> leads to $LINK<Philosophy=TECH_Philosophy>.
+
+#DESC_TECH_MDJ_Sea_Travel
+^Japanese ships traded with Korea, China and Southeast Asia. In the early 1600s licensed red-seal ships sailed as
+far as Siam.
+
+#TECH_MDJ_Harbors
+^[Harbors] brings the $LINK<Curragh=PRTO_MDJ_Curragh>, the $LINK<Harbor=BLDG_Harbor> and the
+$LINK<Marketplace=BLDG_Marketplace>, and leads to $LINK<Sea Travel=TECH_MDJ_Sea_Travel>. The Urakami, Ainu and Hojo
+begin with it.
+
+#TECH_MDJ_Warships
+^[Warships] brings the $LINK<Warship=PRTO_MDJ_Warship>, and leads to $LINK<Ronins=TECH_Suieijutsu> and
+$LINK<Line Infantry=TECH_MDJ_Line_Infantry>. Needs $LINK<Warrior Code=TECH_Warrior_Code>.
+
+#TECH_MDJ_Banditry
+^[Banditry] brings the $LINK<Horseman=PRTO_Horseman>, the $LINK<Urakami Crossbow=PRTO_Siege_Crossbow>, the
+$LINK<Uesugi Horseman=PRTO_MDJ_Uesugi_Horseman> and $LINK<Walls=BLDG_Walls>. Needs
+$LINK<Warrior Code=TECH_Warrior_Code>.
+
+#TECH_MDJ_Super_Fast_Workers
+^[Super Fast Workers] needs no other advance. It brings the $LINK<Fast Worker=PRTO_MDJ_Fast_Worker> and leads to
+$LINK<Barrier Tech 2=TECH_MDJ_Barrier_Tech_2>.
+
+#TECH_MDJ_Line_Infantry
+^[Line Infantry] brings the $LINK<Bayonet=PRTO_Samurai_Spearman> and the $LINK<Hojo General=PRTO_MDJ_Hojo_General>,
+and leads to $LINK<Ninjutsu=TECH_Portuguese>. Needs $LINK<Warships=TECH_MDJ_Warships> and
+$LINK<Banditry=TECH_MDJ_Banditry>.
+
+#TECH_MDJ_Mortal_Combat
+^[Mortal Combat] brings the $LINK<Ichijo Cavalry=PRTO_Samurai_Horse_Archer> and
+$LINK<Mounted Ronin=PRTO_Mounted_Samurai>, and leads to $LINK<Rifling=TECH_MDJ_Rifling>.
+
+#TECH_MDJ_Bridge_Building
+^[Bridge Building] lets workers build roads across rivers. It follows $LINK<Longbows=TECH_MDJ_Longbows> and is not
+needed to enter the next era.
+
+#DESC_TECH_MDJ_Bridge_Building
+^Japan's steep, fast rivers were hard to bridge. Many crossings were left to ferries and fords, and the shogunate
+later kept some rivers unbridged to slow any army marching on Edo.
+
+#TECH_MDJ_Longbows
+^[Longbows] brings the $LINK<Longbow=PRTO_Samurai_Archer>, the $LINK<Date Samurai Bow=PRTO_MDJ_Date_Samurai_Bow>
+and the $LINK<Statue of Zeus=BLDG_Council>. Needs $LINK<Mathematics=TECH_Mathematics>.
+
+#TECH_MDJ_Barrier_Tech_2
+^[Barrier Tech 2] costs far more than any advance before it. It brings the $LINK<University=BLDG_University> and
+$LINK<Civil Defense=BLDG_Civil_Defense>, and leads to $LINK<Barrier Tech 3=TECH_MDJ_Barrier_Tech_3>.
+
+#TECH_MDJ_Barrier_Tech_3
+^[Barrier Tech 3] costs as much as $LINK<Barrier Tech 2=TECH_MDJ_Barrier_Tech_2>. It brings the
+$LINK<Noh-Kyogen Theatre=BLDG_MDJ_Noh_Kyogen_Theatre> and $LINK<The Great Wall=BLDG_Great_Wall>, and leads to
+$LINK<Bujutsu=TECH_Bujutsu> and $LINK<Contact: Ronin=TECH_Ronin>.
+
+#TECH_MDJ_Late_Era_Tech
+^[Late Era Tech] follows $LINK<Contact: Portuguese=TECH_MDJ_Contact_Portuguese> and leads to
+$LINK<Hojutsu=TECH_Hojutsu>.
+
+#TECH_MDJ_Ocean_Trade
+^[Ocean Trade] needs no other advance. It brings the $LINK<Galleon=PRTO_MDJ_Galleon> and opens trade across the
+ocean.
+
+#TECH_MDJ_Rifling
+^[Rifling] brings the $LINK<Arquebusier=PRTO_Arquebusier>. Needs $LINK<Ninjutsu=TECH_Portuguese>,
+$LINK<Mortal Combat=TECH_MDJ_Mortal_Combat> and $LINK<Philosophy=TECH_Philosophy>.
+
+#TECH_MDJ_Contact_Portuguese
+^[Contact: Portuguese] brings the $LINK<Local Magistrate=BLDG_MDJ_Local_Magistrate>,
+$LINK<Treasury=BLDG_MDJ_Treasury>, $LINK<Jesuit Cathedral=BLDG_MDJ_Jesuit_Cathedral>,
+$LINK<Geisha House=BLDG_Geisha> and $LINK<Pirate Shrine=BLDG_Shrine>. Needs $LINK<Akinai=TECH_Trade>.
+
+#DESC_TECH_MDJ_Contact_Portuguese
+^In 1543 a Chinese junk carrying Portuguese traders was blown ashore on Tanegashima. Portuguese merchants and
+Jesuit missionaries followed within a few years.
+
+#BLDG_MDJ_Mausoleum
+^MDJ's [Mausoleum] makes three unhappy citizens content in its city and 6 culture a turn. Costs 100 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
+
+#BLDG_MDJ_Great_Library
+^MDJ's [Great Library] gives you every advance already known by two other clans you have met. Costs 240 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
+
+#BLDG_MDJ_Sun_Tzus
+^MDJ's [Sun Tzu's] gives every city you own on the same continent the effect of a $LINK<Barracks=BLDG_Barracks>,
+and makes a $LINK<great leader=GCON_Leaders> more likely after a victory. Costs 180 shields.
+^
+^Can start a $LINK<Golden Age=GCON_Golden_Age> for any clan.
+
+#BLDG_MDJ_Tokugawa
+^The [Tokugawa] wonder puts an $LINK<Aqueduct=BLDG_Aqueduct> in every Tokugawa city.
+
+#BLDG_MDJ_Urakami_Wonder
+^The [Urakami Wonder] turns out a $LINK<Peasant Worker=PRTO_Peasant_Worker> every seven turns.
+
+#BLDG_MDJ_Hospital
+^The Date's [Hospital] lets its city grow beyond size 12. Costs 20 shields.
+
+#BLDG_MDJ_Culture_Battlefield_Med
+^The Imagawa's [10 Culture + Battlefield Med] makes 10 culture a turn and lets your units heal in enemy territory.
+
+#BLDG_MDJ_Otomo_Wonder
+^The [Otomo Wonder] raises its city's shields by a quarter.
+
+#BLDG_MDJ_Hojo_Wonder
+^The [Hojo Wonder] gives all Hojo ships two more moves.
+
+#BLDG_MDJ_Mori_Wonder
+^The [Mori Wonder] turns out a $LINK<Settler=PRTO_Settler2> every thirteen turns.
+
+#BLDG_MDJ_Oda_Wonder
+^The [Oda Wonder] doubles science in its city.
+
+#BLDG_MDJ_Uesugi
+^The [Uesugi] wonder lets the Uesugi upgrade units at half the usual cost.
+
+#BLDG_MDJ_Ainu_Wonder
+^The [Ainu Wonder] earns 12 gold a turn.
+
+#BLDG_MDJ_Foundry
+^The [Foundry] raises its city's shields by half, with no upkeep. Comes with $LINK<Masonry=TECH_Masonry>; costs 140
+shields.
+
+#BLDG_MDJ_Noh_Kyogen_Theatre
+^The [Noh-Kyogen Theatre] makes two unhappy citizens content and 2 culture a turn. Costs 100 shields and 2 gold a
+turn.
+
+#DESC_BLDG_MDJ_Noh_Kyogen_Theatre
+^Noh, the masked drama of music and dance, took its classic form under Kan'ami and Zeami in the fourteenth century.
+Kyogen, short comic plays, were staged between the Noh pieces.
+
+#BLDG_MDJ_Trading_Port
+^A [Trading Port] links its coastal city by trade to every other city that has one, as an airport would. Costs 50
+shields and 3 gold a turn, half the shields for $LINK<Seafaring=GCON_Strengths> clans.
+
+#BLDG_MDJ_1_Ship_Move
+^[+1 Ship Move] is a small wonder that gives all your ships one more move. Costs 60 shields.
+
+#BLDG_MDJ_Local_Magistrate
+^The [Local Magistrate] reduces $LINK<corruption and waste=GCON_Corruption> in its city and makes it harder for
+enemy propaganda to sway, like a $LINK<Courthouse=BLDG_Courthouse>. Costs 100 shields and 1 gold a turn, half the
+shields for $LINK<Militaristic or Industrious=GCON_Strengths> clans.
+
+#BLDG_MDJ_Treasury
+^The [Treasury] raises its city's tax income by half. Needs a $LINK<Marketplace=BLDG_Marketplace>; costs 150
+shields and 1 gold a turn, half the shields for $LINK<Commercial=GCON_Strengths> clans.
+
+#BLDG_MDJ_Jesuit_Cathedral
+^The [Jesuit Cathedral] makes three unhappy citizens content and 2 culture a turn. Needs a
+$LINK<Temple=BLDG_Temple>; costs 150 shields and 2 gold a turn, half the shields for
+$LINK<Religious=GCON_Strengths> clans, which is all of them.
+
+#DESC_BLDG_MDJ_Jesuit_Cathedral
+^Francis Xavier landed at Kagoshima in 1549. The Jesuit mission won many converts, most of all in Kyushu, until the
+Tokugawa banned Christianity in 1614.
+
+#PRTO_MDJ_Ashigaru
+^The [Ashigaru] (attack 2, defense 2) is the cheapest soldier at 12 shields, and needs no advance. The Miyoshi can
+upgrade it to their $LINK<Myoshi Ronin=PRTO_Samurai_Warrior>.
+
+#DESC_PRTO_MDJ_Ashigaru
+^Lords raised ashigaru from the farming villages of their domains and armed them in large numbers with spears, bows
+and, later, guns.
+
+#PRTO_MDJ_Spearman
+^The [Spearman] (attack 3, defense 3) is every clan's spearman except the Otomo's, who have the
+$LINK<Otomo Spearman=PRTO_Otomo_Spearman>. Upgrades to the $LINK<Bayonet=PRTO_Samurai_Spearman>, or for the Hojo to
+the $LINK<Hojo General=PRTO_MDJ_Hojo_General>.
+
+#PRTO_MDJ_Scout
+^The [Scout] (moves 2) explores and cannot fight. Only the Otomo, Mori and Urakami build it.
+
+#PRTO_MDJ_Fast_Worker
+^The [Fast Worker] does a worker's jobs, moves two squares a turn and pays one move for any square whatever the
+ground. Comes with $LINK<Super Fast Workers=TECH_MDJ_Super_Fast_Workers>; the
+$LINK<Peasant Worker=PRTO_Peasant_Worker> upgrades to it.
+
+#PRTO_MDJ_Uesugi_Horseman
+^The [Uesugi Horseman] is the Uesugi's own $LINK<Horseman=PRTO_Horseman> (attack 4, defense 2, moves 2, one extra
+hit point). It may attack more than once a turn and can start a $LINK<Golden Age=GCON_Golden_Age>. Needs
+$LINK<Horses=GOOD_Horses>.
+
+#PRTO_MDJ_Hojo_General
+^The [Hojo General] is the Hojo's own (attack 6, defense 5, one extra hit point). It can attack from a boat and
+start a $LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Saltpeter=GOOD_Saltpeter>. Upgrades to the
+$LINK<Arquebusier=PRTO_Arquebusier>.
+
+#PRTO_MDJ_Date_Samurai_Bow
+^The [Date Samurai Bow] is the Date's own $LINK<Longbow=PRTO_Samurai_Archer> (attack 6, defense 2, one extra hit
+point). It can attack from a boat and start a $LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Jade=GOOD_Jade>.
+
+#PRTO_MDJ_Infiltrator
+^The [Infiltrator] is the Mori's own $LINK<Ninja=PRTO_Ninja> (attack 10, defense 2, moves 2). It picks its target
+out of a stack, can attack from a boat and can start a $LINK<Golden Age=GCON_Golden_Age>.
+
+#PRTO_MDJ_Tokugawa_Shogun
+^The [Tokugawa Shogun] (attack 6, defense 4, moves 2) is the Tokugawa's own. It can attack from a boat and start a
+$LINK<Golden Age=GCON_Golden_Age>, and needs $LINK<Iron=GOOD_Iron>. In regicide games it is every clan's king; see
+$LINK<Short Game Modes=GCON_Short_Game_Modes>.
+
+#PRTO_MDJ_Warship
+^The [Warship] (attack 4, defense 4, moves 4) carries one unit. It sinks if it leaves the coast.
+
+#DESC_PRTO_MDJ_Warship
+^Sengoku lords built atakebune, large oared warships with wooden castles on deck, to fight on the Inland Sea and
+carry troops.
+
+#PRTO_MDJ_Curragh
+^The [Curragh] (attack 4, defense 3, moves 2) carries one unit, has two fewer hit points than usual, and sinks if
+it leaves the coast. Comes with $LINK<Harbors=TECH_MDJ_Harbors>.
+
+#PRTO_MDJ_Galleon
+^The [Galleon] (attack 2, defense 3, moves 5) carries six units and can cross the ocean.
+
+#DESC_PRTO_MDJ_Galleon
+^Japan built a few galleons of its own in the early 1600s. One of them, the San Juan Bautista, carried Date
+Masamune's embassy across the Pacific to Mexico in 1613.
+
+#GOOD_MDJ_Pearls
+^[Pearls] add 1 shield and 4 commerce to their square. They count as a $LINK<strategic resource=GCON_ResourcesS>,
+though nothing needs them.
+
+#DESC_GOOD_MDJ_Pearls
+^Mikimoto Kokichi produced the first cultured pearls in Japan in 1893.
+
+#GOOD_MDJ_Precious_Stones
+^[Precious Stones] add 1 shield and 3 commerce to their square. They count as a
+$LINK<strategic resource=GCON_ResourcesS>, though nothing needs them.
+
+#GOOD_MDJ_Sandbar
+^A [Sandbar] adds 1 food, 2 shields and 1 commerce to its square. It counts as a
+$LINK<strategic resource=GCON_ResourcesS>, though nothing needs it.
+
+#GOOD_MDJ_Olive_Oil
+^[Olive Oil] adds 1 food, 1 shield and 1 commerce to its square. It counts as a
+$LINK<strategic resource=GCON_ResourcesS>, though nothing needs it.
