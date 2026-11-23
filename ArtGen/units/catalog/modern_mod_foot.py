@@ -79,32 +79,56 @@ UNITS = {
         'fortify': 'aim', 'victory': 'fist',
         'actions': dict(_FIRE),
     },
-    # A commando in dark urban camouflage, a balaclava, a chest rig in the
-    # civ's color and a submachine gun; fires kneeling (the mod's 'FCommando').
+    # An urban insurgent of the 2000s (models/irregulars.py): a red-and-white
+    # shemagh wound over the head, the face open, a dark jacket with the
+    # sleeves rolled over jeans, a chicom chest rig and armband in the civ's
+    # color, a PKM machine gun at the hip, trainers; fires long bursts from
+    # the hip.
     'Insurgent': {
-        'archetype': 'mod_soldier',
-        'colors': {'skin': '#b88e6c', 'top': '#4a4b4c', 'trousers': '#4a4b4c', 'boots': '#1e1e20',
-                   'belt': '#1e1e20', 'strap': '#1e1e20', 'hat': '#222326'},
-        'camo': {'top': ['#2a2b2c', '#76766e', '#5a5048'], 'trousers': ['#2a2b2c', '#76766e', '#5a5048']},
-        'tint': ['vest'],
-        'hair': 'none', 'hat': 'balaclava', 'top': 'long_sleeved', 'vest': 'flak', 'legs': 'trousers', 'cargo': True,
-        'feet': 'boots', 'straps': ['webbing'],
-        'gun': 'smg', 'hold': 'low', 'aim': 'hip', 'kneel_fire': True, 'fire_start': 'carry', 'fire_end': 'carry',
-        'flash': 'burst', 'smoke': None, 'flash_size': 0.2, 'shots': {'ATTACK1': [5, 7, 9]},
+        'archetype': 'irregular',
+        'colors': {'skin': '#a87e5c', 'vest': '#46502e', 'rig': '#7e7454', 'rig_dark': '#5a5240', 'trousers': '#424a58', 'boots': '#2e3038', 'belt': '#2a241c',
+                   'strap': '#2a241c', 'seam': '#2e3422', 'seam_light': '#6e7480', 'kneepad': '#363a42',
+                   'sole': '#d8d6d0', 'stripe': '#c4c2bc', 'hat': '#3a3634', 'hat_stripe': '#b8b0a0',
+                   'toggle': '#2a2018', 'eyes': '#1a120c'},
+        'camo': {'vest': ['#3a4424', '#56603a'], 'trousers': ['#384050', '#525a68']},
+        'camo_density': 1.0, 'camo_size': 0.04,
+        'tint': ['top'],
+        'hair': 'none', 'hat': 'shemagh', 'top': 'long_sleeved', 'elbow_cuff': False, 'vest': 'jerkin', 'vest_skirt': 0.02,
+        'jacket': {'zip': True}, 'seams': True, 'jeans': True, 'buckle': True,
+        'rig': 'chicom', 'legs': 'trousers', 'knees': True, 'feet': 'shoes', 'sneakers': True,
+        'gun': 'pkm', 'death_gun': 'pkm_stub', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
+        'run_hold': {'hand_r': (0.20, 0.16, 1.00), 'w_main': (-14, -38, 0), 'support': 1.0, 'elbow_l': (-0.5, -0.5, -0.7)},
+        'flash': 'burst', 'smoke': 'light', 'flash_size': 0.30,
+        'shots': {'ATTACK1': [1, 2, 3, 5, 6, 7, 9, 10, 11], 'ATTACK2': [2, 3, 4, 8, 9, 10], 'ATTACK3': [1, 3, 5, 7]},
         'fortify': 'kneel', 'victory': 'fire_air',
-        'actions': dict(_FIRE),
+        'actions': {'ATTACK1': 'fire', 'ATTACK2': 'fire', 'ATTACK3': 'fire'},
     },
-    # An irregular: a grey-bearded man in a white T-shirt, trousers in the
-    # civ's color, an old steel helmet and a stout stick (the mod's 'OldTimer').
+    # A townsman in an uprising, Budapest 1956 (models/irregulars.py): a flat
+    # cap and neckerchief in the civ's color, a dark jacket open over his
+    # shirt, the tricolour with its hole cut out on his arm, a belt of
+    # shells, an old double-barrelled gun in his right hand and a lit Molotov
+    # cocktail low in his left, a bag of bottles at his hip; he throws the
+    # bottle overarm and it bursts into flame where it lands.
     'Rebel': {
-        'archetype': 'mod_soldier',
-        'build': 'lean',
-        'colors': {'skin': '#c89a74', 'hair': '#b4b0a8', 'top': '#e6e4de', 'helmet': '#6a6c64',
-                   'boots': '#3a3430', 'belt': '#3a2c20'},
-        'tint': ['trousers'],
-        'hair': 'short', 'beard': True, 'hat': 'm1', 'top': 'sleeved', 'legs': 'trousers', 'feet': 'shoes',
-        'weapon': 'stick', 'stoop': 6,
-        'actions': {'ATTACK1': 'attack_chop', 'ATTACK2': 'attack_chop'},
+        'archetype': 'irregular',
+        'colors': {'skin': '#c89a74', 'hair': '#8a8680', 'hat': '#3e3a34', 'top': '#5a4c3e', 'trousers': '#6e6454', 'shirtfront': '#d4cebc',
+                   'boots': '#2a201a', 'belt': '#2e2218', 'vest': '#4a3e32', 'waistcoat_edge': '#2e241c',
+                   'bag': '#8e7e58', 'bag_dark': '#6e6244', 'bag_strap': '#5a4e36', 'strap': '#4a3624',
+                   'bottles': '#a83a2a', 'patch': '#6e604c', 'stock': '#9a6838'},
+        'camo': {'top': ['#665848', '#4a3e32'], 'trousers': ['#7a7060', '#5a5044']}, 'camo_density': 1.2,
+        'camo_size': 0.04,
+        'tint': ['kerchief', 'vest'],
+        'hair': 'short', 'beard': False, 'hat': 'cloth_cap',
+        'top': 'long_sleeved', 'shirt_front': True, 'tricolour': ['#b8302a', '#e8e4dc', '#3a7a3a'],
+        'kerchief': 'kerchief', 'shell_belt': True, 'pockets': True,
+        'waistcoat': 'vest', 'legs': 'trousers', 'turnups': True, 'knee_patch': True, 'feet': 'shoes', 'bag': 'bottles',
+        'gun': 'shotgun', 'offhand': 'molotov', 'hold': 'low',
+        'poses': {'carry': {'hand_r': (0.30, 0.12, 0.98), 'w_main': (-120, 0, -6), 'support': 0.0,
+                            'hand_l': (-0.36, 0.14, 0.92), 'w_off': (0, 8, 0), 'elbow_l': (-0.6, -0.8, -0.3)},
+                  'guard': {'support': 0.0, 'hand_l': (-0.36, 0.20, 1.00)}},
+        'run_hold': {'hand_l': (-0.34, 0.16, 0.98)},
+        'fortify': 'guard', 'victory': 'fist',
+        'actions': {'ATTACK1': 'fire', 'ATTACK2': 'fire'},
     },
     # A fighter in a civ-colored headwrap, a khaki shirt and camouflage
     # trousers, an AK with a bayonet held upright (the mod's 'Mujahidin').
