@@ -95,7 +95,7 @@ def g_hojo_kabuto(g, horns=0.40, spread=0.17):
     parts.append(M.cylinder(0.132, 0.132, 0.026, hm, seg=20, z0=0.112).transformed(M.scale(1, 1.07, 1)))
     # the shikoro: four lames stepping out and down round the back and sides, red lacing at each edge
     a0, a1 = math.radians(152), math.radians(388)
-    top_z, step, lames = 0.125, 0.040, 3
+    top_z, step, lames = 0.13, 0.036, 2
     for k in range(lames):
         z0 = top_z - k * step
         r0 = 0.135 + 0.016 * k
@@ -151,9 +151,9 @@ def g_hojo_menpo(g):
     # the mouth slot
     parts.append(M.box(0.05, 0.01, 0.008, g.m('slit', '#121010'), (0, 0.137, 0.045)))
     # the throat guard: three lames below the chin, laced
-    for k in range(3):
-        z = -0.01 - 0.035 * k
-        r = 0.09 + 0.012 * k
+    for k in range(2):
+        z = -0.01 - 0.03 * k
+        r = 0.085 + 0.008 * k
         parts.append(H._shell([(z, r, r * 1.02, 0, 0.03), (z - 0.03, r + 0.008, (r + 0.008) * 1.02, 0, 0.03)], sm,
                               math.radians(-20), math.radians(200), seg=12))
         parts.append(H._shell([(z - 0.028, r + 0.01, (r + 0.01) * 1.02, 0, 0.03), (z - 0.036, r + 0.012, (r + 0.012) * 1.02, 0, 0.03)],
@@ -212,7 +212,7 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
     # the inside, a darker lining
     Pi = Pb.copy()
     Pi[..., :2] *= 0.985
-    out.append(('chest', grid_mesh(Pi[:, ::-1], lambda i, j: g.m('lining', '#3a3430')), None))
+    out.append(('chest', grid_mesh(Pi[:, ::-1], lambda i, j: g.m('jin_lining', '#ffffff', tint=True)), None))
     # the skirts (pelvis space): from the waist to the knees, flaring, split at the back
     tw = g.tw
     zk = [0.12, 0.02, -0.12, -0.26, -length + 0.06, -length]
@@ -224,7 +224,7 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
             u = (0.12 - z) / (0.12 + length)
             rx = 0.195 * tw + gap * 0.8 + flare * u * 1.2
             ry = 0.150 * tw + gap * 0.8 + flare * u
-            pl = 0.016 * u
+            pl = 0.03 * u
             rows.append([((rx + pl * math.sin(7 * a)) * math.cos(a), (ry + pl * math.sin(7 * a)) * math.sin(a), z)
                          for a in hang])
         Ps = np.asarray(rows, np.float32)
@@ -239,10 +239,13 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
         out.append(('pelvis', grid_mesh(Ps, skirt_paint), None))
         Pi = Ps.copy()
         Pi[..., :2] *= 0.98
-        out.append(('pelvis', grid_mesh(Pi[:, ::-1], lambda i, j: g.m('lining', '#3a3430')), None))
+        out.append(('pelvis', grid_mesh(Pi[:, ::-1], lambda i, j: g.m('jin_lining', '#ffffff', tint=True)), None))
     # the collar band round the back of the neck
-    out.append(('chest', M.loft([(0.30, 0.13, 0.10, 0, -0.02), (0.345, 0.11, 0.09, 0, -0.025)], cm, seg=16,
-                                cap_bottom=False, cap_top=False), None))
+    # the standing collar round the back of the neck, black, edged in the pale hem colour
+    out.append(('chest', H._shell([(0.29, 0.15, 0.115, 0, -0.03), (0.37, 0.135, 0.10, 0, -0.04)], cm,
+                                  math.radians(150), math.radians(390), seg=16), None))
+    out.append(('chest', H._shell([(0.365, 0.137, 0.102, 0, -0.04), (0.38, 0.135, 0.10, 0, -0.04)], hm,
+                                  math.radians(150), math.radians(390), seg=16), None))
     return out
 
 
@@ -275,6 +278,21 @@ def g_hojo_do_mon(g, size=0.15):
     return [('chest', M.Mesh.concat(tris), None)] if tris else []
 
 
+def g_hojo_nodowa(g):
+    """The gorget at the throat: two lacquered lames round the neck,
+    laced, between the mask's throat guard and the do."""
+    sm = g.m('shikoro', '#4e3628', finish='gloss')
+    lm = g.m('lacing', '#c4503e')
+    out = []
+    for k, (z0, z1) in enumerate(((-0.03, 0.02), (0.02, 0.07))):
+        r0, r1 = 0.085 - 0.008 * k, 0.078 - 0.008 * k
+        out.append(('neck', M.loft([(z0, r0 + 0.01, r0), (z1, r1 + 0.01, r1)], sm, seg=16, cap_bottom=False,
+                                   cap_top=False), None))
+        out.append(('neck', M.loft([(z0 + 0.004, r0 + 0.014, r0 + 0.004), (z0 + 0.012, r0 + 0.014, r0 + 0.004)], lm,
+                                   seg=16, cap_bottom=False, cap_top=False), None))
+    return out
+
+
 def g_hojo_kote(g, cloth='kote', plate='kote_plate'):
     """Armored sleeves: dark cloth over the arms, a lacquered plate along the
     top of each forearm with a gilt edge, a plate on the back of the hand."""
@@ -305,8 +323,8 @@ def g_hojo_daisho(g):
     from models.props_foot_ancient import katana_sheathed
     tw = g.tw
     k = katana_sheathed(g.mats)
-    out = [('pelvis', k.transformed(T(-0.24 * tw, 0.06, 0.06) @ M.rot_z(-5) @ M.rot_x(128)), None)]
-    out.append(('pelvis', k.transformed(T(-0.20 * tw, 0.10, 0.08) @ M.rot_z(-3) @ M.rot_x(118) @ M.scale(0.72)), None))
+    out = [('pelvis', k.transformed(T(-0.24 * tw, 0.06, 0.06) @ M.rot_z(-4) @ M.rot_x(136)), None)]
+    out.append(('pelvis', k.transformed(T(-0.20 * tw, 0.10, 0.08) @ M.rot_z(-3) @ M.rot_x(128) @ M.scale(0.72)), None))
     return out
 
 
@@ -379,10 +397,48 @@ def hojo_gunbai(mats, size=1.0):
 
 # ------------------------------------------------------------ the archetype
 
+def anim_death_general(base, ctx):
+    """Struck, he staggers, drops to his knees, and topples onto his side,
+    curled, an arm over his body: no spread-eagle, the skirts falling with
+    him."""
+    down = ctx.event('down', 0.55) if ctx is not None else 0.55
+    down = min(max(down or 0.55, 0.35), 0.85)
+    fk = {
+        'thigh_r': (0, -4, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 4, 0), 'shin_l': (0, 0, 0),
+        'arm_r': (20, -14, 0), 'forearm_r': (40, 0, 0), 'arm_l': (10, 14, 0), 'forearm_l': (30, 0, 0),
+        'root_pos': (0, 0, 0), 'root_rot': (0, 0, 0), 'spine': (0, 0, 0), 'chest': (0, 0, 0), 'head': (0, 0, 0),
+    }
+    k = [
+        (0.0, {}),
+        (0.18, {'root_rot': (14, 0, 6), 'root_pos': (0, -0.08, -0.03), 'chest': (14, 0, 6), 'head': (24, 0, 0),
+                'arm_r': (40, -30, 0), 'forearm_r': (70, 0, 0), 'arm_l': (50, 30, 0), 'forearm_l': (90, 0, 0),
+                'thigh_r': (12, -4, 0), 'shin_r': (-20, 0, 0)}),
+        (0.40, {'root_rot': (-10, 0, 8), 'root_pos': (0, 0.02, -0.40), 'chest': (-24, 0, 4), 'head': (-14, 0, 0),
+                'thigh_r': (95, -6, 0), 'shin_r': (-150, 0, 0), 'thigh_l': (90, 6, 0), 'shin_l': (-150, 0, 0),
+                'arm_r': (30, -20, 0), 'forearm_r': (60, 0, 0), 'arm_l': (60, 20, 0), 'forearm_l': (100, 0, 0)}),
+        (0.62, {'root_rot': (-20, 70, 10), 'root_pos': (0.30, 0.10, -0.70), 'chest': (-20, 0, 0), 'head': (-10, 10, 0),
+                'thigh_r': (80, -6, 0), 'shin_r': (-110, 0, 0), 'thigh_l': (70, 8, 0), 'shin_l': (-90, 0, 0),
+                'arm_r': (60, -10, 0), 'forearm_r': (40, 0, 0), 'arm_l': (50, 25, 0), 'forearm_l': (80, 0, 0)}),
+        (0.80, {'root_rot': (-14, 86, 8), 'root_pos': (0.38, 0.12, -0.76), 'chest': (-14, 0, 0), 'head': (-6, 14, 0),
+                'thigh_r': (64, -6, 0), 'shin_r': (-84, 0, 0), 'thigh_l': (50, 10, 0), 'shin_l': (-70, 0, 0),
+                'arm_r': (70, -6, 0), 'forearm_r': (30, 0, 0), 'arm_l': (40, 30, 0), 'forearm_l': (70, 0, 0)}),
+        (1.0, {'root_rot': (-12, 88, 8), 'root_pos': (0.38, 0.12, -0.77), 'chest': (-12, 0, 0), 'head': (-4, 16, 0),
+               'thigh_r': (62, -6, 0), 'shin_r': (-82, 0, 0), 'thigh_l': (48, 10, 0), 'shin_l': (-68, 0, 0),
+               'arm_r': (72, -6, 0), 'forearm_r': (28, 0, 0), 'arm_l': (38, 30, 0), 'forearm_l': (72, 0, 0)}),
+    ]
+    anim = H.keys(dict(base, **{c: np.asarray(v, np.float32) for c, v in fk.items()}), k)
+    return H.Action(lambda t: anim(H._warp(t, [(0.62, down)])), legs='fk', arms='fk')
+
+
 @archetype('hojo_general')
 class HojoGeneral(FA.Footman):
     """A footman whose right hand holds the gunbai in the catalog's
     'fan_actions' and the weapon (a katana) in the others."""
+
+    def action(self, action, ctx):
+        if self.anim_name(action) == 'death':
+            return anim_death_general(self.base, ctx)
+        return super().action(action, ctx)
 
     def frame(self, action, f, n, ctx):
         if action in self.p.get('fan_actions', ()):

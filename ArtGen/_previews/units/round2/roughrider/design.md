@@ -80,3 +80,33 @@ head, the rider's body is the stock rider body at the Cossack's scale (1.0 betwe
 At 1x beside the Cavalry and Cossack: same rider size and horse size, the same lighting and contour; told apart by
 the wide brim above the blue shirt, the bay with its kit (pale roll ends at the shoulders, dark saddlebags). The
 civ colour (shirt, blanket) is about the Cavalry's coat area.
+
+## Round 2b (after the picture-only review failed it)
+
+Review: the hat about 1.4x shoulder width hid the face (sombrero); neckerchief, leggings and belt lost at 1x; a
+flat blue shirt; a thin carbine; a dark gun-like object at the saddle back (the empty carbine boot) and a khaki tube
+at the shoulder (the blanket roll's end) reading as a detached limb; aiming through the brim; in the death his legs
+sink into the horse and he lies across it in a T-pose (the stock Cavalry's death does the same).
+
+### Round 7 (r07.png)
+Hat: brim radius 0.33 -> 0.235 (about 30% smaller), a fore-and-aft crease pressed into the crown, the left brim
+pinned up to the crown with a brass pin, worn pushed back 9 deg so the face and collar show. Neckerchief red,
+bigger (contrasts with any civ colour). Mills belt wider and lighter with bigger cartridge tips; leggings lighter
+with a turned top. A canvas haversack strap across the chest to a bag on the left hip breaks the shirt. Carbine
+1.16 m and 1.35x thicker. Carbine boot removed; the blanket roll moved behind the cantle, across the horse, with
+rolled ends and three straps. Seen: face under the brim, red kerchief, strap and belt read; nothing detached.
+
+### Round 8 (b_ATTACK1)
+The shot: with the smaller brim pushed back the carbine comes to the shoulder under the brim, not through it.
+
+### Round 9 (b_DEATH, first try)
+The new rider death (shared with the knight): seen in E the rider still lay behind the horse's body (overlapping
+in that view). Measured the fallen horse's footprint and moved his landing spot clear of it.
+
+### Round 10 (b_DEATH in S, E, N, W)
+Rider lands well clear of the horse in all four views, on his back, one knee up, arms at his sides; the carbine
+lands apart. Measured: civ 15.3% (Cavalry 16.3, Cossack 10.3), sprite 3391 px (Cavalry 3472).
+
+### Round 11 (final.png; meas1x.py)
+Measured on the 1x rows: area 937 (Cavalry 974, Cossack 854), civ 12.9% (13.8 / 10.7), non-civ brightness 76.8
+(90.2 / 75.7): inside the stock range; no change needed.

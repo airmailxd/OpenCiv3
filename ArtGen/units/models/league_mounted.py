@@ -220,7 +220,7 @@ def heater_shield(mats, w=0.50, h=0.64, face='shield_face', cross='shield_cross'
     return M.Mesh.concat(parts)
 
 
-def order_lance(mats, length=3.1, grip=0.95):
+def order_lance(mats, length=2.6, grip=0.8):
     """The knight's lance: a long ash shaft swelling at the grip, a leather
     grip, a steel vamplate, a leaf head, and a swallow-tailed civ-colored
     pennon hanging from below the head."""
@@ -236,8 +236,10 @@ def order_lance(mats, length=3.1, grip=0.95):
     head = M.lathe([(0.0, 0.017), (0.05, 0.02), (0.10, 0.034), (0.20, 0.026), (0.30, 0.0005)], s, seg=8)
     parts.append(head.transformed(T(0, 0, z1 - 0.26) @ M.scale(1.0, 0.45, 1.0)))
     # the pennon: two tails, flying back from the shaft (in the y-z plane, toward -y)
-    pen = [(0.0, 0.0), (0.0, 0.26), (-0.50, 0.24), (-0.30, 0.13), (-0.52, 0.02)]
-    parts.append(M.extrude(pen, 0.01, pm).transformed(T(0, 0, z1 - 0.62) @ M.rot_z(90)))
+    pen = [(0.0, 0.0), (0.0, 0.24), (-0.44, 0.22), (-0.26, 0.12), (-0.46, 0.02)]
+    pnn = M.extrude(pen, 0.01, pm).transformed(T(0, 0, z1 - 0.56) @ M.rot_z(90))
+    parts.append(pnn)
+    parts.append(pnn.transformed(M.rot_z(60)))       # the tails twist: it reads from every side
     return M.Mesh.concat(parts)
 
 
@@ -274,31 +276,41 @@ def campaign_hat(mats, m='hat', band='hatband'):
         # pinched toward the front (+y) on both sides
         return [(r * math.cos(a) * (1 - pinch * max(0.0, math.sin(a)) ** 3 * abs(math.cos(a)) * 2.2),
                  r * 1.08 * math.sin(a) - 0.006, z) for a in angs]
-    rows = [crown(0.11, 0.135, 0.0), crown(0.20, 0.128, 0.10), crown(0.27, 0.115, 0.22), crown(0.30, 0.085, 0.28),
-            crown(0.305, 0.03, 0.0)]
-    parts = [grid_mesh(np.asarray(rows, np.float32), lambda i, j: hm, closed_u=True)]
-    # the crease down the crown, front to back
-    parts.append(M.ellipsoid(0.02, 0.10, 0.025, dk, (0, -0.01, 0.30), seg=8))
+    rows = [crown(0.11, 0.132, 0.0), crown(0.19, 0.126, 0.10), crown(0.25, 0.113, 0.22), crown(0.28, 0.088, 0.28),
+            crown(0.285, 0.03, 0.0)]
+    Pc = np.asarray(rows, np.float32)
+    # the crease: a fore-and-aft valley pressed down the middle of the crown
+    Pc[2:, :, 2] -= 0.035 * np.exp(-(Pc[2:, :, 0] / 0.05) ** 2) * np.array([0.5, 1.0, 1.0], np.float32)[:, None]
+    parts = [grid_mesh(Pc, lambda i, j: hm, closed_u=True)]
+    parts.append(M.capsule((0, -0.09, 0.245), (0, 0.08, 0.245), 0.012, 0.012, dk, seg=5, rings=1))
     # band and bow
-    parts.append(M.cylinder(0.138, 0.138, 0.032, bm, seg=20, z0=0.11).transformed(M.scale(1, 1.08, 1)))
-    parts.append(M.ellipsoid(0.012, 0.03, 0.02, bm, (-0.138, 0.0, 0.127), seg=6))
-    # the brim: wide, dipping at front and back, curling up a touch at the sides
+    parts.append(M.cylinder(0.135, 0.135, 0.032, bm, seg=20, z0=0.11).transformed(M.scale(1, 1.08, 1)))
+    parts.append(M.ellipsoid(0.012, 0.03, 0.02, bm, (0.135, 0.0, 0.127), seg=6))
+    # the brim: a soft medium brim, the left side pinned up against the crown
     rows = []
-    for rr, up in ((0.135, 0.0), (0.24, 0.0), (0.33, 1.0)):
+    for rr, k in ((0.13, 0.0), (0.185, 0.5), (0.235, 1.0)):
         rows.append([(rr * math.cos(a), rr * 1.06 * math.sin(a) - 0.006,
-                      0.112 + up * (0.03 * math.cos(a) ** 2 - 0.035 * math.sin(a) ** 2)) for a in angs])
+                      0.112 + k * (0.012 * math.cos(a) ** 2 - 0.02 * math.sin(a) ** 2
+                                   + 0.14 * max(0.0, -math.cos(a)) ** 4)) for a in angs])
     Pb = np.asarray(rows, np.float32)
+    # the pinned side folds in toward the crown
+    left = Pb[..., 0] < 0
+    Pb[..., 0] = np.where(left, Pb[..., 0] * (1 - 0.32 * np.clip((Pb[..., 2] - 0.112) / 0.14, 0, 1)), Pb[..., 0])
     parts.append(grid_mesh(Pb, lambda i, j: hm, closed_u=True))
     Pb2 = Pb.copy()
     Pb2[..., 2] -= 0.014
     parts.append(grid_mesh(Pb2[::-1], lambda i, j: hm, closed_u=True))
-    return M.Mesh.concat(parts)
+    # a brass pin holding the brim up
+    parts.append(M.sphere(0.014, mat(mats, 'hat_pin', '#c0a058', spec=0.8, gloss=22, metal=True),
+                          (-0.17, 0.0, 0.20), seg=6))
+    # worn pushed back on the head
+    return M.Mesh.concat(parts).transformed(T(0, 0, 0.11) @ M.rot_x(9) @ T(0, 0, -0.11))
 
 
 PM.HEADGEAR.setdefault('campaign_hat', campaign_hat)
 
 
-def krag_carbine(mats, length=1.04, grip=0.30):
+def krag_carbine(mats, length=1.16, grip=0.30, k=1.35):
     """The M1896 Krag-Jorgensen carbine, held at the wrist of the stock: the
     butt below the grip, the receiver with the Krag's box magazine bulging on
     its right, the bolt handle, the half-length fore-end with its band, the
@@ -324,7 +336,7 @@ def krag_carbine(mats, length=1.04, grip=0.30):
     # the saddle ring on the left of the wrist
     parts.append(M.lathe([(0.0, 0.03), (0.008, 0.034), (0.016, 0.03)], s, seg=10).transformed(
         T(-0.03, 0.0, 0.02) @ M.rot_y(90)))
-    return M.Mesh.concat(parts)
+    return M.Mesh.concat(parts).transformed(M.scale(k, k, 1.0))
 
 
 # ------------------------------------------------------------ the archetype
@@ -334,10 +346,112 @@ class LeagueHorseRider(MT.HorseRider):
     def __init__(self, unit, params):
         super().__init__(unit, params)
         self.kit = params.get('kit')
+        self.base['cap.slump'] = np.float32(0)
         if self.kit == 'teutonic':
             self._teutonic()
         elif self.kit == 'roughrider':
             self._roughrider()
+
+    # -- animations of our own
+    def anim_attack(self, style, ctx):
+        if not (style == 'thrust' and self.kit == 'teutonic'):
+            return super().anim_attack(style, ctx)
+        B = self.base
+        st = MT._ev(ctx, 'reach_max', 0.5, 0.3, 0.8)
+        # the lance comes down from the rest to the couch under the arm as
+        # the horse gathers, then horse and rider drive forward together
+        wind = {'hand_r': V3(0.30, -0.16, 1.22), 'w_main': V3(-66, 0, -6), 'chest': V3(8, 0, 14), 'spine': V3(4, 0, 6),
+                'elbow_r': V3(0.9, -0.3, 0.1), 'h.pos': V3(0, -0.12, 0), 'h.rot': V3(5, 0, 0), 'h.neck': V3(10, 0, 0),
+                'h.head': V3(-6, 0, 0), 'h.hl': V3(14, 0, 0, 0, 0), 'h.hr': V3(14, 0, 0, 0, 0)}
+        hit = {'hand_r': V3(0.20, 0.34, 1.14), 'w_main': V3(-82, 0, 24), 'chest': V3(-20, 0, -8), 'spine': V3(-14, 0, -4),
+               'root_pos': V3(0, 0.10, -0.02), 'head': V3(16, 0, 0), 'elbow_r': V3(0.8, -0.6, -0.2),
+               'h.pos': V3(0, 0.20, 0.03), 'h.rot': V3(-5, 0, 0), 'h.neck': V3(-16, 0, 0), 'h.head': V3(12, 0, 0),
+               'h.fl': V3(44, -70, -24, 0, 0), 'h.fr': V3(16, -14, 0, 0, 0), 'h.hl': V3(-24, 4, 0, 0, 0),
+               'h.hr': V3(-30, 12, 0, 0, 0), 'h.tail': V3(-20, 0, 0)}
+        chans = set(wind) | set(hit)
+        k = [(0.0, {}), (0.30, wind), (0.50, hit), (0.62, hit),
+             (0.84, {'hand_r': B['hand_r'], 'w_main': B['w_main'] + V3(-12, 0, 0), 'h.pos': V3(0, 0.12, 0),
+                     'chest': V3(-4, 0, 0)}),
+             (1.0, {c: B[c] for c in chans})]
+        anim = MT._k(dict(B, draw=np.float32(0)), k)
+        return MT.Act(lambda t: anim(MT.warp(t, [(0.5, st)])))
+
+    def anim_death(self, ctx):
+        """The horse rears, twists and falls on its side; the rider is
+        thrown clear behind it, turning in the air, and lands on his back
+        well away from the horse, one knee up, the arms loose at his sides
+        (the stock riders end spread-eagled on the horse)."""
+        B = dict(self.base)
+        down = MT._ev(ctx, 'down', 0.5, 0.3, 0.8)
+        fk_seat = {'thigh_r': V3(78, -22, 0), 'shin_r': V3(-82, 0, 0), 'thigh_l': V3(78, 22, 0), 'shin_l': V3(-82, 0, 0),
+                   'arm_r': V3(30, -20, 0), 'forearm_r': V3(50, 0, 0), 'arm_l': V3(30, 20, 0), 'forearm_l': V3(50, 0, 0)}
+        B.update(fk_seat)
+        B['h.pivot'] = V3(-0.25, -0.6, 0)
+        rear = dict(MT.REAR_LEGS, **{'h.rot': V3(22, 0, 0), 'h.neck': V3(12, 0, -6), 'h.head': V3(-15, 0, 0),
+                                     'h.tail': V3(20, 0, 0), 'h.ground': 1.0})
+        lie = {'h.rot': V3(0, -90, -55), 'h.pos': V3(0.55, -0.85, 0.0), 'h.fl': V3(35, -35, -8, 0, 0),
+               'h.fr': V3(22, -45, -8, 0, 0), 'h.hl': V3(8, 18, 8, 0, 0), 'h.hr': V3(-14, 22, 12, 0, 0),
+               'h.neck': V3(-26, 0, 16), 'h.head': V3(14, 0, 0), 'h.tail': V3(-20, 0, 0), 'cap.slump': 1.0}
+        rest_body = {'r.pos': V3(-1.0, 1.55, 0.14), 'r.rot': V3(90, 0, -18),
+                     'arm_r': V3(12, -22, 0), 'forearm_r': V3(30, 0, 0), 'arm_l': V3(20, 26, 0), 'forearm_l': V3(55, 0, 0),
+                     'thigh_r': V3(8, -10, 0), 'shin_r': V3(-6, 0, 0), 'thigh_l': V3(52, 12, 0), 'shin_l': V3(-96, 0, 0),
+                     'chest': V3(-4, 0, 0), 'head': V3(-12, 0, 18), 'spine': V3(0, 0, 0)}
+        k = [
+            (0.0, {}),
+            (0.22, dict(rear, **{'r.free': 0.0, 'chest': V3(14, 0, 10), 'head': V3(24, 0, 0),
+                                 'arm_r': V3(70, -40, 0), 'arm_l': V3(60, 40, 0), 'forearm_r': V3(40, 0, 0)})),
+            (0.36, dict(rear, **{'h.rot': V3(20, -25, 10), 'r.free': 0.75, 'r.pos': V3(-0.55, -0.20, 2.10),
+                                 'r.rot': V3(50, -10, 14), 'arm_r': V3(110, -40, 0), 'arm_l': V3(100, 40, 0),
+                                 'thigh_r': V3(40, -20, 0), 'shin_r': V3(-50, 0, 0), 'thigh_l': V3(30, 20, 0),
+                                 'shin_l': V3(-40, 0, 0), 'cap.slump': 0.2})),
+            (0.50, {'h.rot': V3(8, -50, -20), 'h.pos': V3(0.3, -0.4, 0.0), 'h.ground': 0.0, 'r.free': 1.0,
+                    'r.pos': V3(-0.85, 0.85, 1.25), 'r.rot': V3(76, -6, -10), 'arm_r': V3(80, -50, 0),
+                    'arm_l': V3(70, 50, 0), 'thigh_r': V3(30, -14, 0), 'shin_r': V3(-30, 0, 0),
+                    'thigh_l': V3(40, 14, 0), 'shin_l': V3(-60, 0, 0), 'cap.slump': 0.5}),
+            (0.64, dict(lie, **{'h.rot': V3(4, -80, -48), 'h.pos': V3(0.5, -0.75, 0.0), 'h.ground': 0.0, 'r.free': 1.0,
+                                'r.pos': V3(-0.98, 1.45, 0.30), 'r.rot': V3(92, -4, -16), 'arm_r': V3(30, -40, 0),
+                                'forearm_r': V3(20, 0, 0), 'arm_l': V3(40, 40, 0), 'forearm_l': V3(30, 0, 0),
+                                'thigh_r': V3(20, -12, 0), 'shin_r': V3(-20, 0, 0), 'thigh_l': V3(60, 14, 0),
+                                'shin_l': V3(-80, 0, 0), 'cap.slump': 0.85})),
+            (0.80, dict(lie, **rest_body)),
+            (1.0, dict(lie, **rest_body)),
+        ]
+        anim = MT._k(B, k)
+        wk = MT._k({c: B[c] for c in ('w.drop', 'w.pos', 'w.rot')},
+                   [(0.0, {}), (0.30, {'w.drop': 0.0, 'w.pos': V3(0.3, -0.2, 2.3), 'w.rot': V3(-30, 0, 0)}),
+                    (0.31, {'w.drop': 1.0, 'w.pos': V3(0.28, -0.3, 2.3), 'w.rot': V3(-20, 0, 5)}),
+                    (0.46, {'w.pos': V3(-0.6, -0.4, 1.4), 'w.rot': V3(40, 0, 30)}),
+                    (0.60, {'w.pos': V3(-1.3, -0.4, 0.04), 'w.rot': V3(88, 0, 20)}),
+                    (1.0, {'w.pos': V3(-1.3, -0.4, 0.04), 'w.rot': V3(88, 0, 20)})])
+
+        def fn(t):
+            u = MT.warp(t, [(0.64, down)])
+            q = anim(u)
+            q.update(wk(u))
+            q['w.drop'] = 1.0 if u > 0.305 else 0.0
+            return q
+        return MT.Act(fn, legs='fk', arms='fk')
+
+    def pose_mesh(self, pose, act, action):
+        s = float(pose.get('cap.slump', 0.0))
+        if self.kit != 'teutonic' or s < 0.05:
+            return super().pose_mesh(pose, act, action)
+        # the cloth slumps as the horse goes down: a shorter fall, no flare,
+        # the folds bunching
+        q = round(s * 6) / 6
+        if q not in self._cap_cache:
+            a = dict(self._cap_args)
+            a['drop'] *= 1 - 0.55 * q
+            a['flare'] *= 1 - q
+            a['fold_amp'] *= 1 + 1.5 * q
+            a['fold_len'] = 0.21 * (1 - 0.35 * q)
+            self._cap_cache[q] = caparison(**a)
+        keep = self.horse.back_parts[0]
+        self.horse.back_parts[0] = self._cap_cache[q]
+        try:
+            return super().pose_mesh(pose, act, action)
+        finally:
+            self.horse.back_parts[0] = keep
 
     # -- helpers
     def _hm(self, name, color, **kw):
@@ -381,49 +495,55 @@ class LeagueHorseRider(MT.HorseRider):
     def _teutonic(self):
         p = self.p
         hp = p.get('horse', {})
-        white = self._m('cloth', hp.get('cloth', '#e4e1d8'), spec=0.05)
+        white = self._m('cloth', hp.get('cloth', '#c8c4ba'), spec=0.05)
         black = self._m('cloth_cross', '#1e1e20', spec=0.05)
         hem = self._m('cloth_hem', '#ffffff', tint=True, spec=0.05)
         edge = self._m('cloth_edge', '#1e1e20', spec=0.05)
 
-        # The caparison: crosses on each flank over the shoulder and the
-        # quarter; a broad civ hem edged in black; the hem rising between the
-        # legs and scalloped.
-        crosses = [(-0.52, 0.56), (0.30, 0.52)]
+        # The caparison, cut to the horse: crosses on each flank over the
+        # shoulder and the quarter and one over the croup, a civ hem; slit
+        # high over the forelegs and hind legs so the legs read, shorter at
+        # the chest and the rump where it wraps round. In the death it
+        # slumps (see pose_mesh).
+        crosses = [(-0.50, 0.50), (0.27, 0.47)]
 
         def paint(y, s, to_hem):
             if to_hem < 0.15:
                 return hem
-            if to_hem < 0.18:
-                return edge
             for yc, sc in crosses:
-                if in_cross(y - yc, abs(s) - sc, 0.17, 0.04, flare=0.12):
+                if in_cross(y - yc, abs(s) - sc, 0.13, 0.032, flare=0.12):
                     return black
-            # and one over the croup, behind the saddle
-            if in_cross(y + 0.70, s, 0.14, 0.035, flare=0.12):
+            if in_cross(y + 0.70, s, 0.12, 0.03, flare=0.12):
                 return black
             return white
 
         def hem_len(u, y):
-            scallop = 0.06 * abs(math.sin(math.pi * (y + 0.98) / 0.165))
-            return 0.80 + 0.20 * math.sin(math.pi * u) - scallop / 0.62
-        self.horse.back_parts.insert(0, caparison(-0.98, 0.80, 0.62, paint, hem=hem_len))
+            k = 1.0
+            for yc, w in ((0.47, 0.09), (-0.60, 0.10)):
+                d = abs(y - yc) / w
+                if d < 1.0:
+                    k -= 0.42 * (1 - d * d)
+            return k * (0.78 + 0.22 * math.sin(math.pi * u))
+        self._cap_args = dict(y0=-0.96, y1=0.78, drop=0.46, paint=paint, hem=hem_len, g=0.022, flare=0.05,
+                              fold_amp=0.018, nd=14)
+        self._cap_cache = {}
+        self.horse.back_parts.insert(0, caparison(**self._cap_args))
+        self.base['cap.slump'] = np.float32(0)
 
-        # The crinet: the neck in white cloth, the civ band at its foot and
-        # down its front edge, a cross on each side.
+        # The crinet in the civ colour over the neck (so the neck reads
+        # against the white body), a black cross on each side, a white band
+        # at its foot.
         rings = [(-0.17, 0.18, 0.325, -0.02), (0.0, 0.178, 0.295, 0.0), (0.22, 0.148, 0.235, 0.01),
                  (0.45, 0.123, 0.18, 0.02), (0.60, 0.112, 0.152, 0.02)]
 
         def npaint(y, a):
-            if y < -0.08:
-                return hem
-            if y < -0.05:
-                return edge
+            if y < -0.10:
+                return white
             for side in (0.0, math.pi):
                 d = (a - side + math.pi) % (2 * math.pi) - math.pi
-                if in_cross(y - 0.22, d * 0.17, 0.12, 0.03, flare=0.1):
-                    return black
-            return white
+                if in_cross(y - 0.24, d * 0.17, 0.10, 0.026, flare=0.1):
+                    return white
+            return hem
         self.horse.neck_parts.append(neck_cloth(rings, npaint))
 
         # the war saddle: a high cantle wrapping round the rider's hips and a
@@ -487,13 +607,13 @@ class LeagueHorseRider(MT.HorseRider):
                 d = min(abs(a - back) / (back - a0), 1.0)
                 f = 1.0 - 0.38 * d ** 1.6           # the hem rises toward the front edges
                 z = zk[0] - (zk[0] - zt) * f
-                pl = 0.034 * math.sin(11 * (a - back)) * t ** 1.1   # pleats, deeper toward the hem
+                pl = 0.040 * math.sin(11 * (a - back)) * t ** 0.6   # pleats from the shoulders, deeper below
                 row.append(((rxt + pl) * math.cos(a), dyt + (ryt + pl) * math.sin(a), z))
             rows.append(row)
         Pm = np.asarray(rows, np.float32)
         mdy = dyk
         mz = zk
-        mant = self._hm('mantle', '#e8e5dc', spec=0.04)
+        mant = self._hm('mantle', '#ccc8be', spec=0.04)
 
         def mpaint(i, j):
             a = 0.5 * (angs[j] + angs[j + 1])
@@ -506,12 +626,24 @@ class LeagueHorseRider(MT.HorseRider):
         dy = np.asarray(mdy, np.float32)[:, None]
         Pi[..., 0] *= 0.97
         Pi[..., 1] = (Pi[..., 1] - dy) * 0.97 + dy
-        parts.append(('chest', grid_mesh(Pi[:, ::-1], lambda i, j: mant), None))
+        lining = self._hm('mantle_lining', '#ffffff', tint=True, spec=0.04)
+        parts.append(('chest', grid_mesh(Pi[:, ::-1], lambda i, j: lining), None))
+        # the front edges turned back, showing the lining
+        for jj in (0, -1):
+            parts.append(('chest', M.Mesh.concat([M.capsule(tuple(Pm[k, jj]), tuple(Pm[k + 1, jj]), 0.018, 0.018, lining,
+                                                            seg=5, rings=1) for k in range(len(Pm) - 1)]), None))
         cord = self._hm('cord', '#2a2420')
         parts.append(('chest', M.capsule((-0.11, 0.08, 0.31), (0.11, 0.08, 0.31), 0.014, 0.014, cord, seg=6, rings=1),
                       None))
         parts.append(('chest', M.sphere(0.022, steel, (0.0, 0.10, 0.30), seg=8), None))
 
+        # mail over the shoulder and elbow joints (no skin between the pieces)
+        mail0 = r.mats['mail'] if 'mail' in r.mats else self._hm('mail', '#7a7c80')
+        for side in 'rl':
+            parts.append((f'arm_{side}', M.sphere(0.083 * lb, mail0, (0, 0, -0.01), seg=10), None))
+            parts.append((f'forearm_{side}', M.sphere(0.066 * lb, mail0, (0, 0, 0.0), seg=10), None))
+            parts.append((f'arm_{side}', M.capsule((0, 0, 0), (0, 0, -H.UPPER_ARM), 0.08 * lb, 0.068 * lb, mail0, seg=10,
+                                                   rings=2), None))
         # mail coif showing under the helm
         mail = r.mats['mail'] if 'mail' in r.mats else self._hm('mail', '#7a7c80')
         parts.append(('neck', M.loft([(-0.02, 0.115, 0.105), (0.06, 0.098, 0.09), (0.11, 0.085, 0.08)], mail, seg=14,
@@ -616,17 +748,15 @@ class LeagueHorseRider(MT.HorseRider):
         for sx in (1, -1):
             hb.back_parts.append(M.lathe([(0.0, 0.035), (0.012, 0.042), (0.024, 0.035)], brass, seg=10).transformed(
                 T(sx * (cx + 0.05), 0.10, cc + cz_ * 0.35) @ M.rot_y(90)))
-        # the blanket roll, a horseshoe over the pommel, three straps round it
-        roll = [(-0.31, 0.46, 1.30), (-0.27, 0.40, 1.50), (-0.15, 0.35, 1.64), (0.0, 0.34, 1.69), (0.15, 0.35, 1.64),
-                (0.27, 0.40, 1.50), (0.31, 0.46, 1.30)]
-        for a, b in zip(roll[:-1], roll[1:]):
-            hb.back_parts.append(M.capsule(a, b, 0.062, 0.062, canvas, seg=10, rings=2))
-        for k in (1, 3, 5):
-            c = np.asarray(roll[k], np.float32)
-            d = np.asarray(roll[k + 1], np.float32) - np.asarray(roll[k - 1], np.float32)
-            d /= np.linalg.norm(d)
-            hb.back_parts.append(M.cylinder(0.068, 0.068, 0.022, strap, seg=12, z0=-0.011).transformed(
-                T(*c) @ M.look_along((0, 0, 0), d)))
+        # the blanket roll strapped across behind the cantle, over the bags,
+        # its ends showing the rolled layers, three straps round it
+        hb.back_parts.append(M.capsule((-0.36, -0.44, 1.62), (0.36, -0.44, 1.62), 0.075, 0.075, canvas, seg=12, rings=2))
+        for sx in (1, -1):
+            hb.back_parts.append(M.disc(0.05, 0.05, 0.004, self._m('roll_end', '#6e6852', spec=0.03), seg=12)
+                                 .transformed(T(sx * 0.43, -0.44, 1.62) @ M.rot_z(90)))
+        for x in (-0.22, 0.0, 0.22):
+            hb.back_parts.append(M.cylinder(0.08, 0.08, 0.025, strap, seg=12, z0=-0.0125).transformed(
+                T(x, -0.44, 1.62) @ M.rot_y(90)))
         # saddlebags behind the cantle: a pouch on each side, its flap and two buckled straps
         for sx in (1, -1):
             bx = sx * 0.27
@@ -650,9 +780,6 @@ class LeagueHorseRider(MT.HorseRider):
         for k in range(3):
             hb.back_parts.append(M.lathe([(0.0, 0.10 + 0.012 * k), (0.012, 0.105 + 0.012 * k), (0.024, 0.10 + 0.012 * k)],
                                          rope, seg=14).transformed(T(0.35 + 0.012 * k, 0.16, 1.34) @ M.rot_y(90)))
-        # the carbine boot, empty, slung behind the off leg
-        hb.back_parts.append(M.capsule((0.31, -0.28, 1.50), (0.36, -0.66, 1.02), 0.05, 0.035, sm, seg=8, rings=2))
-        hb.back_parts.append(M.capsule((0.31, -0.28, 1.50), (0.30, -0.22, 1.56), 0.05, 0.05, sm, seg=8, rings=1))
         # hooded stirrups (wooden, a leather hood over the toe) on their leathers
         B = self.base
         wood = self._m('stirrup_wood', '#6a4a2e', spec=0.06)
@@ -686,11 +813,11 @@ class LeagueHorseRider(MT.HorseRider):
         lb = H.LIMB * H.build_params(p.get('rider', {})).get('bulk', 1.0)
         shirt = r.mats['top']
         button = self._hm('button', '#e0dccf', spec=0.2)
-        khaki = self._hm('webbing', '#b4a47c', spec=0.04)
+        khaki = self._hm('webbing', '#cdbd8e', spec=0.04)
         cart = self._hm('cartridge', '#c8a050', spec=0.8, gloss=22, metal=True)
         leather = self._hm('holster', '#5a3a22', spec=0.12)
         glove = self._hm('glove', '#8a6440', spec=0.08)
-        legging = self._hm('legging', '#b8a882', spec=0.04)
+        legging = self._hm('legging', '#d2c69e', spec=0.04)
         lace = self._hm('lace', '#4a3a28', spec=0.04)
         steel = self._hm('spur', '#9a9ca2', spec=0.8, gloss=24, metal=True)
 
@@ -717,14 +844,14 @@ class LeagueHorseRider(MT.HorseRider):
         parts.append(('chest', M.loft([(0.29, 0.13, 0.10, 0, -0.005), (0.33, 0.115, 0.095, 0, 0.0)], shirt, seg=16,
                                       cap_bottom=False, cap_top=False), None))
         # the neckerchief: knotted at the throat, its point down the chest, white dots
-        kc = self._hm('neckerchief', '#2e3a5a', spec=0.04)
+        kc = self._hm('neckerchief', '#9a2e22', spec=0.04)
         dot = self._hm('dot', '#e8e4da', spec=0.04)
         parts.append(('chest', M.loft([(0.27, 0.125, 0.10, 0, 0.0), (0.31, 0.11, 0.09, 0, 0.0), (0.335, 0.085, 0.075)], kc,
                                       seg=16, cap_bottom=False, cap_top=False), None))
         ry_k = ring_at(0.24, 0.03)[2]
-        parts.append(('chest', M.extrude([(-0.08, 0.0), (0.08, 0.0), (0.0, -0.15)], 0.018, kc).transformed(
+        parts.append(('chest', M.extrude([(-0.11, 0.0), (0.11, 0.0), (0.0, -0.20)], 0.02, kc).transformed(
             T(0, ry_k + 0.005, 0.31) @ M.rot_x(-14)), None))
-        parts.append(('chest', M.sphere(0.028, kc, (0, ry_k + 0.012, 0.30), seg=8), None))
+        parts.append(('chest', M.sphere(0.036, kc, (0, ry_k + 0.014, 0.30), seg=8), None))
         for dx, dz in ((-0.03, 0.27), (0.03, 0.26), (0.0, 0.22), (-0.035, 0.30), (0.04, 0.295)):
             parts.append(('chest', M.sphere(0.009, dot, (dx, ry_k + 0.02, dz), seg=4), None))
         # braces from the belt over the shoulders, crossed at the back
@@ -736,7 +863,7 @@ class LeagueHorseRider(MT.HorseRider):
                 parts.append(('chest', M.capsule(a, b, 0.013, 0.013, self._hm('braces', '#4a3a2a', spec=0.06), seg=5,
                                                  rings=1), None))
         # the Mills cartridge belt: woven webbing, a row of cartridge tips all round, a brass buckle
-        bz0, bz1 = 0.045, 0.125
+        bz0, bz1 = 0.02, 0.14
         parts.append(('pelvis', M.loft([(bz0, 0.196 * tw, 0.150 * tw), (bz1, 0.19 * tw, 0.145 * tw)], khaki, seg=20,
                                        cap_bottom=False, cap_top=False), None))
         for k in range(26):
@@ -744,9 +871,22 @@ class LeagueHorseRider(MT.HorseRider):
             if abs(math.sin(a) - 1) < 0.08:
                 continue
             x, y = 0.205 * tw * math.cos(a), 0.158 * tw * math.sin(a)
-            parts.append(('pelvis', M.cylinder(0.011, 0.011, 0.05, cart, seg=5, z0=bz1 - 0.02).transformed(T(x, y, 0)),
+            parts.append(('pelvis', M.cylinder(0.014, 0.014, 0.06, cart, seg=5, z0=bz1 - 0.025).transformed(T(x * 1.02, y * 1.02, 0)),
                           None))
         parts.append(('pelvis', M.box(0.07, 0.02, 0.06, cart, (0, 0.152 * tw + 0.02, (bz0 + bz1) / 2)), None))
+        # the haversack: a canvas strap from the right shoulder across the chest to a bag on the left hip
+        hv = self._hm('haversack', '#b8aa82', spec=0.04)
+        pts = [(0.17, 0.0, 0.33), (0.10, ring_at(0.25, 0.03)[2], 0.25), (-0.02, ring_at(0.15, 0.03)[2], 0.13),
+               (-0.14, ring_at(0.03, 0.03)[2] * 0.9, 0.0)]
+        for a, b in zip(pts[:-1], pts[1:]):
+            parts.append(('chest', M.capsule(a, b, 0.022, 0.022, hv, seg=6, rings=1), None))
+        for a, b in ((pts[0], (0.02, -ring_at(0.22, 0.03)[2], 0.22)), ((0.02, -ring_at(0.22, 0.03)[2], 0.22),
+                                                                       (-0.15, -ring_at(0.03, 0.03)[2] * 0.9, 0.0))):
+            parts.append(('chest', M.capsule(a, b, 0.022, 0.022, hv, seg=6, rings=1), None))
+        parts.append(('pelvis', M.rounded_box(0.07, 0.22, 0.20, hv, (-0.25 * tw * 0.8 - 0.05, -0.03, -0.10), r=0.03,
+                                              seg=6), None))
+        parts.append(('pelvis', M.rounded_box(0.075, 0.22, 0.08, self._hm('haversack_flap', '#9c8e68', spec=0.04),
+                                              (-0.25 * tw * 0.8 - 0.055, -0.03, -0.03), r=0.02, seg=6), None))
         # the holster on the right hip, the revolver's butt showing
         parts.append(('pelvis', M.rounded_box(0.06, 0.12, 0.24, leather, (0.25 * tw * 0.8 + 0.04, -0.02, -0.06),
                                               r=0.025, seg=6).transformed(M.rot_x(-12)), None))
@@ -765,7 +905,9 @@ class LeagueHorseRider(MT.HorseRider):
             parts.append((f'shin_{side}', M.loft([(-H.SHIN + 0.02, 0.066 * lb, 0.068 * lb), (-0.20, 0.075 * lb, 0.078 * lb),
                                                   (-0.06, 0.08 * lb, 0.082 * lb)], legging, seg=12, cap_bottom=False,
                                                  cap_top=True), None))
-            parts.append((f'shin_{side}', M.box(0.012, 0.03, 0.30, lace, (sx * 0.076 * lb, 0.0, -0.21)), None))
+            parts.append((f'shin_{side}', M.loft([(-0.10, 0.083 * lb, 0.085 * lb), (-0.04, 0.088 * lb, 0.09 * lb)],
+                                                 legging, seg=12, cap_bottom=False, cap_top=False), None))
+            parts.append((f'shin_{side}', M.box(0.014, 0.035, 0.30, lace, (sx * 0.078 * lb, 0.0, -0.21)), None))
             for z in np.linspace(-0.33, -0.09, 5):
                 parts.append((f'shin_{side}', M.sphere(0.008, cart, (sx * 0.082 * lb, 0.012, float(z)), seg=4), None))
             parts.append((f'foot_{side}', M.capsule((0, -0.06, -0.02), (0, -0.13, -0.03), 0.01, 0.006, steel, seg=5,

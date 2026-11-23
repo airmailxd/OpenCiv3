@@ -90,3 +90,40 @@ lame above and below and a fan-shaped side wing).
 ### Round 6 (r06.png)
 Seen: the crest now reads as a crest from every side, nothing beside the head; poleyns read as plate at 2x. At 1x
 among the Knight and Sipahi: same horse size, same steel palette, the civ colour on hem, crest, pennon and reins.
+
+## Round 2b (after the picture-only review failed it)
+
+Review: 20-23% of the tile against the stock knights' 13-17% ("a sheet over a table on stilts"), head and neck
+lost, civ 11% against 16-21%, flat cloak, specks at the hem, skin at shoulders and elbows, a thrust that barely
+moves with the pennon vanishing, a rider spread-eagled on the fallen horse. Checked the stock Knight's death
+(stock/Knight_death.png): it has the same fault (arms over the head, rider on the horse), so the death is ours.
+
+### Round 7 (r07.png)
+Caparison cut to the horse: drop 0.62 -> 0.46, gap and flare halved, slit high over the forelegs and hind legs,
+shorter at chest and rump, no scallops or black edge line (the specks). The crinet now in the civ colour with a
+white cross, so the neck reads against the white body. The mantle lined in the civ colour, its front edges turned
+back. Mail spheres and full mail sleeves over the shoulders and elbows. Seen: legs, neck and head read; much
+closer to the Knight's size.
+
+### Round 8 (r08.png, b_ATTACK1, b_DEATH) and measurements (metrics.py)
+Catalog scale 1.22 -> 1.08; civ hem 0.13. Measured on DEFAULT, 8 directions: civ 17.0% (Knight 18.4, Sipahi 26.2),
+sprite 3082 px (Knight 2904; the difference is the lance and pennon). New thrust: the lance drops to the couch as
+the horse gathers, then horse and rider drive 0.2 m forward, rider leaning in. Seen: the lance tip ran past the
+cell edge when level (that was the "vanishing pennon": the tip was cut off). Change: couched across the horse's
+neck (yaw 24 deg), as a lance was, the pennon doubled at 60 deg so it never goes edge-on.
+
+### Round 9 (b_ATTACK1, b_DEATH in four directions)
+Death of our own for both riders: the horse rears, twists and falls on its side, the caparison slumps as it goes
+(shorter, no flare, folds bunching, rebuilt per frame); the rider is thrown clear, turning in the air, and lands
+on his back beside the horse, one knee up, arms at his sides; the lance lands apart. Seen in S, E, N, W: rider and
+horse separate at the end in every view.
+
+### Round 10 (r09.png)
+Mantle pleats now start at the shoulders (they only began near the hem): the back reads as folded cloth. No skin
+showing at shoulders or elbows. At 1x beside the Knight and Sipahi: same horse size, white/black with civ hem,
+crinet and lining.
+
+### Round 11 (r10.png, r11.png; meas1x.py, the reviewer's measures on our 1x rows)
+r09 measured: area 856 against the Knight's 790 (8% over), civ 17.2% (Knight 17.6, Sipahi 26.9), non-civ brightness
+119 against 104-111 (the white too bright). Change: scale 1.03, the cloth and mantle whites toned to #c8c4ba/#ccc8be,
+civ hem 0.15. r11 measured: area 780 (Knight 790, Sipahi 788), civ 18.1%, brightness 110.9: all inside the stock range.

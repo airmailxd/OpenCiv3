@@ -82,3 +82,33 @@ sideways in the SW and W views.
 Change: daisho hang steeper (tips back and down along the skirt). Seen: no gear sticking out; at 1x among the
 Minamoto Samurai and the daimyo it reads as a commander: civ-coloured surcoat with the crest, gold kuwagata, red
 mask, round fan. Size matches the Minamoto.
+
+## Round 2b (after the picture-only review failed it)
+
+Review: darker than the stock samurai and ~40% bulkier, no neck, short legs; the fan popping out for a sword in
+attack and death; swords straight out like rods; jinbaori without collar or drape; a T-pose death with a flat grey
+wedge of skirt (the stock Samurai's death has the same T-pose, so this one is ours).
+
+### Round 7 (r07.png)
+Normal build at bulk 0.92 (was muscular 1.0), catalog scale 0.79 (measured height 91 px against the Minamoto's 91);
+lacquer dark brown #4e3628 instead of near-black, lacing a lighter red; kusazuri and jinbaori skirts shorter so the
+legs show; the jinbaori's lining in the civ colour (no grey), deeper drape folds, a standing black collar with a
+pale edge; swords hang steeper from the sash; the fan held in every action. Seen: reads like the stock samurai in
+build and tone; brown armour with the gilt crest, legs longer.
+
+### Round 8 (r08.png)
+Shikoro two short lames and a laced gorget at the throat (the neck reads between helmet and do); the menpo's throat
+guard smaller.
+
+### Round 9 (b_ATTACK1)
+The attack keeps the gunbai: a sweeping blow with the iron fan (the katana stays sheathed); reads in S and E.
+
+### Round 10 (b_DEATH)
+A death of our own: struck, he staggers, drops to his knees and topples onto his side, curled, one arm over his
+body, the fan beside him; the skirts fall with him and show the civ lining, no grey wedge, no spread arms.
+Measured: civ 30.3% (Minamoto 49.5, Samurai 19.9), sprite 1899 px (Minamoto 1663: the fan and the flared surcoat).
+
+### Round 11 (r09.png, r10.png; meas1x.py)
+r08 measured: area 542 against 430-496, civ 27.8% (in range 18.6-45.7), brightness 74.3 against 79-95 (too dark).
+Change: scale 0.76, lacquer #6a4e3c, hakama lighter. r10 measured: area 508 (Minamoto 496; the fan and surcoat),
+civ 26.9%, brightness 81.2: inside the range.
