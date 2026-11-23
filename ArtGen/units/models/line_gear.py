@@ -27,11 +27,11 @@ GUNS = {
 
 
 def iron(mats):
-    return mat(mats, 'iron', '#7c8086', spec=0.7, gloss=26, metal=True)
+    return mat(mats, 'iron', '#7c8086', spec=0.45, gloss=20, metal=True)
 
 
 def brass(mats):
-    return mat(mats, 'brass', '#c49a48', spec=0.8, gloss=26, metal=True)
+    return mat(mats, 'brass', '#b8955a', spec=0.45, gloss=20, metal=True)
 
 
 def _strap(mats, pts, r, m):
@@ -141,7 +141,7 @@ def m1917(mats, muzzle=0.94, belt=False):
     below, the carrying handle), the muzzle booster. belt: the cloth belt of
     cartridges hanging from the feedway on the left."""
     g = G.gunmetal(mats)
-    j = mat(mats, 'jacket', '#4a4c3e', spec=0.35, gloss=18, metal=True)
+    j = mat(mats, 'jacket', '#4a4c3e', spec=0.2, gloss=14, metal=True)
     parts = [M.box(0.086, 0.11, 0.32, g, (0, 0.0, 0.02))]                                      # receiver
     parts.append(M.box(0.09, 0.016, 0.30, mat(mats, 'gun_dark', '#1e1e20'), (0, -0.056, 0.02)))  # cover seam
     parts.append(M.box(0.06, 0.09, 0.03, g, (0, 0.0, -0.152)))                                   # back plate
@@ -204,7 +204,7 @@ def ammo_can(mats, lid_open=False):
     """The M1 ammunition can (.30 cal): olive steel, the hinged lid with its
     latch, the folding handle and a yellow stencil; standing on the ground
     (z = 0), long along y."""
-    o = mat(mats, 'can', '#4a5036', spec=0.3, gloss=16, metal=True)
+    o = mat(mats, 'can', '#4a5036', spec=0.14, gloss=12, metal=True)
     g = G.gunmetal(mats)
     y = mat(mats, 'stencil', '#c8b45a', spec=0.05)
     parts = [M.rounded_box(0.10, 0.28, 0.18, o, (0, 0, 0.09), r=0.008, seg=6, p=5)]
@@ -227,7 +227,7 @@ def ammo_can_carried(mats):
 def condenser_can(mats):
     """The condenser can the jacket's steam tube runs into: a squat round
     can with a screw cap, on the ground."""
-    o = mat(mats, 'can', '#4a5036', spec=0.3, gloss=16, metal=True)
+    o = mat(mats, 'can', '#4a5036', spec=0.14, gloss=12, metal=True)
     g = G.gunmetal(mats)
     return M.Mesh.concat([M.cylinder(0.10, 0.10, 0.26, o, seg=14, z0=0.0),
                           M.cylinder(0.104, 0.104, 0.02, g, seg=14, z0=0.24),
@@ -246,12 +246,12 @@ def calfskin_knapsack(mats):
     patches), its leather border, the rolled greatcoat strapped on top, and
     the buff shoulder straps."""
     hide = mat(mats, 'hide', '#7a4e2c', spec=0.03)
-    pale = mat(mats, 'hide_pale', '#d6c8ac', spec=0.03)
+    pale = mat(mats, 'hide_pale', '#a88c68', spec=0.03)
     lb = mat(mats, 'leather_dark', '#2e2420', spec=0.12)
     gc = mat(mats, 'greatcoat', '#7c7e86', spec=0.03)
     buff = mat(mats, 'strap', '#e8e4dc')
     parts = [M.rounded_box(0.34, 0.13, 0.30, hide, (0, -0.215, 0.12), r=0.03, seg=10, p=4)]
-    for (x, z, rx, rz) in ((-0.07, 0.17, 0.07, 0.06), (0.09, 0.06, 0.06, 0.05), (-0.11, 0.02, 0.04, 0.035)):
+    for (x, z, rx, rz) in ((-0.06, 0.15, 0.09, 0.07), (0.09, 0.05, 0.07, 0.06)):
         parts.append(M.ellipsoid(rx, 0.012, rz, pale, (x, -0.282, z), seg=8))
     parts.append(M.box(0.35, 0.02, 0.02, lb, (0, -0.28, 0.265)))                                  # flap edge
     parts.append(M.cylinder(0.062, 0.062, 0.42, gc, seg=12).transformed(M.translate(-0.21, -0.20, 0.33) @ M.rot_y(90)))
@@ -266,7 +266,7 @@ def calfskin_knapsack(mats):
 def giberne(mats):
     """(pelvis) The cartridge box on the right buttock: black leather with
     the brass grenade badge on its flap."""
-    bl = mat(mats, 'giberne', '#1c1a1a', spec=0.25, gloss=18)
+    bl = mat(mats, 'giberne', '#1c1a1a', spec=0.12, gloss=14)
     parts = [M.rounded_box(0.20, 0.075, 0.12, bl, (0.13, -0.215, 0.02), r=0.015, seg=6, p=4)]
     parts.append(M.rounded_box(0.21, 0.02, 0.085, bl, (0.13, -0.255, 0.04), r=0.01, seg=6, p=4))
     br = brass(mats)
@@ -279,10 +279,10 @@ def briquet(mats):
     """(pelvis) On the left hip: the short infantry sabre (briquet) in its
     black scabbard with its brass hilt and white knot, and the bayonet
     scabbard beside it, both hanging back from the frog."""
-    bl = mat(mats, 'giberne', '#1c1a1a', spec=0.25, gloss=18)
+    bl = mat(mats, 'giberne', '#1c1a1a', spec=0.12, gloss=14)
     br = brass(mats)
     knot = mat(mats, 'strap', '#e8e4dc')
-    T = M.translate(-0.23, -0.07, 0.02) @ M.rot_x(28)
+    T = M.translate(-0.21, -0.13, 0.02) @ M.rot_x(32)
     parts = [M.rounded_box(0.08, 0.05, 0.10, bl, (0.0, 0.0, -0.01), r=0.01, seg=6, p=4)]                # frog
     parts.append(M.capsule((0, -0.015, 0.0), (0, -0.015, -0.46), 0.02, 0.016, bl, seg=6, rings=1))       # sabre scabbard
     parts.append(M.sphere(0.018, br, (0, -0.015, -0.47), seg=6))
@@ -302,7 +302,7 @@ def m1956_belt_kit(mats, tw):
     the back."""
     web = mat(mats, 'web', '#5e5e42', spec=0.04)
     webd = mat(mats, 'web_dark', '#4a4a34', spec=0.04)
-    gren = mat(mats, 'grenade', '#4c5236', spec=0.2, gloss=14)
+    gren = mat(mats, 'grenade', '#4c5236', spec=0.1, gloss=12)
     g = G.gunmetal(mats)
     parts = []
     for sx in (1, -1):
@@ -352,7 +352,7 @@ def ija_belt_kit(mats, tw):
     parts.append(M.rounded_box(0.18, 0.08, 0.10, lt, (0.0, -0.215, 0.02), r=0.012, seg=6, p=4))         # rear box
     parts.append(M.rounded_box(0.185, 0.088, 0.03, ld, (0.0, -0.218, 0.06), r=0.01, seg=6, p=4))
     T = M.translate(-0.27, -0.07, 0.04) @ M.rot_x(24)
-    sc = mat(mats, 'scabbard', '#1e1c1a', spec=0.3, gloss=18)
+    sc = mat(mats, 'scabbard', '#1e1c1a', spec=0.12, gloss=14)
     parts.append(M.Mesh.concat([M.rounded_box(0.05, 0.05, 0.08, lt, (0, 0, -0.01), r=0.01, seg=6, p=4),
                                 M.capsule((0, 0, -0.02), (0, 0, -0.42), 0.017, 0.012, sc, seg=6, rings=1),
                                 M.sphere(0.016, steel(mats), (0, 0, -0.43), seg=6)]).transformed(T))
@@ -365,13 +365,13 @@ def ija_knapsack(mats):
     pk = mat(mats, 'pack', '#7a6e4a', spec=0.04)
     roll = mat(mats, 'blanket', '#ffffff', spec=0.03)
     st = mat(mats, 'strap', '#5a4a30', spec=0.06)
-    tin = mat(mats, 'tin', '#8a8670', spec=0.5, gloss=20, metal=True)
+    tin = mat(mats, 'tin', '#8a8670', spec=0.25, gloss=16, metal=True)
     parts = [M.rounded_box(0.30, 0.13, 0.27, pk, (0, -0.21, 0.12), r=0.04, seg=10, p=3.5)]
     # the horseshoe roll: over the top and down both sides
     pts = [(-0.19, -0.21, -0.02), (-0.20, -0.21, 0.18), (-0.12, -0.21, 0.30), (0.0, -0.21, 0.32),
            (0.12, -0.21, 0.30), (0.20, -0.21, 0.18), (0.19, -0.21, -0.02)]
     for a, b in zip(pts[:-1], pts[1:]):
-        parts.append(M.capsule(a, b, 0.055, 0.055, roll, seg=10, rings=1))
+        parts.append(M.capsule(a, b, 0.075, 0.075, roll, seg=10, rings=1))
     for z in (0.05, 0.22):
         for sx in (1, -1):
             parts.append(M.cylinder(0.06, 0.06, 0.016, st, seg=10).transformed(M.translate(sx * 0.198, -0.21, z)))
@@ -386,7 +386,7 @@ def ija_knapsack(mats):
 def ija_canteen(mats):
     """(pelvis) The aluminium canteen in its harness on the right hip, the
     bread bag on the left, their straps going up (drawn on the chest)."""
-    alu = mat(mats, 'canteen', '#7a7a5a', spec=0.4, gloss=18, metal=True)
+    alu = mat(mats, 'canteen', '#7a7a5a', spec=0.2, gloss=14, metal=True)
     bag = mat(mats, 'breadbag', '#8a8060', spec=0.03)
     st = mat(mats, 'strap', '#5a4a30', spec=0.06)
     parts = [M.ellipsoid(0.07, 0.045, 0.09, alu, (0.30, 0.03, -0.08), seg=10),
