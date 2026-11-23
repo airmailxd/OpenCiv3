@@ -4,12 +4,13 @@ calibrated against the mod's own pictures (see civ3art.MOD_UNIT_ORIGINALS).
 Round 2: each is drawn from a real vehicle (or, for the laser tank, the
 genre's), part by part, in the stock armor's style (models/vehicles.py).
 
-    'laser_tank'  the Laser Tank: a quad-track heavy tank of the genre (the
-                  mod's own picture, the Mammoth-tank line): an angular light
-                  gray hull on four separate track units under civ-colored
-                  guards, a faceted turret with a heat-sink fin stack, and a
-                  long beam projector with cooling rings, coolant pipes and a
-                  glowing lens.
+    'laser_tank'  the Laser Tank: an original design, a low wedge-hulled tank
+                  on one long track a side behind bolted skirts, a low
+                  turret, and above it the beam projector that makes its
+                  silhouette: a long raised emitter housing finned along its
+                  top and flanks, capacitor drums at its root, a ringed lens
+                  head. Its beam glows, casts no shadow and has soft edges;
+                  the lens goes dark when it dies.
     'light_ifv'   the Bradley: an M2A3 Bradley in olive drab with reactive
                   armor tiles (BRAT) on its sides and nose, the turret with
                   its 25 mm Bushmaster, the twin TOW box on the left, the
@@ -45,6 +46,32 @@ FX.GLOW.setdefault('beam', 0.85)
 
 
 # ------------------------------------------------------------ small parts
+
+def _soften(img):
+    """A 3x3 blur of an RGBA layer's alpha (color kept where it was), for
+    the glow of the laser's beam."""
+    a = img[..., 3].astype(np.float32)
+    p = np.pad(a, 1, mode='edge')
+    blur = sum(p[1 + dy:1 + dy + a.shape[0], 1 + dx:1 + dx + a.shape[1]] for dy in (-1, 0, 1) for dx in (-1, 0, 1)) / 9
+    out = img.copy()
+    rgb = img[..., :3].astype(np.float32)
+    # spread the color into the newly covered pixels from their neighbours
+    pr = np.pad(rgb * a[..., None], ((1, 1), (1, 1), (0, 0)), mode='edge')
+    num = sum(pr[1 + dy:1 + dy + a.shape[0], 1 + dx:1 + dx + a.shape[1]] for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+    col = num / np.maximum(blur[..., None] * 9, 1e-3)
+    out[..., :3] = np.clip(col, 0, 255).astype(np.uint8)
+    out[..., 3] = np.clip(np.maximum(blur, a * 0.85), 0, 255).astype(np.uint8)
+    return out
+
+
+def _over(top, under):
+    """RGBA `top` composited over `under` (uint8, straight alpha)."""
+    ta = top[..., 3:4].astype(np.float32) / 255
+    ua = under[..., 3:4].astype(np.float32) / 255
+    oa = ta + ua * (1 - ta)
+    rgb = (top[..., :3] * ta + under[..., :3] * ua * (1 - ta)) / np.maximum(oa, 1e-6)
+    return np.concatenate([np.clip(rgb, 0, 255), oa * 255], -1).astype(np.uint8)
+
 
 def bx(sx, sy, sz, mat, c, bevel=0.0):
     return M.box(sx, sy, sz, mat, center=c, bevel=bevel)
@@ -208,125 +235,113 @@ class Wheels:
 # ------------------------------------------------------------ the laser tank
 
 def build_laser_tank(Vh):
+    """A low wedge hull on one long track a side behind armored skirts, a low
+    turret with a broken-up roof, and above it the beam projector: a long
+    raised emitter housing on a pylon, finned along its top and flanks, with
+    capacitor drums and cable bundles at its root and a ringed lens head."""
     m = Vh.mats
     P, D, L = m['paint'], m['paint_dark'], m['paint_lt']
     parts = []
-    # the hull: a long angular body, a steep glacis, a sloped rear
-    sec = lambda zt, wt, wb=0.95, zb=0.5: [(-wb, zb), (wb, zb), (1.12, 0.78), (1.12, zt - 0.22), (wt, zt), (-wt, zt), (-1.12, zt - 0.22), (-1.12, 0.78)]
+    # the hull: a low wedge, a long shallow glacis to a narrow nose, sponsons over the tracks
+    sec = lambda zt, wt, zs=0.98: [(-1.0, 0.45), (1.0, 0.45), (1.0, 0.58), (1.52, 0.58), (1.52, zs), (wt, zt), (-wt, zt), (-1.52, zs), (-1.52, 0.58), (-1.0, 0.58)]
     hull = VP.sweep([
-        (-2.75, sec(1.22, 0.8, 0.85, 0.62)),
-        (-2.55, sec(1.42, 0.92)),
-        (1.15, sec(1.46, 0.95)),
-        (2.6, sec(0.98, 0.95)),
-        (2.95, [(-0.8, 0.62), (0.8, 0.62), (1.0, 0.72), (1.0, 0.76), (0.85, 0.86), (-0.85, 0.86), (-1.0, 0.76), (-1.0, 0.72)]),
+        (-3.15, sec(1.18, 0.95, 0.88)),
+        (-2.95, sec(1.32, 1.0, 0.9)),
+        (0.6, sec(1.34, 1.0, 0.9)),
+        (2.75, sec(0.86, 0.95, 0.8)),
+        (3.25, [(-1.0, 0.58), (1.0, 0.58), (1.0, 0.6), (1.35, 0.6), (1.35, 0.68), (0.9, 0.74), (-0.9, 0.74), (-1.35, 0.68), (-1.35, 0.6), (-1.0, 0.6)]),
     ], P)
     hull = VP.camo(hull, P, [(0.38, m['paint_mid'])], max_edge=0.3, seed=71, scale=0.42)
     parts.append(hull)
-    # glacis: a raised plate, two sensor blisters, headlight clusters, tow eyes
-    parts.append(VP.sweep([(1.35, [(-0.75, 1.44), (0.75, 1.44), (0.75, 1.5), (-0.75, 1.5)]),
-                           (2.45, [(-0.75, 1.05), (0.75, 1.05), (0.75, 1.11), (-0.75, 1.11)])], L))
-    # seams across the glacis plate and a lifting eye at each corner
-    for u in (0.33, 0.66):
-        y, z = 1.35 + 1.1 * u, 1.5 - 0.39 * u
-        parts.append(bx(1.5, 0.04, 0.04, D, (0, y, z + 0.015)))
-    parts += [bx(0.08, 0.1, 0.08, m['steel_dark'], (sx * 0.68, 1.45, 1.52)) for sx in (-1, 1)]
+    # glacis: two raised armor plates with a seam between, the driver's hatch with
+    # periscopes, sensor heads, headlights, tow eyes
     for sx in (-1, 1):
-        # a sensor head on the glacis: an armored box, its window facing forward
-        parts.append(bx(0.3, 0.26, 0.2, D, (sx * 0.45, 2.25, 1.2), bevel=0.03))
-        parts.append(bx(0.22, 0.03, 0.1, m['glass'], (sx * 0.45, 2.39, 1.22)))
-        parts += headlight(m, (sx * 0.82, 2.8, 0.84), guard=False)
-        parts.append(bx(0.12, 0.14, 0.12, D, (sx * 0.55, 2.97, 0.68)))
-    parts.append(bx(1.2, 0.05, 0.08, m['glass'], (0, 2.93, 0.78)))          # the driver's vision strip
-    parts.append(bx(0.5, 0.5, 0.06, D, (-0.45, 1.2, 1.49), bevel=0.02))     # driver's hatch
-    parts += [bx(0.12, 0.06, 0.07, m['glass'], (-0.45 + dx, 1.47, 1.52)) for dx in (-0.14, 0.0, 0.14)]
-    # side armor: three plates a side with seams and bolt rows, a cable run
+        parts.append(VP.sweep([(0.75, [(sx * 0.08, 1.35), (sx * 0.95, 1.35), (sx * 0.95, 1.4), (sx * 0.08, 1.4)]),
+                               (2.6, [(sx * 0.08, 0.9), (sx * 0.9, 0.9), (sx * 0.9, 0.95), (sx * 0.08, 0.95)])], L))
+        parts.append(bx(0.3, 0.26, 0.18, D, (sx * 0.7, 2.45, 1.0), bevel=0.03))
+        parts.append(bx(0.22, 0.03, 0.09, m['glass'], (sx * 0.7, 2.59, 1.01)))
+        parts += headlight(m, (sx * 1.05, 3.0, 0.72), guard=False, s=0.8)
+        parts.append(bx(0.12, 0.14, 0.12, D, (sx * 0.5, 3.22, 0.62)))
+    parts.append(bx(0.48, 0.48, 0.06, D, (-0.55, 1.15, 1.43), bevel=0.02))
+    parts += [bx(0.11, 0.06, 0.07, m['glass'], (-0.55 + dx, 1.42, 1.45)) for dx in (-0.14, 0.0, 0.14)]
+    # the engine deck: a long grille of slats each side of a central spine, exhausts at the back
     for sx in (-1, 1):
-        for y0, y1 in ((-2.5, -0.95), (-0.9, 0.6), (0.65, 2.3)):
-            parts.append(bx(0.06, y1 - y0, 0.42, P, (sx * 1.14, (y0 + y1) / 2, 1.0)))
-            parts += side_bolts(sx * 1.175, y0 + 0.1, y1 - 0.1, 1.17, 5, D, r=0.028)
-        parts.append(VP.tube((sx * 1.0, -2.3, 1.43), (sx * 1.0, 1.0, 1.43), 0.035, 0.035, D, seg=6))
-    # the engine deck: two radiator grilles of slats, exhaust louvres at the back
+        parts.append(bx(0.85, 1.6, 0.04, D, (sx * 0.62, -2.15, 1.34)))
+        parts += slats(sx * 0.62 - 0.38, sx * 0.62 + 0.38, -2.85, -1.45, 1.38, 8, m['steel_dark'], along='x', w=0.06, h=0.04)
+        parts.append(bx(0.5, 0.1, 0.26, m['steel_dark'], (sx * 0.6, -3.18, 0.95)))
+        parts += [bx(0.46, 0.04, 0.03, D, (sx * 0.6, -3.24, 0.86 + k * 0.08)) for k in range(3)]
+        parts.append(bx(0.14, 0.05, 0.1, m['lamp_red'], (sx * 1.2, -3.13, 1.02)))
+    parts.append(bx(0.22, 1.7, 0.1, D, (0, -2.15, 1.38)))
+    # skirts over the tracks: five bolted plates a side, a civ stripe on the front plates
     for sx in (-1, 1):
-        parts.append(bx(0.75, 1.25, 0.04, D, (sx * 0.48, -1.75, 1.43)))
-        parts += slats(sx * 0.48 - 0.33, sx * 0.48 + 0.33, -2.3, -1.2, 1.47, 7, m['steel_dark'], along='x', w=0.06, h=0.04)
-    for sx in (-1, 1):
-        parts.append(bx(0.6, 0.08, 0.3, m['steel_dark'], (sx * 0.5, -2.77, 0.98)))
-        parts += [bx(0.55, 0.04, 0.03, D, (sx * 0.5, -2.82, 0.88 + k * 0.08)) for k in range(3)]
-    # four track units on swing arms, each under a civ-colored guard
-    tracks = []
-    for sx in (-1, 1):
-        for y0 in (-1.75, 1.7):
-            xc = sx * 1.62
-            front = y0 > 0
-            wheels = [(y0 - 0.55, 0.3, 0.27), (y0 + 0.05, 0.3, 0.27), (y0 + 0.62, 0.32, 0.25)]
-            spr = (y0 - 1.0, 0.45, 0.3) if not front else (y0 + 1.05, 0.48, 0.28)
-            idl = (y0 + 1.05, 0.45, 0.26) if not front else (y0 - 0.98, 0.43, 0.26)
-            tracks.append(Track2(wheels, 0.66, xc, sprocket=spr, idler=idl, link=0.17, visible_wheels=True))
-            g = VP.sweep([(y0 - 1.42, [(-0.4, 0.72), (0.4, 0.72), (0.36, 0.86), (-0.36, 0.86)]),
-                          (y0 - 1.1, [(-0.42, 0.66), (0.42, 0.66), (0.4, 0.98), (-0.4, 0.98)]),
-                          (y0 + 1.1, [(-0.42, 0.66), (0.42, 0.66), (0.4, 0.98), (-0.4, 0.98)]),
-                          (y0 + 1.42, [(-0.4, 0.72), (0.4, 0.72), (0.36, 0.86), (-0.36, 0.86)])], m['paint_mid'])
-            g = VP.camo(g, m['paint_mid'], [(0.4, P)], max_edge=0.3, seed=73 + int(y0 * 3) + sx, scale=0.42)
-            parts.append(g.transformed(M.translate(xc, 0, 0)))
-            parts.append(bx(0.05, 1.3, 0.12, m['decal'], (xc + sx * 0.41, y0, 0.9)))
-            parts += [bx(0.9, 0.06, 0.05, D, (xc, y0 + dy, 0.99)) for dy in (-0.75, 0.75)]     # ribs across the guard
-            yn = y0 + (1.42 if front else -1.42)
-            parts.append(bx(0.22, 0.06, 0.1, m['light'] if front else m['lamp_red'], (xc, yn + (0.02 if front else -0.02), 0.8)))   # civ stripe on the guard's flank
-            parts.append(bx(0.05, 2.1, 0.2, P, (xc + sx * 0.43, y0, 0.74)))      # a gray skirt band below the guard
-            parts += side_bolts(xc + sx * 0.46, y0 - 0.9, y0 + 0.9, 0.74, 6, D, r=0.025)
-            parts.append(bx(0.86, 0.5, 0.05, D, (xc, y0, 1.0)))                    # a dark walk strip on the guard
-            parts.append(bx(0.5, 0.42, 0.26, m['steel_dark'], (sx * 1.2, y0, 0.66)))   # swing arm
-            parts.append(VP.axle_x(0.2, 0.18, D, seg=12, center=(sx * 1.13, y0, 0.66)))
+        for y0, y1 in ((-3.0, -1.85), (-1.8, -0.65), (-0.6, 0.55), (0.6, 1.75), (1.8, 2.75)):
+            parts.append(bx(0.07, y1 - y0, 0.42, P, (sx * 1.56, (y0 + y1) / 2, 0.8)))
+            parts += side_bolts(sx * 1.6, y0 + 0.1, y1 - 0.1, 0.98, 4, D, r=0.025)
+        parts.append(bx(0.04, 1.7, 0.16, m['decal'], (sx * 1.605, 0.75, 0.72)))
+        parts.append(bx(0.06, 5.75, 0.05, D, (sx * 1.56, -0.12, 1.02)))
+        # a tow cable along the hull side
+        parts.append(VP.tube((sx * 1.4, -2.6, 1.2), (sx * 1.4, 0.4, 1.2), 0.035, 0.035, m['steel_dark'], seg=6))
     hull_mesh = M.Mesh.concat(parts)
+    wheels = [(y, 0.3, 0.29) for y in (-2.45, -1.7, -0.95, -0.2, 0.55, 1.3, 2.05)]
+    tracks = [Track2(wheels, 0.6, sx * 1.22, sprocket=(-2.95, 0.5, 0.3), idler=(2.75, 0.5, 0.28),
+                     rollers=[(-1.3, 0.8, 0.08), (0.95, 0.8, 0.08)],
+                     link=0.19, visible_wheels=True, top=[(0.0, 0.8, 0.08)]) for sx in (-1, 1)]
 
-    # the turret: a low faceted wedge, side armor, a heat-sink fin stack behind
-    tsec = lambda w, z0, z1, wt: [(-w, z0), (w, z0), (w, z1 - 0.18), (wt, z1), (-wt, z1), (-w, z1 - 0.18)]
+    # the turret: low and wide, faceted; its roof broken by raised plates, a
+    # hatch, a sight head, a vent grille and a stowage bin
+    tsec = lambda w, z0, z1, wt: [(-w, z0), (w, z0), (w, z1 - 0.15), (wt, z1), (-wt, z1), (-w, z1 - 0.15)]
     tur = VP.sweep([
-        (-1.55, tsec(0.95, 0.0, 0.62, 0.75)),
-        (0.6, tsec(1.18, 0.0, 0.72, 0.95)),
-        (1.35, tsec(0.6, 0.06, 0.6, 0.45)),
+        (-1.6, tsec(1.0, 0.0, 0.5, 0.82)),
+        (0.7, tsec(1.18, 0.0, 0.56, 1.0)),
+        (1.4, tsec(0.7, 0.04, 0.46, 0.55)),
     ], P)
     tur = VP.camo(tur, P, [(0.38, m['paint_mid'])], max_edge=0.3, seed=72, scale=0.42)
     tp = [tur]
     for sx in (-1, 1):
-        tp.append(bx(0.05, 1.3, 0.3, m['decal'], (sx * 1.15, -0.25, 0.33)))
-        tp += side_bolts(sx * 1.18, -0.85, 0.35, 0.12, 5, D, r=0.025)
-        tp.append(smoke_cluster(m, D, (sx * 0.98, 0.45, 0.5), yaw=-sx * 25, n=3))
-    tp.append(bx(1.6, 0.7, 0.08, m['steel_dark'], (0, -1.85, 0.08)))
-    for i in range(8):
-        tp.append(bx(0.05, 0.62, 0.5, m['steel'], (-0.7 + i * 0.2, -1.85, 0.36)))
-    tp.append(bx(1.6, 0.06, 0.08, m['steel_dark'], (0, -2.17, 0.62)))
-    # the commander's panoramic sight: a ring, a short post, an armored head with a window and a hood
-    tp.append(M.cylinder(0.3, 0.28, 0.1, D, seg=14, z0=0.66).transformed(M.translate(0.45, -0.45, 0)))
-    tp.append(M.cylinder(0.1, 0.1, 0.12, m['steel_dark'], seg=8, z0=0.76).transformed(M.translate(0.45, -0.45, 0)))
-    tp.append(bx(0.4, 0.34, 0.24, P, (0.45, -0.42, 0.98), bevel=0.04))
-    tp.append(bx(0.3, 0.03, 0.12, m['glass'], (0.45, -0.24, 0.98)))
-    tp.append(bx(0.42, 0.1, 0.04, D, (0.45, -0.22, 1.08)))
-    tp.append(bx(0.34, 0.4, 0.26, D, (-0.5, 0.25, 0.8), bevel=0.03))
-    tp.append(bx(0.26, 0.04, 0.16, m['glass'], (-0.5, 0.46, 0.82)))
-    tp.append(M.cylinder(0.26, 0.26, 0.05, D, seg=12, z0=0.68).transformed(M.translate(-0.4, -0.75, 0)))
-    tp.append(antenna(m['steel'], D, (0.75, -1.3, 0.62), 1.2))
-    tp.append(antenna(m['steel'], D, (-0.75, -1.3, 0.62), 0.9))
+        tp.append(bx(0.05, 1.4, 0.3, m['decal'], (sx * 1.17, -0.35, 0.26)))
+        tp += side_bolts(sx * 1.2, -1.4, -0.9, 0.18, 2, D, r=0.025)
+        tp += side_bolts(sx * 1.2, 0.2, 0.6, 0.18, 2, D, r=0.025)
+        tp.append(smoke_cluster(m, D, (sx * 1.0, 0.65, 0.42), yaw=-sx * 25, n=3))
+        tp.append(bx(0.7, 0.9, 0.05, L, (sx * 0.55, -0.85, 0.58)))
+    tp.append(M.cylinder(0.24, 0.24, 0.06, D, seg=12, z0=0.56).transformed(M.translate(-0.62, 0.15, 0)))
+    tp.append(bx(0.34, 0.3, 0.22, D, (0.68, 0.25, 0.68), bevel=0.03))
+    tp.append(bx(0.26, 0.03, 0.1, m['glass'], (0.68, 0.41, 0.7)))
+    tp.append(bx(0.8, 0.55, 0.04, m['steel_dark'], (0, -1.3, 0.57)))
+    tp += slats(-0.36, 0.36, -1.52, -1.08, 0.6, 5, D, along='x', w=0.05, h=0.03)
+    tp.append(bx(1.7, 0.5, 0.36, D, (0, -1.85, 0.22), bevel=0.04))
+    tp += [bx(0.04, 0.52, 0.38, m['steel_dark'], (x, -1.85, 0.22)) for x in (-0.5, 0.5)]
+    tp.append(antenna(m['steel'], D, (0.85, -1.5, 0.5), 0.9))
+    # the pylon that carries the emitter, and the cable bundles into it
+    tp.append(bx(0.5, 0.9, 0.34, D, (0, 0.1, 0.68), bevel=0.04))
     for sx in (-1, 1):
-        tp.append(VP.tube((sx * 0.4, 0.75, 0.62), (sx * 0.3, 1.3, 0.46), 0.05, 0.05, m['steel_dark'], seg=6))
+        tp.append(VP.tube((sx * 0.32, -0.6, 0.6), (sx * 0.22, 0.0, 0.85), 0.05, 0.05, m['steel_dark'], seg=6))
     turret = M.Mesh.concat(tp)
 
-    # the beam projector: a boxy root, a barrel with cooling rings, coolant
-    # pipes along it, a wide focusing head and a glowing lens
-    g = [bx(0.6, 0.6, 0.48, P, (0, 0.05, 0), bevel=0.06),
-         bx(0.64, 0.12, 0.52, D, (0, 0.32, 0), bevel=0.02),
-         VP.tube((0, 0.3, 0), (0, 2.25, 0), 0.12, 0.1, P, seg=12)]
-    for k, y in enumerate((0.6, 0.85, 1.1, 1.35, 1.6)):
-        g.append(VP.tube((0, y, 0), (0, y + 0.07, 0), 0.2 - k * 0.008, 0.2 - k * 0.008, m['steel'], seg=14))
+    # the emitter: a long chamfered housing, cooling fins along its top and
+    # flanks, capacitor drums at its root, a ringed barrel, a civ collar, the lens
+    hsec = [(-0.3, -0.22), (0.3, -0.22), (0.34, -0.1), (0.34, 0.14), (0.24, 0.26), (-0.24, 0.26), (-0.34, 0.14), (-0.34, -0.1)]
+    hous = VP.sweep([(-1.1, [(x * 0.9, z * 0.9) for x, z in hsec]), (-0.95, hsec), (2.0, hsec),
+                     (2.25, [(x * 0.8, z * 0.8) for x, z in hsec])], P)
+    g = [hous]
+    for i in range(11):
+        y = -0.75 + i * 0.25
+        g.append(bx(0.5, 0.05, 0.14, m['steel'], (0, y, 0.32)))
+        for sx in (-1, 1):
+            g.append(bx(0.12, 0.05, 0.26, m['steel'], (sx * 0.4, y, 0.02)))
+    g.append(bx(0.72, 0.06, 0.06, D, (0, -0.85, 0.3)))
     for sx in (-1, 1):
-        g.append(VP.tube((sx * 0.2, 0.35, -0.08), (sx * 0.17, 1.95, -0.06), 0.035, 0.035, m['steel_dark'], seg=6))
-    g.append(VP.tube((0, 1.9, 0), (0, 2.3, 0), 0.19, 0.17, D, seg=14))
-    g.append(VP.tube((0, 2.3, 0), (0, 2.38, 0), 0.21, 0.21, m['decal'], seg=14))
-    g.append(VP.tube((0, 2.36, 0), (0, 2.42, 0), 0.13, 0.13, m['fx_beam'], seg=12))
+        g.append(VP.tube((sx * 0.5, -1.0, -0.12), (sx * 0.5, -0.2, -0.12), 0.13, 0.13, D, seg=12))
+        g.append(VP.tube((sx * 0.5, -1.04, -0.12), (sx * 0.5, -0.98, -0.12), 0.14, 0.14, m['steel_dark'], seg=12))
+    g.append(VP.tube((0, 2.2, 0.02), (0, 2.75, 0.02), 0.17, 0.15, D, seg=14))
+    for y in (2.3, 2.45, 2.6):
+        g.append(VP.tube((0, y, 0.02), (0, y + 0.05, 0.02), 0.22, 0.22, m['steel'], seg=14))
+    g.append(VP.tube((0, 2.75, 0.02), (0, 2.85, 0.02), 0.24, 0.24, m['decal'], seg=14))
+    g.append(VP.tube((0, 2.85, 0.02), (0, 2.9, 0.02), 0.2, 0.2, m['steel_dark'], seg=14))
+    g.append(VP.tube((0, 2.88, 0.02), (0, 2.93, 0.02), 0.14, 0.14, m['fx_beam'], seg=12))
     gun = M.Mesh.concat(g)
-    return dict(hull=hull_mesh, tracks=tracks, turret=turret, turret_pos=(0, -0.25, 1.46), gun=gun,
-                gun_pos=(0, 0.95, 0.38), muzzle=(0, 2.42, 0), recoil=0.0, scan=40, laser=True,
-                blast=(0, -0.15, 2.0))
+    return dict(hull=hull_mesh, tracks=tracks, turret=turret, turret_pos=(0, -0.35, 1.34), gun=gun,
+                gun_pos=(0, 0.35, 1.02), muzzle=(0, 2.93, 0.02), recoil=0.0, scan=40, laser=True,
+                blast=(0, -0.3, 2.0))
 
 
 # ------------------------------------------------------------ the Bradley
@@ -373,7 +388,7 @@ def build_light_ifv(Vh):
         # the skirt below the tiles, its bolted lower edge, a civ-colored flash
         parts.append(bx(0.07, 5.2, 0.24, D, (sx * 1.49, -0.25, 0.74)))
         parts += side_bolts(sx * 1.53, -2.7, 2.2, 0.7, 12, m['steel_dark'], r=0.022)
-        parts.append(bx(0.04, 0.9, 0.2, m['decal'], (sx * 1.535, 2.2, 0.75)))
+        parts.append(bx(0.04, 0.32, 0.18, m['decal'], (sx * 1.535, 2.35, 0.75)))
     for i in range(4):
         parts.append(bx(0.52, 0.12, 0.3, m['tile'], (-0.82 + i * 0.55, 2.25, 1.47), bevel=0.025).transformed(
             M.translate(0, 2.25, 1.47) @ M.rot_x(-24) @ M.translate(0, -2.25, -1.47)))
@@ -403,10 +418,10 @@ def build_light_ifv(Vh):
     tp.append(smoke_cluster(m, D, (-0.75, 0.95, 0.45), yaw=30, n=4, r=0.05))
     # the TOW launcher: a twin-tube box on an arm on the turret's left
     tp += [bx(0.46, 1.4, 0.42, m['tow'], (-1.25, -0.15, 0.42), bevel=0.04),
-           bx(0.48, 0.08, 0.44, m['decal'], (-1.25, 0.58, 0.42)),
-           bx(0.48, 0.08, 0.44, m['decal'], (-1.25, -0.88, 0.42)),
+           bx(0.48, 0.08, 0.44, D, (-1.25, 0.58, 0.42)),
+           bx(0.48, 0.08, 0.44, D, (-1.25, -0.88, 0.42)),
            bx(0.2, 0.4, 0.2, m['steel_dark'], (-1.03, -0.15, 0.3)),
-           bx(0.04, 0.9, 0.2, m['decal'], (-1.49, -0.15, 0.42))]
+           bx(0.04, 1.3, 0.36, m['decal'], (-1.49, -0.15, 0.42))]
     for dz in (-0.1, 0.1):
         tp.append(VP.axle_x(0.08, 0.06, m['steel_dark'], seg=10).transformed(M.translate(-1.25, 0.62, 0.42 + dz) @ M.rot_z(90)))
     # the gunner's sight with its armored doors, the commander's viewer (CIV)
@@ -544,10 +559,10 @@ def build_humvee(Vh):
     turret = M.Mesh.concat(tp)
     # the M2: receiver, barrel jacket, barrel and flash hider, spade grips,
     # an ammo can on the left, on a pintle
-    gun = M.Mesh.concat([bx(0.14, 0.55, 0.15, m['steel'], (0, -0.05, 0)),
-                         VP.tube((0, 0.22, 0), (0, 0.6, 0), 0.05, 0.05, m['steel_dark'], seg=8),
-                         VP.tube((0, 0.55, 0), (0, 1.25, 0), 0.028, 0.026, m['steel'], seg=8),
-                         VP.tube((0, 1.2, 0), (0, 1.32, 0), 0.04, 0.035, m['steel_dark'], seg=8),
+    gun = M.Mesh.concat([bx(0.19, 0.6, 0.2, m['steel'], (0, -0.05, 0)),
+                         VP.tube((0, 0.22, 0), (0, 0.65, 0), 0.068, 0.068, m['steel_dark'], seg=8),
+                         VP.tube((0, 0.6, 0), (0, 1.25, 0), 0.04, 0.038, m['steel'], seg=8),
+                         VP.tube((0, 1.2, 0), (0, 1.34, 0), 0.055, 0.05, m['steel_dark'], seg=8),
                          bx(0.18, 0.06, 0.1, m['steel_dark'], (0, -0.34, 0.0)),
                          bx(0.2, 0.25, 0.18, m['ammo'], (-0.18, 0.0, -0.06)),
                          VP.tube((0, -0.05, -0.08), (0, -0.05, -0.38), 0.04, 0.04, m['steel_dark'], seg=6)])
@@ -662,6 +677,14 @@ def build_battery(Vh):
             cells.append((x, Lb + 0.05, z))
             g.append(bx(Wb / 4 - 0.08, 0.05, Hb / 5 - 0.07, m['cover'], (x, Lb + 0.05, z)))
     g.append(bx(Wb, 0.1, Hb, D, (0, -0.03, Hb / 2 + 0.05)))
+    # its back: two ribs across, a hatch with a handle, a junction box and its cable runs
+    g += [bx(Wb + 0.04, 0.06, 0.07, m['steel_dark'], (0, -0.1, z)) for z in (0.35, 0.85)]
+    g.append(bx(0.5, 0.04, 0.36, P, (-0.35, -0.1, 0.6)))
+    g.append(bx(0.12, 0.05, 0.04, m['steel_dark'], (-0.35, -0.13, 0.66)))
+    g.append(bx(0.34, 0.14, 0.26, m['steel_dark'], (0.4, -0.15, 0.6)))
+    for dx in (0.32, 0.46):
+        g.append(VP.tube((dx, -0.2, 0.47), (dx, -0.2, 0.12), 0.03, 0.03, m['cable'], seg=6))
+        g.append(VP.tube((dx, -0.2, 0.12), (dx + 0.25, -0.2, 0.05), 0.03, 0.03, m['cable'], seg=6))
     # the box's under-frame: two rails and cross members on its belly
     g += [bx(0.12, Lb, 0.1, m['steel_dark'], (sx * 0.45, Lb / 2, 0.0)) for sx in (-1, 1)]
     g += [bx(Wb - 0.1, 0.1, 0.08, m['steel_dark'], (0, y, 0.0)) for y in (0.5, 1.6, 2.7)]
@@ -700,24 +723,25 @@ BUILDERS = {'laser_tank': build_laser_tank, 'light_ifv': build_light_ifv, 'humve
             'battery': build_battery}
 
 PAINTS = {
-    'laser_tank': {'paint': '#9b988f', 'paint_mid': '#807e76', 'paint_lt': '#aba89f', 'paint_dark': '#5e5c56',
+    'laser_tank': {'paint': '#9e9789', 'paint_mid': '#837c70', 'paint_lt': '#aea799', 'paint_dark': '#5e5c56',
                    'track': '#33353a', 'track_link': '#585c62', 'tire': '#2a2b2e', 'wheel': '#6a7076',
                    'wheel_hub': '#2a2c2e', 'steel': ('#8a9096', 0.5, 24), 'steel_dark': '#3c4044',
                    'glass': ('#2e4a5c', 0.6, 40), 'light': '#e8eef0', 'lamp_red': '#9a2a20', 'decal': '#f0f0f0',
+                   'lens_off': ('#26343e', 0.5, 30),
                    'fx_beam': '#eef8ff', 'beam': '#f4f4f4'},
-    'light_ifv': {'paint': '#a6b083', 'paint_dark': '#858f66', 'paint_black': '#6a6e5a', 'tile': '#9ea87a',
-                  'track': '#2a2926', 'track_link': '#4c4944', 'tire': '#232220', 'wheel': '#4f573c',
+    'light_ifv': {'paint': '#b4aa8e', 'paint_dark': '#8c8270', 'paint_black': '#6a6254', 'tile': '#aca286',
+                  'track': '#2a2926', 'track_link': '#4c4944', 'tire': '#232220', 'wheel': '#5a5446',
                   'wheel_hub': '#24251f', 'steel': ('#5a5a58', 0.5, 24), 'steel_dark': '#2e302a',
-                  'glass': ('#2c3a40', 0.6, 40), 'light': '#e6e2cc', 'lamp_red': '#9a2a20', 'tow': '#56603f',
-                  'canvas': '#6e6a4c', 'canvas_dk': '#4e4c38', 'strap': '#2e2c24', 'decal': '#f0f0f0'},
-    'humvee': {'paint': '#b2ba8a', 'paint_dark': '#8e966a', 'paint_brown': '#aa9470', 'paint_black': '#72725c',
+                  'glass': ('#2c3a40', 0.6, 40), 'light': '#e6e2cc', 'lamp_red': '#9a2a20', 'tow': '#9a907a',
+                  'canvas': '#7a6c52', 'canvas_dk': '#5a5040', 'strap': '#2e2c24', 'decal': '#f0f0f0'},
+    'humvee': {'paint': '#beb28e', 'paint_dark': '#948c6c', 'paint_brown': '#a68c6a', 'paint_black': '#76705e',
                'tire': '#3c3c38', 'tire_dark': '#2a2a27', 'rim': '#4e5636', 'rim_dark': '#2e3222',
                'wheel_hub': '#262a1e', 'steel': ('#4a4a48', 0.5, 24), 'steel_dark': '#2a2c26',
                'glass': ('#33414a', 0.6, 40), 'light': '#e8e4d0', 'lamp_amber': '#c88a2a', 'lamp_red': '#9a2a20',
                'uniform': '#6e6a4e', 'vest': '#5a5a40', 'vest_dk': '#44442f', 'skin': '#c89a74', 'glove': '#3a3428',
                'helmet': '#f0f0f0', 'ammo': '#4e5634', 'can': '#4a5232', 'canvas': '#6e6a4c', 'strap': '#2e2c24',
                'decal': '#f0f0f0'},
-    'battery': {'paint': '#9e9a7a', 'paint_mid': '#838062', 'paint_dark': '#6a674f', 'steel': ('#7a7c78', 0.5, 24),
+    'battery': {'paint': '#a49c84', 'paint_mid': '#888270', 'paint_dark': '#6c6658', 'steel': ('#7a7c78', 0.5, 24),
                 'steel_dark': '#34363a', 'tire': '#2a2a28', 'tire_dark': '#1a1a18', 'rim': '#6e6b52',
                 'rim_dark': '#45432f', 'wheel_hub': '#2a2a24', 'glass': ('#2e3a44', 0.6, 40), 'light': '#e8e4d0',
                 'lamp_amber': '#c88a2a', 'lamp_red': '#9a2a20', 'cable': '#2a2a26', 'cover': '#e4e2da',
@@ -738,12 +762,47 @@ class ModArmor(V.Armor):
         self.track_L = self.b['tracks'][0].L if self.b['tracks'] else 1.0
         self.deploy = 1.0
         self.pitch_bias = 0.0
+        self.lens_off = False
+        self._n_model = None
         self.autofit()
+
+    def render_cell(self, mesh, mats, cam, W, H):
+        """The laser's beam (its 'beam'/'fx_beam' triangles outside the lens)
+        is drawn in a pass of its own: no ground shadow, no contour lines,
+        its edges softened; the rest as usual."""
+        import render as R
+        ids = [self.mats['beam'], self.mats['fx_beam']] if self.b.get('laser') else []
+        sel = np.isin(mesh.M, ids) & self.beam_mask(mesh) if ids else None
+        if sel is None or not sel.any():
+            return R.render_cell(mesh, mats, cam, W, H)
+        body = M.Mesh(mesh.V[~sel], mesh.N[~sel], mesh.M[~sel])
+        beam = M.Mesh(mesh.V[sel], mesh.N[sel], mesh.M[sel])
+        b0, t0 = R.render_cell(body, mats, cam, W, H)
+
+        class Glow(R.Style):
+            contour_alpha = 0.0
+            inner_line = 0.0
+            ssao = 0.0
+            ground_ao = 0.0
+        b1, t1 = R.render_cell(beam, mats, cam, W, H, style=Glow, shadow=False)
+        b1, t1 = _soften(b1), _soften(t1)
+        return _over(b1, b0), _over(t1, t0)
+
+    def beam_mask(self, mesh):
+        """Triangles of the beam itself, not of the lens: the lens is part
+        of the model mesh (the first `self._n_model` triangles)."""
+        n = getattr(self, '_n_model', None)
+        out = np.zeros(len(mesh.M), bool)
+        if n is not None:
+            out[n:] = True
+        return out
 
     def assemble(self, *a, **kw):
         if self.pitch_bias:
             kw['pitch'] = kw.get('pitch', 0.0) + self.pitch_bias
         mesh, G, H, T = super().assemble(*a, **kw)
+        if self.lens_off:
+            mesh = VP.recolor(mesh, {self.mats['fx_beam']: self.mats['lens_off']})
         if self.b.get('battery'):
             ex = battery_extras(self, G, H, self.deploy)
             if kw.get('char'):
@@ -754,7 +813,10 @@ class ModArmor(V.Armor):
     def frame(self, action, f, n, ctx):
         b = self.b
         t = self.times(action, f, n)
-        self.deploy, self.pitch_bias = 1.0, 0.0
+        self.deploy, self.pitch_bias, self.lens_off = 1.0, 0.0, False
+        self._n_model = None
+        if b.get('laser') and action == 'DEATH':
+            self.lens_off = self.times(action, f, n) >= 0.12
         if b.get('battery'):
             if action in ('RUN', 'WALK'):
                 self.deploy = 0.0
@@ -814,17 +876,20 @@ class ModArmor(V.Armor):
         dt = t - tf
         rock = -1.0 * math.exp(-max(dt, 0) * 6) * math.sin(max(dt, 0) * 20) if dt >= 0 else 0
         mesh, G, H, T = self.assemble(body=(0, rock, 0, 0, 0), pitch=2)
+        self._n_model = len(mesh)
         fx = []
         if 0 <= dt < 0.85:
             k = 1.0 if dt < 0.45 else max(0.0, 1 - (dt - 0.45) / 0.4)
-            length = self.p.get('beam', 5.5)
+            length = self.p.get('beam', 2.6)
             p0 = (G @ np.array([*b['muzzle'], 1.0], np.float32))[:3]
             fwd = G[:3, :3] @ np.array([0, 1, 0], np.float32)
-            r = 0.17 * (0.35 + 0.65 * k)
-            fx.append(VP.tube(p0, p0 + fwd * length, r, r * 0.8, mats['beam'], seg=10))
-            fx.append(VP.tube(p0 - fwd * 0.02, p0 + fwd * (length + 0.05), r * 0.5, r * 0.4, mats['fx_beam'], seg=8))
+            r = 0.15 * (0.35 + 0.65 * k)
+            # a civ-colored sheath tapering to a point, a white core inside it
+            fx.append(VP.tube(p0, p0 + fwd * length * 0.75, r, r * 0.55, mats['beam'], seg=10))
+            fx.append(VP.tube(p0 + fwd * length * 0.75, p0 + fwd * length, r * 0.55, 0.005, mats['beam'], seg=10))
+            fx.append(VP.tube(p0 - fwd * 0.02, p0 + fwd * length * 0.9, r * 0.45, 0.005, mats['fx_beam'], seg=8))
             if dt < 0.5:
-                fx.append(FX.puff(mats, p0, 0.22 * k + 0.08, 'fx_beam', seed=3))
+                fx.append(FX.puff(mats, p0 + fwd * 0.05, 0.16 * k + 0.06, 'fx_beam', seed=3))
         return FX.FxMesh(M.Mesh.concat([mesh] + fx), mats)
 
     def attack_battery(self, t, ctx):
