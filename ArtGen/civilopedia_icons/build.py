@@ -200,6 +200,9 @@ def main(argv):
     if 'Units' in wanted:
         import units_modern
         units_modern.main()
+        # The League modes' new unit art, likewise (league_art.json).
+        import units_league
+        units_league.main()
     for section in wanted:
         items = [(r['stem'], r['large'], r['small']) for r in results if r['section'] == section and 'error' not in r]
         for i in range(0, len(items), 40):

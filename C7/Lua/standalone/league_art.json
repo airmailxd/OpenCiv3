@@ -97,7 +97,7 @@
      "from": "PRTO_Knight",
      "key": "PRTO_QC_Teutonic_Knight",
      "art": "Teutonic Knight",
-     "status": "new",
+     "status": "done",
      "priority": "P2",
      "note": "Germany's unique unit"
     },
@@ -1197,21 +1197,21 @@
      "from": "PRTO_TOW_Infantry",
      "key": "PRTO_MODERN_Partisans",
      "art": "Partisans",
-     "status": "new",
+     "status": "done",
      "priority": "P1"
     },
     "Roughrider (Enslaves Worker)": {
      "from": "PRTO_Cossack",
      "key": "PRTO_MODERN_Roughrider",
      "art": "Roughrider",
-     "status": "new",
+     "status": "done",
      "priority": "P2"
     },
     "Special Forces": {
      "from": "PRTO_Guerilla",
      "key": "PRTO_MODERN_Special_Forces",
      "art": "Special Forces",
-     "status": "new",
+     "status": "done",
      "priority": "P2",
      "note": "same art as Future's"
     },
@@ -1219,7 +1219,7 @@
      "from": "PRTO_Fighter",
      "key": "PRTO_Fighter",
      "art": "Wildcat",
-     "status": "new",
+     "status": "done",
      "priority": "P2",
      "note": "R: the mod reskins it as a Wildcat (Modern/Art/Units/Fighter)"
     },
@@ -1227,7 +1227,7 @@
      "from": "PRTO_Infantry",
      "key": "PRTO_Infantry",
      "art": "Japanese Rifleman",
-     "status": "new",
+     "status": "done",
      "priority": "P2",
      "note": "R: the mod reskins it as a Japanese rifleman (Modern/Art/Units/Infantry)"
     },
@@ -1662,7 +1662,7 @@
      "from": "PRTO_Guerilla",
      "key": "PRTO_FUTURE_Special_Forces",
      "art": "Special Forces",
-     "status": "new",
+     "status": "done",
      "priority": "P2",
      "note": "same art as Modern's"
     },
@@ -2044,14 +2044,14 @@
      "from": "PRTO_Galley",
      "key": "PRTO_MDJ_Warship",
      "art": "Japanese Warship",
-     "status": "new",
+     "status": "done",
      "priority": "P2"
     },
     "Hojo General (Amphib)": {
      "from": "PRTO_Army",
      "key": "PRTO_MDJ_Hojo_General",
      "art": "Hojo General",
-     "status": "new",
+     "status": "done",
      "priority": "P2"
     },
     "Scout": {
