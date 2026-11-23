@@ -47,7 +47,7 @@ UNITS = {
         'archetype': 'league_horse_rider',
         'kit': 'teutonic',
         'rider_scale': 0.99,
-        'scale': 1.03,
+        'scale': 1.0,
         'horse': {'coat': '#3e3632', 'mane': '#1e1612', 'points': '#34302e', 'mane_h': 0.02,
                   'blanket': None, 'saddle_visible': False, 'girth': False, 'breastplate': False,
                   'chanfron': True, 'barding_steel': '#9a9ea6',

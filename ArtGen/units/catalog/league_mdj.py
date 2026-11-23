@@ -44,9 +44,10 @@ UNITS = {
                  ('hojo_jinbaori', {'open_front': 30.0, 'length': 0.40, 'gap': 0.055}), 'hojo_obi', 'hojo_daisho'],
         'weapon': 'sword', 'props': {'sword': ('katana', {'size': 1.1}), 'gunbai': ('hojo_gunbai', {})},
         'fan_actions': ['DEFAULT', 'RUN', 'ATTACK1', 'DEATH'],
+        # the fan held out to the right at chest height, the left hand at the sword
         'stance': {'foot_r': (0.22, 0.05, 0.08), 'foot_l': (-0.22, -0.05, 0.08),
-                   'hand_l': (-0.24, 0.16, 0.98), 'elbow_l': (-0.8, -0.4, -0.3)},
-        'overrides': {'DEFAULT': {'hand_r': (0.36, 0.22, 1.16), 'w_main': (-18, 14, 0), 'elbow_r': (0.9, -0.4, -0.3)}},
+                   'hand_l': (-0.24, 0.16, 0.98), 'elbow_l': (-0.8, -0.4, -0.3),
+                   'hand_r': (0.48, 0.18, 1.18), 'w_main': (22, 16, 0), 'elbow_r': (0.9, -0.3, -0.3)},
                 'actions': {'ATTACK1': 'attack_slash'},
     },
 }

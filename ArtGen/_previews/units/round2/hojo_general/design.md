@@ -112,3 +112,27 @@ Measured: civ 30.3% (Minamoto 49.5, Samurai 19.9), sprite 1899 px (Minamoto 1663
 r08 measured: area 542 against 430-496, civ 27.8% (in range 18.6-45.7), brightness 74.3 against 79-95 (too dark).
 Change: scale 0.76, lacquer #6a4e3c, hakama lighter. r10 measured: area 508 (Minamoto 496; the fan and surcoat),
 civ 26.9%, brightness 81.2: inside the range.
+
+## Round 2c (second review: Teutonic Knight and Roughrider pass, the Hojo General fails)
+
+### Round 12 (r11.png)
+- Death: back to a fall onto the back (stagger, knees give, falls back), one knee up, the fan arm out low, the other
+  hand at the chest; the head and crest stay above the ground. No curl, no spread arms.
+- Gunbai: a gourd-shaped blade (broad rounded top, pinched neck at the handle), a thick gilt rim, a red sun on each
+  face, a gilt collar, the pommel, a red cord and a six-strand tassel; held out to the right at chest height.
+- Attack: the held-fan pose is now the stance itself, so the attack winds up from it (no jump from the knee).
+- Crest: larger (0.32 m) and painted on a finer grid (120 x 49): three sharp triangles.
+- Swords: a tachi slung from the belt on two red hangers at the left hip, outside the surcoat, tips back and down;
+  the wakizashi in the sash in front. Nothing passes through the skirt.
+- Cell placement: the anchors agree (Army 120.5, Samurai 121.0 in unit space); the 55 px was my look sheet, which
+  centred each flic's own canvas. look.py now places every cell in the full 240x240 unit space, so feet line up.
+Seen: the fan read edge-on and too close to the body.
+
+### Round 13 (r12.png)
+Fan tilted back to face the camera (w_main 22/16) and held further out; tachi steeper and 0.86 long. Seen: the
+gourd fan with its sun and tassel stands clear of the body at 1x; the crest reads as three triangles.
+
+### Round 14 (attack.png, death.png in five directions)
+Attack eases from the held fan through the wind-up to the sweep; death ends on the back in all five directions,
+crest up, limbs apart. Measured (meas1x.py, 1x rows): area 507 (Minamoto 496, Samurai 430), civ 25.9% (45.5 / 18.6),
+non-civ brightness 82.8 (94.8 / 79.0).

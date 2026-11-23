@@ -164,7 +164,7 @@ def g_hojo_menpo(g):
 # ------------------------------------------------------------ the jinbaori
 
 def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin_hem', length=0.50, flare=0.10,
-                    gap=0.065, open_front=38.0, mon_size=0.24):
+                    gap=0.065, open_front=38.0, mon_size=0.32):
     """The commander's campaign surcoat in the civ colour: over the
     shoulders and the armor, open in front, the skirts flaring to the knees
     and split at the back; a black band down the front edges and round the
@@ -179,11 +179,11 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
     front = math.pi / 2
     of = math.radians(open_front)
     a0, a1 = front + of, front + 2 * math.pi - of
-    nA = 48
+    nA = 120
     angs = np.linspace(a0, a1, nA + 1)
 
     # the body: rows from the waist up over the shoulders (chest space)
-    zr = list(np.linspace(0.0, 0.27, 19)) + [0.29, 0.31, 0.325]
+    zr = list(np.linspace(0.0, 0.27, 46)) + [0.29, 0.31, 0.325]
     rows = []
     for z in zr:
         rx = float(np.interp(z, zs, [c[1] for c in chest])) + gap
@@ -205,7 +205,7 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
         # the crest on the back: x the arc length from the centre of the back
         rx = 0.5 * (Pb[i, j, 0] ** 2 + Pb[i, j, 1] ** 2) ** 0.5 + 0.5 * (Pb[i + 1, j, 0] ** 2 + Pb[i + 1, j, 1] ** 2) ** 0.5
         x = (a - back) * rx * 0.92
-        if in_uroko(x, z - 0.14, mon_size):
+        if in_uroko(x, z - 0.135, mon_size, gap=0.08):
             return mm
         return jm
     out.append(('chest', grid_mesh(Pb, body_paint), None))
@@ -319,12 +319,21 @@ def g_hojo_kote(g, cloth='kote', plate='kote_plate'):
 
 
 def g_hojo_daisho(g):
-    """The katana and the wakizashi thrust through the sash at the left hip."""
+    """The general's tachi slung edge-down from the belt on its two hangers
+    at the left hip, outside the surcoat, hanging back at a natural angle;
+    the short wakizashi thrust through the sash in front."""
     from models.props_foot_ancient import katana_sheathed
     tw = g.tw
     k = katana_sheathed(g.mats)
-    out = [('pelvis', k.transformed(T(-0.24 * tw, 0.06, 0.06) @ M.rot_z(-4) @ M.rot_x(136)), None)]
-    out.append(('pelvis', k.transformed(T(-0.20 * tw, 0.10, 0.08) @ M.rot_z(-3) @ M.rot_x(128) @ M.scale(0.72)), None))
+    cord = g.m('lacing', '#c4503e')
+    x = -0.30 * tw
+    tachi = T(x, 0.10, 0.02) @ M.rot_y(-12) @ M.rot_x(136)
+    out = [('pelvis', k.transformed(tachi @ M.scale(0.86)), None)]
+    for d in (0.08, 0.22):
+        p0 = (tachi @ np.array([0, 0, d, 1], np.float32))[:3]
+        out.append(('pelvis', M.capsule((x * 0.82, p0[1], 0.10), tuple(p0), 0.009, 0.009, cord, seg=4, rings=1), None))
+    out.append(('pelvis', k.transformed(T(-0.10 * tw, 0.19 * tw, 0.10) @ M.rot_z(-30) @ M.rot_x(100)
+                                       @ M.scale(0.62)), None))
     return out
 
 
@@ -372,59 +381,83 @@ FA.register_extra(sys.modules[__name__])
 
 # ------------------------------------------------------------ props (grip at the origin, long axis +z)
 
+def _gourd(w=0.40, h=0.44, neck=0.09, n=40):
+    """The outline of a gunbai blade (x-z, centred on its base at z = 0):
+    a broad rounded top swelling from a narrow neck at the handle, the
+    gourd or pear shape of the real fans."""
+    pts = []
+    for k in range(n):
+        t = 2 * math.pi * k / n
+        # u from the base (0) to the top (1) and back
+        x0, z0 = math.sin(t), (1 - math.cos(t)) / 2
+        # wide at the top two thirds, pulled in toward the neck at the base
+        wz = 0.5 * w * (0.22 + 0.78 * math.sin(math.pi * min(1.0, z0 * 1.25 + 0.05)) ** 0.7)
+        pts.append((x0 * max(wz, neck / 2), z0 * h))
+    return pts
+
+
 def hojo_gunbai(mats, size=1.0):
-    """The gunbai: a lacquered iron war fan, a round blade on a short
-    handle; black, a gilt rim, a red sun on both faces; a red cord and
-    tassel from the pommel."""
+    """The gunbai: a lacquered war fan, a gourd-shaped blade on a stout
+    handle; black lacquer, a thick gilt rim, a red sun on both faces, a
+    gilt collar at the neck; a red cord from the pommel to a big tassel."""
     bm = P.mat(mats, 'gunbai', '#1e1c1a', spec=0.35, gloss=22)
     gm = P.mat(mats, 'gold', '#c4a050', spec=0.8, gloss=22, metal=True)
-    rm = P.mat(mats, 'sun', '#a8281e', spec=0.2)
-    cm = P.mat(mats, 'cord', '#8a2a22')
-    parts = [M.cylinder(0.018, 0.02, 0.24, bm, seg=8, z0=-0.10)]
-    parts.append(M.cylinder(0.026, 0.026, 0.02, gm, seg=8, z0=0.12))
-    parts.append(M.sphere(0.022, gm, (0, 0, -0.11), seg=8))
-    c = (0, 0, 0.33)
-    parts.append(M.disc(0.20, 0.21, 0.016, bm, seg=24).transformed(T(*c)))
-    parts.append(M.lathe([(-0.012, 0.20), (0.0, 0.212), (0.012, 0.20)], gm, seg=24).transformed(T(*c) @ M.rot_x(90)
-                                                                                                @ M.scale(1, 1.05, 1)))
+    rm = P.mat(mats, 'sun', '#b02a1e', spec=0.2)
+    cm = P.mat(mats, 'cord', '#a8322a')
+    parts = [M.cylinder(0.022, 0.024, 0.26, bm, seg=8, z0=-0.12)]
+    parts.append(M.cylinder(0.03, 0.03, 0.025, gm, seg=8, z0=0.115))
+    parts.append(M.sphere(0.026, gm, (0, 0, -0.13), seg=8))
+    base = 0.13
+    out = _gourd()
+    rim = [(x * 1.08, z * 1.06 - 0.012) for x, z in out]
+    # the blade (thin, in the x-z plane), the rim a thicker band behind its edge
+    parts.append(M.extrude(rim, 0.034, gm).transformed(T(0, 0, base)))
+    parts.append(M.extrude(out, 0.044, bm).transformed(T(0, 0, base)))
     for sy in (1, -1):
-        parts.append(M.disc(0.085, 0.085, 0.004, rm, seg=18).transformed(T(0, -sy * 0.01, c[2] + 0.02) @ M.rot_z(
-            0 if sy > 0 else 180)))
-    parts.append(M.capsule((0, 0, -0.12), (0.02, 0.02, -0.24), 0.008, 0.008, cm, seg=4, rings=1))
-    parts.append(M.capsule((0.02, 0.02, -0.24), (0.02, 0.02, -0.32), 0.022, 0.012, cm, seg=6, rings=1))
+        sun = M.disc(0.095, 0.095, 0.004, rm, seg=20).transformed(T(0, -sy * 0.024, base + 0.25) @ M.rot_z(
+            0 if sy > 0 else 180))
+        parts.append(sun)
+    # cord and tassel
+    parts.append(M.capsule((0, 0, -0.15), (0.03, 0.02, -0.26), 0.01, 0.01, cm, seg=4, rings=1))
+    parts.append(M.sphere(0.02, gm, (0.03, 0.02, -0.27), seg=6))
+    for a in range(6):
+        ang = 2 * math.pi * a / 6
+        parts.append(M.capsule((0.03, 0.02, -0.28), (0.03 + 0.025 * math.cos(ang), 0.02 + 0.025 * math.sin(ang), -0.40),
+                               0.012, 0.008, cm, seg=4, rings=1))
     return M.Mesh.concat(parts).transformed(M.scale(size))
 
 
 # ------------------------------------------------------------ the archetype
 
 def anim_death_general(base, ctx):
-    """Struck, he staggers, drops to his knees, and topples onto his side,
-    curled, an arm over his body: no spread-eagle, the skirts falling with
-    him."""
+    """Struck, he staggers back, his knees give and he falls onto his back,
+    one knee up, the fan arm flung out low beside him, the other hand at his
+    chest; the head and its crest stay above the ground (the stock deaths
+    end spread-eagled, the arms over the head)."""
     down = ctx.event('down', 0.55) if ctx is not None else 0.55
     down = min(max(down or 0.55, 0.35), 0.85)
     fk = {
         'thigh_r': (0, -4, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 4, 0), 'shin_l': (0, 0, 0),
-        'arm_r': (20, -14, 0), 'forearm_r': (40, 0, 0), 'arm_l': (10, 14, 0), 'forearm_l': (30, 0, 0),
+        'arm_r': (30, -24, 0), 'forearm_r': (40, 0, 0), 'arm_l': (10, 14, 0), 'forearm_l': (30, 0, 0),
         'root_pos': (0, 0, 0), 'root_rot': (0, 0, 0), 'spine': (0, 0, 0), 'chest': (0, 0, 0), 'head': (0, 0, 0),
     }
     k = [
         (0.0, {}),
-        (0.18, {'root_rot': (14, 0, 6), 'root_pos': (0, -0.08, -0.03), 'chest': (14, 0, 6), 'head': (24, 0, 0),
-                'arm_r': (40, -30, 0), 'forearm_r': (70, 0, 0), 'arm_l': (50, 30, 0), 'forearm_l': (90, 0, 0),
-                'thigh_r': (12, -4, 0), 'shin_r': (-20, 0, 0)}),
-        (0.40, {'root_rot': (-10, 0, 8), 'root_pos': (0, 0.02, -0.40), 'chest': (-24, 0, 4), 'head': (-14, 0, 0),
-                'thigh_r': (95, -6, 0), 'shin_r': (-150, 0, 0), 'thigh_l': (90, 6, 0), 'shin_l': (-150, 0, 0),
-                'arm_r': (30, -20, 0), 'forearm_r': (60, 0, 0), 'arm_l': (60, 20, 0), 'forearm_l': (100, 0, 0)}),
-        (0.62, {'root_rot': (-20, 70, 10), 'root_pos': (0.30, 0.10, -0.70), 'chest': (-20, 0, 0), 'head': (-10, 10, 0),
-                'thigh_r': (80, -6, 0), 'shin_r': (-110, 0, 0), 'thigh_l': (70, 8, 0), 'shin_l': (-90, 0, 0),
-                'arm_r': (60, -10, 0), 'forearm_r': (40, 0, 0), 'arm_l': (50, 25, 0), 'forearm_l': (80, 0, 0)}),
-        (0.80, {'root_rot': (-14, 86, 8), 'root_pos': (0.38, 0.12, -0.76), 'chest': (-14, 0, 0), 'head': (-6, 14, 0),
-                'thigh_r': (64, -6, 0), 'shin_r': (-84, 0, 0), 'thigh_l': (50, 10, 0), 'shin_l': (-70, 0, 0),
-                'arm_r': (70, -6, 0), 'forearm_r': (30, 0, 0), 'arm_l': (40, 30, 0), 'forearm_l': (70, 0, 0)}),
-        (1.0, {'root_rot': (-12, 88, 8), 'root_pos': (0.38, 0.12, -0.77), 'chest': (-12, 0, 0), 'head': (-4, 16, 0),
-               'thigh_r': (62, -6, 0), 'shin_r': (-82, 0, 0), 'thigh_l': (48, 10, 0), 'shin_l': (-68, 0, 0),
-               'arm_r': (72, -6, 0), 'forearm_r': (28, 0, 0), 'arm_l': (38, 30, 0), 'forearm_l': (72, 0, 0)}),
+        (0.18, {'root_rot': (12, 0, 6), 'root_pos': (0, -0.06, -0.02), 'chest': (12, 0, 8), 'head': (20, 0, 0),
+                'arm_r': (50, -50, 0), 'forearm_r': (50, 0, 0), 'arm_l': (40, 30, 0), 'forearm_l': (90, 0, 0),
+                'thigh_r': (10, -4, 0), 'shin_r': (-18, 0, 0)}),
+        (0.38, {'root_rot': (30, 0, 10), 'root_pos': (0, -0.22, -0.28), 'chest': (12, 0, 8), 'head': (18, 0, 0),
+                'thigh_r': (62, -8, 0), 'shin_r': (-72, 0, 0), 'thigh_l': (44, 8, 0), 'shin_l': (-62, 0, 0),
+                'arm_r': (70, -60, 0), 'forearm_r': (30, 0, 0), 'arm_l': (40, 30, 0), 'forearm_l': (100, 0, 0)}),
+        (0.62, {'root_rot': (80, 0, 8), 'root_pos': (0, -0.55, -0.72), 'chest': (4, 0, 4), 'head': (6, 0, 10),
+                'thigh_r': (36, -10, 0), 'shin_r': (-36, 0, 0), 'thigh_l': (50, 12, 0), 'shin_l': (-80, 0, 0),
+                'arm_r': (40, -62, 0), 'forearm_r': (16, 0, 0), 'arm_l': (34, 26, 0), 'forearm_l': (104, 0, 0)}),
+        (0.78, {'root_rot': (90, 0, 6), 'root_pos': (0, -0.62, -0.78), 'chest': (0, 0, 2), 'head': (-4, 0, 22),
+                'thigh_r': (10, -12, 0), 'shin_r': (-10, 0, 0), 'thigh_l': (58, 14, 0), 'shin_l': (-100, 0, 0),
+                'arm_r': (18, -58, 0), 'forearm_r': (10, 0, 0), 'arm_l': (30, 24, 0), 'forearm_l': (108, 0, 0)}),
+        (1.0, {'root_rot': (90, 0, 6), 'root_pos': (0, -0.62, -0.78), 'chest': (0, 0, 2), 'head': (-2, 0, 24),
+               'thigh_r': (8, -12, 0), 'shin_r': (-8, 0, 0), 'thigh_l': (56, 14, 0), 'shin_l': (-98, 0, 0),
+               'arm_r': (16, -60, 0), 'forearm_r': (10, 0, 0), 'arm_l': (30, 24, 0), 'forearm_l': (108, 0, 0)}),
     ]
     anim = H.keys(dict(base, **{c: np.asarray(v, np.float32) for c, v in fk.items()}), k)
     return H.Action(lambda t: anim(H._warp(t, [(0.62, down)])), legs='fk', arms='fk')

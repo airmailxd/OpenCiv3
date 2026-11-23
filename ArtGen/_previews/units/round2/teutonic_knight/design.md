@@ -127,3 +127,10 @@ crinet and lining.
 r09 measured: area 856 against the Knight's 790 (8% over), civ 17.2% (Knight 17.6, Sipahi 26.9), non-civ brightness
 119 against 104-111 (the white too bright). Change: scale 1.03, the cloth and mantle whites toned to #c8c4ba/#ccc8be,
 civ hem 0.15. r11 measured: area 780 (Knight 790, Sipahi 788), civ 18.1%, brightness 110.9: all inside the stock range.
+
+## Round 2c polish (passed; changed only what the review listed)
+- Mantle: rows refined (19) so the black cross on the left shoulder actually paints (6 rows had been too coarse to
+  carry it); placed on the upper left back where the arm and shield don't hide it; the flare from behind softened.
+- Lance 2.6 -> 2.3 m so the pennon stays inside the frame; scale 1.03 -> 1.0 to hold the area (the shorter lance
+  raised the fitted scale). The dropped lance lands fore-and-aft clear of horse and rider.
+- Measured: area 781 (Knight 794, Sipahi 790), civ 19.6%, non-civ brightness 110.7 (111.4 / 104.7).

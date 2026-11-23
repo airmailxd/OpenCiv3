@@ -34,7 +34,11 @@ def cells(unit, action, frame, dirs):
     out = []
     for d in dirs:
         c = tinted(base[d * H:(d + 1) * H, frame * W:(frame + 1) * W], tint[d * H:(d + 1) * H, frame * W:(frame + 1) * W])
-        out.append(Image.fromarray(c, 'RGBA'))
+        # placed in the full 240x240 unit space (2x), so every unit's anchor
+        # lands at the same spot of its cell, as on the map
+        full = Image.new('RGBA', (480, 480), (0, 0, 0, 0))
+        full.alpha_composite(Image.fromarray(c, 'RGBA'), (max(fl.offset_left * 2, 0), max(fl.offset_top * 2, 0)))
+        out.append(full)
     return out
 
 

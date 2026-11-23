@@ -110,3 +110,8 @@ lands apart. Measured: civ 15.3% (Cavalry 16.3, Cossack 10.3), sprite 3391 px (C
 ### Round 11 (final.png; meas1x.py)
 Measured on the 1x rows: area 937 (Cavalry 974, Cossack 854), civ 12.9% (13.8 / 10.7), non-civ brightness 76.8
 (90.2 / 75.7): inside the stock range; no change needed.
+
+## Round 2c polish (passed; changed only what the review listed)
+- A filling volume at the breast where the neck meets the chest (the step is gone in the side views).
+- Hat: the dark crease bar removed; the crown keeps its smooth pressed crease (a clean pinched top).
+- Measured: area 937 (Cavalry 974, Cossack 854), civ 12.9%, non-civ brightness 76.9 (90.2 / 75.7). Unchanged.

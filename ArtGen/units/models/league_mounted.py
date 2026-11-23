@@ -220,7 +220,7 @@ def heater_shield(mats, w=0.50, h=0.64, face='shield_face', cross='shield_cross'
     return M.Mesh.concat(parts)
 
 
-def order_lance(mats, length=2.6, grip=0.8):
+def order_lance(mats, length=2.3, grip=0.75):
     """The knight's lance: a long ash shaft swelling at the grip, a leather
     grip, a steel vamplate, a leaf head, and a swallow-tailed civ-colored
     pennon hanging from below the head."""
@@ -282,7 +282,6 @@ def campaign_hat(mats, m='hat', band='hatband'):
     # the crease: a fore-and-aft valley pressed down the middle of the crown
     Pc[2:, :, 2] -= 0.035 * np.exp(-(Pc[2:, :, 0] / 0.05) ** 2) * np.array([0.5, 1.0, 1.0], np.float32)[:, None]
     parts = [grid_mesh(Pc, lambda i, j: hm, closed_u=True)]
-    parts.append(M.capsule((0, -0.09, 0.245), (0, 0.08, 0.245), 0.012, 0.012, dk, seg=5, rings=1))
     # band and bow
     parts.append(M.cylinder(0.135, 0.135, 0.032, bm, seg=20, z0=0.11).transformed(M.scale(1, 1.08, 1)))
     parts.append(M.ellipsoid(0.012, 0.03, 0.02, bm, (0.135, 0.0, 0.127), seg=6))
@@ -417,12 +416,15 @@ class LeagueHorseRider(MT.HorseRider):
             (1.0, dict(lie, **rest_body)),
         ]
         anim = MT._k(B, k)
+        # where the weapon lands: clear of horse and rider (the knight's long
+        # lance further out, lying fore-and-aft)
+        land, land_yaw = (V3(-1.95, 0.25, 0.04), 0) if self.kit == 'teutonic' else (V3(-1.3, -0.4, 0.04), 20)
         wk = MT._k({c: B[c] for c in ('w.drop', 'w.pos', 'w.rot')},
                    [(0.0, {}), (0.30, {'w.drop': 0.0, 'w.pos': V3(0.3, -0.2, 2.3), 'w.rot': V3(-30, 0, 0)}),
                     (0.31, {'w.drop': 1.0, 'w.pos': V3(0.28, -0.3, 2.3), 'w.rot': V3(-20, 0, 5)}),
                     (0.46, {'w.pos': V3(-0.6, -0.4, 1.4), 'w.rot': V3(40, 0, 30)}),
-                    (0.60, {'w.pos': V3(-1.3, -0.4, 0.04), 'w.rot': V3(88, 0, 20)}),
-                    (1.0, {'w.pos': V3(-1.3, -0.4, 0.04), 'w.rot': V3(88, 0, 20)})])
+                    (0.60, {'w.pos': land, 'w.rot': V3(88, 0, land_yaw)}),
+                    (1.0, {'w.pos': land, 'w.rot': V3(88, 0, land_yaw)})])
 
         def fn(t):
             u = MT.warp(t, [(0.64, down)])
@@ -592,13 +594,14 @@ class LeagueHorseRider(MT.HorseRider):
         # the white mantle: from a cord at the neck over the shoulders and
         # down the back, spreading over the cantle; a cross on the left
         # shoulder
-        tk = [0.0, 0.10, 0.28, 0.55, 0.80, 1.0]
-        zk = [0.335, 0.30, 0.19, 0.02, -0.15, -0.30]
-        rxk = [0.12, 0.26, 0.295, 0.30, 0.31, 0.33]
-        ryk = [0.095, 0.16, 0.185, 0.19, 0.20, 0.21]
-        dyk = [-0.01, -0.02, -0.04, -0.07, -0.11, -0.15]
+        tk0 = [0.0, 0.10, 0.28, 0.55, 0.80, 1.0]
+        tk = list(np.linspace(0.0, 1.0, 19))     # rows fine enough to carry the shoulder cross
+        zk = list(np.interp(tk, tk0, [0.335, 0.30, 0.19, 0.02, -0.15, -0.30]))
+        rxk = list(np.interp(tk, tk0, [0.12, 0.26, 0.295, 0.30, 0.305, 0.30]))
+        ryk = list(np.interp(tk, tk0, [0.095, 0.16, 0.185, 0.19, 0.195, 0.20]))
+        dyk = list(np.interp(tk, tk0, [-0.01, -0.02, -0.04, -0.07, -0.10, -0.13]))
         a0, a1 = math.radians(132), math.radians(408)
-        angs = np.linspace(a0, a1, 37)
+        angs = np.linspace(a0, a1, 73)
         back = 1.5 * math.pi
         rows = []
         for t, zt, rxt, ryt, dyt in zip(tk, zk, rxk, ryk, dyk):
@@ -607,7 +610,7 @@ class LeagueHorseRider(MT.HorseRider):
                 d = min(abs(a - back) / (back - a0), 1.0)
                 f = 1.0 - 0.38 * d ** 1.6           # the hem rises toward the front edges
                 z = zk[0] - (zk[0] - zt) * f
-                pl = 0.040 * math.sin(11 * (a - back)) * t ** 0.6   # pleats from the shoulders, deeper below
+                pl = 0.030 * math.sin(11 * (a - back)) * t ** 0.6   # pleats from the shoulders, deeper below
                 row.append(((rxt + pl) * math.cos(a), dyt + (ryt + pl) * math.sin(a), z))
             rows.append(row)
         Pm = np.asarray(rows, np.float32)
@@ -618,7 +621,7 @@ class LeagueHorseRider(MT.HorseRider):
         def mpaint(i, j):
             a = 0.5 * (angs[j] + angs[j + 1])
             z = 0.5 * (Pm[i, j, 2] + Pm[i + 1, j + 1, 2])
-            if in_cross((a - math.radians(158)) * 0.30, z - 0.16, 0.075, 0.022):
+            if in_cross((a - math.radians(238)) * 0.24, z - 0.20, 0.075, 0.022):
                 return cross_r
             return mant
         parts.append(('chest', grid_mesh(Pm, mpaint), None))
@@ -799,6 +802,8 @@ class LeagueHorseRider(MT.HorseRider):
             hb.back_parts.append(H._shell([(0.0, 0.075, 0.10, 0, 0.0), (0.10, 0.07, 0.09, 0, -0.01),
                                            (0.15, 0.05, 0.06, 0, -0.03)], hood, math.radians(-10), math.radians(190),
                                           seg=10).transformed(T(*c)))
+        # the breast filling out where the neck meets the chest (no step there)
+        hb.body_parts.append(M.ellipsoid(0.16, 0.15, 0.24, hb.m_coat, (0, 0.58, 1.33), seg=14))
         # the US bit's brass bosses and a white blaze down the face
         for sx in (1, -1):
             hb.head_parts.append(M.lathe([(0.0, 0.03), (0.01, 0.03), (0.016, 0.0005)], brass, seg=10).transformed(
