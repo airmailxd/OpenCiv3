@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "RiflemanDefault",
+    "RUN": "RiflemanRun",
+    "ATTACK1": "RiflemanAttackA",
+    "DEATH": "RiflemanDeath",
+    "FORTIFY": "RiflemanFortify",
+    "FIDGET": "RiflemanFidget",
+    "VICTORY": "RiflemanVictory"
+  },
+  "flics": {
+    "RiflemanAttackA": {"size": [171, 123], "directions": 8, "frames": 15, "frameMs": 83, "offset": [35, 26], "canvas": [240, 240]},
+    "RiflemanDeath": {"size": [87, 61], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 82], "canvas": [240, 240]},
+    "RiflemanDefault": {"size": [46, 57], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 69], "canvas": [240, 240]},
+    "RiflemanFidget": {"size": [48, 59], "directions": 8, "frames": 15, "frameMs": 66, "offset": [92, 68], "canvas": [240, 240]},
+    "RiflemanFortify": {"size": [58, 63], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 67], "canvas": [240, 240]},
+    "RiflemanRun": {"size": [54, 66], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 64], "canvas": [240, 240]},
+    "RiflemanVictory": {"size": [56, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 68], "canvas": [240, 240]}
+  }
+}
