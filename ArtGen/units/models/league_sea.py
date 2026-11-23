@@ -131,12 +131,12 @@ def mon_sail(mats, aspect, battens=6, strips=9):
 
 @design('atakebune')
 def atakebune(b, p):
-    b.m('wood_black', '#2e241c')
+    b.m('wood_black', '#3a2c20')
     b.m('plaster', '#e6e0d0')
     b.m('roof', '#55575c')
     b.m('roof_dark', '#2e3034')
-    b.m('wall', '#7a5e42')
-    b.m('wall_b', '#6c5238')
+    b.m('wall', '#8e6e4c')
+    b.m('wall_b', '#7e6042')
     b.m('sail_b', '#c6b68c')
     b.m('batten', '#5a4830')
     hull = b.set_hull(Hull(b.mats, L=2.45, B=0.64, D=0.13, draft=0.1, hb=0.02, sheer_stern=0.06, sheer_bow=0.1,
@@ -278,7 +278,7 @@ def atakebune(b, p):
     b.add(box((0, ym, zr + 0.06), (0.08, 0.08, 0.12), mwb, bevel=0.006))
     b.add(box((0, ym, mz[2] - 0.03), (0.05, 0.05, 0.06), mwb, bevel=0.006))
     # the sail: billowed, braced, battened; its yard and boom
-    ztop, sh, sw = mz[2] - 0.06, 0.76, 1.22
+    ztop, sh, sw = mz[2] - 0.06, 0.78, 1.34
     b.square_sail(ym, ztop, sw, sw * 1.02, sh, 'none', billow=0.16, nu=44, nv=36)
     b.sails[-1]['mat_fn'] = mon_sail(b.mats, sw / sh)
     br = math.radians(b.p.get('brace', 0.0))

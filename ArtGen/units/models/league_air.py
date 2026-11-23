@@ -208,7 +208,7 @@ def build_wildcat(V):
 
 
 AC.BUILDERS.setdefault('wildcat', build_wildcat)
-AC.PAINTS.setdefault('wildcat', {'paint': '#566a8e', 'under': '#b4bac0', 'line': '#475876', 'line_dark': '#2c3038',
+AC.PAINTS.setdefault('wildcat', {'paint': '#5a6a86', 'under': '#b4bac0', 'line': '#3e4c68', 'line_dark': '#2c3038',
                                  'paint_dark': '#4a5468', 'band': '#e8e8e8', 'star': '#f2f2f0',
                                  'glass': ('#9ab8c8', 0.7, 40), 'glass_dark': ('#3a4a58', 0.7, 40),
                                  'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222',

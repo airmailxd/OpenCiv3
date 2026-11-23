@@ -12,7 +12,7 @@ UNITS = {
     # mat sail, a civ-colored curtain round the walls and a stern banner.
     'Japanese Warship': {
         'archetype': 'ship', 'brace': 14, 'billow_k': 1.2, 'design': 'atakebune', 'fire_t': 0.1,
-        'colors': _c(WOOD_ANCIENT, wood='#7a5e40', wood_dark='#3a2c20', wood_light='#a88c64', deck='#8a7454',
+        'colors': _c(WOOD_ANCIENT, wood='#9a7a52', wood_dark='#4a3826', wood_light='#c0a478', deck='#a88e66',
                      sail='#d8c8a0', roof='#4a4a4c', gold='#c4a45e'),
     },
     # A samurai general: black lacquered armor laced in red, a kabuto with

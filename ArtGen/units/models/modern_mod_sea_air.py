@@ -63,7 +63,7 @@ def fan_sail(b, y, z_bot, h, w, n=7, brace=22.0, billow=0.035, tint=True, base='
              batten="batten", rise=0.12, fwd=0.56):
     """A junk sail whose battens fan out from the foot of its luff: n panels
     (each a sail of its own, bellying between two battens), alternately the
-    civ color and the plain cloth with the colors swapped toward the rim (or
+    civ color and the plain cloth, the plain ones tipped with it at the rim (or
     all `base`, with `alt` tips on every other panel, when tint is False);
     the battens as spars over the seams, the yard along the head; the
     sheets from the leech's batten ends converging to one block. The sail is
@@ -96,13 +96,13 @@ def fan_sail(b, y, z_bot, h, w, n=7, brace=22.0, billow=0.035, tint=True, base='
         ia = P(hub[0] + (a[0] - hub[0]) * 0.06, hub[1] + (a[1] - hub[1]) * 0.06)
         ic = P(hub[0] + (c[0] - hub[0]) * 0.06, hub[1] + (c[1] - hub[1]) * 0.06)
         if tint:
-            m_in = ma if i % 2 == 0 else mb
-            m_out = mb if i % 2 == 0 else ma
-
-            def f(u, v, m_in=m_in, m_out=m_out):
+            # rays of civ color on every other panel, the plain panels tipped with it at the rim
+            def f(u, v, i=i):
                 if v > 0.965:
                     return md
-                return m_out if v > 0.72 else m_in
+                if i % 2 == 0:
+                    return ma if v < 0.74 else mb
+                return ma if v > 0.84 else mb
         else:
             def f(u, v, i=i):
                 if v > 0.965:
@@ -312,7 +312,7 @@ def troopship(b, p):
     b.static[-1] = paint(b.static[-1], strakes, max_edge=0.06)
     # the forecastle: a raised deck at the bow with a breakwater
     yf0 = 1.15
-    b.add(box((0, 1.45, zd(1.3) + 0.03), (hb(1.3) * 1.7, 0.6, 0.06), b.m('steel'), bevel=0.01))
+    b.add(box((0, 1.45, zd(1.3) + 0.03), (hb(1.3) * 1.7, 0.6, 0.06), b.m('deck_steel'), bevel=0.01))
     b.add(box((0, yf0 + 0.02, zd(yf0) + 0.06), (hb(yf0) * 1.8, 0.04, 0.12), b.m('steel'), bevel=0.006))
     # portholes along the hull under the house
     for y in np.linspace(-0.55, 0.45, 12):
@@ -375,6 +375,26 @@ def troopship(b, p):
         b.add(M.cylinder(0.04, 0.04, 0.04, b.m('house_dark'), seg=12, z0=z0 + 0.12).transformed(M.translate(x, y, 0)))
         for dx in (-0.01, 0.01):
             b.add(rod((x + dx, y, z0 + 0.17), (x + dx * 1.5, y + 0.07, z0 + 0.2), 0.004, b.m('black'), seg=4))
+    # cargo winches beside the hatches, bitts and the anchor windlass on the forecastle, life rafts on the house
+    for y in (0.74, -0.9):
+        for dy in (-0.07, 0.07):
+            yy = y + dy
+            b.add(box((0, yy, zd(yy) + 0.025), (0.08, 0.05, 0.05), b.m('steel_dark'), bevel=0.006))
+            b.add(M.cylinder(0.02, 0.02, 0.12, b.m('house_dark'), seg=8, z0=-0.06).transformed(
+                M.translate(0, yy, zd(yy) + 0.05) @ M.rot_y(90)))
+    zf = zd(1.3) + 0.06
+    for sx in (-1, 1):
+        b.add(M.cylinder(0.035, 0.035, 0.04, b.m('steel_dark'), seg=10, z0=zf).transformed(M.translate(sx * 0.07, 1.6, 0)))
+        b.add(M.cylinder(0.022, 0.022, 0.06, b.m('house_dark'), seg=8, z0=-0.03).transformed(
+            M.translate(sx * 0.07, 1.6, zf + 0.04) @ M.rot_y(90)))
+        for y in (1.3, 1.68):
+            for dy in (0.0, 0.04):
+                b.add(M.cylinder(0.012, 0.012, 0.035, b.m('black'), seg=6, z0=zf).transformed(
+                    M.translate(sx * 0.14, y + dy, 0)))
+        b.line((sx * 0.07, 1.6, zf + 0.02), (sx * 0.09, 1.75, zf - 0.02), r=0.006, mat_name='iron')
+    for y in (yh - 0.05, yh + 0.2):
+        for sx in (-1, 1):
+            b.add(box((sx * 0.205, y, z0 + 0.175), (0.012, 0.09, 0.05), b.m('raft', '#c8b890'), bevel=0.004))
     # the anchor in its hawse, the jack staff and the ensign
     for sx in (-1, 1):
         ya = 1.55
@@ -494,7 +514,7 @@ def build_p38(V):
 
 
 AC.BUILDERS.setdefault('p38', build_p38)
-AC.PAINTS.setdefault('p38', {'paint': '#5f6442', 'under': '#8e9290', 'line': '#4c5134', 'line_dark': '#2a2c26',
+AC.PAINTS.setdefault('p38', {'paint': '#5f6442', 'under': '#8e9290', 'line': '#454a2c', 'line_dark': '#2a2c26',
                              'paint_dark': '#4c5134', 'band': '#e8e8e8', 'star': '#f2f2f0',
                              'glass': ('#9ab8c8', 0.7, 40), 'steel': ('#3a3a3a', 0.5, 24),
                              'metal': ('#b8bcc0', 0.6, 30), 'blade': '#262626', 'blade_tip': '#d8c040',
