@@ -45,21 +45,31 @@ UNITS = {
         'fortify': 'kneel', 'victory': 'raise',
         'actions': {'ATTACK1': 'fire', 'ATTACK2': 'lunge'},
     },
-    # A Japanese rifleman of the 1940s (the mod's 'japaneseRM'): a round
-    # helmet in a civ-colored cover with a neck flap, a khaki tunic,
-    # breeches and puttees, a field pack and a long rifle with a long
-    # bayonet; attacks with the bayonet.
+    # A Japanese rifleman of 1941-44 (the mod's 'japaneseRM'; round 2 in
+    # models/line_foot.py): the Type 98 field cap in the civ's color with its
+    # star and four neck flaps, the khaki Type 98 tunic (stand-and-fall
+    # collar with red tabs, four pockets), breeches and wound puttees, the
+    # leather belt with two cartridge boxes in front and one behind, the
+    # bayonet scabbard, canteen and bread bag on crossed straps, the
+    # knapsack with the blanket rolled round it (civ color), and the Type 38
+    # rifle with its long Type 30 bayonet held forward; attacks with the
+    # bayonet.
     'Japanese Rifleman': {
-        'archetype': 'league_soldier',
-        'build': 'lean',
-        'colors': {'skin': '#d0a47a', 'hair': '#1a1410', 'top': '#8a7c54', 'trousers': '#8a7c54',
-                   'stockings': '#7a7050', 'boots': '#4a3626', 'belt': '#4a3a26', 'strap': '#5a4a30',
-                   'pack': '#6e6446', 'pouch': '#5a4a30', 'havelock': '#8a7c54'},
-        'tint': ['helmet'],
+        'archetype': 'line_soldier',
+        'build': {'bulk': 0.9},
+        'stance': {'head': (10, 0, 0)},
+        'death_late_hands': True, 'death_head0': 6.0, 'thrust_level': True,
+        'colors': {'skin': '#d0a47a', 'hair': '#1a1410', 'top': '#7e7c4c', 'trousers': '#b4a67e', 'pouch': '#7a5430',
+                   'stockings': '#7a6e4a', 'hat': '#8e8858', 'havelock': '#8e8858', 'boots': '#4a3424', 'belt': '#4a3424', 'strap': '#5a4a30',
+                   'pack': '#7a6e4a', 'stock': '#7a4e2c', 'puttees': '#4e4a34'},
+        'tint': ['hatband', 'blanket'],
         'desat': 0.85,
-        'hair': 'short', 'hat': 'ija', 'top': 'long_sleeved', 'straps': ['webbing'], 'pack': 'field',
-        'legs': 'breeches', 'feet': 'shoes',
-        'gun': 'arisaka', 'hold': 'port', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'carry',
+        'hair': 'none', 'hat': 'senboshi', 'top': 'long_sleeved', 'jacket': 'type98',
+        'legs': 'breeches', 'garters': False, 'feet': 'shoes', 'leg_wear': 'puttees',
+        'kit': ['ija_belt', 'ija_pack', 'ija_canteen'],
+        'gun': 'type38', 'hold': 'port',
+        'poses': {'carry': {'hand_r': (0.22, 0.18, 0.98), 'w_main': (-20, -36, 0)}},
+        'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'carry',
         'flash': 'burst', 'smoke': 'light',
         'fortify': 'guard', 'victory': 'raise',
         'actions': {'ATTACK1': 'lunge'},
