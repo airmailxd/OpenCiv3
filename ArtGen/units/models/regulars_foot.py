@@ -365,10 +365,10 @@ class RegularSoldier(LF.LeagueSoldier):
         down = min(max(down or 0.55, 0.35), 0.85)
         A_ = H.ANKLE_H
         fr, fl = tuple(B['foot_r']), tuple(B['foot_l'])
-        slack = {'hand_r': (0.30, 0.06, 0.80), 'w_main': (172, 0, 4), 'support': 0.0,
+        slack = {'hand_r': (0.30, 0.14, 0.80), 'w_main': (-176, 0, 4), 'support': 0.0,
                  'hand_l': (-0.36, 0.10, 0.92), 'elbow_r': (0.9, -0.3, -0.2), 'elbow_l': (-0.9, -0.2, -0.2)}
         mid = {'hand_r': tuple(0.5 * (_v(B['hand_r']) + _v(slack['hand_r']))),
-               'w_main': tuple(_v(B['w_main'])),
+               'w_main': tuple(_v(B['w_main']) + _v((-35, 0, 0))),     # lowered, never up past the vertical
                'support': 0.4 * float(B.get('support', 0.0)),
                'hand_l': (-0.34, 0.16, 1.05), 'elbow_r': (0.9, -0.3, -0.3), 'elbow_l': (-0.9, -0.3, -0.2)}
         k = [
@@ -377,11 +377,11 @@ class RegularSoldier(LF.LeagueSoldier):
                          'foot_r': fr, 'foot_l': fl})),
             (0.30, dict(mid, root_rot=(14, 0, 8), root_pos=(0, -0.10, -0.36), spine=(8, 0, 0), chest=(14, 0, 6),
                         head=(20, 0, 0), foot_r=fr, foot_l=fl)),
-            (0.52, dict(slack, w_main=(-150, 0, 6), root_rot=(46, 0, 8), root_pos=(0, -0.32, -0.62), spine=(6, 0, 0), chest=(8, 0, 4),
+            (0.52, dict(slack, w_main=(-140, 0, 6), root_rot=(46, 0, 8), root_pos=(0, -0.32, -0.62), spine=(6, 0, 0), chest=(8, 0, 4),
                         head=(14, 0, 8), foot_r=(0.18, 0.06, A_), foot_l=(-0.17, 0.12, A_))),
-            (0.74, dict(slack, root_rot=(86, 0, 6), root_pos=(0, -0.52, -0.75), spine=(0, 0, 0), chest=(0, 0, 2),
+            (0.74, dict(slack, root_rot=(86, 0, 6), root_pos=(0, -0.52, -0.69), spine=(0, 0, 0), chest=(0, 0, 2),
                         head=(-6, 0, 18), foot_r=(0.22, 0.22, A_), foot_l=(-0.18, 0.26, A_))),
-            (1.0, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.54, -0.77), spine=(0, 0, 0), chest=(0, 0, 2),
+            (1.0, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.54, -0.70), spine=(0, 0, 0), chest=(0, 0, 2),
                        head=(-8, 0, 22), foot_r=(0.24, 0.24, A_), foot_l=(-0.18, 0.28, A_),
                        toe_r=-30.0, toe_l=-30.0)),
         ]
