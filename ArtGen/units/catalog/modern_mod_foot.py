@@ -111,27 +111,20 @@ UNITS = {
         'fortify': 'guard', 'victory': 'fist',
         'actions': {'ATTACK1': 'fire', 'ATTACK2': 'fire'},
     },
-    # An Afghan mujahid of the 1980s (models/irregulars.py): a pakol, a
-    # beard, a kameez over shalwar, a dark wool patu over the shoulders, a
-    # chicom chest rig and a sash in the civ's color, boots, and a
-    # Lee-Enfield held at port arms; fires from the shoulder.
+    # A fighter in a civ-colored headwrap, a khaki shirt and camouflage
+    # trousers, an AK with a bayonet held upright (the mod's 'Mujahidin').
     'Militant': {
-        'archetype': 'irregular',
-        'scale': 0.92,
-        'colors': {'skin': '#b08460', 'hair': '#2a1e16', 'top': '#7e7862', 'coat': '#7e7862', 'trousers': '#5a564a',
-                   'cuff': '#545046', 'boots': '#3a2a1c', 'belt': '#3a2a1a', 'strap': '#3a2a1a',
-                   'hat': '#5a4c3c', 'hat_seam': '#44382c', 'patu': '#4a4034', 'patu_border': '#2a221a',
-                   'toggle': '#2a2018'},
-        'camo': {'top': ['#6e6852', '#8a846c'], 'coat': ['#6e6852', '#8a846c'], 'trousers': ['#4a463c', '#6a6656']},
-        'camo_density': 0.8, 'camo_size': 0.04,
-        'tint': ['sash', 'rig', 'coat'],
-        'hair': 'short', 'beard': False, 'beard_style': 'trimmed', 'hat': 'pakol', 'top': 'long_sleeved',
-        'coat': 0.16, 'coat_hem': True, 'rig_z': 0.14, 'sash': 'sash', 'legs': 'trousers', 'cargo': True, 'patu': 'patu', 'rig': 'chicom',
-        'feet': 'boots', 'boot_folds': True,
-        'gun': 'enfield', 'hold': 'port', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'carry',
-        'flash': 'burst', 'smoke': 'light', 'flash_size': 0.26, 'shots': {'ATTACK1': [6, 12]},
-        'fortify': 'guard', 'victory': 'raise',
-        'actions': {'ATTACK1': 'fire'},
+        'archetype': 'mod_soldier',
+        'colors': {'skin': '#b88a64', 'hair': '#1e1610', 'top': '#a29470', 'coat': '#a29470', 'trousers': '#56603a',
+                   'boots': '#3a2a1a', 'belt': '#3a2a1a', 'strap': '#3a2a1a'},
+        'camo': {'trousers': ['#78843e', '#2e3a1a', '#6a5a30']},
+        'tint': ['hat'],
+        'hair': 'short', 'beard': True, 'hat': 'turban', 'top': 'long_sleeved', 'coat': 0.18,
+        'legs': 'trousers', 'feet': 'boots', 'straps': ['crossbelt'],
+        'gun': 'ak_bayonet', 'hold': 'vertical', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'carry',
+        'flash': 'burst', 'smoke': 'light', 'flash_size': 0.24, 'shots': {'ATTACK1': [0, 2, 7, 9, 11, 13]},
+        'fortify': 'guard', 'victory': 'fire_air',
+        'actions': dict(_FIRE),
     },
     # Napoleonic line infantry: a shako, a coat in the civ's color, white
     # crossbelts and trousers, a musket with its bayonet fixed (the mod's

@@ -469,6 +469,9 @@ class IrregularBody(LF.LeagueBody):
                 c = (a + b) / 2
                 d = (b - a) / np.linalg.norm(b - a)
                 add('chest', M.capsule(tuple(c - d * 0.012), tuple(c + d * 0.012), 0.056, 0.056, tie, seg=10, rings=1))
+        if p.get('legs') == 'trousers':
+            add('pelvis', M.ellipsoid(0.17 * tw, 0.125 * tw, 0.09, self.mm('trousers', '#555555'), (0, -0.005, -0.13),
+                                      seg=14))
         # -- jeans: outer seams, back pockets, stacked folds at the ankle, a belt with a buckle
         if p.get('jeans'):
             sm = self.mm('seam_light', '#8a8270')
@@ -846,45 +849,53 @@ class Irregular(LF.LeagueSoldier):
 
     # -- dying: struck, the knees go, he slumps onto his left side, the gun still in his hands
     def anim_slump(self, ctx):
-        """Shot: the knees buckle, he sits back and falls flat on his back,
-        the feet on the ground all the way (legs on IK); the weapon falls
-        from his hands early and lands clear at his side (the stock drop)."""
+        """The stock fall (struck, staggers, the knees go, he falls flat on
+        his back, the legs out straight) with the arms slack at his sides
+        instead of flung out, and the weapon still in the right hand, only
+        ever lowered (never up through the vertical), lying along his right
+        side; the body lies a little high so the weapon stays above ground."""
         B = dict(self.base)
         down = ctx.event('down', 0.55) if ctx is not None else 0.55
         down = min(max(down or 0.55, 0.35), 0.85)
-        A_ = H.ANKLE_H
         lo = float(self.p.get('death_low', 0.0))
-        fr, fl = tuple(B['foot_r']), tuple(B['foot_l'])
-        slack = {'hand_r': (0.34, 0.02, 0.84), 'hand_l': (-0.36, 0.06, 0.86), 'support': 0.0,
-                 'elbow_r': (0.9, -0.3, -0.2), 'elbow_l': (-0.9, -0.2, -0.2)}
-        up = {'hand_r': (0.32, 0.10, 1.10), 'hand_l': (-0.32, 0.12, 1.10), 'support': 0.0,
-              'elbow_r': (0.9, -0.3, -0.3), 'elbow_l': (-0.9, -0.3, -0.3)}
+        fk = {'thigh_r': (0, -4, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 4, 0), 'shin_l': (0, 0, 0),
+              'root_rot': (0, 0, 0)}
+        slack = {'hand_r': (0.30, 0.14, 0.80), 'w_main': (-176, 0, 4), 'support': 0.0,
+                 'hand_l': (-0.36, 0.10, 0.92), 'elbow_r': (0.9, -0.3, -0.2), 'elbow_l': (-0.9, -0.2, -0.2)}
+        mid = {'hand_r': tuple(0.5 * (_v(B['hand_r']) + _v(slack['hand_r']))),
+               'w_main': tuple(_v(B['w_main']) + _v((-35, 0, 0))),
+               'support': 0.4 * float(B.get('support', 0.0)),
+               'hand_l': (-0.34, 0.16, 1.05), 'elbow_r': (0.9, -0.3, -0.3), 'elbow_l': (-0.9, -0.3, -0.2)}
+        if self.thrower:
+            slack['w_main'] = (-150, 0, 4)
         k0 = {}
         if lo:
-            k0 = {'root_pos': (0, -0.03, -lo), 'root_rot': (6, 0, 2), 'chest': (8, 0, 4), 'head': (14, 0, 0),
-                  'foot_r': fr, 'foot_l': fl}
+            k0 = {'root_pos': (0, -0.03, -lo), 'root_rot': (6, 0, 2), 'thigh_r': (30, -4, 0), 'shin_r': (-55, 0, 0),
+                  'thigh_l': (22, 4, 0), 'shin_l': (-40, 0, 0), 'chest': (8, 0, 4), 'head': (14, 0, 0)}
         k = [
             (0.0, k0),
-            (0.14, dict(up, root_rot=(8, 0, 4), root_pos=(0, -0.04, -0.03 - lo), chest=(10, 0, 6), head=(18, 0, 0),
-                        foot_r=fr, foot_l=fl)),
-            (0.30, dict(up, root_rot=(14, 0, 8), root_pos=(0, -0.10, -0.36), spine=(8, 0, 0), chest=(14, 0, 6),
-                        head=(20, 0, 0), foot_r=fr, foot_l=fl)),
-            (0.52, dict(slack, root_rot=(46, 0, 8), root_pos=(0, -0.32, -0.62), spine=(6, 0, 0), chest=(8, 0, 4),
-                        head=(14, 0, 8), foot_r=(0.18, 0.06, A_), foot_l=(-0.17, 0.12, A_))),
-            (0.74, dict(slack, root_rot=(86, 0, 6), root_pos=(0, -0.52, -0.75), spine=(0, 0, 0), chest=(0, 0, 2),
-                        head=(-6, 0, 18), foot_r=(0.22, 0.22, A_), foot_l=(-0.18, 0.26, A_))),
-            (1.0, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.54, -0.77), spine=(0, 0, 0), chest=(0, 0, 2),
-                       head=(-8, 0, 22), foot_r=(0.24, 0.24, A_), foot_l=(-0.18, 0.28, A_),
-                       toe_r=-30.0, toe_l=-30.0)),
+            (0.18, dict(mid, root_rot=(12, 0, 6), root_pos=(0, -0.06, -0.02 - lo), chest=(12, 0, 8), head=(22, 0, 0),
+                        thigh_r=(10 + (20 if lo else 0), -4, 0), shin_r=(-18 - (40 if lo else 0), 0, 0))),
+            (0.38, dict(mid, w_main=(-140, 0, 6), root_rot=(30, 0, 10), root_pos=(0, -0.22, -0.28), chest=(14, 0, 8),
+                        head=(24, 0, 0), thigh_r=(62, -8, 0), shin_r=(-72, 0, 0), thigh_l=(44, 8, 0), shin_l=(-62, 0, 0))),
+            (0.62, dict(slack, w_main=(-150, 0, 6), root_rot=(80, 0, 8), root_pos=(0, -0.55, -0.66), chest=(6, 0, 4),
+                        head=(10, 0, 10), thigh_r=(40, -10, 0), shin_r=(-40, 0, 0), thigh_l=(30, 12, 0),
+                        shin_l=(-30, 0, 0))),
+            (0.78, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.62, -0.715), chest=(-2, 0, 2), head=(-10, 0, 18),
+                        thigh_r=(12, -14, 0), shin_r=(-10, 0, 0), thigh_l=(8, 16, 0), shin_l=(-14, 0, 0))),
+            (1.0, dict(slack, root_rot=(90, 0, 6), root_pos=(0, -0.62, -0.71), chest=(0, 0, 2), head=(-6, 0, 22),
+                       thigh_r=(8, -14, 0), shin_r=(-6, 0, 0), thigh_l=(6, 16, 0), shin_l=(-10, 0, 0))),
         ]
-        anim = H.keys(B, k)
+        base = dict(B, **{c: _v(v) for c, v in fk.items()})
+        anim = H.keys(base, k)
 
         def fn(t):
-            p = anim(H._warp(t, [(0.52, down)]))
+            p = anim(H._warp(t, [(0.62, down)]))
             p['follow'] = _v(1.0)
+            p['follow_rot'] = _v(1.0)
             p['dead_t'] = _v(t)
             return p
-        return FM.Act(fn, legs='ik', arms='ik', drop_t=float(self.p.get('drop_t', 0.16)))
+        return FM.Act(fn, legs='fk', arms='ik', drop_t=None)
 
     # -- the thrower: the bottle in the left hand
     def anim_throw(self, ctx):
@@ -957,18 +968,12 @@ class Irregular(LF.LeagueSoldier):
         pose = act.fn(t)
         in_hand = float(pose.get('in_hand', 1.0)) > 0.5
         dead_t = float(pose.get('dead_t', -1.0))
-        dropped = act.drop_t is not None and t >= act.drop_t
-        mesh, info = self.pose_full(pose, act, None if dropped else self.weapon,
-                                    'molotov' if (in_hand and not dropped) else None)
+        t_drop = 0.16
+        dropped = dead_t >= t_drop
+        mesh, info = self.pose_full(pose, act, self.weapon, 'molotov' if (in_hand and not dropped) else None)
         extra = []
         fx = []
         flames = []
-        if dropped:
-            off, self.offhand = self.offhand, None
-            try:
-                extra += self._dropped(act, t, self.weapon)
-            finally:
-                self.offhand = off
         if in_hand and not dropped:
             T = info['T']['l']
             flames.append((T[:3, :3] @ _v(IG.FLAME_AT) + T[:3, 3], 1.0))
@@ -976,11 +981,11 @@ class Irregular(LF.LeagueSoldier):
             # the bottle flies from his hand as he falls and burns where it lies, clear of him on his left
             key = ('dropbottle', id(act))
             if key not in self._cache:
-                _, Ts, _ = self._solve(act.fn(act.drop_t), act)
+                _, Ts, _ = self._solve(act.fn(t_drop), act)
                 p0 = Ts['l'][:3, 3].copy()
                 self._cache[key] = (p0, _v((p0[0] - 0.55, p0[1] + 0.35, 0.04)))
             p0, land = self._cache[key]
-            u = min(1.0, (dead_t - act.drop_t) / 0.2)
+            u = min(1.0, (dead_t - t_drop) / 0.2)
             pos = p0 * (1 - u) + land * u
             pos[2] = p0[2] * (1 - u * u) + land[2] * u * u
             T = M.translate(*pos) @ M.rot_z(30) @ M.rot_x(-90 * u)
