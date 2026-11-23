@@ -9,21 +9,23 @@ the original fires.
 """
 
 UNITS = {
-    # A resistance fighter: a flat cap, a long dark civilian coat over a
-    # sweater, a civ-colored armband and scarf, a bandolier, a drum-fed
-    # submachine gun held across the body.
+    # A Soviet partisan of 1942-44 (models/irregulars.py): an ushanka with
+    # the ear flaps tied up and a ribbon in the civ's color across it, a
+    # quilted telogreika, a rolled greatcoat over the left shoulder in the
+    # civ's color, tall boots, a stick grenade and a bread bag, and a PPSh-41
+    # with its drum held across the chest; fires from the hip.
     'Partisans': {
-        'archetype': 'league_soldier',
-        'colors': {'skin': '#c89c78', 'hair': '#2a2018', 'hat': '#3e3a36', 'top': '#5e564a', 'coat': '#4a443c',
-                   'trousers': '#4a4640', 'boots': '#26201c', 'belt': '#3a2c20', 'strap': '#4a3a28'},
-        'tint': ['armband', 'scarf'],
-        'build': 'lean',
-        'desat': 0.85,
-        'hair': 'short', 'hat': 'flat_cap', 'top': 'long_sleeved', 'coat': 0.34,
-        'straps': ['bandolier'], 'armband': 'armband', 'scarf': 'scarf',
-        'legs': 'trousers', 'feet': 'tall_boots',
-        'gun': 'ppsh', 'hold': 'across', 'aim': 'hip', 'fire_start': 'carry', 'fire_end': 'carry',
-        'flash': 'burst', 'smoke': 'light', 'flash_size': 0.22, 'shots': {'ATTACK1': [6, 7, 8, 9]},
+        'archetype': 'irregular',
+        'colors': {'skin': '#c89c78', 'hair': '#2a2018', 'top': '#5c5a4a', 'coat': '#5c5a4a', 'trousers': '#3e3c36',
+                   'boots': '#24201c', 'belt': '#2e2218', 'strap': '#3a2c20', 'hat': '#6a5642', 'fur_dark': '#4a3c2e',
+                   'hat_top': '#3e3e36', 'button': '#1c1a18'},
+        'camo': {'trousers': ['#34322c', '#4a483e']}, 'camo_density': 1.2, 'camo_size': 0.04,
+        'tint': ['ribbon', 'skatka'],
+        'hair': 'short', 'hat': 'ushanka', 'ribbon': 'ribbon', 'top': 'long_sleeved', 'coat': 0.20, 'quilted': True,
+        'jacket': {'buttons': 5}, 'belt_over': True, 'skatka': 'skatka', 'bag': 'bread', 'grenade': True,
+        'legs': 'trousers', 'feet': 'tall_boots', 'boot_folds': True,
+        'gun': 'ppsh41', 'hold': 'across', 'aim': 'hip', 'fire_start': 'carry', 'fire_end': 'carry',
+        'flash': 'burst', 'smoke': 'light', 'flash_size': 0.24, 'shots': {'ATTACK1': [5, 6, 7, 8, 9]},
         'fortify': 'kneel', 'victory': 'fire_air',
         'actions': {'ATTACK1': 'fire'},
     },
