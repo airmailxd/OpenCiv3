@@ -152,7 +152,7 @@ class IrregularBody(LF.LeagueBody):
             out[:] = keep
         # -- arms: rolled sleeves
         if p.get('rolled'):
-            tm = self.mm('top', '#888888')
+            tm = self.mm(p.get('roll_mat', 'top'), '#888888')
             for side in 'rl':
                 add(f'arm_{side}', M.capsule((0, 0, -0.12), (0, 0, -0.19), 0.084 * lb, 0.082 * lb, tm, seg=12, rings=1))
                 add(f'arm_{side}', M.cylinder(0.086 * lb, 0.086 * lb, 0.03, tm, seg=12, z0=-0.17))
@@ -162,6 +162,7 @@ class IrregularBody(LF.LeagueBody):
             jm = self.mm('top', '#555555')
             dk = self.mm('seam', '#26262a')
             if jk.get('collar'):
+                jm = self.mm(p.get('collar_mat', 'top'), '#555555')
                 add('chest', M.loft([(0.30, 0.105 * tw * 0.9, 0.085), (0.36, 0.088 * tw, 0.074), (0.39, 0.084 * tw, 0.072)],
                                     jm, seg=14, cap_bottom=False, cap_top=False).transformed(M.translate(0, -0.006, 0)))
             if jk.get('zip'):
@@ -316,7 +317,7 @@ class IrregularBody(LF.LeagueBody):
             add('pelvis', M.loft([(-0.18, 0.21 * tw, 0.155 * tw), (0.0, 0.198 * tw, 0.145 * tw), (0.10, 0.18 * tw, 0.13 * tw)],
                                  sm, seg=16, cap_bottom=True, cap_top=False))
             for side in 'rl':
-                add(f'thigh_{side}', M.capsule((0, 0.01, 0.0), (0, 0.01, -H.THIGH + 0.02), 0.13 * lb, 0.105 * lb, sm, seg=12, rings=2))
+                add(f'thigh_{side}', M.capsule((0, 0.01, 0.0), (0, 0.01, -H.THIGH + 0.02), 0.10 * lb, 0.086 * lb, sm, seg=12, rings=2))
                 add(f'shin_{side}', M.loft([(-0.34, 0.06 * lb, 0.062 * lb), (-0.28, 0.084 * lb, 0.088 * lb, 0, 0.006),
                                             (-0.16, 0.096 * lb, 0.10 * lb, 0, 0.01), (-0.02, 0.098 * lb, 0.10 * lb, 0, 0.006),
                                             (0.04, 0.09 * lb, 0.09 * lb)], sm, seg=12, cap_bottom=True, cap_top=True))
@@ -330,16 +331,16 @@ class IrregularBody(LF.LeagueBody):
             tm = self.mm('top', '#d8d0b8')
             low = -float(km)
             sx_ = tw
-            add('pelvis', M.loft([(-0.06, 0.232 * sx_, 0.178 * sx_), (0.04, 0.21 * sx_, 0.16 * sx_), (0.12, 0.19 * sx_, 0.14 * sx_)],
+            add('pelvis', M.loft([(-0.06, 0.218 * sx_, 0.166 * sx_), (0.04, 0.21 * sx_, 0.16 * sx_), (0.12, 0.19 * sx_, 0.14 * sx_)],
                                  tm, seg=18, cap_bottom=False, cap_top=False))
-            rings = [(low, 0.262 * sx_, 0.215 * sx_), ((low - 0.06) * 0.5, 0.25 * sx_, 0.198 * sx_), (-0.06, 0.232 * sx_, 0.178 * sx_)]
+            rings = [(low, 0.218 * sx_, 0.182 * sx_), ((low - 0.06) * 0.5, 0.21 * sx_, 0.18 * sx_), (-0.06, 0.218 * sx_, 0.166 * sx_)]
             hem = self.mm('hem', '#c4bca2')
             for side, off in (('r', 0.11), ('l', -0.11)):
                 for a0, a1 in (((14, 90) if side == 'r' else (90, 166)), ((270, 346) if side == 'r' else (194, 270))):
                     sh_ = H._shell(rings, tm, math.radians(a0), math.radians(a1), seg=8)
                     sh_ = sh_.transformed(M.translate(-off, 0, 0.05))
                     add(f'thigh_{side}', sh_)
-                    hm_ = H._shell([(low, 0.264 * sx_, 0.217 * sx_), (low + 0.03, 0.263 * sx_, 0.216 * sx_)], hem,
+                    hm_ = H._shell([(low, 0.22 * sx_, 0.184 * sx_), (low + 0.03, 0.219 * sx_, 0.183 * sx_)], hem,
                                    math.radians(a0), math.radians(a1), seg=8)
                     add(f'thigh_{side}', hm_.transformed(M.translate(-off, 0, 0.05)))
         # -- tonal patches (wear, dirt, sun-fading) on the kameez panels and the shalwar
@@ -376,10 +377,10 @@ class IrregularBody(LF.LeagueBody):
         if p.get('patu'):
             pm = self.mm(p['patu'], '#8a7a62')
             pb = self.mm('patu_border', '#3a3026')
-            g = 0.03
+            g = 0.016
             top_rings = [(0.16, cr[2][1] + g, cr[2][2] + g, 0, cr[2][4]), (0.25, cr[3][1] + g, cr[3][2] + g, 0, cr[3][4]),
-                         (0.30, cr[4][1] + g + 0.03, cr[4][2] + g + 0.015, 0, cr[4][4]),
-                         (0.335, cr[5][1] + g + 0.03, cr[5][2] + g + 0.025, 0, cr[5][4])]
+                         (0.30, cr[4][1] + g + 0.015, cr[4][2] + g + 0.01, 0, cr[4][4]),
+                         (0.335, cr[5][1] + g + 0.015, cr[5][2] + g + 0.015, 0, cr[5][4])]
             add('chest', H._shell(top_rings, pm, math.radians(112), math.radians(428), seg=18))
             back = [(-0.30, cr[0][1] + 0.07, cr[0][2] + 0.075), (-0.10, cr[0][1] + 0.05, cr[0][2] + 0.06),
                     (0.08, cr[1][1] + g, cr[1][2] + g, 0, cr[1][4]), (0.17, cr[2][1] + g, cr[2][2] + g, 0, cr[2][4])]
@@ -417,10 +418,10 @@ class IrregularBody(LF.LeagueBody):
             g = 0.03 + (0.03 if p.get('vest') else 0.0)
             z0 = 0.06
             x0, y0, _ = _on(cr, z0, 90, g)
-            add('chest', M.rounded_box(0.36, 0.022, 0.17, rm, (0, y0 - 0.004, z0), r=0.01, seg=6, p=4))
-            for k, x in enumerate((-0.085, 0.0, 0.085)):
-                add('chest', M.rounded_box(0.074, 0.05, 0.15, rm, (x, y0 + 0.026, z0 - 0.005), r=0.014, seg=6, p=3.5))
-                add('chest', M.rounded_box(0.078, 0.054, 0.045, rd, (x, y0 + 0.028, z0 + 0.06), r=0.012, seg=6, p=3.5))
+            add('chest', M.rounded_box(0.40, 0.022, 0.20, rm, (0, y0 - 0.004, z0), r=0.01, seg=6, p=4))
+            for k, x in enumerate((-0.092, 0.0, 0.092)):
+                add('chest', M.rounded_box(0.082, 0.055, 0.17, rm, (x, y0 + 0.028, z0 - 0.005), r=0.014, seg=6, p=3.5))
+                add('chest', M.rounded_box(0.086, 0.059, 0.045, rd, (x, y0 + 0.03, z0 + 0.07), r=0.012, seg=6, p=3.5))
                 add('chest', M.cylinder(0.008, 0.008, 0.02, self.mm('toggle', '#3a2a1c'), seg=6, z0=-0.01).transformed(
                     M.translate(x, y0 + 0.057, z0 + 0.045) @ M.rot_x(90)))
             for sx in (1, -1):
@@ -430,7 +431,7 @@ class IrregularBody(LF.LeagueBody):
                 pts = [(sx * 0.14, y0, z0 + 0.08), _on(cr, 0.22, 90 - sx * 42, g * 0.6), (sx * 0.13, 0.0, 0.345),
                        _on(cr, 0.22, 270 + sx * 40, 0.02), (-sx * 0.10, _on(cr, 0.06, 270, 0.02)[1], 0.06),
                        (-sx * 0.20, _on(cr, 0.0, 270 - sx * 40, 0.02)[1], 0.0)]
-                out.extend(('chest', m, None) for m in _band(pts, 0.016, rd))
+                out.extend(('chest', m, None) for m in _band(pts, 0.021, rd))
             # the waist strap round the back
             ry = cr[0][2] + 0.02
             add('chest', M.loft([(-0.01, cr[0][1] + 0.022, ry), (0.02, cr[0][1] + 0.022, ry)], rd, seg=16,
@@ -499,14 +500,14 @@ class IrregularBody(LF.LeagueBody):
         if p.get('sash'):
             sm = self.mm(p['sash'], '#a03028')
             k = 1.0 + (0.17 if p.get('kameez') else 0.02)
-            add('pelvis', M.loft([(0.02, 0.193 * tw * k, 0.142 * tw * k), (0.06, 0.197 * tw * k, 0.146 * tw * k),
+            add('pelvis', M.loft([(-0.01, 0.193 * tw * k, 0.142 * tw * k), (0.06, 0.197 * tw * k, 0.146 * tw * k),
                                   (0.10, 0.19 * tw * k, 0.14 * tw * k), (0.13, 0.182 * tw * k, 0.134 * tw * k)], sm,
                                  seg=18, cap_bottom=False, cap_top=False))
             x = -0.17 * tw * k
             y = 0.08 * tw * k
             add('pelvis', M.ellipsoid(0.04, 0.035, 0.035, sm, (x, y, 0.07), seg=8))
-            add('pelvis', _strip((x, y + 0.02, 0.06), (x - 0.03, y + 0.03, -0.14), 0.05, 0.012, sm, up=(-0.5, 1, 0)))
-            add('pelvis', _strip((x + 0.02, y + 0.025, 0.05), (x + 0.03, y + 0.04, -0.10), 0.045, 0.012, sm, up=(-0.5, 1, 0)))
+            add('pelvis', _strip((x, y + 0.02, 0.06), (x - 0.03, y + 0.03, -0.24), 0.06, 0.012, sm, up=(-0.5, 1, 0)))
+            add('pelvis', _strip((x + 0.02, y + 0.025, 0.05), (x + 0.035, y + 0.045, -0.19), 0.055, 0.012, sm, up=(-0.5, 1, 0)))
         # -- folds down the kameez panels
         if km and p.get('kameez_folds'):
             tm = self.mm('top', '#d8d0b8')
@@ -514,13 +515,37 @@ class IrregularBody(LF.LeagueBody):
             for side, off, angs in (('r', 0.11, (40, 70, 290, 320)), ('l', -0.11, (110, 140, 220, 250))):
                 for ang in angs:
                     a = math.radians(ang)
-                    pts = [((0.262 * tw + 0.002) * math.cos(a) - off, (0.215 * tw + 0.002) * math.sin(a), low + 0.06),
-                           ((0.236 * tw + 0.002) * math.cos(a) - off, (0.182 * tw + 0.002) * math.sin(a), -0.02)]
+                    pts = [((0.218 * tw + 0.002) * math.cos(a) - off, (0.182 * tw + 0.002) * math.sin(a), low + 0.06),
+                           ((0.222 * tw + 0.002) * math.cos(a) - off, (0.17 * tw + 0.002) * math.sin(a), -0.02)]
                     out.extend((f'thigh_{side}', m, None) for m in _band(pts, 0.011, tm))
+        if p.get('tricolour'):
+            for k, col in enumerate(p['tricolour']):
+                m_ = self.mm(f'tricolour_{k}', col, spec=0.04)
+                add('arm_l', M.cylinder(0.083 * lb, 0.083 * lb, 0.024, m_, seg=12, z0=-0.075 - 0.024 * k))
+            # the hole cut in its middle
+            add('arm_l', M.ellipsoid(0.012, 0.02, 0.012, self.mm('hole', '#1e1a16'), (-0.083 * lb, 0.0, -0.063 - 0.024)))
+        if p.get('pockets'):
+            pm = self.mm('top', '#555555')
+            fl = self.mm('seam', '#26262a')
+            g = 0.02 + (0.008 if p.get('quilted') else 0.0)
+            for sx in (1, -1):
+                x, y, z = _on(cr, 0.16, 90 - sx * 36, g)
+                T = M.translate(x, y, z) @ M.rot_z(-sx * 36)
+                add('chest', M.rounded_box(0.075, 0.02, 0.08, pm, (0, 0, 0), r=0.006, seg=4, p=4).transformed(T))
+                add('chest', M.rounded_box(0.08, 0.024, 0.025, fl, (0, 0.002, 0.035), r=0.006, seg=4, p=4).transformed(T))
+        if p.get('shirt_front'):
+            sf = self.mm('shirtfront', '#d8d2c0')
+            pts = [_on(cr, z, 90, 0.016) for z in (0.31, 0.18, 0.05, -0.06)]
+            out.extend(('chest', m, None) for m in _band(pts, 0.035, sf))
+            bm = self.mm('button', '#5a5040', spec=0.3, gloss=18)
+            for z in (0.24, 0.13, 0.02):
+                add('chest', M.sphere(0.011, bm, _on(cr, z, 90, 0.05), seg=6))
         # -- an armband round the left upper arm; a neckerchief knotted in front
         if p.get('armband2'):
             am = self.mm(p['armband2'], '#ffffff')
             add('arm_l', M.cylinder(0.083 * lb, 0.081 * lb, 0.07, am, seg=12, z0=-0.13))
+            if p.get('armbands_both'):
+                add('arm_r', M.cylinder(0.083 * lb, 0.081 * lb, 0.07, am, seg=12, z0=-0.13))
         if p.get('kerchief'):
             km_ = self.mm(p['kerchief'], '#ffffff')
             add('chest', M.loft([(0.29, 0.125 * tw * 0.85, 0.09), (0.33, 0.10 * tw * 0.85, 0.08), (0.36, 0.08 * tw, 0.07)], km_,
@@ -612,8 +637,12 @@ class IrregularBody(LF.LeagueBody):
             hm = self.mm('hat', '#d8d0c0', spec=0.03)
             st = self.mm('hat_stripe', '#ece8de', spec=0.03)
             # the crown, the back and sides down to the neck
-            add(M.ellipsoid(0.114, 0.124, 0.105, hm, (0, -0.012, 0.172), seg=16))
-            add(M.ellipsoid(0.116, 0.112, 0.125, hm, (0, -0.032, 0.094), seg=16))
+            add(M.ellipsoid(0.11, 0.12, 0.10, hm, (0, -0.012, 0.172), seg=16))
+            add(M.ellipsoid(0.112, 0.108, 0.12, hm, (0, -0.032, 0.094), seg=16))
+            # the check: stripes round and over the crown
+            for ang in (0, 45, 90, 135):
+                add(M.loft([(-0.005, 0.113, 0.123), (0.005, 0.113, 0.123)], st, seg=18, cap_bottom=False,
+                           cap_top=False).transformed(M.translate(0, -0.012, 0.172) @ M.rot_z(ang) @ M.rot_y(90)))
             add(M.cylinder(0.082, 0.09, 0.11, hm, seg=12, z0=-0.07))
             # the wound turns: tilted bands round the crown, each with its stripe
             for k, (z, tx, ty, r) in enumerate(((0.20, -6, 4, 0.12), (0.225, 10, -6, 0.11), (0.178, 2, -10, 0.122))):
@@ -634,27 +663,24 @@ class IrregularBody(LF.LeagueBody):
                            cap_top=False).transformed(M.translate(0, -0.012, 0)))
             # the knot behind and the tail down the back
             add(M.ellipsoid(0.04, 0.035, 0.035, hm, (0.03, -0.135, 0.11), seg=10))
-            pts = [(0.03, -0.14, 0.10), (0.05, -0.17, 0.0), (0.07, -0.19, -0.11), (0.08, -0.20, -0.20)]
+            pts = [(0.03, -0.14, 0.10), (0.05, -0.16, 0.02), (0.06, -0.165, -0.05)]
             for i, (a, b) in enumerate(zip(pts[:-1], pts[1:])):
                 add(_strip(a, b, 0.085 - 0.01 * i, 0.02, hm, up=(0, -1, 0)))
-            add(_strip((0.08, -0.198, -0.19), (0.081, -0.2, -0.22), 0.066, 0.022, st, up=(0, -1, 0)))
             for i, (a, b) in enumerate(zip(pts[:-1], pts[1:])):
                 add(_strip(a, b, 0.012, 0.024, st, up=(0, -1, 0)))
-            for k in range(5):
-                fx_ = 0.055 + 0.012 * k
-                add(M.capsule((fx_, -0.20, -0.215), (fx_, -0.205, -0.25), 0.005, 0.004, hm, seg=4, rings=1))
+            add(_strip((0.06, -0.163, -0.04), (0.061, -0.166, -0.065), 0.07, 0.024, st, up=(0, -1, 0)))
         elif hat == 'pakol':
             hm = self.mm('hat', '#8a7c62', spec=0.03)
             hd = self.mm('hat_seam', '#6e624c', spec=0.03)
             # the rolled brim: a fat ring round the head
-            add(M.loft([(0.105, 0.116, 0.128), (0.12, 0.134, 0.146), (0.15, 0.145, 0.157), (0.18, 0.14, 0.152),
-                        (0.195, 0.124, 0.136)], hm, seg=20, cap_bottom=True, cap_top=False))
+            add(M.loft([(0.11, 0.112, 0.124), (0.125, 0.126, 0.138), (0.15, 0.133, 0.145), (0.175, 0.13, 0.142),
+                        (0.19, 0.118, 0.13)], hm, seg=20, cap_bottom=True, cap_top=False))
             # the flat top, wider than the roll's inside, a seam where they meet
-            add(M.loft([(0.19, 0.132, 0.144), (0.215, 0.142, 0.154), (0.235, 0.138, 0.15), (0.245, 0.11, 0.12),
-                        (0.248, 0.0, 0.0)], hm, seg=20, cap_bottom=False, cap_top=False))
-            add(M.loft([(0.188, 0.135, 0.147), (0.198, 0.135, 0.147)], hd, seg=20, cap_bottom=False, cap_top=False))
+            add(M.loft([(0.185, 0.122, 0.134), (0.205, 0.128, 0.14), (0.222, 0.122, 0.134), (0.232, 0.095, 0.105),
+                        (0.236, 0.0, 0.0)], hm, seg=20, cap_bottom=False, cap_top=False))
+            add(M.loft([(0.183, 0.124, 0.136), (0.192, 0.124, 0.136)], hd, seg=20, cap_bottom=False, cap_top=False))
             # the roll's lower edge, and a fold where it's rolled
-            add(M.loft([(0.104, 0.118, 0.13), (0.112, 0.124, 0.136)], hd, seg=20, cap_bottom=False, cap_top=False))
+            add(M.loft([(0.109, 0.114, 0.126), (0.117, 0.12, 0.132)], hd, seg=20, cap_bottom=False, cap_top=False))
         elif hat == 'ushanka':
             lift = M.translate(0, -0.012, 0.04) @ M.rot_x(-7)
             add0_ = add
@@ -664,8 +690,13 @@ class IrregularBody(LF.LeagueBody):
             fm = self.mm('hat', '#5e4e3c', spec=0.02)
             fd = self.mm('fur_dark', '#46392c', spec=0.02)
             cm = self.mm('hat_top', '#3e3e36', spec=0.08)
-            # the crown
-            add(H._dome(0.118, 0.128, 0.11, cm, (0, -0.008, 0.17), 0.0))
+            # the crown: a cloth top domed above the fur, its seams
+            add(H._dome(0.128, 0.138, 0.13, cm, (0, -0.008, 0.17), 0.0))
+            sd = self.mm('hat_seam', '#2a2a24')
+            for ang in (0, 90):
+                add(M.loft([(-0.004, 0.129, 0.139), (0.004, 0.129, 0.139)], sd, seg=18, cap_bottom=False,
+                           cap_top=False).transformed(M.translate(0, -0.008, 0.17) @ M.rot_z(ang) @ M.rot_y(90)
+                                                      @ M.scale(1, 1, 1)))
             # the fur band round it: tufted, two rings
             add(M.loft([(0.10, 0.128, 0.14), (0.12, 0.145, 0.157), (0.17, 0.15, 0.162), (0.20, 0.142, 0.154),
                         (0.21, 0.13, 0.142)], fm, seg=20, cap_bottom=True, cap_top=False))
@@ -791,13 +822,21 @@ class Irregular(LF.LeagueSoldier):
         fk = {'thigh_r': (0, 0, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 0, 0), 'shin_l': (0, 0, 0),
               'root_rot': (0, 0, 0)}
         z = {c: B[c] for c in ('root_pos', 'chest', 'spine', 'head') if c in B}
+        lo = float(self.p.get('death_low', 0.0))
+        k0 = {}
+        if lo:
+            # the cell is short: he is already doubled over when the death starts
+            k0 = {'root_pos': (0, 0.0, -lo), 'thigh_r': (30, 0, 0), 'shin_r': (-55, 0, 0), 'thigh_l': (22, 0, 0),
+                  'shin_l': (-40, 0, 0), 'chest': (-14, 0, -6), 'head': (14, 0, 0), 'root_rot': (-8, 0, 0)}
         k = [
-            (0.0, {}),
-            (0.14, {'root_rot': (10, -4, 0), 'root_pos': (0, -0.06, -0.03), 'chest': (12, 0, -8), 'head': (16, 0, 0),
-                    'thigh_r': (4, 0, 0), 'shin_r': (-6, 0, 0)}),
-            (0.34, {'root_rot': (-14, -8, 0), 'root_pos': (0, 0.02, -0.30), 'chest': (-12, 0, -6), 'head': (12, 0, 0),
+            (0.0, k0),
+            (0.14, {'root_rot': (6 if not lo else -10, -4, 0), 'root_pos': (0, -0.04, -0.02 - lo),
+                    'chest': (6 if not lo else -16, 0, -6), 'head': (10, 0, 0),
+                    'thigh_r': (4 + (30 if lo else 0), 0, 0), 'shin_r': (-6 - (55 if lo else 0), 0, 0),
+                    'thigh_l': (22 if lo else 0, 0, 0), 'shin_l': (-40 if lo else 0, 0, 0)}),
+            (0.34, {'root_rot': (-14, -8, 0), 'root_pos': (0, 0.02, -0.27), 'chest': (-12, 0, -6), 'head': (12, 0, 0),
                     'thigh_r': (45, 0, 0), 'shin_r': (-82, 0, 0), 'thigh_l': (32, 0, 0), 'shin_l': (-64, 0, 0)}),
-            (0.55, {'root_rot': (-20, -24, 0), 'root_pos': (-0.04, 0.05, -0.47), 'chest': (-14, 0, -4),
+            (0.55, {'root_rot': (-20, -24, 0), 'root_pos': (-0.04, 0.05, -0.42), 'chest': (-14, 0, -4),
                     'head': (14, -6, 0), 'thigh_r': (22, 0, 0), 'shin_r': (-98, 0, 0), 'thigh_l': (18, 0, 0),
                     'shin_l': (-96, 0, 0)}),
             (0.76, {'root_rot': (-12, -66, 0), 'root_pos': (-0.30, 0.05, -0.64), 'chest': (-6, 0, 6),
@@ -847,7 +886,7 @@ class Irregular(LF.LeagueSoldier):
                 'chest': (-18, 0, -26), 'spine': (-10, 0, -10), 'head': (-4, 0, 12),
                 'root_pos': (0, 0.12, -0.09), 'foot_r': (0.17, 0.32, A), 'foot_l': (-0.19, -0.12, A + 0.03),
                 'toe_l': 35.0, 'fyaw_l': 20.0, 'in_hand': 0.0}
-        bag = {'hand_l': (-0.32, 0.06, 0.90), 'w_off': (10, 0, 0), 'elbow_l': (-0.6, -0.6, -0.3),
+        bag = {'hand_l': (-0.31, 0.02, 0.84), 'w_off': (10, 0, 0), 'elbow_l': (-0.6, -0.6, -0.3),
                'chest': (-6, 0, -10), 'spine': (-4, 0, -6), 'head': (10, 0, -24), 'root_pos': (0, 0.04, -0.05),
                'foot_r': (0.17, 0.20, A), 'foot_l': (-0.18, -0.06, A), 'toe_l': 0.0, 'fyaw_l': 15.0, 'in_hand': 0.0}
         rest = {c: B[c] for c in ('hand_l', 'w_off', 'elbow_l', 'chest', 'spine', 'head',
@@ -861,8 +900,9 @@ class Irregular(LF.LeagueSoldier):
         def fn(t):
             tt = H._warp(t, [(0.45, st)])
             p = anim(tt)
-            p['in_hand'] = _v(1.0 if (tt < 0.455 or tt >= 0.78) else 0.0)
+            p['in_hand'] = _v(1.0 if (tt < 0.455 or tt >= 0.77) else 0.0)
             p['throw_t'] = _v(tt)
+            p['follow'] = _v(0.0)
             return p
         act = FM.Act(fn)
         act.release = 0.455
@@ -873,7 +913,7 @@ class Irregular(LF.LeagueSoldier):
         if key not in self._cache:
             p0 = act.fn(act.release - 1e-3)
             _, Ts, _ = self._solve(p0, act)
-            land = _v(self.p.get('land', (-0.10, 1.25, 0.06)))
+            land = _v(self.p.get('land', (-0.10, 1.75, 0.06)))
             self._cache[key] = (Ts['l'].copy(), land)
         T0, land = self._cache[key]
         fly = float(self.p.get('fly_t', 0.20))
@@ -884,7 +924,7 @@ class Irregular(LF.LeagueSoldier):
             return None, (tt - act.release - fly)
         p0 = T0[:3, 3]
         pos = p0 * (1 - u) + land * u
-        pos[2] = p0[2] * (1 - u) + land[2] * u + 0.75 * 4 * u * (1 - u)
+        pos[2] = p0[2] * (1 - u) + land[2] * u + 0.9 * 4 * u * (1 - u)
         T = M.translate(*pos) @ M.rot_x(-60 - 400 * u) @ M.translate(0, 0, -0.05)
         return T, None
 

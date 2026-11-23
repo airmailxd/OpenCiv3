@@ -60,21 +60,22 @@ UNITS = {
         'fortify': 'kneel', 'victory': 'fist',
         'actions': dict(_FIRE),
     },
-    # An urban insurgent of the 2000s (models/irregulars.py): a shemagh
-    # wound over the head, the face open, a jacket with the sleeves rolled
-    # over jeans, a chicom chest rig in the civ's color, a PKM machine gun at
-    # the hip, trainers; fires long bursts from the hip.
+    # An urban insurgent of the 2000s (models/irregulars.py): a red-and-white
+    # shemagh wound over the head, the face open, a dark jacket with the
+    # sleeves rolled over jeans, a chicom chest rig and armband in the civ's
+    # color, a PKM machine gun at the hip, trainers; fires long bursts from
+    # the hip.
     'Insurgent': {
         'archetype': 'irregular',
-        'colors': {'skin': '#b88e6c', 'top': '#5c6844', 'trousers': '#5a6270', 'boots': '#3a3c44', 'belt': '#2e2820',
-                   'strap': '#2e2820', 'seam': '#3e4630', 'seam_light': '#8c9098', 'kneepad': '#464a52',
-                   'rig_dark': '#5a5444', 'sole': '#e2e0da', 'stripe': '#cfcdc6', 'hat': '#c8bca0',
-                   'hat_stripe': '#7a3028', 'toggle': '#2a2018'},
-        'camo': {'top': ['#4e5a38', '#6c7852'], 'trousers': ['#4e5664', '#6a7280']},
+        'colors': {'skin': '#a87e5c', 'vest': '#46502e', 'rig': '#7e7454', 'rig_dark': '#5a5240', 'trousers': '#424a58', 'boots': '#2e3038', 'belt': '#2a241c',
+                   'strap': '#2a241c', 'seam': '#2e3422', 'seam_light': '#6e7480', 'kneepad': '#363a42',
+                   'sole': '#d8d6d0', 'stripe': '#c4c2bc', 'hat': '#e2ddd0', 'hat_stripe': '#9a2a24',
+                   'toggle': '#2a2018', 'eyes': '#1a120c'},
+        'camo': {'vest': ['#3a4424', '#56603a'], 'trousers': ['#384050', '#525a68']},
         'camo_density': 1.0, 'camo_size': 0.04,
-        'tint': ['rig', 'rig_dark'],
-        'hair': 'none', 'hat': 'shemagh', 'top': 'sleeved', 'rolled': True,
-        'jacket': {'collar': True, 'zip': True}, 'seams': True, 'jeans': True, 'buckle': True,
+        'tint': ['top', 'rig', 'rig_dark', 'kneepad'],
+        'hair': 'none', 'hat': 'shemagh', 'top': 'sleeved', 'rolled': True, 'vest': 'jerkin', 'vest_skirt': 0.02,
+        'jacket': {'zip': True}, 'seams': True, 'jeans': True, 'buckle': True,
         'rig': 'chicom', 'legs': 'trousers', 'knees': True, 'feet': 'shoes', 'sneakers': True,
         'gun': 'pkm', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
         'run_hold': {'hand_r': (0.20, 0.16, 1.00), 'w_main': (-14, -38, 0), 'support': 1.0, 'elbow_l': (-0.5, -0.5, -0.7)},
@@ -83,47 +84,51 @@ UNITS = {
         'fortify': 'kneel', 'victory': 'fire_air',
         'actions': {'ATTACK1': 'fire', 'ATTACK2': 'fire', 'ATTACK3': 'fire'},
     },
-    # A townsman in an uprising (models/irregulars.py): grey-bearded, a flat
-    # cap, a collarless shirt under a waistcoat, an armband and neckerchief in
-    # the civ's color, a bandolier of shells, an old double-barrelled gun on
-    # his shoulder and a lit Molotov cocktail low in his left hand, a bag of
-    # bottles at his hip; he throws the bottle overarm and it bursts into
-    # flame where it lands.
+    # A townsman in an uprising, Budapest 1956 (models/irregulars.py): a flat
+    # cap and neckerchief in the civ's color, a dark jacket open over his
+    # shirt, the tricolour with its hole cut out on his arm, a belt of
+    # shells, an old double-barrelled gun in his right hand and a lit Molotov
+    # cocktail low in his left, a bag of bottles at his hip; he throws the
+    # bottle overarm and it bursts into flame where it lands.
     'Rebel': {
         'archetype': 'irregular',
-        'colors': {'skin': '#c89a74', 'hair': '#a8a49c', 'hat': '#6a645a', 'top': '#c8c0aa', 'trousers': '#6a5e4e',
-                   'boots': '#2e241c', 'belt': '#2e2218', 'vest': '#5a4a3a', 'waistcoat_edge': '#3a2e22',
+        'colors': {'skin': '#c89a74', 'hair': '#8a8680', 'top': '#5a4c3e', 'trousers': '#6e6454', 'shirtfront': '#d4cebc',
+                   'boots': '#2a201a', 'belt': '#2e2218', 'vest': '#4a3e32', 'waistcoat_edge': '#2e241c',
                    'bag': '#8e7e58', 'bag_dark': '#6e6244', 'bag_strap': '#5a4e36', 'strap': '#4a3624',
-                   'bottles': '#a83a2a', 'patch': '#857358'},
-        'camo': {'trousers': ['#776a58', '#5a4e40']}, 'camo_density': 1.2, 'camo_size': 0.04,
-        'tint': ['armband', 'kerchief'],
-        'hair': 'short', 'beard': False, 'beard_style': 'trimmed', 'hat': 'flat_cap',
-        'top': 'sleeved', 'rolled': True, 'shirt': {'buttons': 3, 'pocket': True},
-        'armband2': 'armband', 'kerchief': 'kerchief', 'shell_belt': True,
+                   'bottles': '#a83a2a', 'patch': '#6e604c', 'stock': '#9a6838'},
+        'camo': {'top': ['#665848', '#4a3e32'], 'trousers': ['#7a7060', '#5a5044']}, 'camo_density': 1.2,
+        'camo_size': 0.04,
+        'tint': ['hat', 'kerchief', 'bag_strap', 'vest'],
+        'hair': 'short', 'beard': False, 'hat': 'flat_cap',
+        'top': 'long_sleeved', 'shirt_front': True, 'tricolour': ['#b8302a', '#e8e4dc', '#3a7a3a'],
+        'kerchief': 'kerchief', 'shell_belt': True, 'pockets': True,
         'waistcoat': 'vest', 'legs': 'trousers', 'turnups': True, 'knee_patch': True, 'feet': 'shoes', 'bag': 'bottles',
-        'gun': 'shotgun', 'offhand': 'molotov', 'hold': 'shoulder',
-        'poses': {'carry': {'hand_r': (0.14, 0.20, 1.12), 'w_main': (40, 20, 0), 'support': 0.0,
-                            'elbow_r': (0.6, -0.6, -0.5), 'hand_l': (-0.36, 0.14, 0.92), 'w_off': (0, 8, 0),
-                            'elbow_l': (-0.6, -0.8, -0.3)}},
+        'gun': 'shotgun', 'offhand': 'molotov', 'hold': 'low',
+        'poses': {'carry': {'hand_r': (0.30, 0.12, 0.98), 'w_main': (-120, 0, -6), 'support': 0.0,
+                            'hand_l': (-0.36, 0.14, 0.92), 'w_off': (0, 8, 0), 'elbow_l': (-0.6, -0.8, -0.3)},
+                  'guard': {'support': 0.0, 'hand_l': (-0.36, 0.20, 1.00)}},
         'run_hold': {'hand_l': (-0.34, 0.16, 0.98)},
         'fortify': 'guard', 'victory': 'fist',
         'actions': {'ATTACK1': 'fire', 'ATTACK2': 'fire'},
     },
     # An Afghan mujahid of the 1980s (models/irregulars.py): a pakol, a
-    # beard, a kameez over shalwar, a sash in the civ's color, a wool patu
-    # over the shoulders, a chicom chest rig, sandals, and a Lee-Enfield held
-    # at port arms; fires from the shoulder.
+    # beard, a kameez over shalwar, a dark wool patu over the shoulders, a
+    # chicom chest rig and a sash in the civ's color, boots, and a
+    # Lee-Enfield held at port arms; fires from the shoulder.
     'Militant': {
         'archetype': 'irregular',
-        'scale': 0.95,
-        'colors': {'skin': '#b88a64', 'hair': '#2e2218', 'top': '#aaa084', 'hem': '#8e8468', 'trousers': '#8c8878',
-                   'cuff': '#726e60', 'boots': '#b88a64', 'sandal': '#4a3220', 'belt': '#3a2a1a',
-                   'strap': '#3a2a1a', 'rig': '#6e6448', 'rig_dark': '#504836', 'hat': '#6e5e4a', 'hat_seam': '#54473a',
-                   'patu': '#6a5e4c', 'patu_border': '#3a3026'},
-        'tint': ['sash'],
-        'hair': 'short', 'beard': False, 'beard_style': 'full', 'hat': 'pakol', 'top': 'long_sleeved',
-        'kameez': 0.40, 'kameez_folds': True, 'sash': 'sash', 'shalwar': True, 'patu': 'patu', 'rig': 'chicom',
-        'feet': 'shoes', 'sandals': True,
+        'scale': 0.92,
+        'colors': {'skin': '#b08460', 'hair': '#2a1e16', 'top': '#7e7862', 'coat': '#7e7862', 'trousers': '#5a564a',
+                   'cuff': '#545046', 'boots': '#3a2a1c', 'belt': '#3a2a1a', 'strap': '#3a2a1a',
+                   'hat': '#5a4c3c', 'hat_seam': '#44382c', 'patu': '#4a4034', 'patu_border': '#2a221a',
+                   'toggle': '#2a2018'},
+        'camo': {'top': ['#6e6852', '#8a846c'], 'coat': ['#6e6852', '#8a846c'], 'trousers': ['#4a463c', '#6a6656']},
+        'camo_density': 0.8, 'camo_size': 0.04,
+        'tint': ['sash', 'rig', 'rig_dark', 'patu_border', 'armband', 'coat'],
+        'armband2': 'armband', 'armbands_both': True,
+        'hair': 'short', 'beard': False, 'beard_style': 'trimmed', 'hat': 'pakol', 'top': 'long_sleeved',
+        'coat': 0.16, 'sash': 'sash', 'legs': 'trousers', 'cargo': True, 'patu': 'patu', 'rig': 'chicom',
+        'feet': 'boots', 'boot_folds': True,
         'gun': 'enfield', 'hold': 'port', 'aim': 'shoulder', 'fire_start': 'carry', 'fire_end': 'carry',
         'flash': 'burst', 'smoke': 'light', 'flash_size': 0.26, 'shots': {'ATTACK1': [6, 12]},
         'fortify': 'guard', 'victory': 'raise',
