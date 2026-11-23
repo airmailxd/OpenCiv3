@@ -9,55 +9,74 @@ picture fires.
 _FIRE = {'ATTACK1': 'fire'}
 
 UNITS = {
-    # Power armour: a big armoured trooper, a laser rifle at the hip (the
-    # mod's 'XAirborne', blue armour over a dark suit).
+    # Near-future power armour (models/regulars_foot.py): warm gunmetal
+    # plates over a dark suit, the chest, back and upper-arm plates in the
+    # civ's color, broad pauldrons of stacked lames, big knee and shin
+    # guards, a closed helmet with a visor plate, cheek pieces and seams, a
+    # power pack, a heavy pulse rifle with coils and an emitter held low
+    # and out to the right (the mod's 'XAirborne').
     'Super Trooper': {
-        'archetype': 'mod_soldier',
-        'build': {'build': 'muscular', 'bulk': 1.12, 'height': 1.05},
-        'colors': {'skin': '#c8a07a', 'top': '#2c2e33', 'trousers': '#2c2e33', 'boots': '#26272b',
-                   'belt': '#26272b', 'strap': '#26272b'},
-        'tint': ['plate', 'helmet'],
-        'tint_shade': '#d0d0d0',
-        'hat': 'power', 'armor': 'power', 'top': 'long_sleeved', 'legs': 'trousers', 'feet': 'boots',
-        'gun': 'laser_rifle', 'hold': 'low', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
+        'archetype': 'regular_soldier',
+        'build': {'build': 'muscular', 'bulk': 1.10},
+        'scale': 0.75,
+        'gun_thick': 1.9,
+        'colors': {'skin': '#c8a07a', 'top': '#2e2d29', 'trousers': '#2e2d29', 'boots': '#26251f',
+                   'belt': '#26251f', 'strap': '#26251f'},
+        'tint': ['plate'],
+        'hair': 'none', 'hat': 'exo', 'armor': 'exo', 'top': 'long_sleeved', 'legs': 'trousers', 'feet': 'boots',
+        'gun': 'pulse_rifle', 'hold': 'low', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'aim', 'fire_blend': 3,
+        'poses': {'carry': {'hand_r': (0.24, 0.30, 1.04), 'w_main': (-96, 0, -12), 'support': 1.0,
+                            'elbow_r': (0.9, -0.4, -0.3), 'elbow_l': (-0.8, 0.1, -0.5)},
+                  'aim': {'elbow_l': (-0.8, 0.2, -0.6)}},
         'flash': 'laser', 'beam_len': 1.5,
-        'shots': {'ATTACK1': [1, 2, 3, 4, 7, 8, 9, 10, 14, 15, 16, 17]},
+        'shots': {'ATTACK1': [3, 4, 7, 8, 9, 10, 14, 15, 16, 17]},
+        'fortify': 'kneel', 'victory': 'raise',
+        'actions': dict(_FIRE),
+    },
+    # An assault engineer (models/regulars_foot.py): the flamethrower's
+    # tanks on a back frame with a shovel and a pick-mattock strapped on,
+    # a respirator under goggles, a flak vest with pouches, a demolition
+    # satchel at the hip, wire cutters, the flame gun at the hip and a jet
+    # of fire (the mod's 'americanFT').
+    'Combat Engineer': {
+        'archetype': 'regular_soldier',
+        'colors': {'skin': '#c89c74', 'hair': '#2a2018', 'helmet': '#8a8466', 'vest': '#6e7458',
+                   'trousers': '#8e8868', 'boots': '#4a3826', 'belt': '#4a4836', 'strap': '#4a4836',
+                   'tank': '#7a7e68', 'tank_dark': '#55584a', 'pouch': '#7e7a5c'},
+        'camo': {'vest': ['#58603e', '#8e8e6c', '#4a4a36'], 'trousers': ['#74704e', '#a69e7c']},
+        'tint': ['top', 'pack_band'],
+        'desat': 0.85,
+        'hair': 'short', 'hat': 'm1', 'goggles': True, 'respirator': True, 'top': 'long_sleeved',
+        'vest': 'flak', 'legs': 'trousers', 'cargo': True, 'feet': 'boots',
+        'kit': ['tank_pack', 'flak_pouches', 'satchel', 'etool', 'kneepads', 'gloves', 'belt_kit'],
+        'gun': 'flame_gun', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim', 'fire_blend': 3,
+        'flash': 'flame', 'flame_len': 1.6,
+        'shots': {'ATTACK1': list(range(3, 13))},
         'fortify': 'aim', 'victory': 'raise',
         'actions': dict(_FIRE),
     },
-    # A flamethrower: fuel tanks on the back, the flame gun at the hip, a
-    # jet of fire (the mod's 'americanFT').
-    'Combat Engineer': {
-        'archetype': 'mod_soldier',
-        'build': 'muscular',
-        'colors': {'skin': '#c89c74', 'hair': '#2a2018', 'helmet': '#59604a', 'vest': '#606650', 'trousers': '#6e6a50',
-                   'boots': '#3a2c1e', 'belt': '#3a3a2e', 'strap': '#3a3a2e'},
+    # An anti-tank gunner with an RPG-7 on his right shoulder, both hands
+    # on its grips, three spare rounds in a carrier on his back, angled
+    # back below the helmet; a covered PASGT helmet with goggles, a chest
+    # rig of booster pouches and belt kit over a civ-colored shirt with
+    # rolled sleeves, camouflaged trousers (models/regulars_foot.py);
+    # fires kneeling (the mod's 'RPG').
+    'RPG Trooper': {
+        'archetype': 'regular_soldier',
+        'colors': {'skin': '#c4946c', 'hair': '#2a2018', 'helmet': '#6e6a4a', 'helmet_band': '#4e4c34',
+                   'trousers': '#6a6448', 'boots': '#2a2018', 'belt': '#3a3426', 'strap': '#4a4430'},
+        'camo': {'trousers': ['#4a4630', '#8a805c', '#5a4a32']},
         'tint': ['top'],
         'desat': 0.85,
-        'hair': 'short', 'hat': 'pasgt', 'top': 'long_sleeved', 'vest': 'flak', 'legs': 'trousers', 'cargo': True,
-        'feet': 'boots', 'back_gear': 'tanks',
-        'gun': 'flamethrower', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
-        'flash': 'flame', 'flame_len': 1.6,
-        'shots': {'ATTACK1': list(range(1, 13))},
-        'fortify': 'aim', 'victory': 'raise',
-        'actions': dict(_FIRE),
-    },
-    # An RPG on the shoulder, two spare rounds on the back, brown kit (the
-    # mod's 'RPG'); fires kneeling.
-    'RPG Trooper': {
-        'archetype': 'mod_soldier',
-        'colors': {'skin': '#c4946c', 'hair': '#2a2018', 'helmet': '#6a5a40', 'top': '#6e5a40', 'trousers': '#5e5038',
-                   'boots': '#2e2418', 'belt': '#2e2a22', 'strap': '#2e2a22', 'hat': '#6a5a40'},
-        'camo': {'trousers': ['#4a3e2a', '#7e6e4e']},
-        'tint': ['vest'],
-        'desat': 0.9,
-        'hair': 'short', 'hat': 'boonie', 'top': 'long_sleeved', 'vest': 'jerkin', 'vest_skirt': 0.0,
-        'legs': 'trousers', 'cargo': True, 'feet': 'boots', 'back_gear': 'rockets',
-        'gun': 'rpg', 'hold': 'shoulder', 'aim': 'shoulder', 'kneel_fire': True, 'fire_start': 'carry', 'fire_end': 'aim',
-        'poses': {'carry': {'hand_r': (0.16, 0.20, 1.10), 'w_main': (40, 18, 0)}},
+        'hair': 'short', 'hat': 'covered', 'goggles': True, 'top': 'sleeved',
+        'legs': 'trousers', 'cargo': True, 'feet': 'boots', 'kit': ['rpg_rig', 'rocket_carrier', 'belt_kit'],
+        'gun': 'rpg7', 'hold': 'shoulder', 'aim': 'shoulder', 'kneel_fire': True, 'fire_start': 'carry', 'fire_end': 'aim',
+        'poses': {'carry': {'hand_r': (0.20, 0.16, 1.42), 'w_main': (-52, 0, -16), 'support': 1.0,
+                            'elbow_r': (0.8, -0.5, -0.4), 'elbow_l': (-0.6, -0.6, -0.5)},
+                  'aim': {'hand_r': (0.16, 0.16, 1.80), 'w_main': (-90, 0, 0), 'head': (-4, 0, -6)}},
         'flash': 'rocket', 'impact': 3.4, 'flight': 4,
-        'shots': {'ATTACK1': [3]},
-        'fortify': 'kneel', 'victory': 'fist',
+        'shots': {'ATTACK1': [5]},
+        'fortify': 'aim', 'victory': 'fist',
         'actions': dict(_FIRE),
     },
     # A commando in dark urban camouflage, a balaclava, a chest rig in the
