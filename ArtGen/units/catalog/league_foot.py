@@ -27,23 +27,28 @@ UNITS = {
         'fortify': 'kneel', 'victory': 'fire_air',
         'actions': {'ATTACK1': 'fire'},
     },
-    # A present-day special operator (models/regulars_foot.py): a high-cut
-    # helmet with the night-vision goggles flipped up and a headset, a
-    # beard, a combat shirt with civ-colored sleeves, a plate carrier with
-    # magazines, a radio whose antenna rises behind the head, an assault
-    # pack, knee pads, a drop-leg holster, gloves and a suppressed carbine
-    # with an optic at the low ready; fires from the shoulder.
+    # A present-day special operator (models/regulars_foot.py): a black
+    # high-cut helmet with the night-vision goggles flipped up on their
+    # mount and a headset, a beard; ranger-green kit over a dark combat
+    # uniform, civ-colored sleeves like the stock Marine's; a plate
+    # carrier with magazines, a radio whose antenna rises behind the head,
+    # an assault pack, knee pads, a drop-leg holster, gloves; a suppressed
+    # carbine with an optic held out from the body; fires from the shoulder.
     'Special Forces': {
         'archetype': 'regular_soldier',
-        'colors': {'skin': '#c09474', 'hair': '#3a2a1c', 'helmet': '#7e7052', 'trousers': '#8a7c5c',
-                   'boots': '#6a5a40', 'belt': '#3a362c', 'strap': '#3a362c'},
-        'camo': {'trousers': ['#6e6448', '#a8976e', '#5a5a3e']},
+        'scale': 0.93,
+        'colors': {'skin': '#c09474', 'hair': '#2e2218', 'helmet': '#2a2b2c', 'helmet_rail': '#1a1a1a',
+                   'trousers': '#46493e', 'vest': '#3e4234', 'carrier': '#4a4e3c', 'carrier_dark': '#34372a',
+                   'boots': '#2a2824', 'belt': '#262622', 'strap': '#262622', 'kneepad': '#222220'},
+        'camo': {'trousers': ['#33362c', '#5c5f4c', '#2a2a26'], 'vest': ['#33362c', '#565a46']},
         'tint': ['top'],
         'desat': 0.9,
-        'hair': 'short', 'beard': True, 'hat': 'fast', 'top': 'long_sleeved',
+        'hair': 'short', 'beard': True, 'hat': 'fast', 'top': 'long_sleeved', 'vest': 'flak',
         'legs': 'trousers', 'cargo': True, 'feet': 'boots',
         'kit': ['plate_carrier', 'assault_pack', 'kneepads', 'gloves', 'holster', 'flag'],
-        'gun': 'sf_carbine', 'hold': 'low', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'aim',
+        'poses': {'carry': {'hand_r': (0.26, 0.26, 1.10), 'w_main': (-100, 0, 34), 'support': 1.0,
+                            'elbow_r': (0.9, -0.3, -0.4), 'elbow_l': (-0.5, -0.3, -0.8)}},
+        'gun': 'sf_carbine', 'hold': 'across', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'aim',
         'flash': 'burst', 'smoke': None, 'flash_size': 0.12,
         'shots': {'ATTACK1': [0, 2, 7, 9, 12]},
         'fortify': 'kneel', 'victory': 'raise',

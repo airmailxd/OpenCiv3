@@ -103,6 +103,18 @@ class RegBody(LF.LeagueBody):
             st = self.mm('satchel_strap', '#4e4830')
             for a, b in zip(pts[:-1], pts[1:]):
                 add('chest', _bar(a, b, 0.02, st))
+        if 'belt_kit' in kit:
+            # ammunition pouches either side of the buckle, a canteen behind the right hip, a butt pack
+            pm = self.mm('pouch', '#6a5e42')
+            bk = mat(self.mats, 'buckle', '#2a2a26', spec=0.3, gloss=16)
+            cm = self.mm('canteen', '#4e5236', spec=0.1)
+            T = M.scale(tw, 1 + (tw - 1) * 0.8, 1)
+            for sx in (1, -1):
+                add('pelvis', M.rounded_box(0.07, 0.05, 0.08, pm, (sx * 0.085, 0.15, 0.055), r=0.012, seg=6, p=4).transformed(T))
+                add('pelvis', M.box(0.075, 0.054, 0.02, bk, (sx * 0.085, 0.15, 0.09)).transformed(T))
+            add('pelvis', M.box(0.05, 0.02, 0.04, bk, (0, 0.185, 0.09)).transformed(T))
+            add('pelvis', M.rounded_box(0.06, 0.09, 0.11, cm, (0.15, -0.10, 0.04), r=0.025, seg=8, p=3).transformed(T))
+            add('pelvis', M.rounded_box(0.16, 0.06, 0.09, pm, (0, -0.16, 0.05), r=0.015, seg=6, p=4).transformed(T))
         if 'cutters' in kit:
             add('pelvis', RG.wire_cutters(self.mats))
         if 'kneepads' in kit:
@@ -152,84 +164,90 @@ class RegBody(LF.LeagueBody):
 
     # -- the power armour
     def _exo(self, add, rings, tw, lb):
-        pl = self.mm('plate', '#3c4aa0', spec=0.55, gloss=26)
-        gr = self.mm('armor_grey', '#8a8e96', spec=0.55, gloss=26, metal=True)
-        dk = self.mm('armor_dark', '#3a3d45', spec=0.45, gloss=22, metal=True)
-        glow = self.mm('glow', '#60e4ff')
-        g = 0.05
-        # the chest plate: over the chest rings, a seam down the middle, a step under the pecs
-        # the suit's yoke over the shoulders (dark), the chest plate a shell
-        # over the front (civ color), the back plate (grey) behind
-        cr = [(z, rx + g, ry + g * 1.25, dx, dy) for z, rx, ry, dx, dy in rings[:4]]
-        add('chest', M.loft([(z, rx + 0.025, ry + 0.03, dx, dy) for z, rx, ry, dx, dy in rings[1:5]], dk, seg=18,
+        """Plates of a warm dark gunmetal over a darker suit: the chest plate
+        and the upper-arm plates in the civ color (where the stock soldiers'
+        shirts are), pauldrons of three stacked lames, worn lighter edges,
+        pistons down the legs. No lights but the pack's."""
+        pl = self.mm('plate', '#3c4aa0', spec=0.45, gloss=22)
+        gm = self.mm('armor_grey', '#5e5c50', spec=0.45, gloss=22, metal=True)
+        dk = self.mm('armor_dark', '#2e2d29', spec=0.35, gloss=18, metal=True)
+        wr = self.mm('armor_wear', '#9a9684', spec=0.6, gloss=26, metal=True)
+        g = 0.045
+        # the suit's yoke over the shoulders, the chest plate a shell over the
+        # front, the back plate behind, a collar
+        cr = [(z, rx + g, ry + g * 1.2, dx, dy) for z, rx, ry, dx, dy in rings[:4]]
+        add('chest', M.loft([(z, rx + 0.022, ry + 0.026, dx, dy) for z, rx, ry, dx, dy in rings[1:5]], dk, seg=18,
                             cap_bottom=False, cap_top=True))
-        front = [(-0.03, rings[0][1] + g * 0.6, rings[0][2] + g, 0, 0)] + cr[1:] + [(0.29, rings[4][1] + 0.07, rings[4][2] + 0.06, 0, 0)]
-        add('chest', H._shell(front, pl, math.radians(12), math.radians(168), seg=16))
-        add('chest', H._shell([(z, rx + 0.006, ry + 0.006, dx, dy) for z, rx, ry, dx, dy in front], dk,
-                              math.radians(8), math.radians(12), seg=1))
-        add('chest', H._shell([(z, rx + 0.006, ry + 0.006, dx, dy) for z, rx, ry, dx, dy in front], dk,
-                              math.radians(168), math.radians(172), seg=1))
-        back = [(-0.02, rings[0][1] + g * 0.6, rings[0][2] + g, 0, 0)] + cr[1:3] + [(0.27, rings[3][1] + 0.03, rings[3][2] + 0.05, 0, 0)]
-        add('chest', H._shell(back, gr, math.radians(195), math.radians(345), seg=14))
-        add('chest', M.loft([(0.26, 0.15, 0.12), (0.36, 0.115, 0.10)], dk, seg=16,
-                            cap_bottom=False, cap_top=True))                                             # collar
-        yf = rings[1][2] + rings[1][4] + g * 1.25
-        add('chest', M.box(0.018, 0.03, 0.26, dk, (0, yf + 0.004, 0.11)))                               # seam
-        add('chest', M.box(rings[1][1] * 1.4, 0.02, 0.016, dk, (0, yf - 0.004, 0.06)))
-        for sx in (1, -1):
-            add('chest', M.box(0.05, 0.012, 0.016, glow, (sx * 0.09, yf + 0.004, 0.18)))                # chest lights
-        # the abdomen: three grey bands with dark gaps
-        for i, z in enumerate((-0.04, 0.04, 0.12)):
-            add('spine', M.cylinder(0.165 * tw + 0.04, 0.17 * tw + 0.04, 0.065, gr if i != 1 else dk, seg=16, z0=z)
+        front = [(-0.02, rings[0][1] + g * 0.6, rings[0][2] + g, 0, 0)] + cr[1:] + \
+                [(0.29, rings[4][1] + 0.06, rings[4][2] + 0.05, 0, 0)]
+        add('chest', H._shell(front, pl, math.radians(14), math.radians(166), seg=16))
+        # worn rim along the plate's lower edge, the centre ridge
+        f0 = front[0]
+        add('chest', H._shell([(f0[0] - 0.012, f0[1] + 0.004, f0[2] + 0.004, 0, 0), (f0[0] + 0.006, f0[1] + 0.006, f0[2] + 0.006, 0, 0)],
+                              wr, math.radians(14), math.radians(166), seg=16))
+        yf = rings[1][2] + rings[1][4] + g * 1.2
+        add('chest', M.rounded_box(0.03, 0.02, 0.24, dk, (0, yf + 0.006, 0.12), r=0.008, seg=4, p=4))
+        add('chest', M.box(rings[1][1] * 1.3, 0.018, 0.014, dk, (0, yf + 0.0, 0.07)))
+        back = [(-0.02, rings[0][1] + g * 0.6, rings[0][2] + g, 0, 0)] + cr[1:3] + \
+               [(0.27, rings[3][1] + 0.03, rings[3][2] + 0.04, 0, 0)]
+        add('chest', H._shell(back, gm, math.radians(196), math.radians(344), seg=14))
+        add('chest', M.loft([(0.26, 0.15, 0.12), (0.36, 0.115, 0.10)], dk, seg=16, cap_bottom=False, cap_top=True))
+        # the abdomen: bands, gunmetal and dark
+        for i, z in enumerate((-0.04, 0.035, 0.11)):
+            add('spine', M.cylinder(0.165 * tw + 0.035, 0.17 * tw + 0.035, 0.06, gm if i != 1 else dk, seg=16, z0=z)
                 .transformed(M.scale(1, 0.78, 1)))
-        # the belt and tassets
-        add('pelvis', M.loft([(-0.04, 0.19 * tw + 0.035, 0.14 * tw + 0.035), (0.10, 0.19 * tw + 0.03, 0.14 * tw + 0.03)],
+        # the belt with pouches, tassets
+        add('pelvis', M.loft([(-0.04, 0.19 * tw + 0.03, 0.14 * tw + 0.03), (0.10, 0.19 * tw + 0.028, 0.14 * tw + 0.028)],
                              dk, seg=16, cap_bottom=True, cap_top=False))
         for ang in (-50, -20, 20, 50, 180):
             a = math.radians(ang + 90)
             x, y = 0.19 * tw * math.cos(a) * 1.08, 0.14 * tw * math.sin(a) * 1.15
-            add('pelvis', M.rounded_box(0.12, 0.025, 0.14, gr, (0, 0, -0.07), r=0.01, seg=6, p=4)
-                .transformed(M.translate(x, y, 0.0) @ M.rot_z(ang) @ M.rot_x(-8)))
+            T = M.translate(x, y, 0.0) @ M.rot_z(ang) @ M.rot_x(-8)
+            add('pelvis', M.rounded_box(0.12, 0.025, 0.14, gm, (0, 0, -0.07), r=0.01, seg=6, p=4).transformed(T))
+            add('pelvis', M.box(0.12, 0.028, 0.012, wr, (0, 0, -0.14)).transformed(T))
+        for sx in (1, -1):
+            add('pelvis', M.rounded_box(0.07, 0.06, 0.08, dk, (sx * 0.20 * tw, 0.04, 0.05), r=0.012, seg=6, p=4))
         for side, sx in (('r', 1), ('l', -1)):
-            # pauldrons: a broad curved plate over the shoulder in the civ
-            # color, a grey lame below it, angled out; a dark edge between
-            T1 = M.translate(sx * 0.04, 0.0, 0.07) @ M.rot_y(sx * 32)
-            add(f'arm_{side}', H._dome(0.16, 0.165, 0.075, pl, (0, 0, -0.03), -0.025).transformed(T1))
-            add(f'arm_{side}', M.loft([(-0.07, 0.162, 0.167), (-0.05, 0.16, 0.165)], dk, seg=16,
-                                      cap_bottom=True, cap_top=False).transformed(T1))
-            T2 = M.translate(sx * 0.075, 0.0, -0.05) @ M.rot_y(sx * 40)
-            add(f'arm_{side}', H._dome(0.13, 0.145, 0.06, gr, (0, 0, -0.03), -0.015).transformed(T2))
-            add(f'arm_{side}', M.box(0.012, 0.10, 0.035, glow, (0, 0, 0.0)).transformed(
-                T1 @ M.translate(sx * 0.11, 0.0, 0.0)))
-            add(f'arm_{side}', M.capsule((0, 0, -0.08), (0, 0, -0.24), 0.074 * lb + 0.012, 0.066 * lb + 0.012, gr,
+            # pauldrons: three lames stacked down the shoulder, each angled out
+            for k in range(3):
+                T = M.translate(sx * (0.035 + 0.035 * k), 0.0, 0.075 - 0.055 * k) @ M.rot_y(sx * (22 + 14 * k))
+                add(f'arm_{side}', M.rounded_box(0.19 - 0.02 * k, 0.23 - 0.02 * k, 0.045, gm, (0, 0, 0), r=0.016,
+                                                 seg=6, p=4).transformed(T))
+                add(f'arm_{side}', M.box(0.012, 0.21 - 0.02 * k, 0.02, wr, (sx * (0.095 - 0.01 * k), 0, -0.012))
+                    .transformed(T))
+            # the upper-arm plate in the civ color, a dark elbow cop, a gunmetal vambrace, gauntlet
+            add(f'arm_{side}', M.capsule((0, 0, -0.10), (0, 0, -0.24), 0.07 * lb + 0.01, 0.064 * lb + 0.01, pl,
                                          seg=12, rings=2))
-            add(f'forearm_{side}', M.sphere(0.06 * lb + 0.012, dk, (0, -0.01, 0.0), seg=10))           # elbow
-            add(f'forearm_{side}', M.loft([(-0.22, 0.056 * lb + 0.012, 0.056 * lb + 0.012),
-                                           (-0.12, 0.066 * lb + 0.016, 0.066 * lb + 0.016),
-                                           (-0.04, 0.064 * lb + 0.012, 0.064 * lb + 0.012)], gr, seg=12))
-            add(f'forearm_{side}', M.box(0.03, 0.012, 0.05, glow, (sx * -0.04, 0.0, -0.14)).transformed(
-                M.translate(0, 0, 0)))
+            add(f'forearm_{side}', M.rounded_box(0.10, 0.11, 0.08, dk, (0, -0.02, 0.0), r=0.025, seg=6, p=3))
+            add(f'forearm_{side}', M.loft([(-0.22, 0.054 * lb + 0.01, 0.054 * lb + 0.01),
+                                           (-0.12, 0.064 * lb + 0.014, 0.064 * lb + 0.014),
+                                           (-0.04, 0.062 * lb + 0.01, 0.062 * lb + 0.01)], gm, seg=12))
+            add(f'forearm_{side}', M.cylinder(0.064 * lb + 0.016, 0.064 * lb + 0.016, 0.014, wr, seg=12, z0=-0.05))
             add(f'hand_{side}', M.ellipsoid(0.05 * H.HAND, 0.06 * H.HAND, 0.068 * H.HAND, dk, (0, 0.008, -0.055), seg=9))
-            # legs: thigh plate, knee cop, shin plate, boot armour, pistons on the outside
-            add(f'thigh_{side}', M.capsule((0, 0, 0.0), (0, 0, -H.THIGH + 0.04), 0.1 * lb, 0.08 * lb, dk, seg=12, rings=2))
-            add(f'thigh_{side}', M.rounded_box(0.20, 0.09, 0.28, gr, (0, 0.085, -0.17), r=0.035, seg=8, p=3))
-            add(f'thigh_{side}', M.rounded_box(0.06, 0.16, 0.22, gr, (sx * 0.135, 0.0, -0.15), r=0.025, seg=8, p=3))
-            add(f'thigh_{side}', M.box(0.21, 0.02, 0.014, dk, (0, 0.13, -0.10)))
-            add(f'shin_{side}', M.sphere(0.072 * lb + 0.02, dk, (0, 0.0, 0.0), seg=12))
-            add(f'shin_{side}', M.rounded_box(0.15, 0.08, 0.13, gr, (0, 0.095, -0.01), r=0.03, seg=8, p=3))
-            add(f'shin_{side}', M.capsule((0, 0, -0.05), (0, 0, -H.SHIN + 0.12), 0.08 * lb, 0.07 * lb, dk, seg=12, rings=2))
-            add(f'shin_{side}', M.rounded_box(0.17, 0.09, 0.24, gr, (0, 0.065, -0.19), r=0.035, seg=8, p=3))
-            add(f'shin_{side}', M.box(0.04, 0.012, 0.02, glow, (sx * 0.04, 0.11, -0.12)))
-            add(f'foot_{side}', M.rounded_box(0.14 * H.FOOT, 0.29 * H.FOOT, 0.12, dk, (0, 0.05, -0.03), r=0.035, seg=10, p=3))
-            add(f'foot_{side}', M.rounded_box(0.12 * H.FOOT, 0.10, 0.07, gr, (0, 0.17, -0.02), r=0.025, seg=8, p=3))
-            ox = sx * (0.1 * lb + 0.02)
-            add(f'thigh_{side}', M.cylinder(0.03, 0.03, 0.05, dk, seg=10).transformed(M.translate(ox, 0, -0.03) @ M.rot_y(90)))
+            # legs: thigh plates, knee cop, shin plate, boot armour, pistons on the outside
+            add(f'thigh_{side}', M.capsule((0, 0, 0.0), (0, 0, -H.THIGH + 0.04), 0.095 * lb, 0.078 * lb, dk, seg=12, rings=2))
+            add(f'thigh_{side}', M.rounded_box(0.19, 0.08, 0.27, gm, (0, 0.08, -0.17), r=0.03, seg=8, p=3))
+            add(f'thigh_{side}', M.box(0.19, 0.084, 0.012, wr, (0, 0.082, -0.30)))
+            add(f'thigh_{side}', M.rounded_box(0.05, 0.15, 0.21, gm, (sx * 0.13, 0.0, -0.15), r=0.02, seg=8, p=3))
+            add(f'shin_{side}', M.capsule((0, -0.01, 0.02), (0, -0.01, -0.06), 0.07 * lb, 0.07 * lb, dk, seg=10, rings=2))
+            add(f'shin_{side}', M.rounded_box(0.15, 0.08, 0.13, gm, (0, 0.09, -0.01), r=0.03, seg=8, p=3))
+            add(f'shin_{side}', M.box(0.13, 0.03, 0.012, wr, (0, 0.13, 0.05)))
+            add(f'shin_{side}', M.capsule((0, 0, -0.05), (0, 0, -H.SHIN + 0.12), 0.078 * lb, 0.068 * lb, dk, seg=12, rings=2))
+            add(f'shin_{side}', M.rounded_box(0.16, 0.085, 0.23, gm, (0, 0.06, -0.19), r=0.03, seg=8, p=3))
+            add(f'shin_{side}', M.rounded_box(0.13, 0.06, 0.16, gm, (0, -0.07, -0.13), r=0.025, seg=8, p=3))   # calf plate
+            add(f'thigh_{side}', M.rounded_box(0.16, 0.06, 0.20, gm, (0, -0.075, -0.16), r=0.025, seg=8, p=3))  # back of thigh
+            add(f'thigh_{side}', M.box(0.16, 0.064, 0.012, wr, (0, -0.077, -0.26)))
+            add(f'foot_{side}', M.rounded_box(0.135 * H.FOOT, 0.28 * H.FOOT, 0.11, dk, (0, 0.05, -0.035), r=0.03, seg=10, p=3))
+            add(f'foot_{side}', M.rounded_box(0.12 * H.FOOT, 0.10, 0.065, gm, (0, 0.165, -0.025), r=0.022, seg=8, p=3))
+            pm = self.mm('piston', '#8a8676', spec=0.7, gloss=30, metal=True)
+            ox = sx * (0.095 * lb + 0.02)
+            add(f'thigh_{side}', M.cylinder(0.028, 0.028, 0.05, dk, seg=10).transformed(M.translate(ox, 0, -0.03) @ M.rot_y(90)))
             add(f'thigh_{side}', M.cylinder(0.024, 0.024, 0.20, dk, seg=8, z0=-0.22).transformed(M.translate(ox, -0.01, 0)))
-            add(f'thigh_{side}', M.cylinder(0.014, 0.014, 0.18, self.mm('piston', '#70747c', spec=0.7, gloss=30, metal=True), seg=8, z0=-0.38).transformed(M.translate(ox, -0.01, 0)))
-            ox2 = sx * (0.08 * lb + 0.02)
-            add(f'shin_{side}', M.cylinder(0.028, 0.028, 0.05, dk, seg=10).transformed(M.translate(ox2, 0, 0.0) @ M.rot_y(90)))
+            add(f'thigh_{side}', M.cylinder(0.014, 0.014, 0.18, pm, seg=8, z0=-0.38).transformed(M.translate(ox, -0.01, 0)))
+            ox2 = sx * (0.078 * lb + 0.02)
+            add(f'shin_{side}', M.cylinder(0.026, 0.026, 0.05, dk, seg=10).transformed(M.translate(ox2, 0, 0.0) @ M.rot_y(90)))
             add(f'shin_{side}', M.cylinder(0.022, 0.022, 0.18, dk, seg=8, z0=-0.20).transformed(M.translate(ox2, -0.01, 0)))
-            add(f'shin_{side}', M.cylinder(0.013, 0.013, 0.16, self.mm('piston', '#70747c', spec=0.7, gloss=30, metal=True), seg=8, z0=-0.34).transformed(M.translate(ox2, -0.01, 0)))
+            add(f'shin_{side}', M.cylinder(0.013, 0.013, 0.16, pm, seg=8, z0=-0.34).transformed(M.translate(ox2, -0.01, 0)))
         add('chest', RG.power_pack(self.mats), 'backpack')
 
     def _hat(self, add0):
@@ -239,10 +257,14 @@ class RegBody(LF.LeagueBody):
         hat = p.get('hat')
         if hat == 'covered':
             hm = self.mm('helmet', '#6a6448', spec=0.1, gloss=10)
-            add(H._dome(0.137, 0.15, 0.158, hm, (0, -0.005, 0.12), -0.035))
-            add(M.loft([(0.08, 0.152, 0.166), (0.096, 0.142, 0.156)], hm, seg=20, cap_bottom=True, cap_top=False))
+            # the stock PASGT profile (foot_modern's 'pasgt'), in a cloth cover with a band
+            rx, ry, rz, cut = 0.138, 0.15, 0.16, -0.06
+            add(H._dome(rx, ry, rz, hm, (0, -0.005, 0.12), cut))
+            zr = 0.12 + cut
+            add(M.loft([(zr - 0.01, rx + 0.012, ry + 0.02, 0, -0.01), (zr + 0.02, rx + 0.004, ry + 0.004)], hm, seg=18,
+                       cap_bottom=True, cap_top=False))
             sm = self.mm('helmet_band', '#4e4a34')
-            add(M.cylinder(0.14, 0.136, 0.028, sm, seg=20, z0=0.15).transformed(M.scale(1, 1.08, 1)))
+            add(M.cylinder(rx * 0.99, rx * 0.95, 0.03, sm, seg=20, z0=zr + 0.05).transformed(M.scale(1, ry / rx, 1)))
             # the cover's seams over the top
             for ang in (0, 90):
                 add(M.capsule((-0.12, 0, 0.17), (0.12, 0, 0.17), 0.006, 0.006, sm, seg=4, rings=1).transformed(
@@ -257,23 +279,29 @@ class RegBody(LF.LeagueBody):
             add(RG.nvg_helmet(self.mats, hm, rail, nv))
             add(RG.headset(self.mats, self.mm('headset', '#3a3a34', spec=0.2, gloss=14)))
         elif hat == 'exo':
-            gr = self.mm('armor_grey', '#8a8e96', spec=0.55, gloss=26, metal=True)
-            dk = self.mm('armor_dark', '#3a3d45', spec=0.45, gloss=22, metal=True)
-            pl = self.mm('plate', '#3c4aa0', spec=0.55, gloss=26)
-            glow = self.mm('glow', '#60e4ff')
-            add(M.ellipsoid(0.13, 0.145, 0.155, gr, (0, -0.005, 0.13), seg=18))
-            add(M.rounded_box(0.045, 0.27, 0.05, pl, (0, -0.02, 0.27), r=0.018, seg=8, p=3))                    # crest fin
-            add(M.rounded_box(0.24, 0.05, 0.035, dk, (0, 0.11, 0.18), r=0.014, seg=8, p=3))                 # brow ridge
-            add(M.rounded_box(0.20, 0.06, 0.04, dk, (0, 0.105, 0.135), r=0.015, seg=8, p=3))               # visor frame
-            add(M.rounded_box(0.17, 0.05, 0.028, glow, (0, 0.118, 0.137), r=0.012, seg=8, p=3))            # visor
-            add(M.rounded_box(0.03, 0.05, 0.07, glow, (0, 0.118, 0.10), r=0.01, seg=6, p=3))               # its stem
-            add(M.rounded_box(0.14, 0.08, 0.08, dk, (0, 0.10, 0.035), r=0.03, seg=8, p=3))                 # jaw
+            # a closed helmet: the shell, a face plate with a T-shaped visor
+            # cut, cheek pieces swept forward, a neck guard, a civ-colored
+            # stripe over the crown, the visor the one light
+            gm = self.mm('armor_grey', '#5e5c50', spec=0.45, gloss=22, metal=True)
+            dk = self.mm('armor_dark', '#2e2d29', spec=0.35, gloss=18, metal=True)
+            wr = self.mm('armor_wear', '#9a9684', spec=0.6, gloss=26, metal=True)
+            pl = self.mm('plate', '#3c4aa0', spec=0.45, gloss=22)
+            glow = self.mm('glow', '#7ad8e8')
+            add(H._dome(0.135, 0.15, 0.165, gm, (0, -0.01, 0.115), -0.04))
+            add(M.rounded_box(0.05, 0.25, 0.03, pl, (0, -0.02, 0.272), r=0.012, seg=6, p=4))             # stripe
+            add(M.rounded_box(0.25, 0.10, 0.10, gm, (0, -0.10, 0.05), r=0.03, seg=8, p=3)
+                .transformed(M.rot_x(-12)))                                                               # neck guard
+            add(M.rounded_box(0.18, 0.07, 0.15, dk, (0, 0.085, 0.085), r=0.03, seg=8, p=3))             # face plate
+            add(M.rounded_box(0.16, 0.02, 0.026, glow, (0, 0.122, 0.135), r=0.008, seg=6, p=4))          # visor cut
+            add(M.rounded_box(0.03, 0.02, 0.07, dk, (0, 0.12, 0.085), r=0.008, seg=6, p=4).transformed(
+                M.translate(0, 0, 0)))                                                                    # the T's stem
+            add(M.rounded_box(0.20, 0.03, 0.02, wr, (0, 0.118, 0.165), r=0.008, seg=6, p=4))             # brow edge
             for sx in (1, -1):
-                add(M.cylinder(0.028, 0.028, 0.03, gr, seg=10).transformed(
-                    M.translate(sx * 0.06, 0.13, 0.03) @ M.rot_x(-90) @ M.rot_y(sx * 30)))                 # filters
-                add(M.cylinder(0.045, 0.045, 0.04, dk, seg=12).transformed(
-                    M.translate(sx * 0.125, -0.01, 0.12) @ M.rot_y(90)))                                    # ear pods
-            add(M.capsule((-0.13, -0.04, 0.16), (-0.15, -0.10, 0.36), 0.01, 0.005, dk, seg=5, rings=1))    # antenna
+                add(M.rounded_box(0.04, 0.13, 0.13, gm, (0, 0, 0), r=0.018, seg=6, p=3).transformed(
+                    M.translate(sx * 0.115, 0.05, 0.075) @ M.rot_z(sx * -18)))                            # cheek piece
+                add(M.cylinder(0.022, 0.022, 0.025, dk, seg=8).transformed(
+                    M.translate(sx * 0.05, 0.13, 0.03) @ M.rot_x(-90)))                                    # breather
+            add(M.capsule((-0.13, -0.05, 0.15), (-0.14, -0.10, 0.30), 0.009, 0.005, dk, seg=5, rings=1))   # antenna
             add(M.cylinder(0.11, 0.13, 0.10, dk, seg=14, z0=-0.07))                                        # gorget
         else:
             super()._hat(add0)
@@ -304,3 +332,56 @@ class RegularSoldier(LF.LeagueSoldier):
             k = float(self.p.get('gun_thick', 1.6))
             self._props[key] = getattr(RG, name)(self.mats, **kw).transformed(M.scale(k, k, 1.0))
         return self._props[key]
+
+    # -- death: the stock fall (humanoid.anim_death), but the right hand keeps
+    # the weapon all the way down, across the body, and the left arm falls
+    # bent beside the head: no spread-armed T at the end, nothing flung away
+    def action(self, action, ctx):
+        if self.anim_name(action) != 'death' or not self.gun:
+            return super().action(action, ctx)
+        key = ('death_held', action, ctx.n if ctx else None)
+        if key in self._cache:
+            return self._cache[key]
+        d = H.anim_death(self.base, None, None, ctx)
+        arms = [
+            (0.0, None),
+            (0.18, {'arm_r': (40, -25, 0), 'forearm_r': (70, 0, 0), 'arm_l': (45, 55, 0), 'forearm_l': (60, 0, 0)}),
+            (0.38, {'arm_r': (50, -20, 0), 'forearm_r': (80, 0, 0), 'arm_l': (75, 65, 0), 'forearm_l': (55, 0, 0)}),
+            (0.62, {'arm_r': (25, -20, 0), 'forearm_r': (40, 0, 0), 'arm_l': (115, 55, 0), 'forearm_l': (50, 0, 0)}),
+            (1.0, {'arm_r': (12, -22, 0), 'forearm_r': (25, 0, 0), 'arm_l': (125, 45, 0), 'forearm_l': (60, 0, 0)}),
+        ]
+        down = ctx.event('down', 0.55) if ctx is not None else 0.55
+        down = min(max(down or 0.55, 0.35), 0.85)
+        rest = {'arm_r': (10, -18, 0), 'forearm_r': (25, 0, 0), 'arm_l': (5, 18, 0), 'forearm_l': (20, 0, 0)}
+        arms[0] = (0.0, rest)
+
+        def arm_pose(t):
+            u = H._warp(t, [(0.62, down)])
+            for (t0, a0), (t1, a1) in zip(arms[:-1], arms[1:]):
+                if u <= t1:
+                    w = (u - t0) / max(t1 - t0, 1e-6)
+                    w = w * w * (3 - 2 * w)
+                    return {c: _v(a0[c]) * (1 - w) + _v(a1[c]) * w for c in a0}
+            return {c: _v(v) for c, v in arms[-1][1].items()}
+
+        def fn(t):
+            p = d.fn(t)
+            p.update(arm_pose(t))
+            u = H._warp(t, [(0.62, down)])
+            p['gun_lay'] = _v(min(1.0, max(0.0, (u - 0.38) / 0.4)))
+            return p
+        act = FM.Act(fn, legs=d.legs, arms=d.arms, drop_t=None)
+        self._cache[key] = act
+        return act
+
+    def _solve(self, pose, act):
+        """As the stock soldier's; a dying soldier's weapon turns from
+        pointing out of the hand to lying along the forearm as he falls, so
+        it ends on the ground beside him, still in his hand."""
+        W, Ts, pose = super()._solve(pose, act)
+        w = float(pose.get('gun_lay', 0.0))
+        if w > 0:
+            T = Ts['r'].copy()
+            T[:3, :3] = T[:3, :3] @ M.rot_x(90 * w)[:3, :3]
+            Ts = dict(Ts, r=T)
+        return W, Ts, pose

@@ -96,27 +96,26 @@ def rpg7(mats, muzzle=0.80):
 
 
 def rocket_carrier(mats):
-    """A canvas carrier of three spare RPG rounds on the back, warheads up
-    and fanned a little, so their cones stand over the shoulders; two
-    shoulder straps and a flap."""
+    """A canvas carrier of three spare RPG rounds on the back, lying across
+    it one above the other with their warheads out to the left, below the
+    helmet; straps round them, two shoulder straps."""
     c = mat(mats, 'carrier', '#6a5e42', spec=0.04)
     cd = mat(mats, 'carrier_dark', '#4e4430', spec=0.04)
     war = mat(mats, 'warhead', '#4e5640', spec=0.25, gloss=16)
     tip = mat(mats, 'warhead_tip', '#8a8670', spec=0.5, gloss=22, metal=True)
     dk = mat(mats, 'gun_dark', '#1e1f22', spec=0.3, gloss=16)
     st = _strap(mats)
-    parts = [M.rounded_box(0.32, 0.12, 0.26, c, (0, -0.215, 0.05), r=0.035, seg=8, p=3.5)]
-    parts.append(M.rounded_box(0.33, 0.13, 0.05, cd, (0, -0.215, 0.18), r=0.015, seg=6, p=4))       # top band
-    parts.append(M.rounded_box(0.20, 0.03, 0.12, cd, (0, -0.285, 0.02), r=0.01, seg=6, p=4))        # pocket
-    for k, (x, roll) in enumerate(((-0.10, -10), (0.0, 0), (0.10, 10))):
-        Tk = M.translate(x, -0.215, 0.20) @ M.rot_y(roll)
-        parts.append(M.cylinder(0.034, 0.034, 0.06, cd, seg=10, z0=0.0).transformed(Tk))           # tube mouth
-        parts.append(M.cylinder(0.017, 0.017, 0.08, war, seg=8, z0=0.05).transformed(Tk))           # stalk
-        parts.append(M.lathe([(0.12, 0.018), (0.15, 0.03), (0.19, 0.046), (0.25, 0.05), (0.30, 0.046),
-                              (0.36, 0.028), (0.40, 0.012), (0.43, 0.0001)], war, seg=12).transformed(Tk))
-        parts.append(M.cylinder(0.052, 0.052, 0.01, dk, seg=12, z0=0.235).transformed(Tk))
-        parts.append(M.lathe([(0.39, 0.012), (0.42, 0.008), (0.435, 0.0001)], tip, seg=8).transformed(Tk))
-    # shoulder straps over to the front, and a waist strap
+    parts = [M.rounded_box(0.26, 0.10, 0.30, c, (0.04, -0.205, 0.08), r=0.03, seg=8, p=3.5)]
+    for k, z in enumerate((-0.02, 0.08, 0.18)):
+        Tk = M.translate(0.10, -0.25 - 0.01 * (k % 2), z) @ M.rot_y(-90)
+        parts.append(M.cylinder(0.036, 0.036, 0.14, cd, seg=10, z0=-0.04).transformed(Tk))         # tube sleeve
+        parts.append(M.cylinder(0.017, 0.017, 0.10, war, seg=8, z0=0.08).transformed(Tk))          # stalk
+        parts.append(M.lathe([(0.15, 0.018), (0.18, 0.03), (0.22, 0.046), (0.28, 0.05), (0.33, 0.046),
+                              (0.39, 0.028), (0.43, 0.012), (0.46, 0.0001)], war, seg=12).transformed(Tk))
+        parts.append(M.cylinder(0.052, 0.052, 0.01, dk, seg=12, z0=0.265).transformed(Tk))
+        parts.append(M.lathe([(0.42, 0.012), (0.45, 0.008), (0.465, 0.0001)], tip, seg=8).transformed(Tk))
+    for x in (0.0, 0.12):
+        parts.append(M.box(0.03, 0.12, 0.34, cd, (x, -0.24, 0.08)))                                 # straps round them
     for x in (-0.10, 0.10):
         parts.append(_bar((x, -0.16, 0.24), (x * 1.05, 0.02, 0.33), 0.018, st))
         parts.append(_bar((x * 1.05, 0.02, 0.33), (x * 1.2, 0.15, 0.22), 0.018, st))
@@ -131,7 +130,7 @@ def rpg_rig(mats, ry=0.15, rx=0.25):
     cd = mat(mats, 'rig_dark', '#5c5038', spec=0.04)
     bk = mat(mats, 'buckle', '#2a2a26', spec=0.3, gloss=16)
     y0 = ry + 0.035
-    parts = [M.rounded_box(rx * 1.75, 0.05, 0.17, c, (0, y0 - 0.01, 0.04), r=0.02, seg=8, p=4)]
+    parts = [M.rounded_box(rx * 1.8, 0.05, 0.22, c, (0, y0 - 0.012, 0.03), r=0.02, seg=8, p=4)]
     for k, x in enumerate((-0.10, 0.0, 0.10)):
         parts.append(M.rounded_box(0.075, 0.06, 0.15, c, (x, y0 + 0.04, 0.05), r=0.02, seg=8, p=3))   # pouch
         parts.append(M.rounded_box(0.08, 0.066, 0.035, cd, (x, y0 + 0.042, 0.12), r=0.012, seg=6, p=3))  # flap
@@ -261,13 +260,16 @@ def nvg_helmet(mats, hm, rail, nv):
     for sx in (1, -1):
         parts.append(M.box(0.018, 0.13, 0.03, rail, (sx * 0.128, -0.01, 0.15)).transformed(
             M.translate(sx * 0.0, 0, 0)))
-    # front shroud and the NVG folded up: a bridge and two tubes pointing up-forward
-    parts.append(M.box(0.06, 0.02, 0.06, rail, (0, 0.14, 0.23)))
-    T = M.translate(0, 0.15, 0.27) @ M.rot_x(-30)
-    parts.append(M.box(0.08, 0.04, 0.05, rail, (0, 0, 0)).transformed(T))
+    # front shroud, the mount's arm, and the binocular NVG flipped up: the
+    # housing over the brow, two tubes standing up off it, their lenses up
+    parts.append(M.box(0.07, 0.025, 0.07, rail, (0, 0.142, 0.215)))
+    parts.append(M.box(0.04, 0.05, 0.03, rail, (0, 0.17, 0.25)))
+    T = M.translate(0, 0.19, 0.27) @ M.rot_x(14)
+    parts.append(M.rounded_box(0.13, 0.05, 0.045, nv, (0, 0, 0), r=0.012, seg=6, p=4).transformed(T))
+    lens = mat(mats, 'nvg_lens', '#3e5a4a', spec=0.9, gloss=40)
     for sx in (1, -1):
-        parts.append(M.cylinder(0.024, 0.022, 0.09, nv, seg=10, z0=0.0).transformed(
-            T @ M.translate(sx * 0.03, 0.0, 0.0) @ M.rot_x(-90)))
+        parts.append(M.cylinder(0.03, 0.026, 0.11, nv, seg=10, z0=0.0).transformed(T @ M.translate(sx * 0.042, 0.0, 0.0)))
+        parts.append(M.cylinder(0.024, 0.024, 0.006, lens, seg=10, z0=0.11).transformed(T @ M.translate(sx * 0.042, 0.0, 0.0)))
     parts.append(M.rounded_box(0.08, 0.04, 0.05, rail, (0, -0.15, 0.17), r=0.012, seg=6, p=3))     # counterweight
     return M.Mesh.concat(parts)
 
@@ -286,28 +288,34 @@ def headset(mats, cup):
 # ------------------------------------------------------------ Super Trooper
 
 def pulse_rifle(mats, muzzle=0.62):
-    """A heavy bullpup pulse rifle: a long armoured body, the power cell
-    behind the grip glowing cyan, three coil rings round the barrel
-    shroud, an emitter muzzle, a long optic on top, a forward grip."""
-    body = mat(mats, 'rifle_body', '#4a4e56', spec=0.5, gloss=24, metal=True)
-    dark = mat(mats, 'rifle_dark', '#1e2024', spec=0.3, gloss=18)
-    glow = mat(mats, 'glow', '#60e4ff', spec=0.0)
+    """A heavy near-future assault rifle, two-handed: a skeleton stock, a
+    deep receiver with its ejection port and charging handle, a box
+    magazine ahead of the pistol grip, a vented handguard with an
+    underslung grenade tube, a thick barrel with a muzzle brake, a box
+    optic on the top rail. No lights."""
+    body = mat(mats, 'rifle_body', '#4a4a42', spec=0.5, gloss=24, metal=True)
+    dark = mat(mats, 'rifle_dark', '#1e1f1c', spec=0.3, gloss=18)
+    wr = mat(mats, 'armor_wear', '#9a9684', spec=0.6, gloss=26, metal=True)
     parts = []
-    parts.append(M.rounded_box(0.05, 0.08, 0.40, body, (0, 0.0, 0.0), r=0.016, seg=8, p=4))          # body
-    parts.append(M.rounded_box(0.054, 0.05, 0.14, dark, (0, 0.03, -0.16), r=0.012, seg=6, p=4))        # butt pad
-    parts.append(M.rounded_box(0.056, 0.03, 0.30, dark, (0, -0.05, 0.03), r=0.01, seg=6, p=4))         # top spine
-    parts.append(M.box(0.058, 0.035, 0.08, glow, (0, 0.02, -0.08)))                                     # cell window
-    parts.append(M.rounded_box(0.04, 0.07, 0.035, dark, (0, 0.055, 0.0), r=0.01, seg=6, p=4)
-                 .transformed(M.rot_x(-14)))                                                            # grip
-    parts.append(M.cylinder(0.026, 0.026, muzzle - 0.18, dark, seg=12, z0=0.18))                      # shroud
-    for z in (0.26, 0.34, 0.42):
-        parts.append(M.cylinder(0.036, 0.036, 0.03, body, seg=12, z0=z))
-        parts.append(M.cylinder(0.034, 0.034, 0.008, glow, seg=12, z0=z + 0.031))
-    parts.append(M.lathe([(muzzle - 0.06, 0.03), (muzzle - 0.02, 0.036), (muzzle, 0.03)], body, seg=12))
-    parts.append(M.cylinder(0.018, 0.018, 0.004, glow, seg=10, z0=muzzle))
-    parts.append(M.rounded_box(0.03, 0.035, 0.16, dark, (0, -0.09, 0.08), r=0.01, seg=6, p=4))         # optic
-    parts.append(M.cylinder(0.012, 0.012, 0.004, glow, seg=8, z0=0.16).transformed(M.translate(0, -0.09, 0)))
-    parts.append(M.box(0.03, 0.065, 0.03, dark, (0, 0.06, 0.28)))                                       # fore grip
+    parts.append(M.box(0.03, 0.022, 0.18, dark, (0, -0.03, -0.17)))                                 # stock: top bar
+    parts.append(M.box(0.03, 0.022, 0.16, dark, (0, 0.04, -0.17)).transformed(M.rot_x(-8)))          # lower bar
+    parts.append(M.rounded_box(0.04, 0.10, 0.035, dark, (0, 0.005, -0.27), r=0.01, seg=6, p=4))      # butt pad
+    parts.append(M.rounded_box(0.052, 0.085, 0.28, body, (0, 0.0, 0.06), r=0.012, seg=6, p=4))      # receiver
+    parts.append(M.box(0.008, 0.03, 0.07, dark, (0.027, -0.012, 0.06)))                              # ejection port
+    parts.append(M.box(0.03, 0.012, 0.03, wr, (-0.03, -0.03, 0.15)))                                # charging handle
+    parts.append(M.box(0.02, 0.014, 0.40, dark, (0, -0.05, 0.12)))                                   # top rail
+    parts.append(M.rounded_box(0.034, 0.05, 0.10, dark, (0, -0.085, 0.07), r=0.01, seg=6, p=4))      # optic
+    parts.append(M.box(0.036, 0.02, 0.02, dark, (0, -0.085, 0.125)))
+    parts.append(M.box(0.036, 0.12, 0.05, body, (0, 0.09, 0.10)).transformed(M.rot_x(6)))           # magazine
+    parts.append(M.box(0.038, 0.015, 0.052, wr, (0, 0.15, 0.106)).transformed(M.rot_x(6)))
+    parts.append(M.rounded_box(0.034, 0.08, 0.036, dark, (0, 0.055, -0.02), r=0.01, seg=6, p=4)
+                 .transformed(M.rot_x(-14)))                                                         # grip
+    parts.append(M.rounded_box(0.05, 0.06, 0.20, dark, (0, 0.005, 0.30), r=0.012, seg=6, p=4))      # handguard
+    for z in (0.24, 0.29, 0.34):
+        parts.append(M.box(0.054, 0.012, 0.02, body, (0, 0.0, z)))
+    parts.append(M.cylinder(0.022, 0.022, 0.16, body, seg=10, z0=0.22).transformed(M.translate(0, 0.055, 0)))  # grenade tube
+    parts.append(M.cylinder(0.014, 0.014, muzzle - 0.40, body, seg=8, z0=0.40))                       # barrel
+    parts.append(M.cylinder(0.022, 0.022, 0.06, dark, seg=10, z0=muzzle - 0.06))                      # brake
     return M.Mesh.concat(parts)
 
 
@@ -325,8 +333,7 @@ def power_pack(mats):
         parts.append(M.cylinder(0.05, 0.055, 0.10, d, seg=12, z0=0.29).transformed(M.translate(sx * 0.11, -0.27, 0)))
         parts.append(M.cylinder(0.038, 0.038, 0.004, v, seg=12, z0=0.39).transformed(M.translate(sx * 0.11, -0.27, 0)))
     parts.append(M.box(0.12, 0.008, 0.02, glow, (0, -0.358, 0.20)))
-    parts.append(M.capsule((-0.16, -0.27, 0.30), (-0.17, -0.30, 0.66), 0.012, 0.006, d, seg=5, rings=1))
-    parts.append(M.sphere(0.014, glow, (-0.17, -0.30, 0.67), seg=6))
+    parts.append(M.capsule((-0.16, -0.27, 0.30), (-0.17, -0.30, 0.52), 0.012, 0.006, d, seg=5, rings=1))
     for sx in (1, -1):
         parts.append(_bar((sx * 0.17, -0.22, 0.02), (sx * 0.19, -0.14, -0.10), 0.016, v, seg=5))
     return M.Mesh.concat(parts)
@@ -352,7 +359,9 @@ def flame_gun(mats, muzzle=0.70):
     for z in (0.46, 0.52, 0.58):
         parts.append(M.cylinder(0.032, 0.032, 0.012, dk, seg=12, z0=z))
     parts.append(M.cylinder(0.02, 0.02, 0.12, g, seg=8, z0=muzzle - 0.16).transformed(M.translate(0, 0.04, 0)))
-    parts.append(M.lathe([(muzzle - 0.06, 0.024), (muzzle - 0.02, 0.036), (muzzle, 0.04)], dk, seg=12))
+    nz = mat(mats, 'nozzle', '#aaa69a', spec=0.7, gloss=28, metal=True)
+    parts.append(M.lathe([(muzzle - 0.07, 0.024), (muzzle - 0.02, 0.038), (muzzle, 0.042)], nz, seg=12))
+    parts.append(M.cylinder(0.034, 0.034, 0.05, dk, seg=10, z0=-0.20))                              # hose coupling
     return M.Mesh.concat(parts)
 
 
@@ -381,25 +390,30 @@ def tank_pack(mats):
         parts.append(M.capsule((x, yb, -0.18), (x, yb, 0.33), 0.082, 0.082, t, seg=14, rings=3))
         for z in (-0.10, 0.24):
             parts.append(M.cylinder(0.086, 0.086, 0.025, td, seg=14, z0=z).transformed(M.translate(x, yb, 0)))
-        parts.append(M.cylinder(0.025, 0.025, 0.05, g, seg=8, z0=0.40).transformed(M.translate(x, yb, 0)))
-        parts.append(M.cylinder(0.03, 0.03, 0.015, td, seg=8, z0=0.45).transformed(M.translate(x, yb, 0)))
+        parts.append(M.cylinder(0.034, 0.034, 0.05, g, seg=10, z0=0.40).transformed(M.translate(x, yb, 0)))
+        parts.append(M.cylinder(0.05, 0.05, 0.016, td, seg=12, z0=0.45).transformed(M.translate(x, yb, 0)))   # valve wheel
+        parts.append(M.cylinder(0.034, 0.034, 0.05, g, seg=10, z0=-0.30).transformed(M.translate(x, yb, 0)))  # bottom valve
     parts.append(M.sphere(0.065, t, (0, yb - 0.08, 0.06), seg=12))                                  # pressure bottle
     parts.append(M.cylinder(0.02, 0.02, 0.05, g, seg=8, z0=0.12).transformed(M.translate(0, yb - 0.08, 0)))
     parts.append(M.box(0.10, 0.03, 0.03, g, (0, yb - 0.04, -0.22)))                                  # manifold
-    # the tools behind the tanks, splayed: the shovel's blade up over the right shoulder, the pick's head over the left
-    ys = yb - 0.11
-    S = M.translate(-0.03, ys, -0.12) @ M.rot_y(24)
-    parts.append(M.cylinder(0.016, 0.016, 0.56, w, seg=8, z0=0.0).transformed(S))
-    parts.append(M.rounded_box(0.14, 0.02, 0.17, blade, (0, 0, 0.62), r=0.01, seg=6, p=3).transformed(S))
-    parts.append(M.box(0.02, 0.022, 0.06, blade, (0, 0, 0.53)).transformed(S))
-    parts.append(_bar((-0.05, 0, -0.02), (0.05, 0, -0.02), 0.012, w, seg=5).transformed(S))           # D-grip
-    P_ = M.translate(0.03, ys - 0.02, -0.12) @ M.rot_y(-24)
-    parts.append(M.cylinder(0.018, 0.02, 0.58, w, seg=8, z0=0.0).transformed(P_))
-    parts.append(M.capsule((-0.19, 0, 0.60), (0.0, 0, 0.62), 0.016, 0.022, blade, seg=8, rings=1).transformed(P_))
-    parts.append(M.capsule((0.0, 0, 0.62), (0.15, 0, 0.58), 0.022, 0.012, blade, seg=8, rings=1).transformed(P_))
-    parts.append(M.box(0.05, 0.03, 0.02, blade, (0.16, 0, 0.575)).transformed(P_))                   # mattock blade
+    # the tools strapped flat on the back of the tanks, below the head: the
+    # shovel slanting up to the right, its blade beside the right tank's
+    # top; the pick-mattock across the small of the back, its head upright
+    # at the left
+    ys = yb - 0.105
+    S = M.translate(-0.17, ys, -0.27) @ M.rot_y(42)
+    parts.append(M.cylinder(0.017, 0.017, 0.50, w, seg=8, z0=0.0).transformed(S))
+    parts.append(M.rounded_box(0.15, 0.022, 0.18, blade, (0, 0, 0.60), r=0.012, seg=6, p=3).transformed(S))
+    parts.append(M.box(0.022, 0.024, 0.06, blade, (0, 0, 0.50)).transformed(S))
+    parts.append(_bar((-0.05, 0, -0.02), (0.05, 0, -0.02), 0.013, w, seg=5).transformed(S))           # D-grip
+    P_ = M.translate(0.25, ys - 0.03, -0.12) @ M.rot_y(-90)
+    parts.append(M.cylinder(0.019, 0.021, 0.50, w, seg=8, z0=0.0).transformed(P_))
+    parts.append(M.capsule((-0.17, 0, 0.50), (0.0, 0, 0.52), 0.016, 0.024, blade, seg=8, rings=1).transformed(P_))
+    parts.append(M.capsule((0.0, 0, 0.52), (0.14, 0, 0.49), 0.024, 0.013, blade, seg=8, rings=1).transformed(P_))
+    parts.append(M.box(0.05, 0.034, 0.024, blade, (0.15, 0, 0.485)).transformed(P_))                 # mattock blade
+    for z, x in ((0.10, 0.0), (-0.12, 0.0)):
+        parts.append(M.box(0.36, 0.03, 0.035, st, (x, ys - 0.012, z)))                               # tool straps
     # straps holding the tools, and the shoulder straps
-    parts.append(M.box(0.34, 0.03, 0.03, st, (0, ys - 0.01, 0.10)))
     for x in (-0.10, 0.10):
         parts.append(_bar((x, -0.16, 0.26), (x * 1.05, 0.02, 0.335), 0.019, st))
         parts.append(_bar((x * 1.05, 0.02, 0.335), (x * 1.2, 0.16, 0.20), 0.019, st))
@@ -407,7 +421,7 @@ def tank_pack(mats):
     pts = [(0.0, yb - 0.02, -0.28), (0.16, yb + 0.04, -0.36), (0.26, -0.08, -0.40), (0.28, 0.08, -0.38),
            (0.24, 0.16, -0.30)]
     for a, b in zip(pts[:-1], pts[1:]):
-        parts.append(_bar(a, b, 0.017, hose, seg=6))
+        parts.append(_bar(a, b, 0.026, hose, seg=8))
     return M.Mesh.concat(parts)
 
 
