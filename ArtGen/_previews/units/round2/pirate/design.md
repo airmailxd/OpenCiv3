@@ -63,3 +63,19 @@ the tan mizzen junk sail (5 panels); 4 masts; 2 flags; forestay, masthead stays,
   (6.9-8.3), brightness 112 (103-158), area a little over the Privateer's: scale 0.82.
 - **Death (r18):** the ship goes over on her side by mid-sinking and then hull and rig go down together;
   what stays at the surface is the rig lying on the water in its foam ring, not masts standing up.
+
+## After the third review (close; final round)
+- **r19:** the lug sails set fore and aft, 25 degrees off the centreline (luff at the mast, the sail
+  running aft), so the beam views show the whole battened sail; a stronger curved, fanned leech; heights
+  varied (fore 0.66, main 0.92, third 0.56, mizzen 0.42). Masts respaced (1.0, 0.5, -0.64, -1.22) so the
+  funnel (-0.33) stands clear. Paddle boxes 0.45 high (from 0.27), rising well above the rail: a solid
+  half drum with its curved housing in the civ colour and a slotted face with an ochre rim and hub, wider
+  sponsons. The stern transom taller and overhanging, with a balcony gallery and rail across it; the
+  castle top planked with a hatch and a stanchioned rail; a hatch and bitts on the foredeck; the
+  deckhouse moved forward under the mainsail.
+- Smoke: catalog 'plume' (ship_r2): a fuller plume of six puffs climbing and drifting aft from the
+  funnel, in idle, run and attack.
+- Death: catalog 'rig_sink' (ship_r2): everything above the deck is drawn down toward it as she goes,
+  so masts and sails go under with the hull; nothing is left lying on the water.
+- Measured: civ blue 7.3% (6.9-8.3), brightness 112 (103-158); area a little over the Privateer's,
+  scale 0.79.

@@ -117,7 +117,7 @@ def fan_sail(b, y, z_bot, h, w, n=7, brace=22.0, billow=0.035, tint=True, base='
     return hub3, blk
 
 
-def lug_sail(b, y, z_bot, h, w, n=6, brace=22.0, billow=0.022, fwd=0.32, rise=0.16, drop=0.06, base='sail'):
+def lug_sail(b, y, z_bot, h, w, n=6, brace=-115.0, billow=0.022, fwd=0.32, rise=0.16, drop=0.06, base='sail'):
     """A junk's battened lug sail: broad, its battens running across it and
     fanning a little (close together at the luff on the mast, spread at
     the leech), the head yard peaked up toward the leech, the cloth set flat
@@ -133,7 +133,7 @@ def lug_sail(b, y, z_bot, h, w, n=6, brace=22.0, billow=0.022, fwd=0.32, rise=0.
     xl, xr = -w * fwd, w * (1 - fwd)
     # batten ends: the luff from 0.08h to 0.92h, the leech from -drop to h + rise; the leech bows out
     luff = [(xl, z_bot + h * (0.08 + 0.84 * k / n)) for k in range(n + 1)]
-    leech = [(xr + 0.06 * w * math.sin(math.pi * k / n), z_bot - drop + (h + rise + drop) * k / n) for k in range(n + 1)]
+    leech = [(xr + 0.13 * w * math.sin(math.pi * k / n), z_bot - drop + (h + rise + drop) * k / n) for k in range(n + 1)]
     md, mb = b.mats['batten'], b.mats[base]
     nrm = np.array([-sa, ca, 0], np.float32)
 
@@ -204,8 +204,25 @@ def steam_junk(b, p):
     # the high square stern: a raised castle, its tall transom overhanging aft, gallery windows, the rudder
     zc = castle(b, hull, -1.55, -0.95, 0.16, mat_name='wood', top_mat='deck_wood', rail=0.04)
     hw = hull.half_beam(hull.s_of(-1.5)) + 0.03
-    b.add(box((0, -1.66, zc - 0.07), (2 * hw + 0.06, 0.03, 0.3), b.m('wood'), bevel=0.008))
-    b.add(box((0, -1.675, zc + 0.07), (2 * hw + 0.08, 0.02, 0.025), b.m('ochre'), bevel=0.004))
+    b.add(box((0, -1.68, zc - 0.02), (2 * hw + 0.08, 0.03, 0.44), b.m('wood'), bevel=0.008))
+    b.add(box((0, -1.695, zc + 0.2), (2 * hw + 0.1, 0.02, 0.025), b.m('ochre'), bevel=0.004))
+    # the stern gallery: a balcony across the transom, its rail and posts
+    b.add(box((0, -1.73, zc - 0.13), (2 * hw - 0.02, 0.08, 0.012), b.m('deck_wood'), bevel=0.003))
+    b.add(rod((-hw + 0.01, -1.765, zc - 0.08), (hw - 0.01, -1.765, zc - 0.08), 0.005, b.m('ochre'), seg=4))
+    for x in np.linspace(-hw + 0.01, hw - 0.01, 7):
+        b.add(rod((x, -1.765, zc - 0.13), (x, -1.765, zc - 0.08), 0.004, b.m('ochre'), seg=4))
+    # the castle's top: planking, a hatch, a rail with stanchions round it
+    pl = b.m('deck_b', '#5e4c3a')
+
+    def tplanks(C, ids):
+        ids[np.floor(C[:, 0] / 0.035) % 2 == 1] = pl
+        return ids
+    b.add(paint(box((0, -1.27, zc + 0.003), (2 * hw - 0.08, 0.52, 0.004), mdw), tplanks, max_edge=0.04))
+    b.add(box((0.0, -1.1, zc + 0.015), (0.12, 0.1, 0.02), b.m('tar'), bevel=0.004))
+    for sx in (-1, 1):
+        b.add(rod((sx * (hw - 0.04), -1.6, zc + 0.07), (sx * (hw - 0.06), -0.97, zc + 0.07), 0.005, b.m('ochre'), seg=4))
+        for y in np.linspace(-1.6, -0.97, 6):
+            b.add(rod((sx * (hw - 0.05), y, zc), (sx * (hw - 0.05), y, zc + 0.07), 0.004, b.m('ochre'), seg=4))
     b.add(box((0, -1.675, zc - 0.07), (2 * hw - 0.04, 0.012, 0.09), b.m('red'), bevel=0.004))
     for x in (-0.12, -0.04, 0.04, 0.12):
         b.add(box((x, -1.683, zc - 0.07), (0.05, 0.008, 0.06), b.m('black')))
@@ -228,46 +245,46 @@ def steam_junk(b, p):
         b.gun((x + 0.05, y, zg), (1.0, 0.1, 0.03), delay=i * 0.03, size=1.0)
     # the paddle boxes: a raised half-round housing each side, on the waterline and up past the deck,
     # fanned vents on its face, a civ rim; nothing below the water
-    yp = -0.15
+    yp = -0.33
     hb = hull.half_beam(hull.s_of(yp))
-    R0 = 0.27
+    R0 = 0.45
     mo, mr, mt = b.m('ochre'), b.m('black'), b.m('tint')
     for sx in (-1, 1):
-        x = sx * (hb + 0.06)
-        hous = M.cylinder(R0, R0, 0.12, b.m('tar'), seg=32, z0=-0.06).transformed(M.rot_y(90))
+        x = sx * (hb + 0.08)
+        hous = M.cylinder(R0, R0, 0.15, b.m('tar'), seg=36, z0=-0.075).transformed(M.rot_y(90))
 
         def vents(C, ids):
             ang = np.degrees(np.arctan2(C[:, 2], C[:, 1]))
             r = np.hypot(C[:, 1], C[:, 2])
-            face = np.abs(C[:, 0]) > 0.055
-            ids[face & (r > 0.07) & (r < R0 * 0.84) & (np.floor((ang + 7.5) / 15) % 2 == 1)] = mr
-            ids[face & (r >= R0 * 0.86)] = mt
+            face = np.abs(C[:, 0]) > 0.07
+            ids[face & (r > 0.1) & (r < R0 * 0.86) & (np.floor((ang + 6) / 12) % 2 == 1)] = mr
+            ids[face & (r >= R0 * 0.88)] = mo
             ids[~face] = mt
-            ids[face & (r < 0.06)] = mo
+            ids[face & (r < 0.09)] = mo
             return ids
         hous = clip_below(paint(hous, vents, max_edge=0.016), 0.0)
         b.add(hous.transformed(M.translate(x, yp, 0.0)))
-        b.add(box((sx * (hb + 0.02), yp, zd + 0.005), (0.07, 0.5, 0.012), mdw, bevel=0.003))
+        b.add(box((sx * (hb + 0.03), yp, zd + 0.005), (0.09, 0.8, 0.012), mdw, bevel=0.003))
     # the funnel between the paddle boxes: tall, thick, black with two civ bands, smoking
-    funnel(b, -0.15, zd, 0.95, 0.11, 0.115, mat_name='black', cap='black', rake=0.05)
+    funnel(b, -0.33, zd, 0.95, 0.11, 0.115, mat_name='black', cap='black', rake=0.05)
     for z0f, hf in ((0.56, 0.07), (0.72, 0.07)):
         za = zd + 0.95 * z0f
-        b.add(M.loft([(za, 0.116, 0.121, 0, -0.15 - 0.05 * 0.95 * z0f),
-                      (za + 0.95 * hf, 0.115, 0.12, 0, -0.15 - 0.05 * 0.95 * (z0f + hf))], b.m('tint'), seg=16))
-    b.add(box((0, -0.15, zd + 0.04), (0.28, 0.28, 0.08), b.m('tar'), bevel=0.01))
-    b.smoke_stacks.append(np.array([0, -0.2, zd + 0.97], np.float32))
+        b.add(M.loft([(za, 0.116, 0.121, 0, -0.33 - 0.05 * 0.95 * z0f),
+                      (za + 0.95 * hf, 0.115, 0.12, 0, -0.33 - 0.05 * 0.95 * (z0f + hf))], b.m('tint'), seg=16))
+    b.add(box((0, -0.33, zd + 0.04), (0.28, 0.28, 0.08), b.m('tar'), bevel=0.01))
+    b.smoke_stacks.append(np.array([0, -0.38, zd + 0.97], np.float32))
     b.add(rod((0.07, -0.0, zd + 0.3), (0.07, -0.0, zd + 0.4), 0.008, b.m('gold'), seg=6))
     # the deckhouse forward of the castle, its vaulted roof and doors
-    b.add(box((0, -0.36, zd + 0.06), (0.3, 0.2, 0.12), b.m('house_wood', '#8a7050'), bevel=0.01))
+    b.add(box((0, 0.06, zd + 0.06), (0.3, 0.2, 0.12), b.m('house_wood', '#8a7050'), bevel=0.01))
     for k in range(7):
         a0, a1 = math.pi * k / 7, math.pi * (k + 1) / 7
         p0 = (0.18 * math.cos(a0), zd + 0.12 + 0.06 * math.sin(a0))
         p1 = (0.18 * math.cos(a1), zd + 0.12 + 0.06 * math.sin(a1))
-        b.add(M.plate([(p0[0], -0.47, p0[1]), (p1[0], -0.47, p1[1]), (p1[0], -0.25, p1[1]), (p0[0], -0.25, p0[1])],
+        b.add(M.plate([(p0[0], -0.05, p0[1]), (p1[0], -0.05, p1[1]), (p1[0], 0.17, p1[1]), (p0[0], 0.17, p0[1])],
                       b.m('tar' if k % 2 else 'roof_b', '#54463a'), thick=0.01))
-    b.add(box((0, -0.255, zd + 0.05), (0.07, 0.006, 0.08), b.m('red')))
+    b.add(box((0, 0.165, zd + 0.05), (0.07, 0.006, 0.08), b.m('red')))
     # the swivel gun forward, the anchor and its windlass
-    yg = 1.05
+    yg = 1.32
     b.add(M.cylinder(0.04, 0.05, 0.06, b.m('tar'), seg=10, z0=deck_at(hull, yg)).transformed(M.translate(0, yg, 0)))
     b.turret((0, yg, deck_at(hull, yg) + 0.06), shape='box', size=0.08, h=0.04, barrel=0.16, n=1, rest=0.0,
              aim=0.0, mat_name='iron', gun_mat='black', flash=1.0, elev=6)
@@ -279,19 +296,24 @@ def steam_junk(b, p):
         b.add(rod((xa + 0.01, ya + 0.02, deck_at(hull, ya) - 0.14), (xa + 0.01, ya + 0.02 + 0.04 * s_,
                                                                      deck_at(hull, ya) - 0.1), 0.007, b.m('iron'), seg=4))
     b.add(M.cylinder(0.025, 0.025, 0.16, b.m('wood'), seg=8, z0=-0.08).transformed(
-        M.translate(0, 0.9, deck_at(hull, 0.9) + 0.04) @ M.rot_y(90)))
+        M.translate(0, 1.18, deck_at(hull, 1.18) + 0.04) @ M.rot_y(90)))
+    # a hatch and bitts on the foredeck
+    b.add(box((0, 0.74, deck_at(hull, 0.74) + 0.015), (0.18, 0.16, 0.03), b.m('tar'), bevel=0.004))
+    b.add(box((0, 0.74, deck_at(hull, 0.74) + 0.032), (0.15, 0.13, 0.006), b.m('wood_light', '#b8a27c')))
+    for sx in (-1, 1):
+        b.add(M.cylinder(0.014, 0.014, 0.05, b.m('tar'), seg=6, z0=deck_at(hull, 1.4)).transformed(M.translate(sx * 0.12, 1.4, 0)))
 
     # three broad battened lug sails forward, a smaller one on the castle
-    rig = [(0.78, 0.16, 0.6, 0.84), (0.34, 0.2, 0.78, 1.0), (-0.62, 0.22, 0.6, 0.8)]
+    rig = [(1.0, 0.16, 0.66, 0.9), (0.5, 0.2, 0.92, 1.05), (-0.64, 0.24, 0.56, 0.78)]
     tops = []
     for y, z0, h, w in rig:
         zm = deck_at(hull, y)
         tops.append(b.mast(y, zm, z0 + h + 0.18, r=0.021, mat_name='wood_dark'))
         lug_sail(b, y, zm + z0, h, w, n=6)
-    ym = -1.28
+    ym = -1.22
     top = b.mast(ym, zc, 0.6, r=0.018, mat_name='wood_dark')
     tops.append(top)
-    lug_sail(b, ym, zc + 0.12, 0.4, 0.5, n=4, rise=0.1)
+    lug_sail(b, ym, zc + 0.12, 0.42, 0.55, n=4, rise=0.1)
     # the black flag at the main masthead (a skull over crossed bones), civ pennants, the ensign
     skull = emblem('skull', 1.4)
     fb, fw = b.mats['flag_black'], b.mats['bone']
@@ -310,7 +332,7 @@ def steam_junk(b, p):
     for i in range(len(tops) - 1):
         b.line(tops[i], tops[i + 1], r=0.003)
     b.line(tops[-1], (0, -1.66, zc + 0.08), r=0.003)
-    for k, y in enumerate((0.78, 0.34, -0.62)):
+    for k, y in enumerate((1.0, 0.5, -0.64)):
         for sx in (-1, 1):
             b.line(tops[k] - np.array([0, 0, 0.1], np.float32),
                    (sx * hull.half_beam(hull.s_of(y)) * 0.97, y - 0.12, deck_at(hull, y) + hull.hb), r=0.0025)

@@ -362,6 +362,16 @@ class ShipR2(Ship):
         ship = self.ship_mesh('DEFAULT', t, billow=1.0 - 0.7 * u, wind=0.5, flag_k=1.0 - 0.6 * u, spin=0.0,
                               oar=(10 * math.sin(TAU * t), 0.6) if b.oars else None)
         T = self._pose_T(z0 * (1 - u) + zs, p0 + pitch, r0 + roll)
+        rs = self.p.get('rig_sink', 0.0)
+        if rs and self.b.hull is not None:
+            # (catalog 'rig_sink') the masts and sails come down into the hull as she goes: everything
+            # above the deck is drawn down toward it, so no rig is left lying on the water
+            zdk = self.b.hull.D + self.b.hull.hb
+            c = rs * _smooth((u - 0.15) / 0.5)
+            V = ship.V.copy()
+            hi = V[..., 2] > zdk
+            V[..., 2] = np.where(hi, zdk + (V[..., 2] - zdk) * (1 - c), V[..., 2])
+            ship = M.Mesh(V, ship.N, ship.M)
         posed = ship.transformed(T)
         ship = clip_below(posed)
         fx = [self._wake(t, False, scale=1.0 + 0.4 * u, k_foam=1.0 + 2.5 * math.sin(math.pi * min(u, 1)),
@@ -388,3 +398,24 @@ class ShipR2(Ship):
                 fx.append(self._puff(p + (0, 0, 0.06 * k), ft + 0.12, t, 0.15 * k, 'smoke_dark',
                                      drift=(0.04, -0.06, 0.1 * k), life=0.42, n=5, seed=80 + j))
         return M.Mesh.concat([ship] + fx)
+
+    def _stack_smoke(self, t, T):
+        """(catalog 'plume' k) A fuller funnel plume than the stock wisp:
+        more, larger puffs climbing and drifting aft; without 'plume' the
+        stock smoke."""
+        k = self.p.get('plume', 0.0)
+        if not k:
+            return super()._stack_smoke(t, T)
+        from models.ships import _smooth, blob
+        out = []
+        ms, md = self.mats['smoke_mid'], self.mats['smoke']
+        for i, top in enumerate(self.b.smoke_stacks):
+            p = (T @ np.array([*top, 1.0], np.float32))[:3]
+            for j in range(6):
+                a = (t + j / 6) % 1.0
+                c = p + np.array([0.02 * math.sin(j * 2.1), -0.22 * a * k - 0.02, 0.03 + 0.26 * a * k], np.float32)
+                r = (0.035 + 0.05 * a) * k
+                r *= 1 - _smooth((a - 0.7) / 0.3)
+                if r > 0.004:
+                    out.append(blob(c, r, md if j % 2 else ms, seg=8, squash=0.85))
+        return M.Mesh.concat(out)
