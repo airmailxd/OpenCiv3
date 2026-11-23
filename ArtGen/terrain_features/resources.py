@@ -1,6 +1,7 @@
 """Remake of Art/resources.pcx: the strategic/luxury/bonus resource icons.
 
-The original is a 6x6 grid of 50x50 cells (26 used). Each icon is drawn anew
+The original is a 6x6 grid of 50x50 cells (26 used; MDJ and the League modes
+add theirs past them). Each icon is drawn anew
 with a small SDF shape toolkit (ellipses, polygons, tapered strokes, bezier
 paths) and per-shape lighting from a pseudo-normal, supersampled 4x and box
 filtered down to the 2x output (100x100 cells). Every subject keeps the
@@ -1425,6 +1426,169 @@ def icon_sake():
     return finish([(cv, 0.6)], sh)
 
 
+def icon_pearls():
+    """The League modes' Pearls (Modern's and MDJ's, which borrowed the Gems):
+    an oyster opened on its hinge, a pearl in its nacre, two more beside it."""
+    cv, sh = Canvas(), Shadow()
+    sh.ellipse(25.0, 30.4, 11.0, 2.8, 0.7)
+    sh.ellipse(34.4, 32.4, 2.0, 0.8, 0.9)
+    outer = hexc('#7c7468')
+    # the lower valve, cupped, with its rough ribbed outside
+    low = sd_ellipse(24.0, 26.4, 9.6, 4.6, 4)
+    low = low + 0.35 * smooth_noise(281, 0.8)
+    ribs = 0.88 + 0.12 * np.sin(np.arctan2(Y - 30.0, X - 24.0) * 22)
+    cv.part(low, mix(outer * 0.8, outer, sstep(31, 24, Y)) * ribs[..., None], R=1.6, spec=0.15, edge=0.4)
+    # the upper valve tipped back behind it
+    up = sd_ellipse(21.0, 17.6, 8.6, 4.0, -18) + 0.3 * smooth_noise(282, 0.8)
+    cv.part(up, mix(outer * 0.72, outer * 1.05, sstep(21, 14, Y)) * ribs[..., None], R=1.5, spec=0.15, edge=0.4)
+    up_in = sd_ellipse(21.4, 18.4, 6.8, 2.6, -18)
+    cv.part(up_in, mix(hexc('#cfc8dc'), hexc('#eef0f4'), sstep(20, 16, Y)), R=1.2, spec=0.5, shin=20, rim=0.2, edge=0.35)
+    # the nacre inside the lower valve
+    nac = sd_ellipse(24.2, 25.4, 7.6, 3.2, 4)
+    sheen = 0.5 + 0.5 * np.sin(X * 0.9 + Y * 0.6)
+    nc = mix(mix(hexc('#d8d4e8'), hexc('#f2eee6'), sstep(28, 23, Y)), hexc('#cfe4ea'), sheen * 0.3)
+    cv.part(nac, nc, R=1.4, spec=0.6, shin=24, rim=0.0, edge=0.3)
+    pearl = hexc('#f4efe4')
+
+    def a_pearl(x, y, r):
+        d = sd_circle(x, y, r)
+        cv.put(d, shade(pearl, bulge(d, r), d, amb=0.55, dif=0.6, spec=1.1, shin=30, rim=0.35, edge=0.35,
+                        spec_col=(1.0, 1.0, 1.0)))
+        cv.atop(sd_circle(x + r * 0.25, y + r * 0.35, r * 0.55), hexc('#e6d8e8'), 0.25, soft=r * 0.5)
+
+    a_pearl(25.0, 24.0, 2.6)
+    a_pearl(34.4, 30.6, 1.7)
+    a_pearl(31.0, 32.4, 1.3)
+    return finish([(cv, 0.55)], sh)
+
+
+def icon_beach_resort():
+    """Modern's Beach Resort (which borrowed the Oasis): a striped parasol
+    over a sun lounger on a strip of sand by the water."""
+    cv, sh = Canvas(), Shadow()
+    water = Canvas()
+    sea = sd_ellipse(16.0, 31.6, 8.0, 3.0, -6)
+    water.put(sea, mix(hexc('#3aa0c0'), hexc('#7ad0e0'), sstep(34, 29, Y)), 0.9, soft=0.8)
+    sand = union(sd_ellipse(26.6, 29.4, 11.4, 4.4, -4), sd_ellipse(20.0, 30.6, 5.0, 2.6), k=2.0)
+    sand = sand + 0.3 * smooth_noise(291, 1.0)
+    cv.part(sand, mix(hexc('#d8c48a'), hexc('#efe0ac'), 0.5 + 0.5 * smooth_noise(292, 1.2)), R=0.8, spec=0.0, rim=0.1, edge=0.3)
+    # surf where the sand meets the water
+    cv.atop(np.abs(sd_ellipse(16.0, 31.6, 8.2, 3.1, -6)) - 0.35, hexc('#f4fbff'), 0.7, soft=0.4)
+    # the lounger: a frame and its cushion, raised at the back
+    sh.ellipse(32.4, 30.6, 5.0, 1.2, 0.8)
+    frame = hexc('#f2f2ee')
+    for a, b in (((28.4, 29.6), (28.6, 31.2)), ((36.0, 29.2), (36.2, 30.8)), ((29.6, 28.0), (29.8, 31.0))):
+        cv.part(sd_seg(a, b, 0.32), frame * 0.8, R=0.3, edge=0.2)
+    cushion = union(sd_poly([(28.0, 28.6), (36.6, 28.2), (36.6, 29.4), (28.0, 29.8)]),
+                    sd_poly([(36.0, 28.4), (38.2, 25.4), (39.2, 26.0), (37.0, 29.2)]), k=0.4)
+    cv.part(cushion, hexc('#3a6ac8'), R=0.6, spec=0.2, edge=0.35)
+    # the parasol: pole, then the canopy in red and white gores
+    cv.part(sd_seg((24.2, 31.0), (23.4, 14.4), 0.42), hexc('#d8d0c0'), R=0.4, edge=0.3)
+    sh.ellipse(26.0, 30.8, 7.0, 1.6, 0.6)
+    canopy = np.maximum(sd_ellipse(23.4, 16.6, 10.2, 5.2), Y - 17.6)
+    canopy = union(canopy, sd_ellipse(23.4, 17.6, 10.2, 1.1), k=0.6)
+    gore = (np.floor((np.arctan2(Y - 19.5, X - 23.4) + math.pi) / (math.pi / 7)) % 2)
+    col = np.where(gore[..., None] > 0.5, hexc('#e24a3a'), hexc('#f6f0e6'))
+    cv.part(canopy, col, R=2.4, spec=0.25, rim=0.25, edge=0.35)
+    cv.part(sd_circle(23.4, 11.6, 0.7), hexc('#d8d0c0'), R=0.5)
+    return finish([(water, 0), (cv, 0.55)], sh)
+
+
+def icon_precious_stones():
+    """MDJ's Precious Stones (which borrowed the Gold): three cut stones,
+    a ruby, an emerald and a sapphire, on a scrap of dark cloth."""
+    cv, sh = Canvas(), Shadow()
+    cloth = sd_poly([(13.6, 27.0), (22.0, 23.0), (37.0, 24.4), (37.6, 30.4), (26.0, 33.6), (14.4, 31.4)])
+    cloth = cloth + 0.35 * smooth_noise(301, 1.4)
+    sh.shape(cloth + 0.6, 0.5)
+    folds = 0.9 + 0.1 * np.sin(X * 0.8 - Y * 0.5)
+    cv.part(cloth, hexc('#3a2a4a') * folds[..., None], R=0.8, spec=0.1, rim=0.15, edge=0.35)
+    stones = [  # back to front: x, y, rx, ry, color, seed
+        (30.0, 22.0, 4.2, 3.4, '#2a9a5a', 311),
+        (19.8, 23.6, 3.8, 3.4, '#3060d8', 312),
+        (25.6, 26.8, 4.6, 3.8, '#d0203c', 313),
+    ]
+    for x, y, rx, ry, c, s in stones:
+        sh.ellipse(x + 1.0, y + 1.6, rx, ry * 0.6, 0.8)
+    for x, y, rx, ry, c, s in stones:
+        pts = [(x + rx * math.cos(math.radians(a)), y + ry * math.sin(math.radians(a))) for a in range(0, 360, 45)]
+        d = sd_poly(pts)
+        n, ridge = facet_normal(d, x, y, s, k=8, strength=0.9, R=0.8)
+        col = shade(hexc(c), n, d, amb=0.55, dif=0.7, spec=1.2, shin=18, rim=0.3, edge=0.45, ew=0.3)
+        col = mix(col, np.clip(col * 1.5, 0, 1), ridge * 0.3)
+        cv.put(d, col)
+        # the table facet on top
+        table = sd_poly([(x + rx * 0.45 * math.cos(math.radians(a)), y - ry * 0.1 + ry * 0.4 * math.sin(math.radians(a)))
+                         for a in range(0, 360, 45)])
+        cv.atop(table, np.clip(hexc(c) * 1.45, 0, 1), 0.55)
+        cv.atop(sd_ellipse(x - rx * 0.35, y - ry * 0.4, rx * 0.18, ry * 0.12), hexc('#ffffff'), 0.85, soft=0.3)
+    return finish([(cv, 0.55)], sh)
+
+
+def icon_sandbar():
+    """MDJ's Sandbar (which borrowed the Spices): a long low bar of pale
+    sand in shallow water, with a few shells left by the tide."""
+    cv = Canvas()
+    shallow = Canvas()
+    shoal = sd_ellipse(25.0, 25.0, 15.0, 6.0, -12)
+    shallow.put(shoal, hexc('#7ad4d0'), 0.55, soft=2.4)
+    bar = union(sd_ellipse(21.0, 26.6, 9.6, 2.6, -14), sd_ellipse(30.6, 22.8, 6.4, 2.0, -20),
+                sd_ellipse(26.0, 24.6, 4.0, 2.2, -16), k=2.4)
+    bar = bar + 0.3 * smooth_noise(321, 1.0)
+    wet = sstep(-0.2, -1.4, bar)
+    sandc = mix(hexc('#c8b47c'), hexc('#efe2b4'), wet * (0.6 + 0.4 * (0.5 + 0.5 * smooth_noise(322, 1.0))))
+    cv.part(bar, sandc, R=1.0, spec=0.05, rim=0.15, edge=0.2)
+    # foam along its edge
+    cv.put(np.abs(bar - 0.3) - 0.28, hexc('#f4fbff'), 0.6, soft=0.35)
+    for x, y, r, c in ((18.6, 26.6, 0.8, '#f0d8d0'), (24.6, 25.0, 0.6, '#f6eee2'), (31.8, 22.4, 0.7, '#e8c8b8')):
+        d = sd_ellipse(x, y, r * 1.3, r)
+        cv.put(d, shade(hexc(c), bulge(d, r), d, amb=0.6, dif=0.5, spec=0.5, edge=0.3))
+    return finish([(shallow, 0), (cv, 0.35)], None)
+
+
+def icon_olive_oil():
+    """MDJ's Olive Oil (which borrowed the Oil): a terracotta amphora and a
+    sprig of olives at its foot."""
+    cv, sh = Canvas(), Shadow()
+    sh.ellipse(26.4, 33.6, 8.6, 2.2, 0.8)
+    clay = hexc('#b8643a')
+    body = union(sd_ellipse(25.0, 22.0, 6.2, 8.4), sd_seg((25.0, 14.0), (25.0, 9.6), 1.9, 1.5),
+                 sd_seg((25.0, 28.0), (25.0, 33.0), 1.6, 0.9), k=1.6)
+    lit = mix(clay * 0.78, clay * 1.1, sstep(30, 16, Y))
+    cv.part(body, lit, R=4.0, spec=0.35, shin=18, rim=0.3, edge=0.35)
+    cv.atop(np.maximum(np.abs(Y - 20.4) - 0.7, body + 0.15), hexc('#3a2014'), 0.75)
+    cv.atop(np.maximum(np.abs(Y - 23.0) - 0.35, body + 0.15), hexc('#3a2014'), 0.6)
+    lip = sd_ellipse(25.0, 9.2, 2.6, 0.9)
+    cv.part(lip, clay * 1.05, R=0.6, edge=0.3)
+    cv.put(sd_ellipse(25.0, 9.0, 1.5, 0.45), hexc('#2a1a10'))
+    for side in (-1, 1):
+        handle = sd_path(bez((25.0 + side * 1.6, 11.2), (25.0 + side * 5.2, 11.0), (25.0 + side * 5.0, 15.6), (25.0 + side * 3.8, 16.4), n=10),
+                         taper(10, 0.65, 0.55))
+        cv.part(handle, clay * 0.9, R=0.5, edge=0.3)
+    # the olive sprig
+    stem = bez((30.0, 33.0), (32.4, 31.2), (34.6, 30.0), (37.2, 27.4), n=12)
+    cv.part(sd_path(stem, taper(12, 0.35, 0.2)), hexc('#5a4a2a'), R=0.3, edge=0.2)
+    leaf = hexc('#7a8a4a')
+    for i, (t, ang, side) in enumerate(((2, -40, 1), (4, 30, -1), (6, -50, 1), (8, 20, -1), (10, -30, 1), (11, 60, -1))):
+        px, py = stem[t]
+        a = math.radians(ang)
+        cx, cy = px + math.cos(a) * 1.8, py + math.sin(a) * 1.8 * side
+        d = sd_ellipse(cx, cy, 2.0, 0.6, math.degrees(math.atan2(cy - py, cx - px)))
+        cv.part(d, leaf * (0.85 + 0.1 * (i % 2)), R=0.4, spec=0.3, edge=0.3)
+    for x, y in ((31.4, 33.6), (33.2, 32.8), (35.6, 30.6)):
+        d = sd_ellipse(x, y, 1.0, 1.25)
+        cv.put(d, shade(hexc('#3a3a1e'), bulge(d, 1.0), d, amb=0.5, dif=0.7, spec=0.9, shin=24, edge=0.3))
+    return finish([(cv, 0.55)], sh)
+
+
+# The League modes' resources that borrowed stock pictures (the art audit
+# of 2026-11-22; C7/Lua/standalone/league_art.json "cell"), in the cells
+# past MDJ's: each muted against the stock icon it borrowed, as
+# EXTRA_ICONS are against the Sengoku conquest's.
+LEAGUE_ICONS = {28: (icon_pearls, 15), 29: (icon_beach_resort, 23), 30: (icon_precious_stones, 21),
+                31: (icon_sandbar, 18), 32: (icon_olive_oil, 8)}
+
+
 # The icons MDJ (C7/Lua/mdj) adds, past the original's 26 in cells of the
 # sheet the original leaves empty; standalone mode shows its Jade and Sake
 # with them (C7/Lua/standalone/ruleset.lua). Each is muted against its own
@@ -1445,6 +1609,7 @@ def render(only=None):
     sheet = np.zeros((6 * o, 6 * o, 4))
     icons = dict(enumerate(ICONS))
     icons.update({i: fn for i, (fn, _) in EXTRA_ICONS.items()})
+    icons.update({i: fn for i, (fn, _) in LEAGUE_ICONS.items()})
     for i, fn in icons.items():
         if only is not None and i not in only:
             continue
@@ -1462,6 +1627,9 @@ def render(only=None):
         if i in EXTRA_ICONS:
             sr, sc = divmod(EXTRA_ICONS[i][1], 6)
             oc = sengoku[sr * CELL:(sr + 1) * CELL, sc * CELL:(sc + 1) * CELL]
+        elif i in LEAGUE_ICONS:
+            sr, sc = divmod(LEAGUE_ICONS[i][1], 6)
+            oc = orig[sr * CELL:(sr + 1) * CELL, sc * CELL:(sc + 1) * CELL]
         else:
             oc = orig[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL]
         rgb[sl] = mute(rgb[sl], A[sl], MUTE * mean_saturation(oc[..., :3] / 255.0, oc[..., 3] / 255.0))
@@ -1498,6 +1666,20 @@ def build():
     return civ3art.save_modern(REL, rgba)
 
 
+def build_cells(cells):
+    """Draws only these cells into the sheet there is (C7/ModernArt), leaving
+    the others as they are."""
+    from PIL import Image
+    path = civ3art.modern_path(REL).rsplit('.', 1)[0] + '.png'
+    sheet = np.array(Image.open(path).convert('RGBA'))
+    new = render(only=set(cells))
+    o = civ3art.SCALE * CELL
+    for i in cells:
+        r, c = divmod(i, 6)
+        sheet[r * o:(r + 1) * o, c * o:(c + 1) * o] = new[r * o:(r + 1) * o, c * o:(c + 1) * o]
+    return civ3art.save_modern(REL, sheet)
+
+
 def previews(rgba):
     from PIL import Image
     orig = civ3art.load_original(REL)
@@ -1513,7 +1695,9 @@ def previews(rgba):
 
 
 if __name__ == '__main__':
-    path = build()
+    # --cells=28,29: only those cells, into the sheet there is.
+    cells = [a.split('=', 1)[1] for a in sys.argv[1:] if a.startswith('--cells=')]
+    path = build_cells([int(c) for c in cells[0].split(',')]) if cells else build()
     from PIL import Image
     previews(np.asarray(Image.open(path)))
     print(path)

@@ -2164,23 +2164,23 @@ Art/Civilopedia/Icons/Resources/Oasis_small.png
 Art/Civilopedia/Icons/Resources/Whales_large.png
 Art/Civilopedia/Icons/Resources/Whales_small.png
 #ICON_GOOD_MODERN_Pearls
-Art/Civilopedia/Icons/Resources/Diamonds_large.png
-Art/Civilopedia/Icons/Resources/Diamonds_small.png
+Art/Civilopedia/Icons/Resources/LEAGUE_Pearls_large.png
+Art/Civilopedia/Icons/Resources/LEAGUE_Pearls_small.png
 #ICON_GOOD_MODERN_Beach_Resort
-Art/Civilopedia/Icons/Resources/Oasis_large.png
-Art/Civilopedia/Icons/Resources/Oasis_small.png
+Art/Civilopedia/Icons/Resources/MODERN_Beach_Resort_large.png
+Art/Civilopedia/Icons/Resources/MODERN_Beach_Resort_small.png
 #ICON_GOOD_MDJ_Pearls
-Art/Civilopedia/Icons/Resources/Diamonds_large.png
-Art/Civilopedia/Icons/Resources/Diamonds_small.png
+Art/Civilopedia/Icons/Resources/LEAGUE_Pearls_large.png
+Art/Civilopedia/Icons/Resources/LEAGUE_Pearls_small.png
 #ICON_GOOD_MDJ_Precious_Stones
-Art/Civilopedia/Icons/Resources/Gold_large.png
-Art/Civilopedia/Icons/Resources/Gold_small.png
+Art/Civilopedia/Icons/Resources/MDJ_Precious_Stones_large.png
+Art/Civilopedia/Icons/Resources/MDJ_Precious_Stones_small.png
 #ICON_GOOD_MDJ_Sandbar
-Art/Civilopedia/Icons/Resources/Spice_large.png
-Art/Civilopedia/Icons/Resources/Spice_small.png
+Art/Civilopedia/Icons/Resources/MDJ_Sandbar_large.png
+Art/Civilopedia/Icons/Resources/MDJ_Sandbar_small.png
 #ICON_GOOD_MDJ_Olive_Oil
-Art/Civilopedia/Icons/Resources/Oil_large.png
-Art/Civilopedia/Icons/Resources/Oil_small.png
+Art/Civilopedia/Icons/Resources/MDJ_Olive_Oil_large.png
+Art/Civilopedia/Icons/Resources/MDJ_Olive_Oil_small.png
 
 ; ---- WORKER ACTIONS
 #ICON_TFRM_Mine

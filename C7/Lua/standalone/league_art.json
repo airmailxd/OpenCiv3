@@ -1086,7 +1086,7 @@
      "from": "GOOD_Diamonds",
      "key": "GOOD_MODERN_Pearls",
      "art": "LEAGUE_Pearls",
-     "status": "new",
+     "status": "done",
      "cell": 28,
      "priority": "P3",
      "note": "map cell 28 (shared with MDJ)"
@@ -1095,7 +1095,7 @@
      "from": "GOOD_Oasis",
      "key": "GOOD_MODERN_Beach_Resort",
      "art": "MODERN_Beach_Resort",
-     "status": "new",
+     "status": "done",
      "cell": 29,
      "priority": "P3",
      "note": "map cell 29"
@@ -2074,7 +2074,7 @@
      "from": "GOOD_Diamonds",
      "key": "GOOD_MDJ_Pearls",
      "art": "LEAGUE_Pearls",
-     "status": "new",
+     "status": "done",
      "cell": 28,
      "priority": "P3",
      "note": "map cell 28 (shared with Modern)"
@@ -2083,7 +2083,7 @@
      "from": "GOOD_Gold",
      "key": "GOOD_MDJ_Precious_Stones",
      "art": "MDJ_Precious_Stones",
-     "status": "new",
+     "status": "done",
      "cell": 30,
      "priority": "P3",
      "note": "map cell 30"
@@ -2092,7 +2092,7 @@
      "from": "GOOD_Spice",
      "key": "GOOD_MDJ_Sandbar",
      "art": "MDJ_Sandbar",
-     "status": "new",
+     "status": "done",
      "cell": 31,
      "priority": "P3",
      "note": "map cell 31"
@@ -2101,7 +2101,7 @@
      "from": "GOOD_Oil",
      "key": "GOOD_MDJ_Olive_Oil",
      "art": "MDJ_Olive_Oil",
-     "status": "new",
+     "status": "done",
      "cell": 32,
      "priority": "P3",
      "note": "map cell 32"
