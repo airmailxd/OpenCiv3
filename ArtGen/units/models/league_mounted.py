@@ -168,7 +168,7 @@ def topfhelm(mats, m='helmet', crest='crest', brass='brass'):
             (-0.09, 0.0)]
     for sx in (1, -1):
         w = M.extrude(wing, 0.024, cm).transformed(M.rot_z(90))     # outline now in the y-z plane, thin in x
-        parts.append(w.transformed(T(sx * 0.045, 0.0, 0.275) @ M.rot_y(sx * 24)))
+        parts.append(w.transformed(T(sx * 0.016, 0.0, 0.275) @ M.rot_y(sx * 3)))
     # the wings' socket on the top plate
     parts.append(M.rounded_box(0.11, 0.07, 0.03, bm, (0, -0.01, 0.285), r=0.01, seg=6))
     return M.Mesh.concat(parts)
@@ -399,6 +399,9 @@ class LeagueHorseRider(MT.HorseRider):
             for yc, sc in crosses:
                 if in_cross(y - yc, abs(s) - sc, 0.17, 0.04, flare=0.12):
                     return black
+            # and one over the croup, behind the saddle
+            if in_cross(y + 0.70, s, 0.14, 0.035, flare=0.12):
+                return black
             return white
 
         def hem_len(u, y):
@@ -484,7 +487,7 @@ class LeagueHorseRider(MT.HorseRider):
                 d = min(abs(a - back) / (back - a0), 1.0)
                 f = 1.0 - 0.38 * d ** 1.6           # the hem rises toward the front edges
                 z = zk[0] - (zk[0] - zt) * f
-                pl = 0.024 * math.sin(9 * (a - back)) * t ** 1.2   # pleats, deeper toward the hem
+                pl = 0.034 * math.sin(11 * (a - back)) * t ** 1.1   # pleats, deeper toward the hem
                 row.append(((rxt + pl) * math.cos(a), dyt + (ryt + pl) * math.sin(a), z))
             rows.append(row)
         Pm = np.asarray(rows, np.float32)
@@ -525,8 +528,19 @@ class LeagueHorseRider(MT.HorseRider):
                 rr = (0.10 + (0.075 - 0.10) * (-z / H.THIGH)) * lb + 0.004
                 parts.append((f'thigh_{side}', M.cylinder(rr, rr, 0.012, mail_row, seg=10, z0=float(z)), None))
             # knee cop and its wing
-            parts.append((f'shin_{side}', M.ellipsoid(0.07 * lb, 0.05 * lb, 0.07, steel, (0, 0.045, 0.0), seg=10), None))
-            parts.append((f'shin_{side}', M.ellipsoid(0.04, 0.02, 0.05, steel, (0.06, 0.03, -0.01), seg=8), None))
+            # the poleyn: a cup over the front of the knee, a lame above and below, a fan-shaped wing outside
+            sxs = 1 if side == 'r' else -1
+            r0 = 0.072 * lb
+            parts.append((f'shin_{side}', H._shell([(-0.06, r0 * 0.95, r0 * 0.95), (0.0, r0 * 1.08, r0 * 1.12),
+                                                    (0.06, r0 * 0.95, r0 * 0.95)], steel, math.radians(10),
+                                                   math.radians(170), seg=10), None))
+            for z in (0.075, -0.075):
+                parts.append((f'shin_{side}', H._shell([(z - 0.012, r0 * 0.97, r0 * 0.97), (z + 0.012, r0 * 0.97, r0 * 0.97)],
+                                                       steel, math.radians(20), math.radians(160), seg=8), None))
+            parts.append((f'shin_{side}', M.extrude([(0.0, -0.05), (0.045, -0.03), (0.055, 0.0), (0.045, 0.03),
+                                                     (0.0, 0.05)], 0.008, steel).transformed(
+                T(sxs * r0 * 0.95, 0.02, 0.0) @ M.rot_z(90 if sxs > 0 else -90) @ M.scale(1, 1, 1))
+                          .transformed(M.rot_z(0)), None))
             # mail mitten over the hand
             parts.append((f'hand_{side}', M.ellipsoid(0.05 * H.HAND, 0.058 * H.HAND, 0.066 * H.HAND, mail,
                                                      (0, 0.008, -0.055), seg=9), None))

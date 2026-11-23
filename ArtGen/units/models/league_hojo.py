@@ -248,6 +248,33 @@ def g_hojo_jinbaori(g, mat='jinbaori', mon='mon', collar='collar_band', hem='jin
 
 # ------------------------------------------------------------ arms, sash, swords
 
+def g_hojo_do_mon(g, size=0.15):
+    """The clan crest in gilt on the front of the do, painted on a thin
+    plate following the chest."""
+    gm = g.m('gold', '#c4a050', finish='metal')
+    chest = g.chest
+    zs = [c[0] for c in chest]
+    gap = 0.042
+    angs = np.linspace(math.pi / 2 - 0.55, math.pi / 2 + 0.55, 25)
+    zr = np.linspace(0.06, 0.24, 19)
+    rows = []
+    for z in zr:
+        rx = float(np.interp(z, zs, [c[1] for c in chest])) + gap
+        ry = float(np.interp(z, zs, [c[2] for c in chest])) + gap
+        dy = float(np.interp(z, zs, [c[4] for c in chest]))
+        rows.append([(rx * math.cos(a), dy + ry * math.sin(a), z) for a in angs])
+    Pts = np.asarray(rows, np.float32)
+    tris = []
+    for i in range(len(zr) - 1):
+        for j in range(len(angs) - 1):
+            x = 0.5 * (Pts[i, j, 0] + Pts[i, j + 1, 0])
+            z = 0.5 * (zr[i] + zr[i + 1])
+            if in_uroko(-x, z - 0.15, size):
+                q = [Pts[i, j], Pts[i, j + 1], Pts[i + 1, j + 1], Pts[i + 1, j]]
+                tris.append(M.plate(q, gm, thick=0.004))
+    return [('chest', M.Mesh.concat(tris), None)] if tris else []
+
+
 def g_hojo_kote(g, cloth='kote', plate='kote_plate'):
     """Armored sleeves: dark cloth over the arms, a lacquered plate along the
     top of each forearm with a gilt edge, a plate on the back of the hand."""
@@ -278,8 +305,8 @@ def g_hojo_daisho(g):
     from models.props_foot_ancient import katana_sheathed
     tw = g.tw
     k = katana_sheathed(g.mats)
-    out = [('pelvis', k.transformed(T(-0.23 * tw, 0.06, 0.06) @ M.rot_y(-10) @ M.rot_x(118)), None)]
-    out.append(('pelvis', k.transformed(T(-0.19 * tw, 0.10, 0.08) @ M.rot_y(-6) @ M.rot_x(108) @ M.scale(0.72)), None))
+    out = [('pelvis', k.transformed(T(-0.24 * tw, 0.06, 0.06) @ M.rot_z(-5) @ M.rot_x(128)), None)]
+    out.append(('pelvis', k.transformed(T(-0.20 * tw, 0.10, 0.08) @ M.rot_z(-3) @ M.rot_x(118) @ M.scale(0.72)), None))
     return out
 
 
