@@ -239,7 +239,8 @@ class LineBody(LF.LeagueBody):
                     add('chest', M.extrude([(-0.04, 0.0), (0.04, 0.0), (0.0, -0.09)], 0.02, top).transformed(
                         M.translate(sx * 0.07, 0.095, 0.33) @ M.rot_z(sx * 22) @ M.rot_x(-30)))
                 elif jk == 'm41':
-                    add('pelvis', _flap(top, (sx * 0.16 * tw, 0.175, 0.02), 0.10, 0.03, 0.02, yaw=sx * 30))
+                    add('pelvis', _flap(self.mm('pocket_flap', '#4e4c36'), (sx * 0.16 * tw, 0.178, 0.02), 0.11, 0.04, 0.024,
+                                        yaw=sx * 30))
                     add('chest', M.rounded_box(0.12, 0.05, 0.016, top, (sx * 0.17, -0.01, 0.315), r=0.006, seg=4, p=4))
                     add('chest', M.extrude([(-0.045, 0.0), (0.045, 0.0), (0.0, -0.08)], 0.02, top).transformed(
                         M.translate(sx * 0.07, 0.09, 0.335) @ M.rot_z(sx * 25) @ M.rot_x(-35)))
@@ -255,7 +256,7 @@ class LineBody(LF.LeagueBody):
                     add('chest', M.rounded_box(0.016, 0.05, 0.045, self.mm('collar_tab', '#a8302a'),
                                                (sx * 0.103, 0.035, 0.33), r=0.005, seg=4).transformed(M.rot_z(sx * 20)))
             if jk == 'type98':
-                add('chest', M.loft([(0.28, 0.105, 0.092, 0, 0.0), (0.36, 0.09, 0.082, 0, -0.004)], top, seg=14,
+                add('chest', M.loft([(0.28, 0.105, 0.092, 0, 0.0), (0.33, 0.092, 0.084, 0, -0.004)], top, seg=14,
                                     cap_bottom=False, cap_top=False))
             if jk == 'jungle':
                 # the placket down the front, in the fatigues' olive
@@ -516,11 +517,11 @@ class LineBody(LF.LeagueBody):
             hm = self.mm('hat', '#7e784c')
             # the crown: straight sides, a flat top with its seam
             add(M.loft([(0.115, 0.118, 0.13, 0, -0.006), (0.20, 0.123, 0.135, 0, -0.01), (0.245, 0.117, 0.129, 0, -0.012),
-                        (0.27, 0.095, 0.105, 0, -0.012), (0.282, 0.05, 0.055, 0, -0.012)], hm, seg=18, cap_bottom=False,
+                        (0.27, 0.095, 0.105, 0, -0.012), (0.282, 0.05, 0.055, 0, -0.012)], hm, seg=18, cap_bottom=True,
                        cap_top=True))
             bd = self.mm('hatband', '#ffffff')
             add(M.cylinder(0.128, 0.128, 0.072, bd, seg=18, z0=0.104).transformed(M.translate(0, -0.006, 0) @ M.scale(1, 1.08, 1)))
-            vm = self.mm('visor', '#3e2c1e', spec=0.15, gloss=14)
+            vm = self.mm('visor', '#7a7448', spec=0.06, gloss=10)
             add(M.ellipsoid(0.095, 0.065, 0.013, vm, (0, 0.135, 0.118), seg=14).transformed(
                 M.translate(0, 0.135, 0.118) @ M.rot_x(26) @ M.translate(0, -0.135, -0.118)))
             add(M.extrude([(0.0, 0.03), (0.009, 0.009), (0.03, 0.009), (0.013, -0.004), (0.019, -0.026), (0.0, -0.012),
@@ -540,7 +541,7 @@ class LineBody(LF.LeagueBody):
 
 # ------------------------------------------------------------ death
 
-def line_death(base, ctx, hold=None, delay=0.0):
+def line_death(base, ctx, hold=None, delay=0.0, late_hands=False, head0=22.0):
     """humanoid.anim_death's fall (struck, staggers back, knees buckle, falls
     on the back), started from the figure's own default pose: the legs from
     its stance, the arms by IK following the chest, so frame 0 is the default
@@ -567,8 +568,8 @@ def line_death(base, ctx, hold=None, delay=0.0):
                  'elbow_l': (-0.6, -0.5, -0.4)}
     k = [
         (0.0, {}),
-        (0.18, dict(hands, root_rot=(12, 0, 6), root_pos=(0, -0.06, -0.02), chest=(12, 0, 8), head=(22, 0, 0),
-                    spine=(0, 0, 0), thigh_r=(10, -4, 0), shin_r=(-18, 0, 0), order=0.0)),
+        (0.18, dict({} if late_hands else hands, root_rot=(12, 0, 6), root_pos=(0, -0.06, -0.02), chest=(12, 0, 8),
+                    head=(head0, 0, 0), spine=(0, 0, 0), thigh_r=(10, -4, 0), shin_r=(-18, 0, 0), order=0.0)),
         (0.38, dict(hands, root_rot=(30, 0, 10), root_pos=(0, -0.22, -0.28), chest=(14, 0, 8), head=(24, 0, 0),
                     thigh_r=(62, -8, 0), shin_r=(-72, 0, 0), thigh_l=(44, 8, 0), shin_l=(-62, 0, 0))),
         (0.62, dict(hands, root_rot=(80, 0, 8), root_pos=(0, -0.55, -0.72), chest=(6, 0, 4), head=(10, 0, 10),
@@ -661,6 +662,22 @@ class LineSoldier(LF.LeagueSoldier):
         finally:
             self.base = saved
 
+    def anim_lunge(self, ctx):
+        if not self.p.get('thrust_level'):
+            return super().anim_lunge(ctx)
+        B = self.base
+        g = self.P('guard')
+        st = ctx.event('reach_max', 0.5) if ctx is not None else 0.5
+        st = min(max(st or 0.5, 0.35), 0.7)
+        jab = dict(g)
+        jab.update({'root_pos': _v((0, 0.30, -0.14)), 'hand_r': _v((0.18, 0.44, 1.16)), 'w_main': _v((-74, 0, 16)),
+                    'foot_l': _v((-0.18, 0.62, A)), 'foot_r': _v((0.2, -0.16, A)), 'toe_r': _v(25.0),
+                    'chest': _v((-8, 0, 6)), 'spine': _v((-6, 0, 0))})
+        g = dict(g, toe_r=B['toe_r'])
+        k = [(0.0, {}), (0.25, g), (0.5, jab), (0.6, jab), (0.78, g), (1.0, {c: B[c] for c in g if c in B})]
+        anim = H.keys(B, k)
+        return FM.Act(lambda t: anim(H._warp(t, [(0.5, st)])))
+
     def frame(self, action, f, n, ctx):
         mesh = super().frame(action, f, n, ctx)
         if self.anim_name(action) == 'death':
@@ -672,7 +689,9 @@ class LineSoldier(LF.LeagueSoldier):
         if self.anim_name(action) == 'death':
             key = (action, ctx.n if ctx else None)
             if key not in self._cache:
-                self._cache[key] = line_death(self.base, ctx, 'port' if self.gun else None)
+                self._cache[key] = line_death(self.base, ctx, 'port' if self.gun else None,
+                                              late_hands=bool(self.p.get('death_late_hands')),
+                                              head0=float(self.p.get('death_head0', 22.0)))
             return self._cache[key]
         return super().action(action, ctx)
 
@@ -778,66 +797,90 @@ class LineMgTeam:
             self._cache[k] = LG.m1917(self.mats, belt=belt).transformed(M.scale(1.35, 1.35, 1.0))
         return self._cache[k]
 
-    # -- the march (RUN): the gunner carries the gun by its handle at his right side, the
-    # assistant the folded tripod over his left shoulder and a can in his right hand
+    # -- the march (RUN): the gun on the gunner's right shoulder, his right hand on its jacket;
+    # the assistant with the folded tripod over his left shoulder and a can in his right hand,
+    # a quarter step out of phase
     TRIPOD_ON_SHOULDER = M.translate(-0.25, 0.10, 0.40) @ M.rot_x(-62) @ M.translate(0, 0, -0.40)
-    HANDLE = (0.0, -0.10 * 1.35, 0.47)
     GUN_ON_SHOULDER = M.translate(0.25, -0.14, 0.43) @ M.rot_z(-30) @ M.rot_x(-97)
+    CHEST_REST = 0.92 + 0.08 + 0.20
 
     def _march(self, action, t, n):
         G_, A_ = self.gunner, self.assistant
         out = []
-        for who, at, phase, role in ((G_, self.gunner_at, 0.0, 'gun'), (A_, self.assistant_at, 0.5, 'tripod')):
+        # where the gunner's hand holds the jacket, in model space of an upright figure
+        hold = (self.GUN_ON_SHOULDER @ _v((0, 0.06 * 1.35, 0.46, 1.0)).reshape(4, 1))[:3, 0] + _v((0, 0, self.CHEST_REST))
+        for who, at, phase, role in ((G_, self.gunner_at, 0.0, 'gun'), (A_, self.assistant_at, 0.27, 'tripod')):
             p = H.anim_run(who.base, 'spear', 'shield_round', n).fn((t + phase) % 1.0)
             p['follow'] = _v(1.0)
             if role == 'gun':
-                p['hand_r'] = _v((0.22, 0.34, 1.50))
-                p['elbow_r'] = _v((0.9, -0.3, -0.4))
+                p['hand_r'] = _v(hold) + _v((0.0, 0.0, -0.03))
+                p['elbow_r'] = _v((0.9, -0.2, -0.5))
             else:
                 p['hand_l'] = _v((-0.20, 0.30, 1.48))
                 p['elbow_l'] = _v((-0.9, -0.3, -0.4))
                 p['hand_r'] = _v((0.34, 0.02, 0.80)) + (p['hand_r'] - who.base['hand_r']) * 0.4
             m, info = who.pose_full(p, FM.Act(None, loop=True), None, None)
+            C = info['W']['chest']
             if role == 'gun':
-                C = info['W']['chest']
                 m = M.Mesh.concat([m, self._gun().transformed(C @ self.GUN_ON_SHOULDER)])
             else:
-                C = info['W']['chest']
                 m = M.Mesh.concat([m, LG.m1917_tripod(self.mats, h=0.40, folded=True).transformed(C @ self.TRIPOD_ON_SHOULDER)])
                 T = info['T']['r']
                 m = M.Mesh.concat([m, LG.ammo_can_carried(self.mats).transformed(M.translate(*T[:3, 3]) @ M.rot_z(8))])
             out.append(m.transformed(M.translate(*at)))
         return out
 
-    # -- in action (also the default pose, like the stock TOW team)
+    # -- in action (also the default pose, like the stock TOW team): the gunner sits low behind
+    # the gun, hands on the grip; the assistant kneels at the gun's left, facing the receiver,
+    # feeding the belt from the open can between them
+    GPOS = (-0.02, -0.86)
+    APOS = (-0.80, -0.12)
+    AYAW = -90.0
+
     def _gunner_pose(self, recoil=0.0):
         B = self.gunner.base
-        k = {'root_pos': (0.0, -0.06, -0.50), 'foot_l': (-0.20, 0.22, A), 'foot_r': (0.20, -0.30, 0.10),
-             'toe_r': 50.0, 'fyaw_r': -20.0, 'spine': (-18, 0, 0), 'chest': (-14, 0, 0), 'head': (12, 0, 0),
+        k = {'root_pos': (0.0, -0.08, -0.58), 'foot_l': (-0.22, 0.26, A), 'foot_r': (0.22, -0.28, 0.10),
+             'toe_r': 50.0, 'fyaw_r': -20.0, 'spine': (-22, 0, 0), 'chest': (-16, 0, 0), 'head': (16, 0, 0),
              'elbow_r': (0.8, -0.5, -0.4), 'elbow_l': (-0.8, -0.5, -0.4)}
         p = dict(B)
         p.update({c: _v(v) for c, v in k.items()})
         p['follow'] = _v(0.0)
         p['support'] = _v(0.0)
-        p['root_pos'] = p['root_pos'] + _v((0, -0.025, 0)) * recoil
+        p['root_pos'] = p['root_pos'] + _v((0, -0.045, 0.0)) * recoil
+        p['chest'] = p['chest'] + _v((4, 0, 0)) * recoil
         return p
 
-    def _assistant_pose(self, t, action='DEFAULT'):
+    def _to_local(self, world, at, yaw):
+        c, s = math.cos(math.radians(-yaw)), math.sin(math.radians(-yaw))
+        d = _v(world) - _v(at)
+        return _v((c * d[0] - s * d[1], s * d[0] + c * d[1], d[2]))
+
+    def _feed_points(self, GT):
+        """The belt from the open can up into the feedway on the gun's left."""
+        feed = (GT @ _v((-0.10 * 1.35, -0.05, 0.07, 1.0)).reshape(4, 1))[:3, 0]
+        can = _v((self.mount[0] - 0.42, self.mount[1] - 0.12, 0.20))
+        mid = (feed + can) / 2 + _v((-0.02, 0.0, -0.02))
+        return feed, mid, can
+
+    def _assistant_pose(self, t, action='DEFAULT', GT=None, f=0, n=15):
         B = self.assistant.base
-        s = math.sin(2 * math.pi * t)
-        feed = action in ('ATTACK1', 'FORTIFY')
-        k = {'root_pos': (0.0, 0.0, -0.50), 'foot_l': (-0.18, 0.24, A), 'foot_r': (0.18, -0.34, 0.10),
-             'toe_r': 50.0, 'fyaw_r': -10.0, 'spine': (-16, 0, 0), 'chest': (-8, 0, -14), 'head': (10, 0, -10),
-             'hand_r': (0.30, 0.36, 0.52 + (0.025 * s if feed else 0.0)), 'hand_l': (0.06, 0.40, 0.48),
-             'elbow_r': (0.6, -0.6, -0.4), 'elbow_l': (-0.6, -0.6, -0.4)}
+        apos = _v((self.mount[0] + self.APOS[0], self.mount[1] + self.APOS[1], 0))
+        feed, mid, can = self._feed_points(GT if GT is not None else self._gun_T())
+        pull = 0.0
+        if action in ('ATTACK1', 'FORTIFY'):
+            pull = 0.5 + 0.5 * math.sin(2 * math.pi * t * 3)
+        hl = self._to_local(feed + _v((-0.05, 0.0, 0.02)), apos, self.AYAW)
+        hr = self._to_local(mid * (1 - 0.3 * pull) + can * 0.3 * pull + _v((0, 0, 0.03)), apos, self.AYAW)
+        k = {'root_pos': (0.0, 0.0, -0.52), 'foot_l': (-0.18, 0.22, A), 'foot_r': (0.18, -0.34, 0.10),
+             'toe_r': 50.0, 'fyaw_r': -10.0, 'spine': (-20, 0, 0), 'chest': (-10, 0, 0), 'head': (14, 0, 8),
+             'hand_r': tuple(hr), 'hand_l': tuple(hl), 'elbow_r': (0.6, -0.6, -0.4), 'elbow_l': (-0.6, -0.6, -0.4)}
         if action == 'FIDGET':
-            k['head'] = (6, 0, -10 + 45 * math.sin(math.pi * t))
-            k['chest'] = (-8, 0, -14 + 12 * math.sin(math.pi * t))
+            k['head'] = (6, 0, 8 + 40 * math.sin(math.pi * t))
         if action == 'VICTORY':
             u = max(0.0, math.sin(math.pi * min(1.0, t / 0.85)))
-            k['hand_l'] = (-0.30 * u + 0.06 * (1 - u), 0.10 * u + 0.40 * (1 - u), 0.48 + 1.40 * u)
-            k['elbow_l'] = (-0.8, -0.3, 0.2)
-            k['spine'] = (-16 + 14 * u, 0, 0)
+            k['hand_r'] = tuple(_v(hr) * (1 - u) + _v((0.30, 0.10, 1.90)) * u)
+            k['elbow_r'] = (0.8, -0.3, 0.2)
+            k['spine'] = (-20 + 18 * u, 0, 0)
         p = dict(B)
         p.update({c: _v(v) for c, v in k.items()})
         p['follow'] = _v(0.0)
@@ -845,32 +888,38 @@ class LineMgTeam:
 
     def _gun_T(self, recoil=0.0, tip=0.0):
         m = self.mount
-        return M.translate(m[0], m[1] - 0.26 - 0.03 * recoil, self.tri_h + 0.09 - 0.07 * tip) @ M.rot_x(-90 - 14 * tip)
+        return M.translate(m[0], m[1] - 0.26 - 0.05 * recoil, self.tri_h + 0.09 - 0.07 * tip) @ M.rot_x(-90 - 14 * tip)
 
     def _ground_kit(self):
         m = self.mount
         out = [LG.m1917_tripod(self.mats, h=self.tri_h).transformed(M.translate(*m))]
-        out.append(LG.ammo_can(self.mats, lid_open=True).transformed(M.translate(m[0] - 0.40, m[1] - 0.10, 0) @ M.rot_z(-10)))
-        out.append(LG.ammo_can(self.mats).transformed(M.translate(m[0] - 0.75, m[1] - 0.95, 0) @ M.rot_z(70)))
-        cc = _v((m[0] + 0.40, m[1] + 0.10, 0.0))
-        out.append(LG.condenser_can(self.mats).transformed(M.translate(*cc)))
-        return out, cc
+        # the open can the belt comes from, beside the receiver; a full one behind the assistant
+        out.append(LG.ammo_can(self.mats, lid_open=True).transformed(M.translate(m[0] - 0.42, m[1] - 0.12, 0) @ M.rot_z(10)))
+        out.append(LG.ammo_can(self.mats).transformed(M.translate(m[0] - 1.15, m[1] - 0.55, 0) @ M.rot_z(70)))
+        out.append(LG.ammo_can(self.mats).transformed(M.translate(m[0] - 1.22, m[1] - 0.25, 0) @ M.rot_z(80)))
+        return out
 
-    GPOS = (-0.02, -0.86)
-    APOS = (-0.95, -0.42)
-
-    def _hose(self, GT, cc):
-        fit = (GT @ _v((0, 0.055 * 1.35, 0.26, 1.0)).reshape(4, 1))[:3, 0]
-        return LG.hose(self.mats, [tuple(fit), tuple(fit + _v((0.10, 0.02, -0.12))), tuple(cc + _v((-0.05, -0.04, 0.27))),
-                                   tuple(cc + _v((0, 0, 0.28)))])
+    def _belt(self, pts):
+        cl = self.gunner.body.mm('belt_cloth', '#8a7e5e')
+        br = LG.brass(self.mats)
+        out = []
+        for a, b in zip(pts[:-1], pts[1:]):
+            for k in range(4):
+                u = (k + 0.5) / 4
+                c = a + (b - a) * u
+                out.append(M.box(0.05, 0.03, 0.03, cl, tuple(c)))
+                out.append(M.capsule(tuple(c + _v((-0.04, 0, 0.012))), tuple(c + _v((0.04, 0, 0.012))), 0.008, 0.006, br,
+                                     seg=5, rings=1))
+        return M.Mesh.concat(out)
 
     def _deployed(self, action, t, f, n):
-        meshes, cc = self._ground_kit()
+        meshes = self._ground_kit()
         shots = self.shots(action)
         recoil = self.gunner._recoil(t, n, shots) if shots else 0.0
         GT = self._gun_T(recoil)
-        meshes.append(self._gun(belt=True).transformed(GT))
-        meshes.append(self._hose(GT, cc))
+        meshes.append(self._gun().transformed(GT))
+        feed, mid, can = self._feed_points(GT)
+        meshes.append(self._belt([feed, mid, can]))
         grip = (GT @ _v((0, 0.11, -0.15, 1.0)).reshape(4, 1))[:3, 0]
         gpos = _v((self.mount[0] + self.GPOS[0], self.mount[1] + self.GPOS[1], 0))
         p = self._gunner_pose(recoil)
@@ -881,8 +930,8 @@ class LineMgTeam:
         gm, _ = self.gunner.pose_full(p, FM.Act(None), None, None)
         meshes.append(gm.transformed(M.translate(*gpos)))
         apos = _v((self.mount[0] + self.APOS[0], self.mount[1] + self.APOS[1], 0))
-        am, _ = self.assistant.pose_full(self._assistant_pose(t, action), FM.Act(None), None, None)
-        meshes.append(am.transformed(M.translate(*apos) @ M.rot_z(-60)))
+        am, _ = self.assistant.pose_full(self._assistant_pose(t, action, GT, f, n), FM.Act(None), None, None)
+        meshes.append(am.transformed(M.translate(*apos) @ M.rot_z(self.AYAW)))
         if f in shots:
             mz = (GT @ _v((0, 0, LG.GUNS['m1917']['muzzle'], 1.0)).reshape(4, 1))[:3, 0]
             self._fx.append({'kind': 'flash', 'pos': mz, 'dir': _v((0, 1, 0)), 'size': 0.30})
@@ -894,14 +943,15 @@ class LineMgTeam:
         return meshes
 
     def _death(self, t, n):
-        """From the default pose: the gunner is hit first and slumps over onto
-        his right side; the assistant a beat later falls back off his knee.
-        The gun, no longer held, tips forward on its tripod over a few frames."""
-        meshes, cc = self._ground_kit()
+        """From the default pose: the gunner is hit first, lets go of the grip and slumps back
+        and to his right, off the gun and clear of the tripod; the assistant, a beat later,
+        falls back from the gun's side. The gun, no longer held, tips forward over a few frames."""
+        meshes = self._ground_kit()
         tip = min(1.0, max(0.0, (t - 0.18) / 0.22))
         GT = self._gun_T(0.0, tip)
-        meshes.append(self._gun(belt=True).transformed(GT))
-        meshes.append(self._hose(GT, cc))
+        meshes.append(self._gun().transformed(GT))
+        feed, mid, can = self._feed_points(GT)
+        meshes.append(self._belt([feed, mid, can]))
         grip = (self._gun_T() @ _v((0, 0.11, -0.15, 1.0)).reshape(4, 1))[:3, 0]
         gpos = _v((self.mount[0] + self.GPOS[0], self.mount[1] + self.GPOS[1], 0))
         K = self._gunner_pose()
@@ -909,27 +959,28 @@ class LineMgTeam:
         K['hand_l'] = grip - gpos + _v((-0.09, 0.08, 0.06))
         belly = {'hand_r': (0.14, 0.24, 0.90), 'hand_l': (-0.04, 0.26, 0.94), 'follow': 1.0}
         kg = H.keys(K, [(0.0, {}),
-                        (0.12, {'chest': (10, 0, 6), 'head': (24, 0, 0), 'root_pos': (0.0, -0.10, -0.47)}),
-                        (0.34, dict(belly, root_rot=(50, 0, -12), root_pos=(0.04, -0.32, -0.64), chest=(6, 0, 4),
-                                    spine=(0, 0, 0), head=(14, 0, -10), foot_r=(0.20, -0.10, A), toe_r=20.0)),
-                        (0.52, dict(belly, root_rot=(84, 0, -14), root_pos=(0.06, -0.50, -0.78), chest=(0, 0, 0),
-                                    head=(-4, 0, -18), foot_r=(0.22, 0.10, A), foot_l=(-0.16, 0.26, A), toe_r=0.0)),
-                        (1.0, dict(belly, root_rot=(88, 0, -14), root_pos=(0.06, -0.52, -0.79), chest=(0, 0, 0),
-                                   head=(-8, 0, -22), foot_r=(0.24, 0.14, A), foot_l=(-0.14, 0.30, A), toe_r=0.0))])
-        L = self._assistant_pose(0.0)
+                        (0.12, {'chest': (2, 0, 6), 'head': (26, 0, 0), 'root_pos': (0.0, -0.12, -0.56)}),
+                        (0.34, dict(belly, root_rot=(46, 0, -20), root_pos=(0.12, -0.38, -0.68), chest=(6, 0, 4),
+                                    spine=(0, 0, 0), head=(14, 0, -10), foot_r=(0.24, -0.20, A), foot_l=(-0.12, 0.06, A),
+                                    toe_r=20.0)),
+                        (0.52, dict(belly, root_rot=(84, 0, -26), root_pos=(0.24, -0.62, -0.78), chest=(0, 0, 0),
+                                    head=(-4, 0, -18), foot_r=(0.30, -0.02, A), foot_l=(-0.06, 0.02, A), toe_r=0.0)),
+                        (1.0, dict(belly, root_rot=(88, 0, -30), root_pos=(0.28, -0.66, -0.79), chest=(0, 0, 0),
+                                   head=(-8, 0, -22), foot_r=(0.32, 0.00, A), foot_l=(-0.04, 0.04, A), toe_r=0.0))])
+        apos = _v((self.mount[0] + self.APOS[0], self.mount[1] + self.APOS[1], 0))
+        L = self._assistant_pose(0.0, 'DEFAULT', self._gun_T())
         ka = H.keys(L, [(0.0, {}), (0.30, {}),
-                        (0.42, {'chest': (14, 0, -10), 'head': (24, 0, -10), 'root_pos': (0.0, -0.06, -0.48)}),
+                        (0.42, {'chest': (14, 0, -10), 'head': (24, 0, -10), 'root_pos': (0.0, -0.06, -0.50)}),
                         (0.66, dict(belly, root_rot=(55, 0, 6), root_pos=(0.0, -0.34, -0.66), chest=(6, 0, 0),
                                     spine=(0, 0, 0), head=(12, 0, 10), foot_r=(0.18, -0.05, A), toe_r=20.0)),
-                        (0.84, dict(belly, root_rot=(86, 0, -24), root_pos=(-0.08, -0.52, -0.78), chest=(0, 0, 0),
+                        (0.84, dict(belly, root_rot=(86, 0, 10), root_pos=(0.0, -0.52, -0.78), chest=(0, 0, 0),
                                     head=(-6, 0, 18), foot_r=(0.18, 0.12, A), foot_l=(-0.18, 0.30, A), toe_r=0.0)),
-                        (1.0, dict(belly, root_rot=(88, 0, -28), root_pos=(-0.10, -0.54, -0.79), chest=(0, 0, 0),
+                        (1.0, dict(belly, root_rot=(88, 0, 12), root_pos=(0.0, -0.54, -0.79), chest=(0, 0, 0),
                                    head=(-8, 0, 20), foot_r=(0.18, 0.14, A), foot_l=(-0.18, 0.32, A), toe_r=0.0))])
         gm, _ = self.gunner.pose_full(kg(t), FM.Act(None), None, None)
         meshes.append(gm.transformed(M.translate(*gpos)))
-        apos = _v((self.mount[0] + self.APOS[0], self.mount[1] + self.APOS[1], 0))
         am, _ = self.assistant.pose_full(ka(t), FM.Act(None), None, None)
-        meshes.append(am.transformed(M.translate(*apos) @ M.rot_z(-60)))
+        meshes.append(am.transformed(M.translate(*apos) @ M.rot_z(self.AYAW)))
         return meshes
 
     def frame(self, action, f, n, ctx):

@@ -371,19 +371,14 @@ def ija_knapsack(mats):
     # the horseshoe roll: over the top and down both sides
     pts = [(-0.19, -0.21, -0.02), (-0.20, -0.21, 0.18), (-0.12, -0.21, 0.30), (0.0, -0.21, 0.32),
            (0.12, -0.21, 0.30), (0.20, -0.21, 0.18), (0.19, -0.21, -0.02)]
+    # one smooth roll over the top and down both sides, tied by four thin straps
     for a, b in zip(pts[:-1], pts[1:]):
-        a, b = np.array(a, np.float32), np.array(b, np.float32)
-        d = b - a
-        L = float(np.linalg.norm(d))
-        # a roll of cloth: fat between the ties, pinched at them, a fold ridge along it
-        seg = M.lathe([(0.0, 0.062), (0.2, 0.085), (0.5, 0.092), (0.8, 0.085), (1.0, 0.062)], roll, seg=12)
-        parts.append(seg.transformed(M.look_along(tuple(a), tuple(b))))
-        parts.append(M.capsule(tuple(a + d * 0.2 + (0, -0.084, 0)), tuple(a + d * 0.8 + (0, -0.084, 0)), 0.012, 0.012,
-                               roll, seg=5, rings=1))
-        # the tie at each joint
-        parts.append(M.sphere(0.07, st, tuple(a), seg=10))
-    parts.append(M.sphere(0.07, st, tuple(pts[-1]), seg=10))
-    parts.append(M.box(0.31, 0.016, 0.02, st, (0, -0.21, 0.31)))
+        parts.append(M.capsule(a, b, 0.07, 0.07, roll, seg=12, rings=1))
+    for i in (1, 2, 4, 5):
+        a = np.array(pts[i], np.float32)
+        d = np.array(pts[i + 1], np.float32) - np.array(pts[i - 1], np.float32)
+        ring = M.cylinder(0.074, 0.074, 0.018, st, seg=12, z0=-0.009)
+        parts.append(ring.transformed(M.look_along(tuple(a), tuple(a + d / np.linalg.norm(d)))))
     parts.append(M.rounded_box(0.16, 0.05, 0.12, tin, (0, -0.29, 0.10), r=0.03, seg=8, p=3))           # mess tin
     for x in (-0.1, 0.1):
         parts.append(M.capsule((x, -0.15, 0.27), (x, 0.06, 0.30), 0.016, 0.016, st, seg=5, rings=1))

@@ -56,8 +56,10 @@ UNITS = {
     # bayonet.
     'Japanese Rifleman': {
         'archetype': 'line_soldier',
-        'build': {'bulk': 0.96},
-        'colors': {'skin': '#d0a47a', 'hair': '#1a1410', 'top': '#8a8658', 'trousers': '#aa9c72',
+        'build': {'bulk': 0.9},
+        'stance': {'head': (10, 0, 0)},
+        'death_late_hands': True, 'death_head0': 6.0, 'thrust_level': True,
+        'colors': {'skin': '#d0a47a', 'hair': '#1a1410', 'top': '#7e7c4c', 'trousers': '#b4a67e', 'pouch': '#7a5430',
                    'stockings': '#7a6e4a', 'hat': '#8e8858', 'havelock': '#8e8858', 'boots': '#4a3424', 'belt': '#4a3424', 'strap': '#5a4a30',
                    'pack': '#7a6e4a', 'stock': '#7a4e2c', 'puttees': '#4e4a34'},
         'tint': ['hatband', 'blanket'],
