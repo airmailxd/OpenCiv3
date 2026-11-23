@@ -246,12 +246,13 @@ class LineBody(LF.LeagueBody):
                 else:
                     # four pockets with flaps; the stand-and-fall collar with its red tabs
                     c = _surface(ch, 0.16, math.atan2(1, sx * 0.45), 0.024)
+                    pf = self.mm('pocket_flap', '#6a663e')
                     add('chest', _flap(top, c, 0.10, 0.09, 0.024))
-                    add('chest', _flap(top, (c[0], c[1] + 0.01, c[2] + 0.05), 0.11, 0.035, 0.024))
-                    add('chest', M.sphere(0.01, brass, (c[0], c[1] + 0.026, c[2] + 0.04), seg=5))
+                    add('chest', _flap(pf, (c[0], c[1] + 0.012, c[2] + 0.05), 0.115, 0.04, 0.026))
+                    add('chest', M.sphere(0.014, brass, (c[0], c[1] + 0.03, c[2] + 0.04), seg=6))
                     add('pelvis', _flap(top, (sx * 0.13 * tw, 0.19, -0.04), 0.11, 0.10, 0.026))
-                    add('pelvis', _flap(top, (sx * 0.13 * tw, 0.205, 0.015), 0.12, 0.035, 0.024))
-                    add('chest', M.rounded_box(0.012, 0.04, 0.035, self.mm('collar_tab', '#a8302a'),
+                    add('pelvis', _flap(self.mm('pocket_flap', '#6a663e'), (sx * 0.13 * tw, 0.207, 0.015), 0.12, 0.04, 0.026))
+                    add('chest', M.rounded_box(0.016, 0.05, 0.045, self.mm('collar_tab', '#a8302a'),
                                                (sx * 0.103, 0.035, 0.33), r=0.005, seg=4).transformed(M.rot_z(sx * 20)))
             if jk == 'type98':
                 add('chest', M.loft([(0.28, 0.105, 0.092, 0, 0.0), (0.36, 0.09, 0.082, 0, -0.004)], top, seg=14,
@@ -261,10 +262,20 @@ class LineBody(LF.LeagueBody):
                 add('chest', _panel(ch, [0.0, 0.08, 0.16, 0.24, 0.30], lambda z: 0.07, top, 0.02, n=3))
             # the button line down the front
             for z in (0.02, 0.09, 0.16, 0.23):
-                add('chest', M.sphere(0.011, dk, _surface(ch, z, math.pi / 2, 0.022), seg=6))
+                add('chest', M.sphere(0.014 if jk == 'type98' else 0.011, dk, _surface(ch, z, math.pi / 2, 0.022), seg=6))
+            # side seams and pockets on the trousers / breeches
+            sm_ = self.mm('trouser_seam', '#3e3a2a')
+            for side, sx in (('r', 1), ('l', -1)):
+                r0 = 0.10 * lb if p.get('legs') == 'breeches' else 0.094 * lb
+                add(f'thigh_{side}', M.capsule((sx * r0, 0.0, 0.0), (sx * r0 * 0.82, 0.0, -0.36), 0.0065, 0.0065, sm_, seg=4, rings=1))
+                add(f'thigh_{side}', M.capsule((sx * 0.05, 0.085 * lb, -0.02), (sx * 0.085, 0.07 * lb, -0.09), 0.0065, 0.0065, sm_,
+                                               seg=4, rings=1))
+                if p.get('legs') == 'trousers':
+                    add(f'shin_{side}', M.capsule((sx * 0.074 * lb, 0.0, 0.0), (sx * 0.064 * lb, 0.0, -0.30), 0.0065, 0.0065, sm_,
+                                                  seg=4, rings=1))
             if p.get('rolled'):
                 for side in 'rl':
-                    add(f'arm_{side}', M.capsule((0, 0, -0.15), (0, 0, -0.19), 0.084 * lb, 0.084 * lb, top, seg=12, rings=1))
+                    add(f'arm_{side}', M.capsule((0, 0, -0.15), (0, 0, -0.185), 0.076 * lb, 0.076 * lb, top, seg=12, rings=1))
         # -- leg wear
         lw = p.get('leg_wear')
         for side, sx in (('r', 1), ('l', -1)):
@@ -313,6 +324,41 @@ class LineBody(LF.LeagueBody):
                 add('pelvis', LG.briquet(self.mats))
             elif k == 'm1956':
                 add('pelvis', LG.m1956_belt_kit(self.mats, tw))
+            elif k == 'bandoliers':
+                bm = self.mm('bandolier', '#7a7c56')
+                for sx in (1, -1):
+                    pts = [(sx * ch[1][1] * 0.85, ch[1][2] * 0.6 + 0.05, -0.04), (sx * ch[1][1] * 0.3, ch[1][2] + 0.05, 0.08),
+                           (-sx * ch[2][1] * 0.25, ch[2][2] + 0.05, 0.2), (-sx * ch[2][1] * 0.62, ch[2][2] * 0.62 + 0.05, 0.31),
+                           (-sx * ch[2][1] * 0.72, 0.0, 0.345)]
+                    for a_, b_ in zip(pts[:-1], pts[1:]):
+                        add('chest', M.capsule(a_, b_, 0.034, 0.034, bm, seg=6, rings=1))
+                    for a_ in pts[:3]:
+                        add('chest', M.rounded_box(0.06, 0.04, 0.05, bm, a_, r=0.01, seg=4, p=4))
+            elif k == 'rucksack':
+                rk = self.mm('rucksack', '#5e6444')
+                rd = self.mm('web_dark', '#4a4a34')
+                add('chest', M.rounded_box(0.30, 0.14, 0.28, rk, (0, -0.215, 0.13), r=0.05, seg=10, p=3.5), 'backpack')
+                add('chest', M.rounded_box(0.26, 0.06, 0.10, rk, (0, -0.29, 0.06), r=0.02, seg=6, p=4), 'backpack')
+                for sx in (1, -1):
+                    add('chest', M.rounded_box(0.07, 0.07, 0.14, rk, (sx * 0.18, -0.21, 0.08), r=0.02, seg=6, p=4), 'backpack')
+                    add('chest', M.capsule((sx * 0.1, -0.15, 0.27), (sx * 0.1, 0.07, 0.30), 0.016, 0.016, rd, seg=5, rings=1),
+                        'backpack')
+                add('chest', M.box(0.31, 0.02, 0.02, rd, (0, -0.29, 0.20)), 'backpack')
+            elif k == 'combat_pack':
+                # the M1956 combat field pack worn high between the suspenders
+                rk = self.mm('rucksack', '#5e6444')
+                rd = self.mm('web_dark', '#4a4a34')
+                add('chest', M.rounded_box(0.22, 0.12, 0.17, rk, (0, -0.205, 0.17), r=0.035, seg=8, p=3.5), 'backpack')
+                add('chest', M.rounded_box(0.225, 0.05, 0.06, rd, (0, -0.255, 0.235), r=0.015, seg=6, p=4), 'backpack')
+                for sx in (1, -1):
+                    add('chest', M.box(0.02, 0.13, 0.17, rd, (sx * 0.07, -0.21, 0.17)), 'backpack')
+            elif k == 'etool':
+                et = self.mm('etool', '#4e5434')
+                add('pelvis', M.rounded_box(0.12, 0.05, 0.20, et, (0.0, -0.29, -0.10), r=0.015, seg=6, p=4))
+                add('pelvis', M.cylinder(0.016, 0.016, 0.10, self.mm('etool_wood', '#7a5a34'), seg=6, z0=0.0).transformed(
+                    M.translate(0.0, -0.29, -0.0)))
+                cv = self.mm('canteen_cover', '#6a6a4c')
+                add('pelvis', M.rounded_box(0.13, 0.08, 0.17, cv, (-0.23 * tw, -0.08, -0.06), r=0.03, seg=8, p=3))
             elif k == 'towel':
                 add('chest', LG.neck_towel(self.mats))
             elif k == 'ija_belt':
@@ -434,17 +480,17 @@ class LineBody(LF.LeagueBody):
                        cap_bottom=True, cap_top=False).transformed(M.translate(0, -0.005, 0)))
             r2 = np.random.default_rng(11)
             if hat == 'm1_cover':
-                cols = [self.mm('leaf_brown', '#6a5434', spec=0.04), self.mm('leaf_dark', '#3a4428', spec=0.04)]
-                for i in range(30):
+                cols = [self.mm('leaf_brown', '#7a5a30', spec=0.04), self.mm('leaf_dark', '#2c3620', spec=0.04)]
+                for i in range(40):
                     a = r2.uniform(0, 2 * math.pi)
                     e = r2.uniform(0.05, 1.25)
                     c = (1.002 * rx * math.cos(e) * math.cos(a), 1.002 * ry * math.cos(e) * math.sin(a) - 0.005,
                          0.12 + lift + rz * math.sin(e))
-                    s = r2.uniform(0.022, 0.036)
+                    s = r2.uniform(0.028, 0.042)
                     add(M.ellipsoid(0.006, s, s * r2.uniform(0.45, 0.8), cols[i % 2], (0, 0, 0), seg=7).transformed(
                         M.translate(*c) @ M.rot_z(math.degrees(a)) @ M.rot_y(-math.degrees(e)) @ M.rot_x(r2.uniform(0, 180))))
-                bd = self.mm('band', '#2a2a22')
-                add(M.cylinder(rx * 0.985, rx * 0.965, 0.026, bd, seg=20, z0=zr + 0.03).transformed(
+                bd = self.mm('band', '#1c1c18')
+                add(M.cylinder(rx * 0.99, rx * 0.97, 0.036, bd, seg=20, z0=zr + 0.026).transformed(
                     M.translate(0, -0.005, 0) @ M.scale(1, ry / rx, 1)))
                 add(M.cylinder(0.017, 0.017, 0.075, self.mm('bottle', '#bcb88e', spec=0.1, gloss=12), seg=8, z0=0.0)
                     .transformed(M.translate(-0.115, 0.05, zr + 0.01) @ M.rot_y(-12)))
@@ -469,20 +515,21 @@ class LineBody(LF.LeagueBody):
         elif hat == 'senboshi':
             hm = self.mm('hat', '#7e784c')
             # the crown: straight sides, a flat top with its seam
-            add(M.loft([(0.115, 0.118, 0.13, 0, -0.006), (0.20, 0.122, 0.134, 0, -0.01), (0.235, 0.116, 0.128, 0, -0.012),
-                        (0.245, 0.09, 0.10, 0, -0.012)], hm, seg=18, cap_bottom=False, cap_top=True))
+            add(M.loft([(0.115, 0.118, 0.13, 0, -0.006), (0.20, 0.123, 0.135, 0, -0.01), (0.245, 0.117, 0.129, 0, -0.012),
+                        (0.27, 0.095, 0.105, 0, -0.012), (0.282, 0.05, 0.055, 0, -0.012)], hm, seg=18, cap_bottom=False,
+                       cap_top=True))
             bd = self.mm('hatband', '#ffffff')
-            add(M.cylinder(0.127, 0.127, 0.062, bd, seg=18, z0=0.108).transformed(M.translate(0, -0.006, 0) @ M.scale(1, 1.08, 1)))
+            add(M.cylinder(0.128, 0.128, 0.072, bd, seg=18, z0=0.104).transformed(M.translate(0, -0.006, 0) @ M.scale(1, 1.08, 1)))
             vm = self.mm('visor', '#3e2c1e', spec=0.15, gloss=14)
-            add(M.ellipsoid(0.108, 0.085, 0.014, vm, (0, 0.135, 0.118), seg=14).transformed(
-                M.translate(0, 0.135, 0.118) @ M.rot_x(14) @ M.translate(0, -0.135, -0.118)))
+            add(M.ellipsoid(0.095, 0.065, 0.013, vm, (0, 0.135, 0.118), seg=14).transformed(
+                M.translate(0, 0.135, 0.118) @ M.rot_x(26) @ M.translate(0, -0.135, -0.118)))
             add(M.extrude([(0.0, 0.03), (0.009, 0.009), (0.03, 0.009), (0.013, -0.004), (0.019, -0.026), (0.0, -0.012),
                            (-0.019, -0.026), (-0.013, -0.004), (-0.03, 0.009), (-0.009, 0.009)], 0.012,
                           self.mm('star', '#d8b040', spec=0.3, gloss=16))
                 .transformed(M.translate(0, 0.142, 0.19) @ M.rot_x(90)))
             fm = self.mm('havelock', '#7e784c')
-            for x, ry_ in ((-0.11, 62), (-0.04, 14), (0.04, -14), (0.11, -62)):
-                add(M.rounded_box(0.09, 0.012, 0.17, fm, (0, 0, -0.08), r=0.005, seg=4, p=4).transformed(
+            for x, ry_ in ((-0.115, 66), (-0.04, 16), (0.04, -16), (0.115, -66)):
+                add(M.rounded_box(0.072, 0.012, 0.17, fm, (0, 0, -0.08), r=0.005, seg=4, p=4).transformed(
                     M.translate(x * 0.95, -0.115 + abs(x) * 0.32, 0.12) @ M.rot_z(ry_) @ M.rot_x(-16)))
             sm = self.mm('chinstrap', '#4a3626')
             for sx in (1, -1):
@@ -538,7 +585,9 @@ def line_death(base, ctx, hold=None, delay=0.0):
         p = anim(H._warp(tt, [(0.62, down)]))
         p['death_t'] = _v(t)
         return p
-    return FM.Act(fn, legs='fk', arms='ik')
+    act = FM.Act(fn, legs='fk', arms='ik')
+    act.flatten = True
+    return act
 
 
 def _gun_lie_R(t):
@@ -632,6 +681,27 @@ class LineSoldier(LF.LeagueSoldier):
         return T @ M.translate(0, 0, -o) if o > 1e-4 else T
 
     def pose_full(self, pose, act, weapon, offhand='same'):
+        if getattr(act, 'flatten', False) and weapon is not None:
+            mesh, info = super().pose_full(pose, act, None, offhand)
+            T = self._order_T(info['T']['r'], info['pose']).copy()
+            t = float(pose.get('death_t', 0.0))
+            u = min(1.0, max(0.0, (t - 0.45) / 0.35))
+            u = u * u * (3 - 2 * u)
+            if u > 0:
+                Rm = T[:3, :3]
+                z = Rm[:, 2].copy()
+                z[2] = 0.0
+                if np.linalg.norm(z) < 1e-3:
+                    z = _v((0, 1, 0))
+                z /= np.linalg.norm(z)
+                y = _v((0, 0, -1))
+                x = np.cross(y, z)
+                Rf = np.stack([x, y, z], 1).astype(np.float32)
+                T[:3, :3] = FM._orthonormal(Rm * (1 - u) + Rf * u)
+                # down onto the ground beside him
+                T[2, 3] = T[2, 3] * (1 - u) + 0.06 * u
+            info['T'] = dict(info['T'], r=T)
+            return M.Mesh.concat([mesh, self.prop(weapon).transformed(T)]), info
         if getattr(act, 'gun_lie', False) and weapon is not None:
             mesh, info = super().pose_full(pose, act, None, offhand)
             Wh = info['W']['hand_r']
@@ -712,6 +782,7 @@ class LineMgTeam:
     # assistant the folded tripod over his left shoulder and a can in his right hand
     TRIPOD_ON_SHOULDER = M.translate(-0.25, 0.10, 0.40) @ M.rot_x(-62) @ M.translate(0, 0, -0.40)
     HANDLE = (0.0, -0.10 * 1.35, 0.47)
+    GUN_ON_SHOULDER = M.translate(0.25, -0.14, 0.43) @ M.rot_z(-30) @ M.rot_x(-97)
 
     def _march(self, action, t, n):
         G_, A_ = self.gunner, self.assistant
@@ -720,20 +791,16 @@ class LineMgTeam:
             p = H.anim_run(who.base, 'spear', 'shield_round', n).fn((t + phase) % 1.0)
             p['follow'] = _v(1.0)
             if role == 'gun':
-                p['hand_r'] = _v((0.30, 0.10, 0.84))
-                p['elbow_r'] = _v((0.6, -0.6, -0.3))
-                p['hand_l'] = _v((0.06, 0.30, 0.96))
-                p['elbow_l'] = _v((-0.6, -0.5, -0.5))
+                p['hand_r'] = _v((0.22, 0.34, 1.50))
+                p['elbow_r'] = _v((0.9, -0.3, -0.4))
             else:
                 p['hand_l'] = _v((-0.20, 0.30, 1.48))
                 p['elbow_l'] = _v((-0.9, -0.3, -0.4))
                 p['hand_r'] = _v((0.34, 0.02, 0.80)) + (p['hand_r'] - who.base['hand_r']) * 0.4
             m, info = who.pose_full(p, FM.Act(None, loop=True), None, None)
             if role == 'gun':
-                T = info['T']['r']
-                R = M.rot_z(-4) @ M.rot_x(-88)
-                off = R[:3, :3] @ _v(self.HANDLE)
-                m = M.Mesh.concat([m, self._gun().transformed(M.translate(*(T[:3, 3] - off)) @ R)])
+                C = info['W']['chest']
+                m = M.Mesh.concat([m, self._gun().transformed(C @ self.GUN_ON_SHOULDER)])
             else:
                 C = info['W']['chest']
                 m = M.Mesh.concat([m, LG.m1917_tripod(self.mats, h=0.40, folded=True).transformed(C @ self.TRIPOD_ON_SHOULDER)])
@@ -790,7 +857,7 @@ class LineMgTeam:
         return out, cc
 
     GPOS = (-0.02, -0.86)
-    APOS = (-0.80, -0.40)
+    APOS = (-0.95, -0.42)
 
     def _hose(self, GT, cc):
         fit = (GT @ _v((0, 0.055 * 1.35, 0.26, 1.0)).reshape(4, 1))[:3, 0]
@@ -842,21 +909,21 @@ class LineMgTeam:
         K['hand_l'] = grip - gpos + _v((-0.09, 0.08, 0.06))
         belly = {'hand_r': (0.14, 0.24, 0.90), 'hand_l': (-0.04, 0.26, 0.94), 'follow': 1.0}
         kg = H.keys(K, [(0.0, {}),
-                        (0.14, {'chest': (2, 0, 6), 'head': (24, 0, 0), 'root_pos': (0.0, -0.10, -0.47)}),
-                        (0.40, dict(belly, root_rot=(0, 40, -10), root_pos=(0.14, -0.10, -0.60), chest=(-10, 0, 10),
-                                    spine=(-10, 0, 0), head=(10, 0, 20))),
-                        (0.62, dict(belly, root_rot=(0, 78, -15), root_pos=(0.32, -0.14, -0.74), chest=(-6, 0, 6),
-                                    spine=(-4, 0, 0), head=(-6, 0, 24), foot_r=(0.12, -0.20, A), toe_r=10.0)),
-                        (1.0, dict(belly, root_rot=(0, 86, -15), root_pos=(0.36, -0.14, -0.78), chest=(-4, 0, 4),
-                                   spine=(0, 0, 0), head=(-10, 0, 28), foot_r=(0.10, -0.12, A), toe_r=0.0))])
+                        (0.12, {'chest': (10, 0, 6), 'head': (24, 0, 0), 'root_pos': (0.0, -0.10, -0.47)}),
+                        (0.34, dict(belly, root_rot=(50, 0, -12), root_pos=(0.04, -0.32, -0.64), chest=(6, 0, 4),
+                                    spine=(0, 0, 0), head=(14, 0, -10), foot_r=(0.20, -0.10, A), toe_r=20.0)),
+                        (0.52, dict(belly, root_rot=(84, 0, -14), root_pos=(0.06, -0.50, -0.78), chest=(0, 0, 0),
+                                    head=(-4, 0, -18), foot_r=(0.22, 0.10, A), foot_l=(-0.16, 0.26, A), toe_r=0.0)),
+                        (1.0, dict(belly, root_rot=(88, 0, -14), root_pos=(0.06, -0.52, -0.79), chest=(0, 0, 0),
+                                   head=(-8, 0, -22), foot_r=(0.24, 0.14, A), foot_l=(-0.14, 0.30, A), toe_r=0.0))])
         L = self._assistant_pose(0.0)
         ka = H.keys(L, [(0.0, {}), (0.30, {}),
                         (0.42, {'chest': (14, 0, -10), 'head': (24, 0, -10), 'root_pos': (0.0, -0.06, -0.48)}),
                         (0.66, dict(belly, root_rot=(55, 0, 6), root_pos=(0.0, -0.34, -0.66), chest=(6, 0, 0),
                                     spine=(0, 0, 0), head=(12, 0, 10), foot_r=(0.18, -0.05, A), toe_r=20.0)),
-                        (0.84, dict(belly, root_rot=(86, 0, 6), root_pos=(0.0, -0.52, -0.78), chest=(0, 0, 0),
+                        (0.84, dict(belly, root_rot=(86, 0, -24), root_pos=(-0.08, -0.52, -0.78), chest=(0, 0, 0),
                                     head=(-6, 0, 18), foot_r=(0.18, 0.12, A), foot_l=(-0.18, 0.30, A), toe_r=0.0)),
-                        (1.0, dict(belly, root_rot=(88, 0, 6), root_pos=(0.0, -0.54, -0.79), chest=(0, 0, 0),
+                        (1.0, dict(belly, root_rot=(88, 0, -28), root_pos=(-0.10, -0.54, -0.79), chest=(0, 0, 0),
                                    head=(-8, 0, 20), foot_r=(0.18, 0.14, A), foot_l=(-0.18, 0.32, A), toe_r=0.0))])
         gm, _ = self.gunner.pose_full(kg(t), FM.Act(None), None, None)
         meshes.append(gm.transformed(M.translate(*gpos)))

@@ -62,7 +62,7 @@ UNITS = {
                    'pack': '#7a6e4a', 'stock': '#7a4e2c', 'puttees': '#4e4a34'},
         'tint': ['hatband', 'blanket'],
         'desat': 0.85,
-        'hair': 'short', 'hat': 'senboshi', 'top': 'long_sleeved', 'jacket': 'type98',
+        'hair': 'none', 'hat': 'senboshi', 'top': 'long_sleeved', 'jacket': 'type98',
         'legs': 'breeches', 'garters': False, 'feet': 'shoes', 'leg_wear': 'puttees',
         'kit': ['ija_belt', 'ija_pack', 'ija_canteen'],
         'gun': 'type38', 'hold': 'port',

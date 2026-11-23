@@ -87,8 +87,9 @@ def m14(mats, muzzle=0.80):
     parts.append(M.box(0.034, 0.046, 0.26, g, (0, -0.008, 0.06)))                                # receiver
     parts.append(M.box(0.012, 0.03, 0.04, g, (0, -0.04, -0.06)))                                 # rear sight
     parts.append(M.box(0.02, 0.016, 0.07, g, (0.022, -0.016, 0.08)))                             # operating rod handle
-    parts.append(M.box(0.03, 0.10, 0.072, g, (0, 0.08, 0.12)).transformed(M.rot_x(4)))           # magazine
-    parts.append(M.box(0.034, 0.012, 0.078, g, (0, 0.13, 0.12)))                                 # its floorplate
+    mg = mat(mats, 'magazine', '#18181a', spec=0.2, gloss=14)
+    parts.append(M.box(0.034, 0.13, 0.08, mg, (0, 0.095, 0.12)).transformed(M.rot_x(4)))         # magazine
+    parts.append(M.box(0.038, 0.014, 0.086, g, (0, 0.162, 0.13)))                                # its floorplate
     parts.append(_strap(mats, [(0, 0.03, -0.05), (0, 0.06, -0.02), (0, 0.03, 0.03)], 0.006, g))    # trigger guard
     parts.append(M.box(0.03, 0.022, 0.24, hg, (0, -0.026, 0.33)))                                # upper handguard
     parts.append(G._barrel(mats, 0.18, muzzle - 0.07, 0.012, g))
@@ -248,7 +249,7 @@ def calfskin_knapsack(mats):
     hide = mat(mats, 'hide', '#7a4e2c', spec=0.03)
     pale = mat(mats, 'hide_pale', '#a88c68', spec=0.03)
     lb = mat(mats, 'leather_dark', '#2e2420', spec=0.12)
-    gc = mat(mats, 'greatcoat', '#7c7e86', spec=0.03)
+    gc = mat(mats, 'greatcoat', '#8a7c66', spec=0.03)
     buff = mat(mats, 'strap', '#e8e4dc')
     parts = [M.rounded_box(0.34, 0.13, 0.30, hide, (0, -0.215, 0.12), r=0.03, seg=10, p=4)]
     for (x, z, rx, rz) in ((-0.06, 0.15, 0.09, 0.07), (0.09, 0.05, 0.07, 0.06)):
@@ -371,10 +372,17 @@ def ija_knapsack(mats):
     pts = [(-0.19, -0.21, -0.02), (-0.20, -0.21, 0.18), (-0.12, -0.21, 0.30), (0.0, -0.21, 0.32),
            (0.12, -0.21, 0.30), (0.20, -0.21, 0.18), (0.19, -0.21, -0.02)]
     for a, b in zip(pts[:-1], pts[1:]):
-        parts.append(M.capsule(a, b, 0.075, 0.075, roll, seg=10, rings=1))
-    for z in (0.05, 0.22):
-        for sx in (1, -1):
-            parts.append(M.cylinder(0.06, 0.06, 0.016, st, seg=10).transformed(M.translate(sx * 0.198, -0.21, z)))
+        a, b = np.array(a, np.float32), np.array(b, np.float32)
+        d = b - a
+        L = float(np.linalg.norm(d))
+        # a roll of cloth: fat between the ties, pinched at them, a fold ridge along it
+        seg = M.lathe([(0.0, 0.062), (0.2, 0.085), (0.5, 0.092), (0.8, 0.085), (1.0, 0.062)], roll, seg=12)
+        parts.append(seg.transformed(M.look_along(tuple(a), tuple(b))))
+        parts.append(M.capsule(tuple(a + d * 0.2 + (0, -0.084, 0)), tuple(a + d * 0.8 + (0, -0.084, 0)), 0.012, 0.012,
+                               roll, seg=5, rings=1))
+        # the tie at each joint
+        parts.append(M.sphere(0.07, st, tuple(a), seg=10))
+    parts.append(M.sphere(0.07, st, tuple(pts[-1]), seg=10))
     parts.append(M.box(0.31, 0.016, 0.02, st, (0, -0.21, 0.31)))
     parts.append(M.rounded_box(0.16, 0.05, 0.12, tin, (0, -0.29, 0.10), r=0.03, seg=8, p=3))           # mess tin
     for x in (-0.1, 0.1):
