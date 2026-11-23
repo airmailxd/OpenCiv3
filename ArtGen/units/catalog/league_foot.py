@@ -27,19 +27,23 @@ UNITS = {
         'fortify': 'kneel', 'victory': 'fire_air',
         'actions': {'ATTACK1': 'fire'},
     },
-    # A special forces operator: a civ-colored beret, tan
-    # camouflage under a dark plate carrier, a suppressed carbine at the
-    # low ready; fires from the shoulder.
+    # A present-day special operator (models/regulars_foot.py): a high-cut
+    # helmet with the night-vision goggles flipped up and a headset, a
+    # beard, a combat shirt with civ-colored sleeves, a plate carrier with
+    # magazines, a radio whose antenna rises behind the head, an assault
+    # pack, knee pads, a drop-leg holster, gloves and a suppressed carbine
+    # with an optic at the low ready; fires from the shoulder.
     'Special Forces': {
-        'archetype': 'league_soldier',
-        'colors': {'skin': '#c09474', 'hair': '#2a2018', 'top': '#8a7c5c', 'trousers': '#8a7c5c',
-                   'vest': '#4a4636', 'boots': '#5a4a36', 'belt': '#3a362c', 'strap': '#3a362c', 'pouch': '#4a4636'},
-        'camo': {'top': ['#6e6448', '#a8976e', '#5a5a3e'], 'trousers': ['#6e6448', '#a8976e', '#5a5a3e']},
-        'tint': ['hat'],
+        'archetype': 'regular_soldier',
+        'colors': {'skin': '#c09474', 'hair': '#3a2a1c', 'helmet': '#7e7052', 'trousers': '#8a7c5c',
+                   'boots': '#6a5a40', 'belt': '#3a362c', 'strap': '#3a362c'},
+        'camo': {'trousers': ['#6e6448', '#a8976e', '#5a5a3e']},
+        'tint': ['top'],
         'desat': 0.9,
-        'hair': 'short', 'hat': 'beret', 'top': 'long_sleeved', 'vest': 'flak', 'straps': ['webbing'],
+        'hair': 'short', 'beard': True, 'hat': 'fast', 'top': 'long_sleeved',
         'legs': 'trousers', 'cargo': True, 'feet': 'boots',
-        'gun': 'm4_sd', 'hold': 'low', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'aim',
+        'kit': ['plate_carrier', 'assault_pack', 'kneepads', 'gloves', 'holster', 'flag'],
+        'gun': 'sf_carbine', 'hold': 'low', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'aim',
         'flash': 'burst', 'smoke': None, 'flash_size': 0.12,
         'shots': {'ATTACK1': [0, 2, 7, 9, 12]},
         'fortify': 'kneel', 'victory': 'raise',
