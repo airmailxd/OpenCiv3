@@ -10,22 +10,27 @@ _FIRE = {'ATTACK1': 'fire'}
 
 UNITS = {
     # Near-future power armour (models/regulars_foot.py): warm gunmetal
-    # plates over a dark suit, the chest plate and upper-arm plates in the
-    # civ's color, pauldrons of stacked lames, pistons down the legs, a
-    # closed helmet with a T visor and cheek pieces, a power pack, a heavy
-    # rifle held across the chest (the mod's 'XAirborne').
+    # plates over a dark suit, the chest, back and upper-arm plates in the
+    # civ's color, broad pauldrons of stacked lames, big knee and shin
+    # guards, a closed helmet with a visor plate, cheek pieces and seams, a
+    # power pack, a heavy pulse rifle with coils and an emitter held low
+    # and out to the right (the mod's 'XAirborne').
     'Super Trooper': {
         'archetype': 'regular_soldier',
-        'build': {'build': 'muscular', 'bulk': 1.05},
-        'scale': 0.76,
+        'build': {'build': 'muscular', 'bulk': 1.10},
+        'scale': 0.79,
+        'gun_thick': 1.9,
         'colors': {'skin': '#c8a07a', 'top': '#2e2d29', 'trousers': '#2e2d29', 'boots': '#26251f',
                    'belt': '#26251f', 'strap': '#26251f'},
         'tint': ['plate'],
         'hair': 'none', 'hat': 'exo', 'armor': 'exo', 'top': 'long_sleeved', 'legs': 'trousers', 'feet': 'boots',
-        'gun': 'pulse_rifle', 'hold': 'across', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
+        'gun': 'pulse_rifle', 'hold': 'low', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim', 'fire_blend': 3,
+        'poses': {'carry': {'hand_r': (0.30, 0.18, 1.02), 'w_main': (-108, 0, -40), 'support': 1.0,
+                            'elbow_r': (0.9, -0.4, -0.3), 'elbow_l': (-0.4, -0.3, -0.9)},
+                  'aim': {'hand_r': (0.26, 0.26, 1.04), 'w_main': (-94, 0, -20)}},
         'flash': 'laser', 'beam_len': 1.5,
-        'shots': {'ATTACK1': [1, 2, 3, 4, 7, 8, 9, 10, 14, 15, 16, 17]},
-        'fortify': 'aim', 'victory': 'raise',
+        'shots': {'ATTACK1': [3, 4, 7, 8, 9, 10, 14, 15, 16, 17]},
+        'fortify': 'kneel', 'victory': 'raise',
         'actions': dict(_FIRE),
     },
     # An assault engineer (models/regulars_foot.py): the flamethrower's
@@ -44,9 +49,9 @@ UNITS = {
         'hair': 'short', 'hat': 'm1', 'goggles': True, 'respirator': True, 'top': 'long_sleeved',
         'vest': 'flak', 'legs': 'trousers', 'cargo': True, 'feet': 'boots',
         'kit': ['tank_pack', 'flak_pouches', 'satchel', 'etool', 'kneepads', 'gloves', 'belt_kit'],
-        'gun': 'flame_gun', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
+        'gun': 'flame_gun', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim', 'fire_blend': 3,
         'flash': 'flame', 'flame_len': 1.6,
-        'shots': {'ATTACK1': list(range(1, 13))},
+        'shots': {'ATTACK1': list(range(3, 13))},
         'fortify': 'aim', 'victory': 'raise',
         'actions': dict(_FIRE),
     },
