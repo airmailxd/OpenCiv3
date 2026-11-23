@@ -102,52 +102,72 @@ UNITS = {
         'fortify': 'guard', 'victory': 'fire_air',
         'actions': dict(_FIRE),
     },
-    # Napoleonic line infantry: a shako, a coat in the civ's color, white
-    # crossbelts and trousers, a musket with its bayonet fixed (the mod's
-    # 'NapoleonicInfantry').
+    # A French line fusilier of 1806-12 (the mod's 'NapoleonicInfantry';
+    # round 2 in models/line_foot.py): the 1806 shako with its brass plate,
+    # chinscales, cords and pompom; the habit-veste in the civ's color with
+    # white lapels, red collar, cuffs, epaulettes and turnbacks; white
+    # crossbelts, the cartridge box and the briquet; the calfskin knapsack
+    # with the greatcoat rolled on it; white breeches, black gaiters to the
+    # knee; the Charleville musket and bayonet at order arms.
     'Militia': {
-        'archetype': 'mod_soldier',
-        'colors': {'skin': '#d0a07a', 'hair': '#3a2a1c', 'trousers': '#e2ded4', 'boots': '#1c1a18',
-                   'belt': '#ebe8e0', 'strap': '#ebe8e0', 'gaiters': '#1e1c1a', 'vest': '#e8e4dc'},
-        'tint': ['top', 'coat'],
-        'hair': 'short', 'hat': 'shako', 'top': 'long_sleeved', 'coat': 0.30, 'straps': ['crossbelt', 'crossbelt_l'],
-        'legs': 'trousers', 'feet': 'shoes', 'gaiters': True,
-        'gun': 'musket_bayonet', 'hold': 'vertical', 'aim': 'shoulder', 'fire_start': 'carry', 'fire_end': 'carry',
-        'poses': {'carry': {'hand_r': (0.30, 0.10, 0.90), 'w_main': (-4, 4, 0)}},
+        'archetype': 'line_soldier',
+        'scale': 0.84,
+        'colors': {'skin': '#d0a07a', 'hair': '#2a1e14', 'trousers': '#e2ded2', 'stockings': '#e2ded2',
+                   'boots': '#161412', 'strap': '#ebe8e0', 'stock': '#6a4426'},
+        'tint': ['top', 'belt'],
+        'hair': 'short', 'hat': 'shako1806', 'top': 'long_sleeved', 'coat_cut': 'habit',
+        'straps': ['crossbelt', 'crossbelt_l'], 'legs': 'breeches', 'garters': False, 'feet': 'shoes',
+        'leg_wear': 'gaiters_long', 'kit': ['calfskin', 'giberne', 'briquet'],
+        'gun': 'charleville', 'hold': 'vertical', 'order_grip': 0.52,
+        'poses': {'carry': {'hand_r': (0.33, 0.10, 0.90), 'w_main': (-12, 0, 0), 'elbow_r': (0.5, -0.6, -0.4)},
+                  'march': {'hand_r': (0.20, 0.16, 0.96), 'w_main': (-14, -38, 0), 'support': 1.0,
+                            'elbow_l': (-0.5, -0.5, -0.7)}},
+        'aim': 'shoulder', 'fire_start': 'carry', 'fire_end': 'carry',
         'flash': 'musket', 'smoke': 'heavy', 'flash_size': 0.30, 'shots': {'ATTACK1': [3, 4]},
-        'fortify': 'guard', 'victory': 'hat',
+        'fortify': 'guard', 'victory': 'raise',
         'actions': dict(_FIRE),
     },
-    # A light WWII rifleman: a netted helmet, a short-sleeved shirt in the
-    # civ's color, webbing and an M1 carbine at port arms (the mod's
-    # 'americanRM').
+    # A US rifleman of the 1960s (Modern's Skirmisher comes with Cold War;
+    # round 2 in models/line_foot.py): the M1 helmet in its leaf-pattern
+    # cover with the band and a bottle tucked in it, the jungle jacket in the
+    # civ's color with rolled sleeves, an olive towel round the neck, the
+    # M1956 load-bearing kit (suspenders, ammunition pouches with grenades,
+    # canteen, butt pack), jungle boots, and the M14 at the low ready.
     'Skirmisher': {
-        'archetype': 'mod_soldier',
-        'colors': {'skin': '#c89c74', 'hair': '#3a2a1c', 'helmet': '#5e6148', 'helmet_net': '#8a8a62',
-                   'trousers': '#6a6a4c', 'boots': '#4a3420', 'belt': '#7a6a4a', 'strap': '#7a6a4a',
-                   'pouch': '#6a6248'},
+        'archetype': 'line_soldier',
+        'colors': {'skin': '#c89c74', 'hair': '#3a2a1c', 'helmet': '#5e6a3e', 'trousers': '#55603e',
+                   'boots': '#161514', 'belt': '#5e5e42', 'strap': '#5e5e42', 'stock': '#7a4e2c', 'canvas': '#6e7848'},
         'tint': ['top'],
         'desat': 0.85,
-        'hair': 'short', 'hat': 'm1', 'net': True, 'top': 'sleeved', 'straps': ['webbing'],
-        'legs': 'trousers', 'feet': 'boots',
-        'gun': 'm1_carbine', 'hold': 'port', 'aim': 'shoulder', 'fire_start': 'aim', 'fire_end': 'carry',
+        'hair': 'short', 'hat': 'm1_cover', 'top': 'sleeved', 'jacket': 'jungle', 'rolled': True,
+        'straps': ['braces'], 'legs': 'trousers', 'cargo': True, 'feet': 'boots', 'leg_wear': 'jungle_boots',
+        'kit': ['m1956', 'towel'],
+        'stance': {'spine': (-8, 0, 0), 'chest': (-4, 0, 0), 'head': (8, 0, 0), 'root_pos': (0, 0, -0.05),
+                   'foot_l': (-0.17, 0.12, 0.08), 'foot_r': (0.19, -0.10, 0.08)},
+        'gun': 'm14', 'hold': 'low', 'aim': 'shoulder',
+        'poses': {'carry': {'hand_r': (0.24, 0.16, 1.02), 'w_main': (-118, 0, 30)}}, 'fire_start': 'aim', 'fire_end': 'carry',
         'flash': 'burst', 'smoke': 'light', 'shots': {'ATTACK1': [1, 2, 3]},
         'fortify': 'kneel', 'victory': 'raise',
         'actions': dict(_FIRE),
     },
-    # Two men with a machine gun: the gunner carries it on his shoulder, the
-    # bearer two ammunition cans; in action it's on its tripod (the mod's
-    # 'americanHMG').
+    # A US machine-gun team of 1944 (the mod's 'americanHMG'; round 2 in
+    # models/line_foot.py): the gunner with the water-cooled Browning
+    # M1917A1 on his shoulder and a pistol on his hip, his assistant with the
+    # folded tripod and an ammunition can; M1 helmets with nets, M1941 field
+    # jackets in the civ's color, canvas leggings. In action the gun is on
+    # its tripod, the hose to the condenser can, the assistant feeding the
+    # belt from an open can.
     'Battalion': {
-        'archetype': 'hmg_team',
+        'archetype': 'line_mg_team',
         'soldier': {
-            'colors': {'skin': '#c89c74', 'hair': '#2a2018', 'helmet': '#54583e', 'vest': '#5c6046',
-                       'trousers': '#6a6448', 'boots': '#3a2a1a', 'belt': '#3a3a2c', 'strap': '#3a3a2c'},
-            'camo': {'trousers': ['#4a4a32', '#86805e']},
+            'colors': {'skin': '#c89c74', 'hair': '#2a2018', 'helmet': '#5a5a46', 'trousers': '#6a5a44',
+                       'boots': '#4a3020', 'belt': '#7a7458', 'strap': '#7a7458', 'leggings': '#a8987a'},
             'tint': ['top'],
-            'hair': 'short', 'hat': 'm1', 'top': 'long_sleeved', 'vest': 'flak', 'legs': 'trousers', 'cargo': True,
-            'feet': 'boots',
+            'hair': 'short', 'hat': 'm1_net', 'top': 'sleeved', 'jacket': 'm41', 'legs': 'trousers',
+            'feet': 'shoes', 'leg_wear': 'leggings', 'straps': ['braces'],
         },
+        'gunner': {'kit': ['holster', 'canteen_ww2']},
+        'assistant': {'kit': ['cartridge_belt', 'canteen_ww2']},
         'desat': 0.85,
         'shots': {'ATTACK1': [1, 2, 5, 6, 9, 10, 13, 14]},
     },
