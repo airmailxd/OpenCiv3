@@ -108,6 +108,8 @@ public partial class GameSetup {
 			if (rules == ModernRules) {
 				UseModernUnitArt(save);
 			}
+			// Each item its own Civilopedia key and art (GameSetup.LeagueArt.cs).
+			UseLeagueArt(save, LoadLeagueArt(gameModesDir), rules.RulesetDir);
 		}
 		save.ScenarioName = rules.ScenarioName;
 		return save;

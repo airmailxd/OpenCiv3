@@ -49,6 +49,8 @@ public partial class GameSetup {
 		// would have it look in a Civ3 install first (see Util.Civ3MediaPath).
 		if (over.addonPaths.Contains("standalone")) {
 			save.ScenarioSearchPath = null;
+			// Each item its own Civilopedia key and art (GameSetup.LeagueArt.cs).
+			UseLeagueArt(save, LoadLeagueArt(gameModesDir), MdjRulesetDir);
 		}
 		SetUpMdjRules(save);
 		return save;

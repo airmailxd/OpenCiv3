@@ -224,6 +224,26 @@ namespace C7GameData {
 			return key.ToString();
 		}
 
+		// Terrain a mod names unlike Civ3, by its name, and the stock
+		// terrain it is (the art audit of 2026-11-22): Modern's mountains
+		// where no airfield may be built and MDJ's flood plains. Terrain has
+		// no Civilopedia entry of its own: its key is made from its name,
+		// which Civ3's text and our icons haven't got for these.
+		public static readonly IReadOnlyDictionary<string, string> TerrainKeyAliases = new Dictionary<string, string> {
+			["Mountain (No Airfields)"] = "TERR_Mountains",
+			["Floodplain"] = "TERR_Flood_Plain",
+		};
+
+		// A terrain's key: made from its name, or, if the text has no
+		// article by that key, the stock terrain's it is an alias of.
+		public string TerrainKey(string displayName) {
+			string key = KeyFromName("TERR_", displayName);
+			if (TerrainKeyAliases.TryGetValue(displayName.Trim(), out string alias) && !Text.Has(key)) {
+				return alias;
+			}
+			return key;
+		}
+
 		private void AddRules(GameData gameData) {
 			techs.AddRange(gameData.techs.Where(t => t != null));
 			units.AddRange(gameData.unitPrototypes.Where(u => u != null));
@@ -268,7 +288,7 @@ namespace C7GameData {
 				Add(new CivilopediaEntry { Key = terraform.CivilopediaEntry ?? KeyFromName("TFRM_", terraform.Name), Name = terraform.Name, Section = CivilopediaSection.WorkerActions, Terraform = terraform }, terraform);
 			}
 			foreach (TerrainType terrain in terrains) {
-				Add(new CivilopediaEntry { Key = KeyFromName("TERR_", terrain.DisplayName), Name = terrain.DisplayName, Section = CivilopediaSection.Terrain, Terrain = terrain }, terrain);
+				Add(new CivilopediaEntry { Key = TerrainKey(terrain.DisplayName), Name = terrain.DisplayName, Section = CivilopediaSection.Terrain, Terrain = terrain }, terrain);
 			}
 			foreach (Resource resource in resources) {
 				Add(new CivilopediaEntry { Key = resource.CivilopediaEntry ?? KeyFromName("GOOD_", resource.Name), Name = resource.Name, Section = CivilopediaSection.Resources, Resource = resource }, resource);
