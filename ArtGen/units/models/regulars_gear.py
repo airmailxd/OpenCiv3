@@ -343,8 +343,9 @@ def pulse_rifle(mats, muzzle=0.62):
         parts.append(M.box(0.054, 0.012, 0.02, body, (0, 0.0, z)))
     parts.append(M.cylinder(0.022, 0.022, 0.16, body, seg=10, z0=0.22).transformed(M.translate(0, 0.055, 0)))  # grenade tube
     parts.append(M.cylinder(0.016, 0.016, muzzle - 0.40, body, seg=8, z0=0.40))                       # barrel
-    for z in (0.43, 0.47, 0.51):
-        parts.append(M.cylinder(0.03, 0.03, 0.022, dark, seg=12, z0=z))                               # coil rings
+    glow = mat(mats, 'glow', '#7ad8e8', spec=0.0)
+    for z in (0.42, 0.47, 0.52):
+        parts.append(M.cylinder(0.036, 0.036, 0.026, glow, seg=12, z0=z))                             # the coil, lit
     parts.append(M.lathe([(muzzle - 0.07, 0.022), (muzzle - 0.02, 0.034), (muzzle, 0.036)], body, seg=12))  # emitter
     parts.append(M.cylinder(0.02, 0.02, 0.004, mat(mats, 'lens', '#5aa8b8', spec=0.9, gloss=40), seg=10, z0=muzzle))
     return M.Mesh.concat(parts)
