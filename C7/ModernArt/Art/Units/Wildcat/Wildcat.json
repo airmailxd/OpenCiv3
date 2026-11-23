@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "x_WildcatDefault",
+    "RUN": "x_WildcatRun",
+    "ATTACK1": "x_WildcatAttack",
+    "DEATH": "x_WildcatDeath",
+    "VICTORY": "x_WildcatBomb"
+  },
+  "flics": {
+    "x_WildcatAttack": {"size": [109, 84], "directions": 8, "frames": 10, "frameMs": 66, "offset": [67, 60], "canvas": [240, 240]},
+    "x_WildcatBomb": {"size": [138, 103], "directions": 8, "frames": 20, "frameMs": 83, "offset": [52, 58], "canvas": [240, 240]},
+    "x_WildcatDeath": {"size": [89, 115], "directions": 8, "frames": 14, "frameMs": 66, "offset": [76, 31], "canvas": [240, 240]},
+    "x_WildcatDefault": {"size": [62, 72], "directions": 8, "frames": 1, "frameMs": 66, "offset": [90, 72], "canvas": [240, 240]},
+    "x_WildcatRun": {"size": [110, 85], "directions": 8, "frames": 5, "frameMs": 66, "offset": [66, 59], "canvas": [240, 240]}
+  }
+}
