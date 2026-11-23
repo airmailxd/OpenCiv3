@@ -23,6 +23,7 @@ GUNS = {
     'sf_carbine': {'muzzle': 0.66, 'support': (0.07, 0.26), 'butt': -0.27},
     'pulse_rifle': {'muzzle': 0.62, 'support': (0.06, 0.30), 'butt': -0.22},
     'flame_gun': {'muzzle': 0.70, 'support': (0.07, 0.40), 'butt': -0.16},
+    'rpg7_empty': {'muzzle': 0.80, 'support': (0.06, 0.24), 'butt': -0.58},
 }
 
 
@@ -40,7 +41,7 @@ def _bar(a, b, r, m, seg=6):
 
 # ------------------------------------------------------------ the RPG-7
 
-def rpg7(mats, muzzle=0.80):
+def rpg7(mats, muzzle=0.80, loaded=True):
     """An RPG-7 loaded with a PG-7V round: a steel tube (its axis 0.045 above
     the grip) from the flared venturi at the back to the muzzle; two wooden
     heat guards; a pistol grip with its trigger guard and a front grip
@@ -84,6 +85,8 @@ def rpg7(mats, muzzle=0.80):
     parts.append(_bar((0.0, y + 0.03, -0.38), (0.0, y + 0.07, -0.05), 0.006, st, seg=4))
     parts.append(_bar((0.0, y + 0.07, 0.10), (0.0, y + 0.035, 0.33), 0.006, st, seg=4))
     # the round: booster stalk with fins, then the cone of the warhead
+    if not loaded:
+        return M.Mesh.concat(parts)
     parts.append(M.cylinder(0.017, 0.017, 0.10, war, seg=10, z0=0.38).transformed(T))
     for k in range(4):
         parts.append(M.box(0.004, 0.034, 0.05, dk, (0, 0, 0.0)).transformed(
@@ -92,6 +95,26 @@ def rpg7(mats, muzzle=0.80):
                           (0.72, 0.03), (0.77, 0.014), (muzzle - 0.012, 0.01)], war, seg=14).transformed(T))
     parts.append(M.cylinder(0.052, 0.052, 0.012, dk, seg=14, z0=0.585).transformed(T))                # body seam
     parts.append(M.lathe([(muzzle - 0.04, 0.011), (muzzle - 0.01, 0.009), (muzzle, 0.0001)], tip, seg=8).transformed(T))
+    return M.Mesh.concat(parts)
+
+
+def rpg7_empty(mats, muzzle=0.80):
+    """The RPG-7 after the shot: the tube without its round."""
+    return rpg7(mats, muzzle, loaded=False)
+
+
+def rpg_rocket(mats):
+    """The PG-7 round in flight (along +z, its tip at the origin): the cone,
+    the stalk, the sustainer and four fins opened out at the tail."""
+    war = mat(mats, 'warhead', '#4e5640', spec=0.25, gloss=16)
+    dk = mat(mats, 'gun_dark', '#1e1f22', spec=0.3, gloss=16)
+    parts = [M.lathe([(-0.33, 0.018), (-0.30, 0.03), (-0.26, 0.046), (-0.20, 0.05), (-0.14, 0.048),
+                      (-0.08, 0.03), (-0.03, 0.014), (0.0, 0.0001)], war, seg=12)]
+    parts.append(M.cylinder(0.017, 0.017, 0.22, war, seg=8, z0=-0.55))
+    parts.append(M.cylinder(0.022, 0.022, 0.08, dk, seg=8, z0=-0.55))
+    for k in range(4):
+        parts.append(M.box(0.006, 0.07, 0.07, dk, (0, 0.045, 0)).transformed(
+            M.translate(0, 0, -0.52) @ M.rot_z(45 + 90 * k)))
     return M.Mesh.concat(parts)
 
 
@@ -264,12 +287,12 @@ def nvg_helmet(mats, hm, rail, nv):
     # housing over the brow, two tubes standing up off it, their lenses up
     parts.append(M.box(0.07, 0.025, 0.07, rail, (0, 0.142, 0.215)))
     parts.append(M.box(0.04, 0.05, 0.03, rail, (0, 0.17, 0.25)))
-    T = M.translate(0, 0.19, 0.27) @ M.rot_x(14)
+    T = M.translate(0, 0.20, 0.26) @ M.rot_x(48)
     parts.append(M.rounded_box(0.13, 0.05, 0.045, nv, (0, 0, 0), r=0.012, seg=6, p=4).transformed(T))
     lens = mat(mats, 'nvg_lens', '#3e5a4a', spec=0.9, gloss=40)
     for sx in (1, -1):
-        parts.append(M.cylinder(0.03, 0.026, 0.11, nv, seg=10, z0=0.0).transformed(T @ M.translate(sx * 0.042, 0.0, 0.0)))
-        parts.append(M.cylinder(0.024, 0.024, 0.006, lens, seg=10, z0=0.11).transformed(T @ M.translate(sx * 0.042, 0.0, 0.0)))
+        parts.append(M.cylinder(0.028, 0.025, 0.08, nv, seg=10, z0=0.0).transformed(T @ M.translate(sx * 0.04, 0.0, 0.0)))
+        parts.append(M.cylinder(0.022, 0.022, 0.006, lens, seg=10, z0=0.08).transformed(T @ M.translate(sx * 0.04, 0.0, 0.0)))
     parts.append(M.rounded_box(0.08, 0.04, 0.05, rail, (0, -0.15, 0.17), r=0.012, seg=6, p=3))     # counterweight
     return M.Mesh.concat(parts)
 
@@ -324,7 +347,7 @@ def power_pack(mats):
     cooling vents with grilles, a status light strip, an antenna mast on the
     left and cables into the back plate."""
     d = mat(mats, 'armor_dark', '#3a3d45', spec=0.45, gloss=22, metal=True)
-    pl = mat(mats, 'armor_grey', '#8a8e96', spec=0.55, gloss=26, metal=True)
+    pl = mat(mats, 'plate', '#3c4aa0', spec=0.45, gloss=22)
     v = mat(mats, 'vent', '#141518', spec=0.2)
     glow = mat(mats, 'glow', '#60e4ff', spec=0.0)
     parts = [M.rounded_box(0.36, 0.14, 0.34, d, (0, -0.25, 0.14), r=0.05, seg=8, p=3.5)]
@@ -359,7 +382,9 @@ def flame_gun(mats, muzzle=0.70):
     for z in (0.46, 0.52, 0.58):
         parts.append(M.cylinder(0.032, 0.032, 0.012, dk, seg=12, z0=z))
     parts.append(M.cylinder(0.02, 0.02, 0.12, g, seg=8, z0=muzzle - 0.16).transformed(M.translate(0, 0.04, 0)))
-    nz = mat(mats, 'nozzle', '#aaa69a', spec=0.7, gloss=28, metal=True)
+    nz = mat(mats, 'nozzle', '#4a4844', spec=0.6, gloss=24, metal=True)
+    pilot = mat(mats, 'pilot', '#ff9a34', spec=0.0)
+    parts.append(M.ellipsoid(0.016, 0.022, 0.03, pilot, (0, 0.03, muzzle + 0.02), seg=8))      # pilot flame
     parts.append(M.lathe([(muzzle - 0.07, 0.024), (muzzle - 0.02, 0.038), (muzzle, 0.042)], nz, seg=12))
     parts.append(M.cylinder(0.034, 0.034, 0.05, dk, seg=10, z0=-0.20))                              # hose coupling
     return M.Mesh.concat(parts)
@@ -376,7 +401,8 @@ def tank_pack(mats):
     g = G.gunmetal(mats)
     st = _strap(mats, 'strap', '#3a3628')
     w = mat(mats, 'haft', '#7a5634', spec=0.08)
-    blade = mat(mats, 'tool_steel', '#6e7074', spec=0.6, gloss=24, metal=True)
+    blade = mat(mats, 'tool_steel', '#b4b6b8', spec=0.7, gloss=26, metal=True)
+    band = mat(mats, 'pack_band', '#c8c8c8')
     hose = mat(mats, 'hose', '#1e1e1c', spec=0.2)
     yb = -0.27
     parts = []
@@ -390,6 +416,7 @@ def tank_pack(mats):
         parts.append(M.capsule((x, yb, -0.18), (x, yb, 0.33), 0.082, 0.082, t, seg=14, rings=3))
         for z in (-0.10, 0.24):
             parts.append(M.cylinder(0.086, 0.086, 0.025, td, seg=14, z0=z).transformed(M.translate(x, yb, 0)))
+        parts.append(M.cylinder(0.087, 0.087, 0.075, band, seg=14, z0=0.145).transformed(M.translate(x, yb, 0)))
         parts.append(M.cylinder(0.034, 0.034, 0.05, g, seg=10, z0=0.40).transformed(M.translate(x, yb, 0)))
         parts.append(M.cylinder(0.05, 0.05, 0.016, td, seg=12, z0=0.45).transformed(M.translate(x, yb, 0)))   # valve wheel
         parts.append(M.cylinder(0.034, 0.034, 0.05, g, seg=10, z0=-0.30).transformed(M.translate(x, yb, 0)))  # bottom valve
@@ -461,13 +488,11 @@ def wire_cutters(mats):
 def respirator(mats, mm, can):
     """A half-mask respirator over the mouth and nose (head space, before the
     head scale), two filter cans at its cheeks and the head strap."""
-    parts = [M.ellipsoid(0.075, 0.05, 0.06, mm, (0, 0.10, 0.06), seg=12)]
+    parts = [M.ellipsoid(0.065, 0.04, 0.05, mm, (0, 0.10, 0.06), seg=12)]
     for sx in (1, -1):
-        parts.append(M.cylinder(0.034, 0.034, 0.035, can, seg=12, z0=0.0).transformed(
-            M.translate(sx * 0.06, 0.125, 0.045) @ M.rot_y(70 * sx) @ M.rot_x(-15)))
+        parts.append(M.cylinder(0.024, 0.024, 0.022, can, seg=10, z0=0.0).transformed(
+            M.translate(sx * 0.052, 0.118, 0.045) @ M.rot_y(70 * sx) @ M.rot_x(-15)))
         parts.append(_bar((sx * 0.07, 0.07, 0.07), (sx * 0.10, -0.01, 0.10), 0.01, mm, seg=4))
-    parts.append(M.cylinder(0.02, 0.022, 0.03, can, seg=8, z0=0.0).transformed(M.translate(0, 0.145, 0.03)
-                                                                                    @ M.rot_x(-80)))
     return M.Mesh.concat(parts)
 
 
@@ -480,4 +505,19 @@ def goggles(mats, strap, lens, z=0.185, r=0.138):
             M.translate(sx * 0.045, r * 1.08 - 0.006, z) @ M.rot_x(-90)))
         parts.append(M.cylinder(0.026, 0.026, 0.006, lens, seg=10, z0=0.018).transformed(
             M.translate(sx * 0.045, r * 1.08 - 0.006, z) @ M.rot_x(-90)))
+    return M.Mesh.concat(parts)
+
+
+def entrenching_tool(mats):
+    """A folding entrenching tool on the right hip (pelvis space), the bright
+    blade down in its open carrier, the short haft up."""
+    w = mat(mats, 'haft', '#7a5634', spec=0.08)
+    blade = mat(mats, 'tool_steel', '#b4b6b8', spec=0.7, gloss=26, metal=True)
+    c = mat(mats, 'satchel_dark', '#4e4830', spec=0.04)
+    x, y = 0.25, -0.02
+    parts = [M.rounded_box(0.025, 0.15, 0.17, blade, (x, y, -0.16), r=0.012, seg=6, p=3)]
+    parts.append(M.box(0.03, 0.03, 0.05, blade, (x, y, -0.06)))
+    parts.append(M.cylinder(0.018, 0.018, 0.22, w, seg=8, z0=-0.04).transformed(M.translate(x, y, 0)))
+    parts.append(M.box(0.03, 0.09, 0.03, w, (x, y, 0.19)))
+    parts.append(M.box(0.035, 0.12, 0.03, c, (x, y, -0.02)))
     return M.Mesh.concat(parts)

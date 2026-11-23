@@ -79,6 +79,7 @@ class RegBody(LF.LeagueBody):
         if 'assault_pack' in kit:
             add('chest', RG.assault_pack(self.mats, ry=ry), 'backpack')
         if 'tank_pack' in kit:
+            self.mm('pack_band', '#8a8a6a')
             add('chest', RG.tank_pack(self.mats), 'backpack')
         if 'flak_pouches' in kit:
             pm = self.mm('pouch', '#5a5a44')
@@ -115,6 +116,8 @@ class RegBody(LF.LeagueBody):
             add('pelvis', M.box(0.05, 0.02, 0.04, bk, (0, 0.185, 0.09)).transformed(T))
             add('pelvis', M.rounded_box(0.06, 0.09, 0.11, cm, (0.15, -0.10, 0.04), r=0.025, seg=8, p=3).transformed(T))
             add('pelvis', M.rounded_box(0.16, 0.06, 0.09, pm, (0, -0.16, 0.05), r=0.015, seg=6, p=4).transformed(T))
+        if 'etool' in kit:
+            add('pelvis', RG.entrenching_tool(self.mats))
         if 'cutters' in kit:
             add('pelvis', RG.wire_cutters(self.mats))
         if 'kneepads' in kit:
@@ -169,9 +172,9 @@ class RegBody(LF.LeagueBody):
         shirts are), pauldrons of three stacked lames, worn lighter edges,
         pistons down the legs. No lights but the pack's."""
         pl = self.mm('plate', '#3c4aa0', spec=0.45, gloss=22)
-        gm = self.mm('armor_grey', '#5e5c50', spec=0.45, gloss=22, metal=True)
-        dk = self.mm('armor_dark', '#2e2d29', spec=0.35, gloss=18, metal=True)
-        wr = self.mm('armor_wear', '#9a9684', spec=0.6, gloss=26, metal=True)
+        gm = self.mm('armor_grey', '#7c7a6e', spec=0.45, gloss=22, metal=True)
+        dk = self.mm('armor_dark', '#3a3934', spec=0.35, gloss=18, metal=True)
+        wr = self.mm('armor_wear', '#5e5c54', spec=0.45, gloss=22, metal=True)
         g = 0.045
         # the suit's yoke over the shoulders, the chest plate a shell over the
         # front, the back plate behind, a collar
@@ -190,7 +193,7 @@ class RegBody(LF.LeagueBody):
         add('chest', M.box(rings[1][1] * 1.3, 0.018, 0.014, dk, (0, yf + 0.0, 0.07)))
         back = [(-0.02, rings[0][1] + g * 0.6, rings[0][2] + g, 0, 0)] + cr[1:3] + \
                [(0.27, rings[3][1] + 0.03, rings[3][2] + 0.04, 0, 0)]
-        add('chest', H._shell(back, gm, math.radians(196), math.radians(344), seg=14))
+        add('chest', H._shell(back, pl, math.radians(196), math.radians(344), seg=14))
         add('chest', M.loft([(0.26, 0.15, 0.12), (0.36, 0.115, 0.10)], dk, seg=16, cap_bottom=False, cap_top=True))
         # the abdomen: bands, gunmetal and dark
         for i, z in enumerate((-0.04, 0.035, 0.11)):
@@ -282,13 +285,12 @@ class RegBody(LF.LeagueBody):
             # a closed helmet: the shell, a face plate with a T-shaped visor
             # cut, cheek pieces swept forward, a neck guard, a civ-colored
             # stripe over the crown, the visor the one light
-            gm = self.mm('armor_grey', '#5e5c50', spec=0.45, gloss=22, metal=True)
-            dk = self.mm('armor_dark', '#2e2d29', spec=0.35, gloss=18, metal=True)
-            wr = self.mm('armor_wear', '#9a9684', spec=0.6, gloss=26, metal=True)
+            gm = self.mm('armor_grey', '#7c7a6e', spec=0.45, gloss=22, metal=True)
+            dk = self.mm('armor_dark', '#3a3934', spec=0.35, gloss=18, metal=True)
+            wr = self.mm('armor_wear', '#5e5c54', spec=0.45, gloss=22, metal=True)
             pl = self.mm('plate', '#3c4aa0', spec=0.45, gloss=22)
             glow = self.mm('glow', '#7ad8e8')
             add(H._dome(0.135, 0.15, 0.165, gm, (0, -0.01, 0.115), -0.04))
-            add(M.rounded_box(0.05, 0.25, 0.03, pl, (0, -0.02, 0.272), r=0.012, seg=6, p=4))             # stripe
             add(M.rounded_box(0.25, 0.10, 0.10, gm, (0, -0.10, 0.05), r=0.03, seg=8, p=3)
                 .transformed(M.rot_x(-12)))                                                               # neck guard
             add(M.rounded_box(0.18, 0.07, 0.15, dk, (0, 0.085, 0.085), r=0.03, seg=8, p=3))             # face plate
@@ -305,6 +307,9 @@ class RegBody(LF.LeagueBody):
             add(M.cylinder(0.11, 0.13, 0.10, dk, seg=14, z0=-0.07))                                        # gorget
         else:
             super()._hat(add0)
+            if p.get('goggles') and hat in ('m1', 'pasgt'):
+                add(RG.goggles(self.mats, self.mm('goggle_strap', '#2a2824'),
+                               self.mm('goggle_lens', '#5a4a2a', spec=0.9, gloss=40), z=0.155, r=0.132))
         if p.get('respirator'):
             add(RG.respirator(self.mats, self.mm('mask', '#2a2a28', spec=0.2, gloss=14),
                               self.mm('filter', '#5a5c4a', spec=0.25, gloss=14)))
@@ -333,55 +338,98 @@ class RegularSoldier(LF.LeagueSoldier):
             self._props[key] = getattr(RG, name)(self.mats, **kw).transformed(M.scale(k, k, 1.0))
         return self._props[key]
 
-    # -- death: the stock fall (humanoid.anim_death), but the right hand keeps
-    # the weapon all the way down, across the body, and the left arm falls
-    # bent beside the head: no spread-armed T at the end, nothing flung away
+    # -- death: the stock fall (humanoid.anim_death) for the body and legs,
+    # but the arms stay on inverse kinematics from the unit's own standing
+    # pose, so frame 0 is the default pose; over the first half of the fall
+    # the weapon turns, a little each frame, until it lies across the body,
+    # still in the right hand, and the left hand lets go and falls bent
+    # beside the head. No spread-armed T at the end, nothing flung away.
     def action(self, action, ctx):
         if self.anim_name(action) != 'death' or not self.gun:
             return super().action(action, ctx)
         key = ('death_held', action, ctx.n if ctx else None)
         if key in self._cache:
             return self._cache[key]
-        d = H.anim_death(self.base, None, None, ctx)
-        arms = [
-            (0.0, None),
-            (0.18, {'arm_r': (40, -25, 0), 'forearm_r': (70, 0, 0), 'arm_l': (45, 55, 0), 'forearm_l': (60, 0, 0)}),
-            (0.38, {'arm_r': (50, -20, 0), 'forearm_r': (80, 0, 0), 'arm_l': (75, 65, 0), 'forearm_l': (55, 0, 0)}),
-            (0.62, {'arm_r': (25, -20, 0), 'forearm_r': (40, 0, 0), 'arm_l': (115, 55, 0), 'forearm_l': (50, 0, 0)}),
-            (1.0, {'arm_r': (12, -22, 0), 'forearm_r': (25, 0, 0), 'arm_l': (125, 45, 0), 'forearm_l': (60, 0, 0)}),
-        ]
+        B = self.base
+        d = H.anim_death(B, None, None, ctx)
         down = ctx.event('down', 0.55) if ctx is not None else 0.55
         down = min(max(down or 0.55, 0.35), 0.85)
-        rest = {'arm_r': (10, -18, 0), 'forearm_r': (25, 0, 0), 'arm_l': (5, 18, 0), 'forearm_l': (20, 0, 0)}
-        arms[0] = (0.0, rest)
-
-        def arm_pose(t):
-            u = H._warp(t, [(0.62, down)])
-            for (t0, a0), (t1, a1) in zip(arms[:-1], arms[1:]):
-                if u <= t1:
-                    w = (u - t0) / max(t1 - t0, 1e-6)
-                    w = w * w * (3 - 2 * w)
-                    return {c: _v(a0[c]) * (1 - w) + _v(a1[c]) * w for c in a0}
-            return {c: _v(v) for c, v in arms[-1][1].items()}
+        across = {'hand_r': (0.12, 0.24, 1.12), 'w_main': (-90, 0, 80), 'support': 0.0,
+                  'hand_l': (-0.42, -0.02, 1.66), 'elbow_r': (0.9, -0.3, -0.4), 'elbow_l': (-0.8, -0.3, 0.2)}
+        mid = {'hand_r': tuple(0.5 * (_v(B['hand_r']) + _v(across['hand_r']))),
+               'w_main': tuple(_v(B['w_main']) * 0.5 + _v(across['w_main']) * 0.5),
+               'support': 0.5 * float(B.get('support', 0.0)),
+               'hand_l': (-0.36, 0.10, 1.30), 'elbow_r': (0.9, -0.3, -0.4), 'elbow_l': (-0.8, -0.3, -0.2)}
+        arms = H.keys(dict(B), [(0.0, {}), (0.16, mid), (0.36, across), (1.0, across)])
 
         def fn(t):
             p = d.fn(t)
-            p.update(arm_pose(t))
-            u = H._warp(t, [(0.62, down)])
-            p['gun_lay'] = _v(min(1.0, max(0.0, (u - 0.38) / 0.4)))
+            a = arms(H._warp(t, [(0.62, down)]))
+            for c in ('hand_r', 'hand_l', 'w_main', 'support', 'elbow_r', 'elbow_l'):
+                p[c] = _v(a[c])
+            p['follow'] = _v(1.0)
+            p['follow_rot'] = _v(1.0)
             return p
-        act = FM.Act(fn, legs=d.legs, arms=d.arms, drop_t=None)
+        act = FM.Act(fn, legs=d.legs, arms='ik', drop_t=None)
         self._cache[key] = act
         return act
 
+    # -- the RPG's shot: the round leaves the tube (the launcher is drawn
+    # empty from the shot on) and flies as a finned rocket with a smoke
+    # trail behind it, to the blast
+    def frame(self, action, f, n, ctx):
+        shots = self.shots(action)
+        rocket = self.p.get('flash') == 'rocket' and shots and self.gun == 'rpg7'
+        if not rocket or f < shots[0]:
+            return super().frame(action, f, n, ctx)
+        s0 = shots[0]
+        act = self.action(action, ctx)
+        pos, dvec = self._muzzle_at(action, s0, n, act)   # (cached while the launcher is still loaded)
+        gun = self.weapon
+        self.weapon = 'rpg7_empty'
+        try:
+            mesh = super().frame(action, f, n, ctx)
+        finally:
+            self.weapon = gun
+        fly = int(self.p.get('flight', 4))
+        land = float(self.p.get('impact', 3.2))
+        if s0 <= f <= s0 + fly:
+            dist = 0.15 + land * (f - s0) / fly
+            tip = pos + dvec * dist
+            T = M.look_along(tip - dvec, tip) if hasattr(M, 'look_along') else None
+            k = float(self.p.get('gun_thick', 1.6))
+            r = RG.rpg_rocket(self.mats).transformed(M.scale(k, k, 1.0))
+            r = r.transformed(T @ M.translate(0, 0, 1.0))
+            mesh = M.Mesh.concat([mesh, r])
+            self._local = mesh
+        return mesh
+
+    def effects(self, action, f, n, act, info, ctx):
+        fx = super().effects(action, f, n, act, info, ctx)
+        shots = self.shots(action)
+        if self.p.get('flash') != 'rocket' or not shots:
+            return fx
+        s0 = shots[0]
+        fly = int(self.p.get('flight', 4))
+        land = float(self.p.get('impact', 3.2))
+        fx = [e for e in fx if e['kind'] != 'round' and not (e['kind'] == 'glow' and s0 < f <= s0 + fly
+                                                              and e.get('rad', 1) < 0.1)]
+        pos, dvec = self._muzzle_at(action, s0, n, act)
+        if f > s0:
+            # the trail: puffs from the muzzle to the rocket's tail, older ones thinner
+            head = min(f - s0, fly) / fly * land + 0.15
+            m = 12
+            for i in range(m):
+                s = head - 0.45 - i * (head / m)
+                if s < 0.1:
+                    continue
+                age = (f - s0) - (fly * s / land)
+                a = 0.5 * max(0.0, 1 - max(0.0, age) / 7.0)
+                if a <= 0.03:
+                    continue
+                fx.append({'kind': 'smoke', 'pos': pos + dvec * s + _v((0, 0, 0.02 * i)), 'rad': 0.09 + 0.01 * i,
+                           'alpha': a, 'seed': 11 + i})
+        return fx
+
     def _solve(self, pose, act):
-        """As the stock soldier's; a dying soldier's weapon turns from
-        pointing out of the hand to lying along the forearm as he falls, so
-        it ends on the ground beside him, still in his hand."""
-        W, Ts, pose = super()._solve(pose, act)
-        w = float(pose.get('gun_lay', 0.0))
-        if w > 0:
-            T = Ts['r'].copy()
-            T[:3, :3] = T[:3, :3] @ M.rot_x(90 * w)[:3, :3]
-            Ts = dict(Ts, r=T)
-        return W, Ts, pose
+        return super()._solve(pose, act)
