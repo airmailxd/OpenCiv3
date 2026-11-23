@@ -159,12 +159,14 @@ UNITS = {
     # belt from an open can.
     'Battalion': {
         'archetype': 'line_mg_team',
+        'scale': 0.92,
         'soldier': {
             'colors': {'skin': '#c89c74', 'hair': '#2a2018', 'helmet': '#5a5a46', 'trousers': '#6a5a44',
-                       'boots': '#4a3020', 'belt': '#7a7458', 'strap': '#7a7458', 'leggings': '#a8987a'},
+                       'boots': '#4a3020', 'belt': '#7a7458', 'strap': '#7a7458', 'leggings': '#a8987a',
+                       'pack': '#7a7058'},
             'tint': ['top'],
             'hair': 'short', 'hat': 'm1_net', 'top': 'sleeved', 'jacket': 'm41', 'legs': 'trousers',
-            'feet': 'shoes', 'leg_wear': 'leggings', 'straps': ['braces'],
+            'feet': 'shoes', 'leg_wear': 'leggings', 'straps': ['braces'], 'pack': 'field',
         },
         'gunner': {'kit': ['holster', 'canteen_ww2']},
         'assistant': {'kit': ['cartridge_belt', 'canteen_ww2']},
