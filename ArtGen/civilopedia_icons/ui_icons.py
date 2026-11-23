@@ -10,6 +10,7 @@ and C7/Lua/standalone/icon_files.lua, which tells the standalone textures
 (C7/Lua/standalone/textures.lua) the file of each entry.
 
     python ArtGen/civilopedia_icons/ui_icons.py
+    python ArtGen/civilopedia_icons/ui_icons.py --index   # only icon_files.lua
 
 Civ3 shows these icons from its own sprite sheets, and the standalone asset
 pack has only placeholders in their place: an advance showed the word "Tech"
@@ -79,17 +80,26 @@ def entries(rules):
     return build.entries(rules)
 
 
-def main():
+def main(index_only=False):
+    """Makes the icon files and icon_files.lua; with index_only, only the
+    Lua file, listing the files as they are. A League entry (league.py)
+    whose file is there already isn't made again: its picture is shared
+    with another entry, or borrowed until its own is drawn."""
     rules = C.load_ruleset()
     advances, buildings = [], []
-    for section, key, stem, _ in entries(rules):
+
+    def make(rel, img_fn, data):
+        if index_only or data.get('league') and os.path.exists(os.path.join(C.MODERN, *rel.split('/'))):
+            return
+        save(rel, img_fn())
+
+    for section, key, stem, data in entries(rules):
         if section == 'Advances':
-            save(f'{ADVANCES_REL}/{stem}.png', icon(load(section, stem), SMALL))
+            make(f'{ADVANCES_REL}/{stem}.png', lambda: icon(load(section, stem), SMALL), data)
             advances.append((key, f'{ADVANCES_REL}/{stem}.png'))
         elif section == 'Buildings':
-            large = load(section, stem)
-            save(f'{BUILDINGS_REL}/{stem}_small.png', icon(large, SMALL))
-            save(f'{BUILDINGS_REL}/{stem}_large.png', icon(large, LARGE_BUILDING))
+            make(f'{BUILDINGS_REL}/{stem}_small.png', lambda: icon(load(section, stem), SMALL), data)
+            make(f'{BUILDINGS_REL}/{stem}_large.png', lambda: icon(load(section, stem), LARGE_BUILDING), data)
             buildings.append((key, f'{BUILDINGS_REL}/{stem}_small.png', f'{BUILDINGS_REL}/{stem}_large.png'))
 
     lines = [
@@ -109,4 +119,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(index_only='--index' in sys.argv[1:])

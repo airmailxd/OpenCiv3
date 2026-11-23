@@ -79,6 +79,10 @@ def entries(rules):
         assert (section, stem.lower()) not in stems, f'two entries make {section}/{stem}'
         stems.add((section, stem.lower()))
         res.append((section, key, stem, data))
+    # The League modes' own keys (league.py): indexed with their pictures,
+    # which their own modules draw (several keys may share one).
+    import league
+    res += league.entries(rules)
     return res
 
 
@@ -181,7 +185,7 @@ def main(argv):
     print('index:', write_index(rules))
     if 'index' in opts:
         return
-    tasks = [e for e in entries(rules) if e[0] in wanted]
+    tasks = [e for e in entries(rules) if e[0] in wanted and not e[3].get('league')]
     n = int(opts.get('jobs', os.cpu_count() or 4))
     print(f'{len(tasks)} icons, {n} processes', flush=True)
     t0 = time.time()
