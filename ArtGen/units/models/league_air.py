@@ -20,6 +20,7 @@ import math
 import numpy as np
 
 import mesh as M
+from models import archetype
 from models import aircraft as AC
 from models import vparts as VP
 
@@ -124,14 +125,16 @@ def build_wildcat(V):
     fus = AC.fuselage(prof, paint, seg=18, sx=0.82, sz=1.06)
     belly = M.ellipsoid(0.5, 1.75, 0.42, paint, center=(0, 1.1, -0.42), seg=16)
     frames = lambda C, N: near(C[:, 1], (-3.6, -2.7, -1.3, 1.6), 0.035) & (C[:, 2] > -0.3)
-    body = [paintn(M.Mesh.concat([fus, belly]), two_tone(paint, under, line, z_split=-0.15, lines=frames), 0.12)]
+    body = [paintn(M.Mesh.concat([fus, belly]), two_tone(paint, under, line, z_split=0.08, lines=frames), 0.12)]
+    # a civ-colored band round the rear fuselage
+    body.append(AC.fuselage([(-3.15, 0.485), (-2.9, 0.505)], m['band'], seg=18, sx=0.84, sz=1.09))
     # the main wheels folded into the belly's sides
     for sx in (-1, 1):
         body.append(VP.axle_x(0.3, 0.08, m['tire'], center=(sx * 0.44, 1.45, -0.5)))
         body.append(VP.axle_x(0.14, 0.1, m['steel'], center=(sx * 0.45, 1.45, -0.5)))
     # the cowling: its lip in the civ color, the engine's face and cylinders inside, the cowl flaps
     body.append(AC.fuselage([(2.3, 0.72), (3.25, 0.74), (3.4, 0.7)], paint, seg=22))
-    body.append(AC.fuselage([(3.3, 0.745), (3.46, 0.7)], m['band'], seg=22))
+    body.append(AC.fuselage([(3.3, 0.745), (3.46, 0.7)], m['line'], seg=22))
     body.append(AC.fuselage([(3.2, 0.58), (3.25, 0.0)], m['steel'], seg=18))
     for i in range(14):
         a = 2 * math.pi * i / 14
@@ -161,7 +164,7 @@ def build_wildcat(V):
         body.append(M.box(0.02, 0.3, 0.16, m['glass_dark'], center=(sx * 0.42, -1.05, 0.42)))
     # the insignia on the fuselage's sides
     for sx in (-1, 1):
-        body.append(insignia(0.46, m['band'], m['star'], bar_k=0.6).transformed(
+        body.append(insignia(0.34, m['band'], m['star'], bar_k=0.4).transformed(
             M.translate(sx * 0.49, -2.3, 0.02) @ M.rot_y(sx * 90) @ M.rot_z(90)))
     # the antenna mast behind the canopy, its wire to the fin, the tail hook and tail wheel
     body.append(VP.tube((0, -0.95, 0.75), (0, -1.15, 1.15), 0.04, 0.025, m['line_dark'], seg=5))
@@ -179,7 +182,7 @@ def build_wildcat(V):
         w = AC.wing(poly, 0.2, paint, z=-0.12, dihedral=4, side=side)
         parts = [paintn(w, two_tone(paint, under, line, lines=wl), 0.14)]
         zt = -0.12 + 0.105 + 4.2 * math.tan(math.radians(4))
-        parts.append(insignia(0.74, m['band'], m['star'], bar_k=0.55).transformed(
+        parts.append(insignia(0.52, m['band'], m['star'], bar_k=0.4).transformed(
             M.translate(side * 4.15, 0.22, zt) @ M.rot_z(90)))
         for k, x in enumerate((2.7, 2.95, 3.2)):
             yle = 1.32 - (x - 0.35) * (0.52 / 5.15)
@@ -199,17 +202,84 @@ def build_wildcat(V):
     rl = lambda C, N: near(C[:, 1], (-4.42,), 0.035) & (C[:, 2] > 0.35)
     tail.append(paintn(fin, two_tone(paint, under, line, lines=rl), 0.12))
     parts = dict(ws)
-    parts['body'] = M.Mesh.concat(body)
-    parts['tail'] = M.Mesh.concat(tail)
+    # the walkway: a dark anti-slip strip on each wing root beside the cockpit
+    for side, name in ((1, 'wing_r'), (-1, 'wing_l')):
+        ws[name] = M.Mesh.concat([ws[name], M.box(0.42, 1.5, 0.02, m['walk'],
+                                                  center=(side * 0.82, -0.1, -0.12 + 0.11 + 0.82 * 0.07))])
+    # the barrel: the body and tail shortened and filled out (the wings keep their span)
+    S = M.scale(1.1, 0.9, 1.08)
+    parts['body'] = M.Mesh.concat(body).transformed(S)
+    parts['tail'] = M.Mesh.concat(tail).transformed(S)
     gx = 2.95
-    return dict(parts=parts, props=[((0, 3.62, 0.0), 1.45, 3, 'y')],
+    return dict(parts=parts, props=[((0, 3.62 * 0.9, 0.0), 1.45, 3, 'y')],
                 guns=[(sx * gx, 1.32 - (gx - 0.35) * 0.1 + 0.45, -0.15 + gx * 0.07) for sx in (-1, 1)],
                 pylons=[], length=L)
 
 
 AC.BUILDERS.setdefault('wildcat', build_wildcat)
-AC.PAINTS.setdefault('wildcat', {'paint': '#5a6a86', 'under': '#b4bac0', 'line': '#3e4c68', 'line_dark': '#2c3038',
+AC.PAINTS.setdefault('wildcat', {'paint': '#56606c', 'under': '#a4aab0', 'line': '#4a5464', 'line_dark': '#2c3038',
                                  'paint_dark': '#4a5468', 'band': '#e8e8e8', 'star': '#f2f2f0',
                                  'glass': ('#9ab8c8', 0.7, 40), 'glass_dark': ('#3a4a58', 0.7, 40),
-                                 'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222',
+                                 'steel': ('#3a3a3c', 0.5, 24), 'exhaust': '#3a2e28', 'tire': '#222222', 'walk': '#34383e',
                                  'blade': '#262626', 'blade_tip': '#d8c040', 'bomb': '#3c3e38'})
+
+
+# ------------------------------------------------------------ the round-2 planes' death
+
+@archetype('aircraft_r2')
+class AircraftR2(AC.Aircraft):
+    """The aircraft archetype with a death whose pieces stay what they were:
+    hit, the plane breaks in two (the civ markings kept, the rest scorched),
+    both pieces tumble down out of the fireball over several frames, reach
+    the ground and shrink away under the smoke over the next few frames,
+    instead of vanishing the moment they are clear of the cloud."""
+
+    def __init__(self, unit, params):
+        super().__init__(unit, params)
+        # 'drop' (1x px): the plane a little lower in its cell than the fit puts it, so its tail
+        # keeps clear of the cell's top in the default frame
+        ax, ay = self.p['anchor']
+        self.p['anchor'] = (ax, ay + params.get('drop', 0.0))
+        self._cal = None
+
+    def death(self, t, ctx):
+        from models import vfx as FX
+        m = self.mats
+        tb = 0.06
+        u = max(0.0, t - tb)
+        T_FALL, T_GONE = 0.42, 0.62
+        fall = min(1.0, u / T_FALL)
+        alt = self.alt
+        L = self.b['length']
+        P_ = self.b['parts']
+        char = {k: v for k, v in self.charred().items() if not self.mats.tint[k]} if u > 0.04 else None
+        shrink = 1.0 - min(1.0, max(0.0, (u - T_FALL) / (T_GONE - T_FALL)))
+        pieces = []
+
+        def piece(mesh, dx, spin_axis, spin, fwd):
+            z = max(0.15, alt * (1 - fall * fall))
+            c = mesh.V.reshape(-1, 3).mean(0)
+            Tm = (M.translate(dx * fall, fwd * fall, z) @ spin_axis(spin * fall) @ M.translate(*c)
+                  @ M.scale(shrink) @ M.translate(*(-c)))
+            mm = mesh.transformed(Tm)
+            return VP.recolor(mm, char) if char else mm
+        if shrink > 0.02:
+            if u < 0.03:
+                pieces.append(piece(self.plane(), 0.0, M.rot_y, 0, 0))
+            else:
+                main = M.Mesh.concat([P_['body'], P_['tail'], P_['wing_r'], self.props_mesh(0)])
+                pieces.append(piece(main, L * 0.08, M.rot_y, 120, L * 0.3))
+                if len(P_['wing_l']):
+                    pieces.append(piece(P_['wing_l'], -L * 0.35, M.rot_x, 260, -L * 0.1))
+        fx = []
+        if t >= tb:
+            air = np.array([0, 0, alt], np.float32)
+            fx.append(FX.explosion(m, air, L * 0.36, u / 0.85, seed=2, n=10, rise=0.15, smoke_dark=0.75))
+            if 0.03 < u < T_GONE:
+                # the burning wreck trails fire and smoke on its way down
+                zc = max(0.15, alt * (1 - fall * fall))
+                fx.append(FX.puff(m, (L * 0.08 * fall, L * 0.3 * fall, zc), L * 0.07 * max(shrink, 0.3), 'fx_orange',
+                                  seed=41))
+                if fall >= 1.0:
+                    fx.append(FX.puff(m, (L * 0.08, L * 0.3, L * 0.1 * (1 + u)), L * 0.12, 'smoke_dark', seed=43))
+        return self.fx(M.Mesh.concat(pieces + fx), pivot_z=alt)

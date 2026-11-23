@@ -36,3 +36,15 @@ mouths, 2 civ boom bands, 2 boom insignia; 2 pylons, 2 bombs (body, nose, tail c
 - **r5 (animations):** attack: tracers from the nose guns; death: breaks up, falls, fireball; run: bob and
   bank with both props turning. The Wildcat and P-38 cannot be confused at 1x (one engine and blue, twin
   booms and olive).
+
+## After the first review (failed)
+- **Framing:** catalog size 0.82 and drop 5 (1x px; `aircraft_r2` lowers the fitted anchor): the default
+  frame now keeps 10-22 px (2x) clear of the cell top in every direction (it touched in S). The look
+  sheets now show whole cells, not crops.
+- **Bombs:** larger, pale (light olive grey with a yellow band) and hung forward so their noses show ahead
+  of the wing; they read in the S/N views and in the shadow.
+- **Death:** `aircraft_r2` (models/league_air.py): the pieces keep their civ colour, tumble down over
+  ~6 frames trailing fire, reach the ground and shrink away under the smoke over 3 more, instead of
+  vanishing in one frame (the stock Fighter does that).
+- **Measured:** civ blue 6.3% (Fighter 6.3, Bomber 3.1) after narrowing the civ tips and dropping the boom
+  insignia; brightness 96 (95-104).

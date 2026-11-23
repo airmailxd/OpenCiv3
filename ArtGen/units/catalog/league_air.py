@@ -7,5 +7,5 @@ Grumman F4F Wildcat, calibrated against the mod's own Fighter folder
 UNITS = {
     # A stubby blue-grey carrier fighter: a big round cowling with a
     # civ-colored ring, civ-colored roundels and a band round the tail.
-    'Wildcat': {'archetype': 'aircraft', 'model': 'wildcat', 'tint': ['band'], 'weapon': 'guns'},
+    'Wildcat': {'archetype': 'aircraft_r2', 'model': 'wildcat', 'size': 0.88, 'drop': 4, 'tint': ['band'], 'weapon': 'guns'},
 }

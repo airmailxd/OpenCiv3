@@ -11,9 +11,9 @@ UNITS = {
     # A walled war junk: a dark armored house, a tower with tiled roofs, a
     # mat sail, a civ-colored curtain round the walls and a stern banner.
     'Japanese Warship': {
-        'archetype': 'ship', 'brace': 14, 'billow_k': 1.2, 'design': 'atakebune', 'fire_t': 0.1,
-        'colors': _c(WOOD_ANCIENT, wood='#9a7a52', wood_dark='#4a3826', wood_light='#c0a478', deck='#a88e66',
-                     sail='#d8c8a0', roof='#4a4a4c', gold='#c4a45e'),
+        'archetype': 'ship_r2', 'brace': 14, 'billow_k': 1.2, 'design': 'atakebune', 'fire_t': 0.1,
+        'colors': _c(WOOD_ANCIENT, wood='#b4945e', wood_dark='#7a5c3e', plank='#ac8e5a', wood_light='#d6bc8a', deck='#c0a676',
+                     sail='#f0e2b8', roof='#4a4a4c', gold='#c4a45e'),
     },
     # A samurai general: black lacquered armor laced in red, a kabuto with
     # tall gold horns, a big civ-colored sashimono on his back, a katana.

@@ -52,3 +52,15 @@ ports) and arrows.
   Now sits in the family.
 - **r6 (animations):** attack: an arquebus volley runs along the starboard ports (flash and white smoke at
   each), then arrows; run: the sculling oars sweep, wake; death: lists and sinks, sail slackening.
+
+## After the first review (failed)
+- **r7:** mon changed to takeda-bishi (a civ lozenge split in four along its diagonals), not an "A" in a
+  ring; sail edge and battens thinned and lightened to the stock weight; tower roofs lightened with a pale
+  tile-end edge on every tier; plank stripes halved and quieter, pillars brown, one row of ports.
+- **r7/r8 death:** a new death in a subclass of the ship archetype (`ship_r2`, models/league_sea.py): the
+  ship heels until the rig lies toward the water and goes under together; white water rings wherever the
+  hull, tower or mast crosses the waterline. The stock Galley leaves its sail standing alone above the sea.
+- **r8-r15 (measured with the reviewer's meas.py, fixed background):** civ blue 6.2% -> 11.3% (Galley
+  15.6, Dromon 10.7); non-civ brightness 109 -> 142 (stocks 150-155): lighter walls, hull planks, deck,
+  roofs, plaster and sail. Brightness stays about 5% under the stocks; most of the difference is the
+  broad hull's larger shadow on the water.

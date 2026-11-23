@@ -35,3 +35,12 @@ line; 3-blade prop with yellow tips.
   blue was a little loud.
 - **r6:** paint desaturated a step (still the 1942 blue-grey). Attack: tracers from the wing guns.
   Death: blown apart, pieces fall to a fireball. Run: bank and bob, prop turning.
+
+## After the first review (failed)
+- **r7:** the barrel body: fuselage and tail scaled 0.9 long, 1.1 wide, 1.08 deep (the wings keep their
+  span); the light under-colour carried up the fuselage sides; a dark walkway on each wing root; a civ band
+  round the rear fuselage; the insignia bars shortened. Framing and death as the P-38 (size 0.88, drop 4,
+  `aircraft_r2`).
+- **r8-r12 (measured):** the blue-grey paint was being counted as civ blue (55%!): the paint is now the
+  greyer FS 35189 tone, the cowl lip no longer civ, the insignia smaller: civ blue 6.0% (Fighter 6.3,
+  Bomber 3.1), brightness 101.5 (95-104), area within the Fighter's.

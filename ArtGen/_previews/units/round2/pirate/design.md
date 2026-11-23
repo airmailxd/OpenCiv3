@@ -37,3 +37,16 @@ the tan mizzen junk sail (5 panels); 4 masts; 2 flags; forestay, masthead stays,
   belly between battens in every view, no card.
 - **r5 (with stocks):** holds. Attack: the turret trains to starboard, flash and smoke. Death: the shared
   sinking with explosions (modern). Run: bob, wake.
+
+## After the first review (failed: read as Privateer + Ironclad, sail pattern read as noise)
+- **r6:** rebuilt as a pirate junk: a tarred wooden junk hull with the high upswept stern castle and gallery,
+  bluff bow with painted eyes, ochre wales, seven gunports a side with the guns run out (broadside attack),
+  paddle wheels under round paddle boxes seated on the waterline (floats showing under the rim), a black
+  funnel, a deckhouse with a vaulted roof, a swivel gun forward. Sails plain tan canvas, one colour, still
+  bellying between their battens. The black flag (skull and crossbones) at the main masthead.
+- **r7:** the hull was picking up the steel plate colour (blue grey); now wood. Gunports enlarged.
+- **r8:** the deckhouse roof (read as a pan) is a vault of boards.
+- **r9-r15 (measured):** civ blue 0.6% -> 6.9% (Privateer 6.9, Ironclad 8.3): a civ wale, civ rims on
+  the paddle boxes, pennants at three mastheads, the ensign at the stern and an awning over the castle.
+  Area was above both neighbours; scale 0.84 brings it inside their range. Brightness 111 (103-158).
+- Death: the `ship_r2` death (rig goes down with the hull, waterline foam, low smoke).

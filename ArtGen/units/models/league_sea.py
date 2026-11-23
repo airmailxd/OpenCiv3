@@ -25,7 +25,8 @@ import numpy as np
 import mesh as M
 from models import vparts as VP
 from models.ship_designs import design, Hull, deck_at
-from models.ships import box, rod
+from models import archetype
+from models.ships import box, rod, Ship
 
 
 # ------------------------------------------------------------ shared helpers
@@ -63,15 +64,14 @@ def irimoya(b, c, hx, hy, h, roof='roof', ridge='roof_dark', gable='wood_black',
     m = M.loft(sq, b.m(roof), seg=32, smooth=False)
     # the tiles: ribs of round tiles running down the slope, the eave's tile ends lighter
     mr, md = b.m(roof), b.m(ridge)
-    mrb = b.m('roof_b', '#3a3c42')
-    me = b.m('roof_edge', '#8c8e92')
+    mrb = b.m('roof_b', '#a8acb2')
+    me = b.m('roof_edge', '#d8d6ce')
 
     def ribs(C, ids):
         side = np.abs(C[:, 0]) / hx > np.abs(C[:, 1]) / hy - (hy - hx) / hy
         along = np.where(side, C[:, 1], C[:, 0])
         ids[(ids == mr) & (np.floor(along / 0.022) % 2 == 1)] = mrb
-        ids[C[:, 2] < z0 - eave * 0.5] = md
-        ids[(C[:, 2] >= z0 - eave * 0.5) & (C[:, 2] < z0 + 0.001)] = me
+        ids[C[:, 2] < z0 + 0.004] = me
         return ids
     m = paint(m, ribs, max_edge=0.014)
     # upturned eaves: lift the low corners
@@ -109,21 +109,16 @@ def mon_sail(mats, aspect, battens=6, strips=9):
     def f(u, v):
         x, y = 2 * u - 1, 2 * v - 1
         X, Y = x * aspect, y
-        if u < 0.02 or u > 0.98 or v > 0.975:
+        if u < 0.008 or u > 0.992 or v > 0.99:
             return dark
         # the mon: a ring and three scales (mitsu-uroko)
-        # (a civ-colored disc, the scales left in the cloth, a cloth ring inside its edge)
-        r = math.hypot(X, Y + 0.02)
-        if r < 0.66:
-            if 0.5 < r < 0.56:
+        # takeda-bishi: a civ-colored lozenge split into four by cloth along its diagonals
+        if abs(X) + abs(Y) * 0.92 < 0.95:
+            if abs(X + Y * 0.92) < 0.055 or abs(X - Y * 0.92) < 0.055:
                 return base
-            for cx, cy, s in ((0.0, -0.17, 0.3), (-0.17, 0.13, 0.3), (0.17, 0.13, 0.3)):
-                dy = Y - cy
-                if -s * 0.5 < dy < s * 0.5 and abs(X - cx) < (dy + s * 0.5) * 0.62:
-                    return base
             return tint
         bt = v * battens
-        if 0.12 < v and bt - math.floor(bt) < 0.1:
+        if 0.12 < v and bt - math.floor(bt) < 0.06:
             return dark
         return alt if int(u * strips) % 2 else base
     return f
@@ -131,14 +126,14 @@ def mon_sail(mats, aspect, battens=6, strips=9):
 
 @design('atakebune')
 def atakebune(b, p):
-    b.m('wood_black', '#3a2c20')
-    b.m('plaster', '#e6e0d0')
-    b.m('roof', '#55575c')
-    b.m('roof_dark', '#2e3034')
-    b.m('wall', '#8e6e4c')
-    b.m('wall_b', '#7e6042')
-    b.m('sail_b', '#c6b68c')
-    b.m('batten', '#5a4830')
+    b.m('wood_black', '#94744c')
+    b.m('plaster', '#f2eee2')
+    b.m('roof', '#c0c4ca')
+    b.m('roof_dark', '#4a4c52')
+    b.m('wall', '#ccae78')
+    b.m('wall_b', '#c4a470')
+    b.m('sail_b', '#e2d4ac')
+    b.m('batten', '#7a6446')
     hull = b.set_hull(Hull(b.mats, L=2.45, B=0.64, D=0.13, draft=0.1, hb=0.02, sheer_stern=0.06, sheer_bow=0.1,
                            bow_p=2.0, stern_p=3.2, transom=0.62, rake_bow=0.16, n=3.2,
                            stripes=[(0.0, 0.022, 'wood_dark'), (0.06, 0.08, 'wood_dark')]))
@@ -161,7 +156,7 @@ def atakebune(b, p):
 
     def planks(C, ids):
         along = np.where(np.abs(np.abs(C[:, 0]) - WX) < 0.003, C[:, 1], C[:, 0])
-        ids[(np.floor(along / 0.055) % 2 == 1)] = mwb2
+        ids[(np.floor(along / 0.03) % 2 == 1)] = mwb2
         ids[np.abs(C[:, 2] - (zb + WH * 0.52)) < 0.012] = mwb
         return ids
     b.add(paint(walls, planks, max_edge=0.03))
@@ -174,14 +169,13 @@ def atakebune(b, p):
         for sy in (-1, 1):
             b.add(box((x, wy0 + sy * (WY + 0.004), zb + WH / 2 + 0.01), (0.026, 0.022, WH), mwb))
     # the ports, between the pillars
-    mb = b.m('black', '#141210')
+    mb = b.m('port', '#4a3826')
     port_pts = []
     for i in range(len(ys) - 1):
         for k in (1, 2):
             y = ys[i] + (ys[i + 1] - ys[i]) * k / 3
             for sx in (-1, 1):
                 b.add(box((sx * (WX + 0.003), y, zb + WH * 0.75), (0.008, 0.03, 0.03), mb))
-                b.add(box((sx * (WX + 0.003), y, zb + WH * 0.3), (0.008, 0.026, 0.04), mb))
             port_pts.append(y)
     for x in (-0.2, 0.0, 0.2):
         for sy in (-1, 1):
@@ -198,7 +192,7 @@ def atakebune(b, p):
 
     # the deck: planks along the ship, two hatches, a windlass at the bow, water casks
     def deck_planks(C, ids):
-        ids[np.floor(C[:, 0] / 0.045) % 2 == 1] = b.m('deck_b', '#7c6648')
+        ids[np.floor(C[:, 0] / 0.045) % 2 == 1] = b.m('deck_b', '#b09668')
         return ids
     b.add(paint(box((0, wy0, zt + 0.0145), (2 * WX - 0.01, 2 * WY - 0.01, 0.002), b.m('deck')), deck_planks,
                 max_edge=0.04))
@@ -248,7 +242,7 @@ def atakebune(b, p):
     irimoya(b, (0, yt, z3 + 0.1 + 0.01), 0.1 + 0.045, 0.13 + 0.045, 0.085, up=0.03, gold='gold')
     # the curtain (maku) in the civ color round the tower's foot, white mon dots on it
     for sx in (-1, 1):
-        b.add(box((sx * (T1x + 0.035), yt, zr + 0.03), (0.006, 2 * T1y + 0.07, 0.05), b.m('tint')))
+        b.add(box((sx * (T1x + 0.035), yt, zr + 0.04), (0.006, 2 * T1y + 0.07, 0.08), b.m('tint')))
         for y in (yt - 0.15, yt, yt + 0.15):
             b.add(M.cylinder(0.014, 0.014, 0.004, b.m('white'), seg=10).transformed(
                 M.translate(sx * (T1x + 0.039), y, zr + 0.03) @ M.rot_y(90)))
@@ -300,7 +294,7 @@ def atakebune(b, p):
         top = (x, y, zr + 0.38)
         b.add(rod((x, y, zr), top, 0.0055, b.m('wood_dark'), seg=4))
         b.add(rod(top, (x, y - 0.06, top[2]), 0.004, b.m('wood_dark'), seg=4))
-        b.flag((x, y - 0.004, top[2] - 0.004), w=0.055, h=0.24, phase=y * 4 + x, pole=False)
+        b.flag((x, y - 0.004, top[2] - 0.004), w=0.085, h=0.3, phase=y * 4 + x, pole=False)
     # the streamer (fukinagashi) at the stern
     b.add(rod((0, -1.0, zr), (0, -1.0, zr + 0.55), 0.007, b.m('wood_dark'), seg=5))
     b.flag((0, -1.0, zr + 0.55), w=0.2, h=0.05, phase=1.3, pole=False, droop=0.06)
@@ -313,3 +307,84 @@ def atakebune(b, p):
         b.gun((WX + 0.012, y, zb + WH * 0.75), (1.0, 0.08, 0.06), delay=i * 0.018, size=0.55)
     b.weapon = dict(kind='arrows', src=(0.25, -0.1, zt + 0.1), dir=(1.0, 0.25, 0.1), reach=1.4, n=6, volleys=2,
                     gap=0.25, t=0.1, flight=0.3, kick=False)
+
+
+# ------------------------------------------------------------ the round-2 ships' death
+
+def cut_foam(mesh, mat, n=60, r=(0.014, 0.03), seed=5):
+    """Foam where a posed mesh crosses the waterline: discs on the
+    centroids of the triangles that straddle z = 0, so whatever is going
+    under (hull, castle, a mast) stands in a ring of white water."""
+    from models.ships import disc_flat
+    if not len(mesh):
+        return M.Mesh()
+    z = mesh.V[..., 2]
+    sel = np.nonzero((z.min(1) < 0) & (z.max(1) > 0))[0]
+    if not len(sel):
+        return M.Mesh()
+    pick = sel[np.linspace(0, len(sel) - 1, min(n, len(sel))).astype(int)]
+    rng = np.random.default_rng(seed)
+    out = []
+    for k, i in enumerate(pick):
+        c = mesh.V[i].mean(0)
+        out.append(disc_flat(c[0] + rng.normal(0, 0.01), c[1] + rng.normal(0, 0.01), 0.004,
+                             rng.uniform(*r), mat, seg=6, rot=k))
+    return M.Mesh.concat(out)
+
+
+@archetype('ship_r2')
+class ShipR2(Ship):
+    """The ship archetype with a death that keeps the ship together: it
+    heels over until the masts lie toward the water (so no rig stands alone
+    above the sea), goes down by the stern, and wherever it crosses the
+    waterline the sea foams round it; the smoke of a modern ship's
+    explosions stays low and thins out instead of hanging in the air."""
+
+    def _death(self, t, n, ctx):
+        from models.ships import _clamp, _smooth, clip_below, subset, blob, TAU
+        b = self.b
+        modern = self.p.get('modern', False)
+        td = ctx.event('down', None) if ctx is not None else None
+        end = self.p.get('sink_end', 0.92)
+        if td is not None:
+            end = float(np.clip(td / 0.55, 0.6, 0.95))
+        start = self.p.get('sink_start', 0.12 if not modern else 0.25)
+        u = _clamp((t - start) / max(end - start, 1e-3))
+        side = self.p.get('death_side', -1.0)
+        roll = side * self.p.get('death_roll', 78.0) * _smooth(u * 1.25)
+        pitch = -self.p.get('death_pitch', 12.0) * _smooth(u)
+        H = float(self.static.V[..., 2].max()) * self.p.get('height_k', 1.0) + 0.1
+        hh = ((self.b.hull.D + self.b.hull.hb) * self.p.get('height_k', 1.0) + 0.08) if self.b.hull else 0.3
+        # the hull settles to its deck by u = 0.55, then everything goes under together, the rig
+        # (now lying over) last
+        zs = -hh * _smooth(u / 0.5) - (H - hh) * 1.15 * max(0.0, (u - 0.38) / 0.62) ** 1.1
+        z0, p0, r0 = self._bob(t * 0.5, False)
+        ship = self.ship_mesh('DEFAULT', t, billow=1.0 - 0.7 * u, wind=0.5, flag_k=1.0 - 0.6 * u, spin=0.0,
+                              oar=(10 * math.sin(TAU * t), 0.6) if b.oars else None)
+        T = self._pose_T(z0 * (1 - u) + zs, p0 + pitch, r0 + roll)
+        posed = ship.transformed(T)
+        ship = clip_below(posed)
+        fx = [self._wake(t, False, scale=1.0 + 0.4 * u, k_foam=1.0 + 2.5 * math.sin(math.pi * min(u, 1)),
+                         band=max(0.0, 1 - u / 0.4))]
+        if 0.02 < u < 0.995:
+            fx.append(cut_foam(posed, self.mats['foam'], n=int(70 * (1 - 0.5 * u)), seed=int(t * 97) % 13))
+        L = self.length
+        for j in range(4):
+            fx.append(self._splash(((-1) ** j) * 0.1, (j / 3 - 0.5) * L * 0.6, start + 0.15 * j + 0.1, t,
+                                   size=(0.07 + 0.02 * L) * self.fx_k, life=0.4, seed=60 + j))
+        if modern:
+            for j, (fx_, fy, ft) in enumerate(self.p.get('explosions', [(0.0, 0.15, 0.04), (0.05, -0.25, 0.16),
+                                                                        (-0.04, 0.35, 0.3)])):
+                p = (T @ np.array([fx_, fy * L, self.b.hull.D + 0.05, 1.0], np.float32))[:3]
+                p[2] = max(p[2], 0.05)
+                a = (t - ft) / 0.3
+                k = self.fx_k
+                if 0 <= a <= 1:
+                    r = 0.2 * k * (0.4 + a) * (1 - _smooth((a - 0.55) / 0.45)) + 0.001
+                    for q, (ox, oy) in enumerate(((0, 0), (0.6, 0.3), (-0.5, 0.4), (0.2, -0.6))):
+                        c = p + np.array([ox * r * 0.7, oy * r * 0.7, 0.1 * a + r * 0.3 * (q > 0)], np.float32)
+                        fx.append(blob(c, r * (1 - 0.2 * (q > 0)), self.mats['fire'], seg=10))
+                    fx.append(blob(p + (0, 0, 0.1 * a + r * 0.4), r * 0.65, self.mats['fire_core'], seg=8))
+                fx.append(self._puff(p + (0, 0, 0.06 * k), ft + 0.12, t, 0.15 * k, 'smoke_dark',
+                                     drift=(0.04, -0.06, 0.1 * k), life=0.42, n=5, seed=80 + j))
+        return M.Mesh.concat([ship] + fx)

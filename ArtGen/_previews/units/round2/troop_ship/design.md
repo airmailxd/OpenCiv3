@@ -35,3 +35,15 @@ hawse pipes; jack and ensign; forestay and backstay.
 - **r5:** cargo winches at every hatch, bitts and the anchor windlass on the forecastle with its cables, life
   rafts on the house. Fields broken up by real fittings.
 - **r6 (with stocks):** holds. Attack: the 5-inch and 3-inch train and fire. Death: explosions, sinking.
+
+## After the first review (failed)
+- **r7:** hull lightened to the stock steel grey, a white boot-top line above the black at the waterline,
+  portholes the whole length; beam 0.6 -> 0.7 and freeboard raised; hatches neutral canvas with civ coamings;
+  the funnel band and flags carry the rest; the funnel smoke removed.
+- **r8:** the landing craft: eight LCVPs swung out over the side in davits, larger (1.4x), dark navy with a
+  pale ramp, hung above the deck line so they break the silhouette; falls from the davit heads.
+- **r9 (measured):** civ blue 8.9% -> 6.8% (Transport 6.8, Destroyer 6.9) after narrowing the coamings and
+  the funnel band; brightness 100 (94-115).
+- Attack has 6 frames and run 4: those are the mod's own flics (its Galleon folder's INI), which the
+  framework keeps frame for frame; the strips now show every frame.
+- Death: the `ship_r2` death; the explosions' smoke stays low and short-lived.
