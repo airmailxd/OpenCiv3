@@ -16,7 +16,7 @@ import common as C  # noqa: E402
 
 # Art name -> the backdrop it is shown on.
 UNITS = {
-    'Partisans': 'Land', 'Roughrider': 'Land', 'Special Forces': 'Land', 'Teutonic Knight': 'Land',
+    'Roughrider': 'Land', 'Special Forces': 'Land', 'Teutonic Knight': 'Land',
     'Japanese Rifleman': 'Land', 'Hojo General': 'Land', 'Wildcat': 'Air', 'Japanese Warship': 'Sea',
 }
 
