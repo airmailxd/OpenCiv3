@@ -303,7 +303,9 @@ public class FutureScenarioTest {
 			.Concat(save.Buildings.Select(b => (b.name, b.civilopediaEntry)))
 			.Concat(save.Techs.Where(t => t.EraCivilopediaName != EraUtils.HIDDEN_CVLPD).Select(t => (t.Name, t.CivilopediaEntry)))
 			.Concat(save.Governments.Select(g => (g.name, g.civilopediaEntry)));
-		Assert.Empty(all.Where(x => x.key == null || !articles.Contains(x.key)).Select(x => $"{x.name} ({x.key})"));
+		// Future's own keys still waiting for their articles are LeagueArtTest's.
+		Assert.Empty(all.Where(x => x.key == null || !articles.Contains(x.key) && !LeagueArtTest.AwaitsArticle(x.key, articles.Contains))
+			.Select(x => $"{x.name} ({x.key})"));
 	}
 
 	// The AI plays a Future game for some turns: it founds cities, builds

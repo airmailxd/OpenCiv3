@@ -200,6 +200,10 @@ public class MdjScenarioTest {
 		foreach (string key in keys.Distinct()) {
 			CivilopediaArticle article = text.Get(key);
 			if (article == null) {
+				// MDJ's own keys still waiting for their articles are LeagueArtTest's.
+				if (LeagueArtTest.AwaitsArticle(key, text.Has)) {
+					continue;
+				}
 				problems.Add($"{key}: no page");
 				continue;
 			}

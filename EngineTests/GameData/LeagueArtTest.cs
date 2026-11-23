@@ -207,6 +207,17 @@ public class LeagueArtTest {
 		return problems;
 	}
 
+	// A League mode's own key whose article is still to be written: the
+	// tests that every entry has an article leave it to this test, which
+	// lists it as pending.
+	public static bool AwaitsArticle(string key, Func<string, bool> hasArticle) {
+		return key != null && !hasArticle(key) && LeagueKeys.Value.Contains(key);
+	}
+
+	private static readonly Lazy<HashSet<string>> LeagueKeys = new(() => table.Value.modes.Values
+		.SelectMany(s => s.Values).SelectMany(e => e.Values).Where(e => e.key != null && e.key != e.from)
+		.Select(e => e.key).ToHashSet());
+
 	private static HashSet<string> Pending() => File.ReadAllLines(PendingPath)
 		.Select(l => l.TrimEnd()).Where(l => l.Length > 0 && !l.StartsWith('#')).ToHashSet();
 
