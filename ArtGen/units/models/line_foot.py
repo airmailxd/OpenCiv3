@@ -439,6 +439,66 @@ class LineBody(LF.LeagueBody):
             super()._hat(add0)
 
 
+# ------------------------------------------------------------ death
+
+def line_death(base, ctx):
+    """humanoid.anim_death's fall (struck, staggers back, knees buckle, falls
+    on the back) with the arms kept in: the right hand keeps its weapon at
+    the side, the left comes over the belly. No arms flung out."""
+    down = ctx.event('down', 0.55) if ctx is not None else 0.55
+    down = min(max(down or 0.55, 0.35), 0.85)
+    fk = {
+        'thigh_r': (0, -4, 0), 'shin_r': (0, 0, 0), 'thigh_l': (0, 4, 0), 'shin_l': (0, 0, 0),
+        'arm_r': (10, -12, 0), 'forearm_r': (25, 0, 0), 'arm_l': (5, 12, 0), 'forearm_l': (20, 0, 0),
+        'root_pos': (0, 0, 0), 'root_rot': (0, 0, 0), 'spine': (0, 0, 0), 'chest': (0, 0, 0), 'head': (0, 0, 0),
+        'death_t': 0.0,
+    }
+    k = [
+        (0.0, {}),
+        (0.18, {'root_rot': (12, 0, 6), 'root_pos': (0, -0.06, -0.02), 'chest': (12, 0, 8), 'head': (22, 0, 0),
+                'arm_r': (35, -22, 0), 'forearm_r': (45, 0, 0), 'arm_l': (40, 28, 0), 'forearm_l': (70, 0, 0),
+                'thigh_r': (10, -4, 0), 'shin_r': (-18, 0, 0), 'order': 0.0}),
+        (0.38, {'root_rot': (30, 0, 10), 'root_pos': (0, -0.22, -0.28), 'chest': (14, 0, 8), 'head': (24, 0, 0),
+                'thigh_r': (62, -8, 0), 'shin_r': (-72, 0, 0), 'thigh_l': (44, 8, 0), 'shin_l': (-62, 0, 0),
+                'arm_r': (45, -30, 0), 'forearm_r': (35, 0, 0), 'arm_l': (55, 32, 0), 'forearm_l': (65, 0, 0)}),
+        (0.62, {'root_rot': (80, 0, 8), 'root_pos': (0, -0.55, -0.72), 'chest': (6, 0, 4), 'head': (10, 0, 10),
+                'thigh_r': (40, -10, 0), 'shin_r': (-40, 0, 0), 'thigh_l': (30, 12, 0), 'shin_l': (-30, 0, 0),
+                'arm_r': (40, -28, 0), 'forearm_r': (20, 0, 0), 'arm_l': (45, 8, 0), 'forearm_l': (45, 0, 0)}),
+        (0.78, {'root_rot': (92, 0, 6), 'root_pos': (0, -0.62, -0.79), 'chest': (-2, 0, 2), 'head': (-10, 0, 18),
+                'thigh_r': (14, -14, 0), 'shin_r': (-12, 0, 0), 'thigh_l': (8, 16, 0), 'shin_l': (-16, 0, 0),
+                'arm_r': (18, -24, 0), 'forearm_r': (10, 0, 0), 'arm_l': (28, -12, 0), 'forearm_l': (30, 0, 0)}),
+        (1.0, {'root_rot': (90, 0, 6), 'root_pos': (0, -0.62, -0.78), 'chest': (0, 0, 2), 'head': (-6, 0, 22),
+               'thigh_r': (10, -14, 0), 'shin_r': (-10, 0, 0), 'thigh_l': (6, 16, 0), 'shin_l': (-14, 0, 0),
+               'arm_r': (16, -24, 0), 'forearm_r': (8, 0, 0), 'arm_l': (26, -14, 0), 'forearm_l': (28, 0, 0)}),
+    ]
+    anim = H.keys(dict(base, **{c: _v(v) for c, v in fk.items()}), k)
+
+    def fn(t):
+        p = anim(H._warp(t, [(0.62, down)]))
+        p['death_t'] = _v(t)
+        return p
+    act = FM.Act(fn, legs='fk', arms='fk')
+    act.gun_lie = True
+    return act
+
+
+def _gun_lie_R(t):
+    """The weapon's orientation through the fall: upright at the start, lying
+    flat beside the body (muzzle toward the feet) at the end."""
+    u = min(1.0, max(0.0, t / 0.75))
+    u = u * u * (3 - 2 * u)
+    d0 = np.array([0.0, 0.25, 1.0], np.float32)
+    d1 = np.array([0.18, 1.0, 0.02], np.float32)
+    z = d0 / np.linalg.norm(d0) * (1 - u) + d1 / np.linalg.norm(d1) * u
+    z /= np.linalg.norm(z)
+    x = np.cross(z, np.array([0, 0, 1.0], np.float32))
+    if np.linalg.norm(x) < 1e-3:
+        x = np.array([1.0, 0, 0], np.float32)
+    x /= np.linalg.norm(x)
+    y = np.cross(z, x)
+    return np.stack([x, y, z], 1).astype(np.float32)
+
+
 # ------------------------------------------------------------ the soldier
 
 @archetype('line_soldier')
@@ -486,11 +546,28 @@ class LineSoldier(LF.LeagueSoldier):
         finally:
             self.base = saved
 
+    def action(self, action, ctx):
+        if self.anim_name(action) == 'death':
+            key = (action, ctx.n if ctx else None)
+            if key not in self._cache:
+                self._cache[key] = line_death(self.base, ctx)
+            return self._cache[key]
+        return super().action(action, ctx)
+
     def _order_T(self, T, pose):
         o = float(pose.get('order', 0.0)) * self.order_grip
         return T @ M.translate(0, 0, -o) if o > 1e-4 else T
 
     def pose_full(self, pose, act, weapon, offhand='same'):
+        if getattr(act, 'gun_lie', False) and weapon is not None:
+            mesh, info = super().pose_full(pose, act, None, offhand)
+            Wh = info['W']['hand_r']
+            T = np.eye(4, dtype=np.float32)
+            T[:3, :3] = _gun_lie_R(float(pose.get('death_t', 1.0)))
+            T[:3, 3] = Wh[:3, 3] + Wh[:3, :3] @ _v((0, 0.01, -H.GRIP))
+            T = self._order_T(T, info['pose'])
+            info['T'] = dict(info['T'], r=T)
+            return M.Mesh.concat([mesh, self.prop(weapon).transformed(T)]), info
         if not self.order_grip or weapon is None or weapon != self.weapon or float(pose.get('order', 0.0)) < 1e-4:
             return super().pose_full(pose, act, weapon, offhand)
         mesh, info = super().pose_full(pose, act, None, offhand)
@@ -677,7 +754,7 @@ class LineMgTeam:
         drop = 0.2
         u = min(1.0, max(0.0, (t - drop) / 0.2))
         for who, at, delay, role in ((self.gunner, self.gunner_at, 0.0, 'gun'), (self.assistant, self.assistant_at, 0.1, 'tripod')):
-            d = H.anim_death(who.base, None, None, None)
+            d = line_death(who.base, None)
             tt = min(1.0, max(0.0, (t - delay) / (1 - delay)))
             p = d.fn(tt)
             m, info = who.pose_full(p, d, None, None)
