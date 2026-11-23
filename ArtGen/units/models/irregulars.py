@@ -866,8 +866,6 @@ class Irregular(LF.LeagueSoldier):
                'w_main': tuple(_v(B['w_main']) + _v((-35, 0, 0))),
                'support': 0.4 * float(B.get('support', 0.0)),
                'hand_l': (-0.34, 0.16, 1.05), 'elbow_r': (0.9, -0.3, -0.3), 'elbow_l': (-0.9, -0.3, -0.2)}
-        if self.thrower:
-            slack['w_main'] = (-150, 0, 4)
         k0 = {}
         if lo:
             k0 = {'root_pos': (0, -0.03, -lo), 'root_rot': (6, 0, 2), 'thigh_r': (30, -4, 0), 'shin_r': (-55, 0, 0),
@@ -961,6 +959,15 @@ class Irregular(LF.LeagueSoldier):
 
     def frame(self, action, f, n, ctx):
         if not self.thrower:
+            stub = self.p.get('death_gun')
+            if stub and self.anim_name(action) == 'death':
+                # in the fall the loose belt would hang through the ground: only a stub of it
+                gun = self.weapon
+                self.weapon = stub
+                try:
+                    return super().frame(action, f, n, ctx)
+                finally:
+                    self.weapon = gun
             return super().frame(action, f, n, ctx)
         self._n = n
         act = self.action(action, ctx)
@@ -983,7 +990,8 @@ class Irregular(LF.LeagueSoldier):
             if key not in self._cache:
                 _, Ts, _ = self._solve(act.fn(t_drop), act)
                 p0 = Ts['l'][:3, 3].copy()
-                self._cache[key] = (p0, _v((p0[0] - 0.55, p0[1] + 0.35, 0.04)))
+                end = act.fn(1.0)['root_pos']
+                self._cache[key] = (p0, _v((0.52, float(end[1]) - 0.02, 0.04)))
             p0, land = self._cache[key]
             u = min(1.0, (dead_t - t_drop) / 0.2)
             pos = p0 * (1 - u) + land * u

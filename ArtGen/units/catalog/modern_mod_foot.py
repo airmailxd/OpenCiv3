@@ -77,7 +77,7 @@ UNITS = {
         'hair': 'none', 'hat': 'shemagh', 'top': 'long_sleeved', 'elbow_cuff': False, 'vest': 'jerkin', 'vest_skirt': 0.02,
         'jacket': {'zip': True}, 'seams': True, 'jeans': True, 'buckle': True,
         'rig': 'chicom', 'legs': 'trousers', 'knees': True, 'feet': 'shoes', 'sneakers': True,
-        'gun': 'pkm', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
+        'gun': 'pkm', 'death_gun': 'pkm_stub', 'hold': 'hip', 'aim': 'hip', 'fire_start': 'aim', 'fire_end': 'aim',
         'run_hold': {'hand_r': (0.20, 0.16, 1.00), 'w_main': (-14, -38, 0), 'support': 1.0, 'elbow_l': (-0.5, -0.5, -0.7)},
         'flash': 'burst', 'smoke': 'light', 'flash_size': 0.30,
         'shots': {'ATTACK1': [1, 2, 3, 5, 6, 7, 9, 10, 11], 'ATTACK2': [2, 3, 4, 8, 9, 10], 'ATTACK3': [1, 3, 5, 7]},

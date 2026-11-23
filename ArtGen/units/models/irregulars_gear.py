@@ -18,6 +18,7 @@ from models import props_foot_modern as G
 
 GUNS = {
     'pkm': {'muzzle': 0.80, 'support': (-0.07, 0.10), 'butt': -0.36},
+    'pkm_stub': {'muzzle': 0.80, 'support': (-0.07, 0.10), 'butt': -0.36},
     'enfield': {'muzzle': 0.80, 'support': (0.03, 0.34), 'butt': -0.36},
     'ppsh41': {'muzzle': 0.50, 'support': (0.05, 0.22), 'butt': -0.36},
     'molotov': {'muzzle': 0.20, 'support': (0.0, 0.0), 'butt': -0.08},
@@ -39,7 +40,12 @@ def _bar(a, b, r, m, seg=6):
 
 # ------------------------------------------------------------ the PKM
 
-def pkm(mats, muzzle=0.80):
+def pkm_stub(mats, muzzle=0.80):
+    """The PKM with only a stub of belt out of the box (as it lies on the ground)."""
+    return pkm(mats, muzzle, loose=1)
+
+
+def pkm(mats, muzzle=0.80, loose=6):
     """A PKM machine gun: a long stamped receiver with its top cover, a
     skeleton butt, a pistol grip, a long fluted barrel over the gas tube,
     a carrying handle on the barrel, a slotted flash hider, the bipod folded
@@ -83,7 +89,7 @@ def pkm(mats, muzzle=0.80):
         parts.append(_bar((sx * 0.012, 0.03, 0.60), (sx * 0.05, 0.13, 0.70), 0.008, g))
         parts.append(M.box(0.016, 0.016, 0.02, g, (sx * 0.05, 0.135, 0.705)))
     # the loose end of the belt out of the box's mouth, hanging down
-    for k in range(6):
+    for k in range(loose):
         y = 0.17 + 0.03 * k
         parts.append(M.box(0.04, 0.012, 0.014, br, (0.03, y, 0.12 - 0.012 * k)))
         parts.append(M.box(0.044, 0.006, 0.016, d, (0.03, y + 0.008, 0.12 - 0.012 * k)))
