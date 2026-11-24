@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "x_americanFT default",
+    "RUN": "x_americanFT run",
+    "ATTACK1": "x_americanFT attack_a",
+    "ATTACK2": "x_americanFT attack_b",
+    "DEATH": "x_americanFT death",
+    "FORTIFY": "x_americanFT fortify",
+    "FIDGET": "x_americanFT fidget",
+    "VICTORY": "x_americanFT victory"
+  },
+  "flics": {
+    "x_americanFT attack_a": {"size": [184, 117], "directions": 8, "frames": 15, "frameMs": 66, "offset": [29, 12], "canvas": [240, 240]},
+    "x_americanFT attack_b": {"size": [201, 125], "directions": 8, "frames": 15, "frameMs": 66, "offset": [21, 37], "canvas": [240, 240]},
+    "x_americanFT death": {"size": [143, 118], "directions": 8, "frames": 15, "frameMs": 83, "offset": [49, 39], "canvas": [240, 240]},
+    "x_americanFT default": {"size": [41, 49], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 79], "canvas": [240, 240]},
+    "x_americanFT fidget": {"size": [75, 62], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 78], "canvas": [240, 240]},
+    "x_americanFT fortify": {"size": [46, 49], "directions": 8, "frames": 10, "frameMs": 83, "offset": [94, 80], "canvas": [240, 240]},
+    "x_americanFT run": {"size": [50, 53], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 78], "canvas": [240, 240]},
+    "x_americanFT victory": {"size": [85, 65], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 63], "canvas": [240, 240]}
+  }
+}

@@ -41,8 +41,15 @@ public class StandaloneUnitArtTest {
 	// units are drawn with the same art.
 	private static readonly Lazy<SaveGame> mdjRules = new(() => SaveGameFixture.LoadGameMode(C7Engine.GameSetup.MdjGameMode(new GameMode.Config("civ3", ["standalone"]))).GetSave());
 
-	// Every unit standalone mode draws: those of the bundled rules and of MDJ's.
-	private static IEnumerable<SaveUnitPrototype> StandaloneUnits() => standaloneRules.Value.UnitPrototypes.Concat(mdjRules.Value.UnitPrototypes);
+	// Modern's rules in standalone mode (see C7Engine/GameSetup.Modern.cs),
+	// whose new units have art of their own.
+	private static readonly Lazy<SaveGame> modernRules = new(() => C7Engine.GameSetup.LoadBundledRules(PathUtils.GameModesDir,
+		new GameMode.Config("civ3", ["standalone"]), C7Engine.GameSetup.ModernRules));
+
+	// Every unit standalone mode draws: those of the bundled rules, of MDJ's
+	// and of Modern's.
+	private static IEnumerable<SaveUnitPrototype> StandaloneUnits() => standaloneRules.Value.UnitPrototypes
+		.Concat(mdjRules.Value.UnitPrototypes).Concat(modernRules.Value.UnitPrototypes);
 
 	// A file or folder under a folder, found ignoring case, as the game does.
 	private static string FindIgnoringCase(string root, string relative) {
@@ -172,6 +179,20 @@ public class StandaloneUnitArtTest {
 		}
 		Assert.True(checkedArt.Count > 100, $"only {checkedArt.Count} unit arts");
 		Assert.True(problems.Count == 0, string.Join("\n", problems));
+	}
+
+	// Modern's 16 new units are drawn with art of their own, not with the
+	// stock art names the mod gave them (the Super Trooper isn't a Samurai).
+	[Fact]
+	public void ModernsNewUnitsHaveArtOfTheirOwn() {
+		List<SaveUnitPrototype> units = modernRules.Value.UnitPrototypes;
+		foreach ((string name, string art) in C7Engine.GameSetup.ModernUnitArt) {
+			SaveUnitPrototype unit = units.FirstOrDefault(u => u.name == name || u.name.StartsWith(name + " ("));
+			Assert.True(unit != null, $"no unit {name} in Modern's rules");
+			Assert.Equal(art, unit.art.mainArt.defaultName);
+			Assert.NotNull(FindIgnoringCase(UnitsFolder, art));
+		}
+		Assert.Equal(16, C7Engine.GameSetup.ModernUnitArt.Values.Distinct().Count());
 	}
 
 	[Fact]

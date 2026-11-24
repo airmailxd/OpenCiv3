@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "x_americanHMG default",
+    "RUN": "x_americanHMG run",
+    "ATTACK1": "x_americanHMG attack_a",
+    "DEATH": "x_americanHMG death",
+    "FORTIFY": "x_americanHMG fortify",
+    "FIDGET": "x_americanHMG fidget",
+    "VICTORY": "x_americanHMG victory"
+  },
+  "flics": {
+    "x_americanHMG attack_a": {"size": [172, 84], "directions": 8, "frames": 15, "frameMs": 83, "offset": [33, 66], "canvas": [240, 240]},
+    "x_americanHMG death": {"size": [101, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [69, 81], "canvas": [240, 240]},
+    "x_americanHMG default": {"size": [73, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [82, 72], "canvas": [240, 240]},
+    "x_americanHMG fidget": {"size": [73, 66], "directions": 8, "frames": 15, "frameMs": 100, "offset": [82, 72], "canvas": [240, 240]},
+    "x_americanHMG fortify": {"size": [97, 77], "directions": 8, "frames": 10, "frameMs": 100, "offset": [70, 67], "canvas": [240, 240]},
+    "x_americanHMG run": {"size": [73, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 70], "canvas": [240, 240]},
+    "x_americanHMG victory": {"size": [99, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [69, 66], "canvas": [240, 240]}
+  }
+}

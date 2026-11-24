@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "DEFAULT": "HumveeDefault",
+    "RUN": "HumveeRun",
+    "ATTACK1": "HumveeAttack",
+    "DEATH": "HumveeDeath",
+    "FORTIFY": "HumveeFortify",
+    "VICTORY": "HumveeVictory"
+  },
+  "flics": {
+    "HumveeAttack": {"size": [135, 101], "directions": 8, "frames": 20, "frameMs": 70, "offset": [52, 53], "canvas": [240, 240]},
+    "HumveeDeath": {"size": [135, 101], "directions": 8, "frames": 18, "frameMs": 105, "offset": [52, 53], "canvas": [240, 240]},
+    "HumveeDefault": {"size": [135, 101], "directions": 8, "frames": 6, "frameMs": 80, "offset": [52, 53], "canvas": [240, 240]},
+    "HumveeFortify": {"size": [135, 101], "directions": 8, "frames": 4, "frameMs": 170, "offset": [52, 53], "canvas": [240, 240]},
+    "HumveeRun": {"size": [135, 101], "directions": 8, "frames": 6, "frameMs": 111, "offset": [52, 53], "canvas": [240, 240]},
+    "HumveeVictory": {"size": [135, 101], "directions": 8, "frames": 5, "frameMs": 170, "offset": [52, 53], "canvas": [240, 240]}
+  }
+}

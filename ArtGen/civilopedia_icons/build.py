@@ -192,6 +192,10 @@ def main(argv):
                 print(f"  FAILED {r['key']}:\n{r['error']}", flush=True)
             results.append(r)
     failed = [r for r in results if 'error' in r]
+    # Modern's own units, by art name (they share their entries with stock units).
+    if 'Units' in wanted:
+        import units_modern
+        units_modern.main()
     for section in wanted:
         items = [(r['stem'], r['large'], r['small']) for r in results if r['section'] == section and 'error' not in r]
         for i in range(0, len(items), 40):

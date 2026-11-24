@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "OldTimerDefault",
+    "RUN": "OldTimerRun",
+    "ATTACK1": "OldTimerAttackA",
+    "ATTACK2": "OldTimerAttackB",
+    "DEATH": "OldTimerDeath",
+    "FORTIFY": "OldTimerFortify",
+    "FIDGET": "OldTimerFidget",
+    "VICTORY": "OldTimerVictory"
+  },
+  "flics": {
+    "OldTimerAttackA": {"size": [100, 100], "directions": 8, "frames": 20, "frameMs": 94, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerAttackB": {"size": [100, 100], "directions": 8, "frames": 10, "frameMs": 100, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerDeath": {"size": [100, 100], "directions": 8, "frames": 40, "frameMs": 75, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerDefault": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerFidget": {"size": [100, 100], "directions": 8, "frames": 20, "frameMs": 100, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerFortify": {"size": [100, 100], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerRun": {"size": [100, 100], "directions": 8, "frames": 14, "frameMs": 76, "offset": [70, 55], "canvas": [240, 240]},
+    "OldTimerVictory": {"size": [100, 100], "directions": 8, "frames": 30, "frameMs": 100, "offset": [70, 55], "canvas": [240, 240]}
+  }
+}

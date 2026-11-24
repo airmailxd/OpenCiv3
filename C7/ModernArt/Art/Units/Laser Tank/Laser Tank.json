@@ -1,0 +1,21 @@
+{
+  "actions": {
+    "DEFAULT": "LaserTankDefault",
+    "RUN": "LaserTankDefault",
+    "ATTACK1": "LaserTankAttackA",
+    "ATTACK2": "LaserTankAttackB",
+    "DEATH": "LaserTankDeath",
+    "FORTIFY": "LaserTankFortify",
+    "FIDGET": "LaserTankFidget",
+    "VICTORY": "LaserTankVictory"
+  },
+  "flics": {
+    "LaserTankAttackA": {"size": [139, 109], "directions": 8, "frames": 8, "frameMs": 145, "offset": [50, 52], "canvas": [240, 240]},
+    "LaserTankAttackB": {"size": [139, 109], "directions": 8, "frames": 7, "frameMs": 144, "offset": [50, 52], "canvas": [240, 240]},
+    "LaserTankDeath": {"size": [99, 89], "directions": 8, "frames": 10, "frameMs": 109, "offset": [70, 62], "canvas": [240, 240]},
+    "LaserTankDefault": {"size": [79, 69], "directions": 8, "frames": 8, "frameMs": 131, "offset": [80, 72], "canvas": [240, 240]},
+    "LaserTankFidget": {"size": [79, 69], "directions": 8, "frames": 8, "frameMs": 170, "offset": [80, 72], "canvas": [240, 240]},
+    "LaserTankFortify": {"size": [79, 69], "directions": 8, "frames": 5, "frameMs": 170, "offset": [80, 72], "canvas": [240, 240]},
+    "LaserTankVictory": {"size": [79, 89], "directions": 8, "frames": 8, "frameMs": 136, "offset": [80, 52], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "DEFAULT": "RPGde",
+    "RUN": "RPGrun",
+    "ATTACK1": "RPGata",
+    "ATTACK2": "RPGatb",
+    "ATTACK3": "RPGatc",
+    "DEATH": "RPGdie",
+    "FORTIFY": "RPGfo",
+    "FIDGET": "RPGfi",
+    "VICTORY": "RPGvi"
+  },
+  "flics": {
+    "RPGata": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 85, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGatb": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 84, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGatc": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 84, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGde": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 125, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGdie": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 63, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGfi": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 100, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGfo": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 80, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGrun": {"size": [240, 240], "directions": 8, "frames": 16, "frameMs": 52, "offset": [0, 0], "canvas": [240, 240]},
+    "RPGvi": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 80, "offset": [0, 0], "canvas": [240, 240]}
+  }
+}

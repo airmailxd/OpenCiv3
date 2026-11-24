@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "CargoD",
+    "RUN": "CargoRun",
+    "ATTACK1": "CargoAttack",
+    "DEATH": "CargoDeath",
+    "FORTIFY": "CargoD"
+  },
+  "flics": {
+    "CargoAttack": {"size": [120, 69], "directions": 8, "frames": 6, "frameMs": 166, "offset": [60, 81], "canvas": [240, 240]},
+    "CargoD": {"size": [120, 69], "directions": 8, "frames": 11, "frameMs": 80, "offset": [60, 86], "canvas": [240, 240]},
+    "CargoDeath": {"size": [120, 69], "directions": 8, "frames": 11, "frameMs": 166, "offset": [60, 81], "canvas": [240, 240]},
+    "CargoRun": {"size": [120, 69], "directions": 8, "frames": 4, "frameMs": 166, "offset": [60, 81], "canvas": [240, 240]}
+  }
+}

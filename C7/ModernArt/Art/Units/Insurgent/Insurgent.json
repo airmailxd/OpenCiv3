@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "DEFAULT": "FCoDe",
+    "RUN": "FCoRu",
+    "ATTACK1": "FCoAtB",
+    "ATTACK2": "FCoAtA",
+    "ATTACK3": "FCoAtA",
+    "DEATH": "FCoDie",
+    "FORTIFY": "FCoFo",
+    "FIDGET": "FCoFi",
+    "VICTORY": "FCoVi",
+    "BUILD": "FCoDrop"
+  },
+  "flics": {
+    "FCoAtA": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 80, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoAtB": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 90, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoDe": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoDie": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 59, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoDrop": {"size": [240, 240], "directions": 1, "frames": 20, "frameMs": 95, "offset": [0, 0], "canvas": [240, 240]},
+    "FCoFi": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 90, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoFo": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 65, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoRu": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 50, "offset": [70, 55], "canvas": [240, 240]},
+    "FCoVi": {"size": [100, 100], "directions": 8, "frames": 15, "frameMs": 85, "offset": [70, 55], "canvas": [240, 240]}
+  }
+}

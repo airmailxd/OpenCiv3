@@ -53,10 +53,61 @@ def _find_ignoring_case(root, rel):
 SCENARIO_FOLDERS = ('Conquests/Conquests/Sengoku', 'civ3PTW/Extras/Medieval Japan')
 
 
+# The units of a mod that get art of their own under a name of their own:
+# art name -> (the mod's folder, the unit folder its pictures are in there).
+# The Civ Players League's Modern 2.4 (C7/Lua/modern) draws its new units
+# with stock art names, under which the mod ships its own pictures; OpenCiv
+# gives each an art name of its own (C7Engine/GameSetup.Modern.cs), and the
+# remake under that name is calibrated against the mod's pictures (their
+# size, anchor, frames and timing). The mod isn't part of Civ3: it's looked
+# for in $MODERN_MOD_HOME, else ~/Downloads/Scenarios/Modern.
+MODERN_MOD = os.environ.get('MODERN_MOD_HOME') or os.path.join(os.path.expanduser('~'), 'Downloads', 'Scenarios', 'Modern')
+MOD_UNIT_ORIGINALS = {
+    'Super Trooper': (MODERN_MOD, 'Samurai'),
+    'Laser Tank': (MODERN_MOD, 'Modern Armor'),
+    'Bradley': (MODERN_MOD, 'Tank'),
+    'Convoy': (MODERN_MOD, 'Panzer'),
+    'Iron Dome': (MODERN_MOD, 'Cannon'),
+    'Battalion': (MODERN_MOD, 'Musketeer'),
+    'Combat Engineer': (MODERN_MOD, 'Longbowman'),
+    'RPG Trooper': (MODERN_MOD, 'WWII Paratrooper'),
+    'Insurgent': (MODERN_MOD, 'Gallic Swordsman'),
+    'Rebel': (MODERN_MOD, 'Warrior'),
+    'Militant': (MODERN_MOD, 'Knight'),
+    'Militia': (MODERN_MOD, 'Musketman'),
+    'Skirmisher': (MODERN_MOD, 'Rifleman'),
+    'Pirate': (MODERN_MOD, 'Man-O-War'),
+    'Troop Ship': (MODERN_MOD, 'Galleon'),
+    'Fighter Bomber': (MODERN_MOD, 'F-15'),
+}
+
+
+def _mod_unit(rel):
+    """(art name, the rest of the path) of 'Art/Units/<art name>/...' for a
+    unit of MOD_UNIT_ORIGINALS, or None."""
+    parts = rel.replace(chr(92), '/').split('/')
+    if len(parts) < 3 or parts[0].lower() != 'art' or parts[1].lower() != 'units':
+        return None
+    art = next((a for a in MOD_UNIT_ORIGINALS if a.lower() == parts[2].lower()), None)
+    return (art, '/'.join(parts[3:])) if art else None
+
+
 def media_path(rel):
     """The original file the game uses for a media path such as 'Art/Terrain/xtgc.pcx'
     (Conquests first, then Play the World, then the base game, like the game does,
-    and then the scenario folders whose art is remade too)."""
+    and then the scenario folders whose art is remade too). A mod unit's art
+    name (MOD_UNIT_ORIGINALS) gives the mod's pictures, its '<art name>.INI'
+    the mod folder's own."""
+    mod_unit = _mod_unit(rel)
+    if mod_unit:
+        art, name = mod_unit
+        mod, folder = MOD_UNIT_ORIGINALS[art]
+        if name.lower() == f'{art}.ini'.lower():
+            name = f'{folder}.INI'
+        found = _find_ignoring_case(mod, f'Art/Units/{folder}/{name}')
+        if found:
+            return found
+        raise FileNotFoundError(rel)
     root = civ3_root()
     for base in ('Conquests', 'civ3PTW', '') + SCENARIO_FOLDERS:
         found = _find_ignoring_case(root, f'{base}/{rel}' if base else rel)

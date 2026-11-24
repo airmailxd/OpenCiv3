@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "x_P38Default",
+    "RUN": "x_P38Run",
+    "ATTACK1": "x_P38Attack",
+    "DEATH": "x_P38Death",
+    "VICTORY": "x_P38Bomb"
+  },
+  "flics": {
+    "x_P38Attack": {"size": [118, 89], "directions": 8, "frames": 10, "frameMs": 66, "offset": [62, 56], "canvas": [240, 240]},
+    "x_P38Bomb": {"size": [138, 103], "directions": 8, "frames": 20, "frameMs": 83, "offset": [52, 58], "canvas": [240, 240]},
+    "x_P38Death": {"size": [98, 115], "directions": 8, "frames": 14, "frameMs": 66, "offset": [71, 33], "canvas": [240, 240]},
+    "x_P38Default": {"size": [74, 79], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [84, 66], "canvas": [240, 240]},
+    "x_P38Run": {"size": [114, 91], "directions": 8, "frames": 5, "frameMs": 66, "offset": [64, 54], "canvas": [240, 240]}
+  }
+}
