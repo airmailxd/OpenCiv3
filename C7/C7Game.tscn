@@ -345,6 +345,7 @@ visible = false
 [connection signal="HidePopup" from="CanvasLayer/PopupOverlay" to="CanvasLayer/PopupOverlay" method="OnHidePopup"]
 [connection signal="Quit" from="CanvasLayer/PopupOverlay" to="." method="OnQuitTheGame"]
 [connection signal="Retire" from="CanvasLayer/PopupOverlay" to="." method="OnRetireFromGameMenu"]
+[connection signal="MainMenu" from="CanvasLayer/PopupOverlay" to="." method="OnReturnToMainMenu"]
 [connection signal="SaveGame" from="CanvasLayer/PopupOverlay" to="." method="OnSaveGame"]
 [connection signal="LoadGame" from="CanvasLayer/PopupOverlay" to="." method="OnLoadGame"]
 [connection signal="ToggleRevealWholeMap" from="CanvasLayer/PopupOverlay" to="." method="OnToggleRevealWholeMap"]

@@ -26,8 +26,8 @@ public partial class GameMenu : Popup {
 	public override void _Ready() {
 		base._Ready();
 
-		AddTexture(370, 300);
-		AddBackground(370, 300);
+		AddTexture(370, 325);
+		AddBackground(370, 325);
 
 		AddHeader("Main Menu", 10);
 
@@ -45,6 +45,7 @@ public partial class GameMenu : Popup {
 		}
 		buttons.AddRange([
 			new("Preferences (Ctrl-P)", OpenPreferences),
+			new("Return to Main Menu", MainMenu),
 			new("Retire", Retire),
 			new("Save Game", Save),
 			new("Quit Game (ESC)", Quit),
@@ -81,6 +82,12 @@ public partial class GameMenu : Popup {
 	private void ToggleRevealWholeMap() {
 		GetParent().EmitSignal(PopupOverlay.SignalName.ToggleRevealWholeMap);
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+	}
+
+	// Leaves the game for the main menu without retiring from it: nothing goes
+	// in the Hall of Fame. A server game goes on without us on the server.
+	private void MainMenu() {
+		GetParent().EmitSignal(PopupOverlay.SignalName.MainMenu);
 	}
 
 	private void Retire() {

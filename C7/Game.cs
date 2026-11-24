@@ -2710,6 +2710,16 @@ public partial class Game : Node {
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}
 
+	// Return to Main Menu, from the game menu: leaves the game without
+	// retiring, so nothing goes in the Hall of Fame. A LAN or server game
+	// is left as closing it leaves it (see _ExitTree); a server game goes on
+	// on the server, to be played again from Server Games.
+	public void OnReturnToMainMenu() {
+		log.Information("Returning to the main menu");
+		popupOverlay.OnHidePopup();
+		OnRetire();
+	}
+
 	// Retire from the game menu: as in Civ3, the game goes into the Hall of
 	// Fame as "Retired", unless it was already over.
 	public void OnRetireFromGameMenu() {
