@@ -111,10 +111,13 @@ public partial class AudioManager : Node {
 		("ambienceAudioVolume", AmbienceAudioBus, "Ambience"),
 	];
 
+	// Every volume starts here, until the player moves it.
+	public const int DefaultVolume = 30;
+
 	// A volume setting, from 0 to 100.
 	public static int GetVolume(string volumeKey) {
-		string volume = C7Settings.GetSettingsValueOrDefault(AudioSettingsSection, volumeKey, "100");
-		return int.TryParse(volume, out int result) ? Math.Clamp(result, 0, 100) : 100;
+		string volume = C7Settings.GetSettingsValueOrDefault(AudioSettingsSection, volumeKey, DefaultVolume.ToString());
+		return int.TryParse(volume, out int result) ? Math.Clamp(result, 0, 100) : DefaultVolume;
 	}
 
 	// Saves a volume setting (0 to 100) and applies it right away.
@@ -135,9 +138,9 @@ public partial class AudioManager : Node {
 	private float LogicalVolumeAsDecibel(string volume, string volumeKey) {
 		if (volume == null) {
 			//First run.  Save the setting.
-			C7Settings.SetValue(AudioSettingsSection, volumeKey, "100");
+			volume = DefaultVolume.ToString();
+			C7Settings.SetValue(AudioSettingsSection, volumeKey, volume);
 			C7Settings.SaveSettings();
-			return 0;
 		}
 		// A value that isn't a number (e.g. edited by hand) plays at full
 		// volume rather than leaving the game without sound.
