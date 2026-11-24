@@ -2904,6 +2904,13 @@ public partial class Game : Node {
 			return;
 		}
 		bool waiting = CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator;
+		// While others move, the advisors and reports (F1 to F11) still open,
+		// to look at: in a LAN or server game that's much of the time.
+		if (waiting && !CurtainIsUp && IsModalSwitchEvent(@event)
+			&& (!HasVisibleModal() || advisor.Visible || gameViews.Visible)) {
+			HandleKeyboardInput((InputEventKey)@event);
+			return;
+		}
 		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || waiting || CurtainIsUp) {
 			IsMovingCamera = false;
 			return;
