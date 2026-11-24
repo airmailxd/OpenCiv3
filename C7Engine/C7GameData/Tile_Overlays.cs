@@ -171,7 +171,7 @@ public partial class Tile {
 			// If there's a change in road coverage, invalidate the cached trade
 			// networks it can change.
 			if (roadCreated || roadRemoved) {
-				EngineStorage.gameData.GetTradeNetwork().OnRoadChanged(tile);
+				EngineStorage.gameData?.GetTradeNetwork().OnRoadChanged(tile);
 			}
 
 			// An outpost, colony, airfield or radar tower going away, however
