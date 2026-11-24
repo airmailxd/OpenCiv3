@@ -1814,6 +1814,7 @@ public partial class Game : Node {
 				break;
 			case MsgNoHumansRemain:
 				RecordInHallOfFame(HallOfFame.ForDefeat);
+				LadderSubmit.GameEnded(this);
 				InterestingEvent();
 				// After the end of the game's pages, this is their last
 				// question, and looking around lets the game go on (see
@@ -2030,6 +2031,7 @@ public partial class Game : Node {
 			case MsgVictory mV:
 				RecordInHallOfFame((gameData, player, date, now) =>
 					HallOfFame.ForVictory(gameData, player, mV.winner, mV.victory, date, now));
+				LadderSubmit.GameEnded(this, mV.winner, mV.victory);
 				bool campaignWon = RecordCampaignVictory(mV);
 				// A won campaign shows its record once the player is done (Civ3
 				// FUN_004f9fb0).

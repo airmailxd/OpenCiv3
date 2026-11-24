@@ -855,7 +855,7 @@ public partial class MultiplayerSetupScreen : Control {
 	// ---- Turn timer ----
 
 	private const string TurnTimerHelp = "How long each player has for their turn before it ends for them. With simultaneous moves, "
-		+ "how long everyone has for the round. Scaled is Civ3's timer, from the rules: a base time and more for each city and unit "
+		+ "how long everyone has for the round. Scaled is the rules' own timer: a base time and more for each city and unit "
 		+ "the player has; with simultaneous moves, the largest player's.";
 
 	// Whether the rules' scaled timer is chosen, rather than a fixed one.

@@ -87,6 +87,16 @@ public sealed class GameServerClient {
 		return Send<GameSummary>(HttpMethod.Post, GameServerProtocol.SeatPath(gameId, playerId), JsonContent(new ClaimSeat(password)), cancel);
 	}
 
+	// Sends a finished singleplayer game, its save as the game writes it to
+	// disk (or that gzipped), to the singleplayer ladder, with the victory
+	// the player won it by, if they did (see SingleplayerLadder.VictoryName).
+	public Task<LadderResult> SubmitSingleplayerResultAsync(byte[] save, string victory = null, CancellationToken cancel = default) {
+		ByteArrayContent content = new(save);
+		content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+		string query = string.IsNullOrEmpty(victory) ? null : $"{GameServerProtocol.VictoryQuery}={Uri.EscapeDataString(victory)}";
+		return Send<LadderResult>(HttpMethod.Post, GameServerProtocol.SingleplayerResultsPath, content, cancel, query: query);
+	}
+
 	// Where and how to join the game, with its worker started if it wasn't
 	// running (see GameConnection). That can take a while, as the server
 	// loads the game.
@@ -129,11 +139,12 @@ public sealed class GameServerClient {
 		return await JsonSerializer.DeserializeAsync<T>(stream, GameServerProtocol.Json, cancel).ConfigureAwait(false);
 	}
 
-	private async Task<T> Send<T>(HttpMethod method, string path, HttpContent content, CancellationToken cancel, bool signedIn = true) {
+	private async Task<T> Send<T>(HttpMethod method, string path, HttpContent content, CancellationToken cancel, bool signedIn = true,
+		string query = null) {
 		if (signedIn && Session == null) {
 			throw new GameServerException("Log in to the game server first.", HttpStatusCode.Unauthorized);
 		}
-		UriBuilder uri = new(ServerUrl) { Query = $"v={GameServerProtocol.Version}" };
+		UriBuilder uri = new(ServerUrl) { Query = $"v={GameServerProtocol.Version}" + (query == null ? "" : "&" + query) };
 		uri.Path = uri.Path.TrimEnd('/') + path;
 		using HttpRequestMessage request = new(method, uri.Uri) { Content = content };
 		if (signedIn) {

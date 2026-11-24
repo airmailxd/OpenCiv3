@@ -32,6 +32,7 @@ public partial class MainMenu : Node {
 			LoadDialog.Canceled += () => LanSession.HostNextGame = false;
 
 			AudioManager = GetNode<AudioManager>("/root/GlobalAudioManager");
+			LadderSubmit.SendPendingOnStart();
 
 			if (LanSession.TakeDevStart()) {
 				PlayMusic();

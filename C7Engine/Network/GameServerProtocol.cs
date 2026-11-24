@@ -37,6 +37,14 @@ public static class GameServerProtocol {
 	public const string MyGamesPath = "/api/v1/games/mine";
 	public const string OpenGamesPath = "/api/v1/games/open";
 	public const string HealthPath = "/health";
+	// A finished singleplayer game for the singleplayer ladder: POST the
+	// save, as the game writes it to disk or gzipped, as
+	// application/octet-stream, with ?victory= the victory the player won by
+	// (left out if they lost; see SingleplayerLadder.VictoryName). The
+	// server answers with a LadderResult, or a ServerError if it won't rank
+	// the game; sending a game again is harmless.
+	public const string SingleplayerResultsPath = "/api/v1/singleplayer/results";
+	public const string VictoryQuery = "victory";
 
 	public static string ConnectPath(string gameId) {
 		return $"{GamesPath}/{Uri.EscapeDataString(gameId)}/connect";
@@ -108,6 +116,10 @@ public sealed record Session(string Username, string Token);
 public sealed record ServerError(string Error);
 
 public sealed record ClaimSeat(string Password);
+
+// A finished singleplayer game as the singleplayer ladder ranks it: its
+// score, its place on the ladder, and whether it's the player's best.
+public sealed record LadderResult(int Score, int Rank, bool Best);
 
 // A seat in a game: a human player, and the account that plays them, if
 // claimed. Rating is that account's rating (MMR) in the game's rules set,
