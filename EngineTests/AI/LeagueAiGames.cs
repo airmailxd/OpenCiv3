@@ -97,8 +97,13 @@ public static class LeagueAiGames {
 			temperature = WorldCharacteristics.Temperature.Temperate,
 			barbarianActivity = BarbarianActivity.Roaming,
 			worldSize = new WorldSize {
-				name = size.name, width = size.width, height = size.height, numberOfCivs = civs,
-				distanceBetweenCivs = size.distanceBetweenCivs, techRate = size.techRate, optimalNumberOfCities = size.optimalNumberOfCities,
+				name = size.name,
+				width = size.width,
+				height = size.height,
+				numberOfCivs = civs,
+				distanceBetweenCivs = size.distanceBetweenCivs,
+				techRate = size.techRate,
+				optimalNumberOfCities = size.optimalNumberOfCities,
 			},
 			mapSeed = seed,
 		};

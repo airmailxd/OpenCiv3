@@ -193,9 +193,12 @@ public class LeagueAiTest {
 	private static C7GameData.Save.SaveGame ModernSave(string civ) {
 		C7GameData.Save.SaveGame save = GameSetup.LoadRulesFor(GameScenario.Modern, PathUtils.GameModesDir, new C7Engine.Lua.GameMode.Config("civ3", ["standalone"]));
 		WorldCharacteristics wc = new(save) {
-			landform = WorldCharacteristics.Landform.Pangaea, oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
-			age = WorldCharacteristics.Age.Billion_5, climate = WorldCharacteristics.Climate.Normal,
-			temperature = WorldCharacteristics.Temperature.Temperate, barbarianActivity = BarbarianActivity.Roaming,
+			landform = WorldCharacteristics.Landform.Pangaea,
+			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			age = WorldCharacteristics.Age.Billion_5,
+			climate = WorldCharacteristics.Climate.Normal,
+			temperature = WorldCharacteristics.Temperature.Temperate,
+			barbarianActivity = BarbarianActivity.Roaming,
 			worldSize = new WorldSize { width = 60, height = 60, numberOfCivs = 4, distanceBetweenCivs = 10, techRate = 240, optimalNumberOfCities = 16 },
 			mapSeed = 11,
 		};

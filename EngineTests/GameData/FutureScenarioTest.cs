@@ -103,7 +103,9 @@ public class FutureScenarioTest {
 		Assert.Equal(resources.Split('+', StringSplitOptions.RemoveEmptyEntries).OrderBy(r => r), (unit.requiredResources ?? []).OrderBy(r => r));
 		// The standard unit it stands in for isn't the tribe's to build.
 		string replaced = unique switch {
-			"Panzer" => "Tank", "Cossack" or "Sipahi" => "Cavalry", "Man-O-War" => "Frigate",
+			"Panzer" => "Tank",
+			"Cossack" or "Sipahi" => "Cavalry",
+			"Man-O-War" => "Frigate",
 			"Rider" or "Samurai" or "Keshik" or "Conquistador" or "Ansar Warrior" or "War Elephant" => "Knight",
 			_ => null,
 		};

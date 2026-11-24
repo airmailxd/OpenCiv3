@@ -327,12 +327,19 @@ namespace C7Engine.AI.Advanced {
 			}
 			(long tokensIn, long tokensOut) = replayed ? (0, 0) : ModelPlanner.LastUsage(player);
 			onReview?.Invoke(new ReviewEvent {
-				civ = player.civilization.name, turn = gameData.turn, situation = standing, briefing = briefing,
+				civ = player.civilization.name,
+				turn = gameData.turn,
+				situation = standing,
+				briefing = briefing,
 				knobsBefore = before,
 				knobsAfter = AdvancedTuning.Knobs.ToDictionary(k => k.name, k => AdvancedTuning.Get(player, k.name)),
 				changes = new Dictionary<string, double>(answer.changes),
-				rationale = answer.rationale, notes = answer.notes, lesson = answer.lesson,
-				inputTokens = tokensIn, outputTokens = tokensOut, replayed = replayed,
+				rationale = answer.rationale,
+				notes = answer.notes,
+				lesson = answer.lesson,
+				inputTokens = tokensIn,
+				outputTokens = tokensOut,
+				replayed = replayed,
 			});
 			log.Information("{Player} reviewed its policy on turn {Turn}: {Changes}. {Why}", player, gameData.turn,
 				Changes(answer.changes), answer.rationale);

@@ -51,7 +51,8 @@ namespace C7Engine.AI.Advanced {
 
 		public static AdvancedProfiles Parse(string json, string source = "profiles") {
 			using JsonDocument doc = JsonDocument.Parse(json, new JsonDocumentOptions {
-				CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true,
+				CommentHandling = JsonCommentHandling.Skip,
+				AllowTrailingCommas = true,
 			});
 			Dictionary<string, Dictionary<string, double>> profiles = new();
 			if (doc.RootElement.TryGetProperty("profiles", out JsonElement all)) {

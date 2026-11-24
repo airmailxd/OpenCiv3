@@ -407,21 +407,21 @@ namespace C7Engine.PlayLog {
 		// starts or loads.
 		private static Dictionary<string, object> Header(GameData gameData, string type, string saveLoaded) {
 			Dictionary<string, object> row = new() {
-			["type"] = type,
-			["version"] = 1,
-			["game"] = gameData.seed,
-			["seed"] = gameData.seed,
-			["name"] = gameData.playLog?.name,
-			["recorded"] = DateTime.Now.ToString("s"),
-			["turn"] = gameData.turn,
-			["loaded"] = saveLoaded,
-			["difficulty"] = gameData.gameDifficulty?.Name,
-			["map"] = $"{gameData.map?.numTilesWide}x{gameData.map?.numTilesTall}",
-			["simultaneousTurns"] = gameData.simultaneousTurns,
-			["civs"] = gameData.players.Where(p => !p.IsIndependent).Select(p => new Dictionary<string, object> {
-				["civ"] = p.civilization.name,
-				["ai"] = p.isHuman ? "Human" : p.aiType.ToString(),
-			}).ToList(),
+				["type"] = type,
+				["version"] = 1,
+				["game"] = gameData.seed,
+				["seed"] = gameData.seed,
+				["name"] = gameData.playLog?.name,
+				["recorded"] = DateTime.Now.ToString("s"),
+				["turn"] = gameData.turn,
+				["loaded"] = saveLoaded,
+				["difficulty"] = gameData.gameDifficulty?.Name,
+				["map"] = $"{gameData.map?.numTilesWide}x{gameData.map?.numTilesTall}",
+				["simultaneousTurns"] = gameData.simultaneousTurns,
+				["civs"] = gameData.players.Where(p => !p.IsIndependent).Select(p => new Dictionary<string, object> {
+					["civ"] = p.civilization.name,
+					["ai"] = p.isHuman ? "Human" : p.aiType.ToString(),
+				}).ToList(),
 			};
 			// What isn't known (the name of a game without one, the save of a
 			// new game) is left out.

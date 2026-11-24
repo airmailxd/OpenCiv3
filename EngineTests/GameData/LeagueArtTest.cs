@@ -173,7 +173,11 @@ public class LeagueArtTest {
 					Problem(item.Section, item.Name, $"picture (is {IconStem(icon)}, not {want})");
 				}
 				string folder = item.Section switch {
-					"techs" => "Advances", "buildings" => "Buildings", "governments" => "Governments", "resources" => "Resources", _ => "Races",
+					"techs" => "Advances",
+					"buildings" => "Buildings",
+					"governments" => "Governments",
+					"resources" => "Resources",
+					_ => "Races",
 				};
 				if (declared?.status == "new" && declared.art != null && IconStem(icon) != declared.art
 					&& PediaFileExists($"Art/Civilopedia/Icons/{folder}/{declared.art}_large.png")) {

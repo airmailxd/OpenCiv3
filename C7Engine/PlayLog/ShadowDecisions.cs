@@ -23,59 +23,59 @@ namespace C7Engine.PlayLog {
 				MessageToEngine msg, Dictionary<string, object> row) {
 			switch (msg) {
 				case MsgChooseProduction m: {
-					City city = gameData.GetCity(m.cityID);
-					if (city == null || city.owner != player) {
-						return null;
+						City city = gameData.GetCity(m.cityID);
+						if (city == null || city.owner != player) {
+							return null;
+						}
+						row["shadow"] = Production(gameData, player, state, city, m.producibleName);
+						return r => r["now"] = PlayRecorder.Text(city.itemBeingProduced);
 					}
-					row["shadow"] = Production(gameData, player, state, city, m.producibleName);
-					return r => r["now"] = PlayRecorder.Text(city.itemBeingProduced);
-				}
 				case MsgChooseResearch m: {
-					if (m.tech == null) {
-						return null;
+						if (m.tech == null) {
+							return null;
+						}
+						List<(Tech tech, double value)> values = ResearchValues(gameData, player, state);
+						return r => r["shadow"] = Research(gameData, player, values);
 					}
-					List<(Tech tech, double value)> values = ResearchValues(gameData, player, state);
-					return r => r["shadow"] = Research(gameData, player, values);
-				}
 				case StartGovernmentTransitionMsg: {
-					row["shadow"] = ShadowAdvanced.Evaluate(gameData, player, state, () => {
-						Government target = player.government.transitionType ? null : GovernmentAI.RevolutionTarget(player, gameData);
-						return new Dictionary<string, object> {
-							["wouldRevolt"] = target != null,
-							["target"] = target?.name,
-							["best"] = GovernmentAI.BestGovernment(player, gameData, GovernmentAI.WarPressure(player, gameData))?.name,
-							["current"] = player.government?.name,
-						};
-					});
-					return r => r["anarchyUntilTurn"] = player.inAnarchyUntilTurn;
-				}
+						row["shadow"] = ShadowAdvanced.Evaluate(gameData, player, state, () => {
+							Government target = player.government.transitionType ? null : GovernmentAI.RevolutionTarget(player, gameData);
+							return new Dictionary<string, object> {
+								["wouldRevolt"] = target != null,
+								["target"] = target?.name,
+								["best"] = GovernmentAI.BestGovernment(player, gameData, GovernmentAI.WarPressure(player, gameData))?.name,
+								["current"] = player.government?.name,
+							};
+						});
+						return r => r["anarchyUntilTurn"] = player.inAnarchyUntilTurn;
+					}
 				case SelectGovernmentMsg m: {
-					string pick = ShadowAdvanced.Evaluate(gameData, player, state,
+						string pick = ShadowAdvanced.Evaluate(gameData, player, state,
 						() => GovernmentAI.BestGovernment(player, gameData, GovernmentAI.WarPressure(player, gameData))?.name);
-					row["shadow"] = new Dictionary<string, object> {
-						["pick"] = pick,
-						["agree"] = pick != null && pick == m.government?.name,
-					};
-					return null;
-				}
-				case MsgChangeSliders: {
-					Dictionary<string, object> rates = Sliders(gameData, player, state);
-					return r => {
-						Dictionary<string, object> after = PlayRecorder.Rates(player);
-						r["after"] = after;
-						r["shadow"] = new Dictionary<string, object> {
-							["rates"] = rates,
-							["agree"] = rates.All(kv => Equals(after[kv.Key], kv.Value)),
+						row["shadow"] = new Dictionary<string, object> {
+							["pick"] = pick,
+							["agree"] = pick != null && pick == m.government?.name,
 						};
-					};
-				}
-				case MsgBuildCity m: {
-					if (m.unit == null || m.unit.owner != player || m.unit.location == null || m.unit.location == Tile.NONE) {
 						return null;
 					}
-					row["shadow"] = Site(gameData, player, state, m.unit.location);
-					return null;
-				}
+				case MsgChangeSliders: {
+						Dictionary<string, object> rates = Sliders(gameData, player, state);
+						return r => {
+							Dictionary<string, object> after = PlayRecorder.Rates(player);
+							r["after"] = after;
+							r["shadow"] = new Dictionary<string, object> {
+								["rates"] = rates,
+								["agree"] = rates.All(kv => Equals(after[kv.Key], kv.Value)),
+							};
+						};
+					}
+				case MsgBuildCity m: {
+						if (m.unit == null || m.unit.owner != player || m.unit.location == null || m.unit.location == Tile.NONE) {
+							return null;
+						}
+						row["shadow"] = Site(gameData, player, state, m.unit.location);
+						return null;
+					}
 				default:
 					return null;
 			}

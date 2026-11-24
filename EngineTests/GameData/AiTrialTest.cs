@@ -194,7 +194,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			return;
 		}
 		var doc = new Dictionary<string, object> {
-			["games"] = progressGames, ["turnLimit"] = progressTurnLimit, ["paired"] = progressPaired,
+			["games"] = progressGames,
+			["turnLimit"] = progressTurnLimit,
+			["paired"] = progressPaired,
 			["updated"] = DateTimeOffset.Now.ToString("yyyy-MM-dd'T'HH:mm:sszzz"),
 			["playing"] = complete ? null : new Dictionary<string, object> { ["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = progressTurn },
 			["finished"] = progressFinished,
@@ -212,7 +214,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	private void FinishRun(string result) {
 		progressFinished.Add(new Dictionary<string, object> {
-			["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["endTurn"] = progressTurn, ["result"] = result,
+			["game"] = stateGame,
+			["seed"] = stateSeed,
+			["run"] = stateRun,
+			["endTurn"] = progressTurn,
+			["result"] = result,
 		});
 		WriteProgress(false);
 	}
@@ -786,11 +792,23 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		string reviewStatePath = Environment.GetEnvironmentVariable("C7_TRIAL_STATE");
 		C7Engine.AI.Advanced.PolicyReview.onReview = e => {
 			Dictionary<string, object> row = new() {
-				["type"] = "review", ["game"] = stateGame, ["seed"] = stateSeed, ["run"] = stateRun, ["turn"] = e.turn,
-				["civ"] = e.civ, ["situation"] = e.situation, ["briefing"] = e.briefing,
-				["knobsBefore"] = e.knobsBefore, ["knobsAfter"] = e.knobsAfter, ["changes"] = e.changes,
-				["rationale"] = e.rationale, ["notes"] = e.notes, ["lesson"] = e.lesson,
-				["inputTokens"] = e.inputTokens, ["outputTokens"] = e.outputTokens, ["replayed"] = e.replayed,
+				["type"] = "review",
+				["game"] = stateGame,
+				["seed"] = stateSeed,
+				["run"] = stateRun,
+				["turn"] = e.turn,
+				["civ"] = e.civ,
+				["situation"] = e.situation,
+				["briefing"] = e.briefing,
+				["knobsBefore"] = e.knobsBefore,
+				["knobsAfter"] = e.knobsAfter,
+				["changes"] = e.changes,
+				["rationale"] = e.rationale,
+				["notes"] = e.notes,
+				["lesson"] = e.lesson,
+				["inputTokens"] = e.inputTokens,
+				["outputTokens"] = e.outputTokens,
+				["replayed"] = e.replayed,
 			};
 			reviewDocs.Add(row);
 			if (!string.IsNullOrEmpty(reviewStatePath)) {
