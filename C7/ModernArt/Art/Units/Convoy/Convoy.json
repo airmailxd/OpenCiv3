@@ -1,10 +1,10 @@
 {
   "actions": {
-    "DEFAULT": "HumveeDefault",
-    "RUN": "HumveeRun",
     "ATTACK1": "HumveeAttack",
     "DEATH": "HumveeDeath",
+    "DEFAULT": "HumveeDefault",
     "FORTIFY": "HumveeFortify",
+    "RUN": "HumveeRun",
     "VICTORY": "HumveeVictory"
   },
   "flics": {

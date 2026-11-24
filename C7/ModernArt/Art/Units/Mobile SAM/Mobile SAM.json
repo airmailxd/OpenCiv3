@@ -10,11 +10,11 @@
   },
   "flics": {
     "Mobile_SAM_Attack": {"size": [209, 143], "directions": 8, "frames": 15, "frameMs": 66, "offset": [16, 0], "canvas": [240, 240]},
-    "Mobile_SAM_Death": {"size": [89, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 73], "canvas": [240, 240]},
-    "Mobile_SAM_Default": {"size": [83, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [74, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Fidget": {"size": [88, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Fortify": {"size": [90, 66], "directions": 8, "frames": 10, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Run": {"size": [83, 66], "directions": 8, "frames": 10, "frameMs": 100, "offset": [74, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Victory": {"size": [92, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 76], "canvas": [240, 240]}
+    "Mobile_SAM_Death": {"size": [89, 65], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 73], "canvas": [240, 240]},
+    "Mobile_SAM_Default": {"size": [85, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [74, 74], "canvas": [240, 240]},
+    "Mobile_SAM_Fidget": {"size": [88, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 74], "canvas": [240, 240]},
+    "Mobile_SAM_Fortify": {"size": [90, 64], "directions": 8, "frames": 10, "frameMs": 83, "offset": [72, 74], "canvas": [240, 240]},
+    "Mobile_SAM_Run": {"size": [85, 64], "directions": 8, "frames": 10, "frameMs": 100, "offset": [74, 74], "canvas": [240, 240]},
+    "Mobile_SAM_Victory": {"size": [92, 65], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 74], "canvas": [240, 240]}
   }
 }

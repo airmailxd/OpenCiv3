@@ -11,12 +11,12 @@
   },
   "flics": {
     "WWIIParatrooper_AirDrop": {"size": [235, 179], "directions": 1, "frames": 23, "frameMs": 76, "offset": [0, 1], "canvas": [240, 240]},
-    "WWIIParatrooper_Attack": {"size": [119, 100], "directions": 8, "frames": 15, "frameMs": 66, "offset": [66, 55], "canvas": [240, 240]},
-    "WWIIParatrooper_Death": {"size": [144, 105], "directions": 8, "frames": 15, "frameMs": 66, "offset": [48, 52], "canvas": [240, 240]},
-    "WWIIParatrooper_Default": {"size": [61, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [93, 70], "canvas": [240, 240]},
-    "WWIIParatrooper_Fidget": {"size": [61, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 70], "canvas": [240, 240]},
-    "WWIIParatrooper_Fortify": {"size": [81, 78], "directions": 8, "frames": 10, "frameMs": 83, "offset": [85, 67], "canvas": [240, 240]},
-    "WWIIParatrooper_Run": {"size": [63, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 68], "canvas": [240, 240]},
-    "WWIIParatrooper_Victory": {"size": [64, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [90, 70], "canvas": [240, 240]}
+    "WWIIParatrooper_Attack": {"size": [126, 104], "directions": 8, "frames": 15, "frameMs": 66, "offset": [63, 53], "canvas": [240, 240]},
+    "WWIIParatrooper_Death": {"size": [144, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [48, 48], "canvas": [240, 240]},
+    "WWIIParatrooper_Default": {"size": [69, 72], "directions": 8, "frames": 15, "frameMs": 66, "offset": [89, 70], "canvas": [240, 240]},
+    "WWIIParatrooper_Fidget": {"size": [69, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 70], "canvas": [240, 240]},
+    "WWIIParatrooper_Fortify": {"size": [88, 82], "directions": 8, "frames": 10, "frameMs": 83, "offset": [81, 65], "canvas": [240, 240]},
+    "WWIIParatrooper_Run": {"size": [69, 74], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 68], "canvas": [240, 240]},
+    "WWIIParatrooper_Victory": {"size": [69, 72], "directions": 8, "frames": 15, "frameMs": 66, "offset": [89, 70], "canvas": [240, 240]}
   }
 }

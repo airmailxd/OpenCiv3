@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "x_americanRM default",
-    "RUN": "x_americanRM run",
     "ATTACK1": "x_americanRM attack_a",
     "DEATH": "x_americanRM death",
-    "FORTIFY": "x_americanRM fortify",
+    "DEFAULT": "x_americanRM default",
     "FIDGET": "x_americanRM fidget",
+    "FORTIFY": "x_americanRM fortify",
+    "RUN": "x_americanRM run",
     "VICTORY": "x_americanRM victory"
   },
   "flics": {
-    "x_americanRM attack_a": {"size": [84, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 65], "canvas": [240, 240]},
-    "x_americanRM death": {"size": [112, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 68], "canvas": [240, 240]},
-    "x_americanRM default": {"size": [32, 49], "directions": 8, "frames": 15, "frameMs": 83, "offset": [101, 79], "canvas": [240, 240]},
-    "x_americanRM fidget": {"size": [39, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 77], "canvas": [240, 240]},
-    "x_americanRM fortify": {"size": [71, 77], "directions": 8, "frames": 10, "frameMs": 83, "offset": [81, 57], "canvas": [240, 240]},
-    "x_americanRM run": {"size": [51, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 75], "canvas": [240, 240]},
-    "x_americanRM victory": {"size": [66, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 65], "canvas": [240, 240]}
+    "x_americanRM attack_a": {"size": [142, 110], "directions": 8, "frames": 15, "frameMs": 83, "offset": [55, 53], "canvas": [240, 240]},
+    "x_americanRM death": {"size": [121, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [60, 61], "canvas": [240, 240]},
+    "x_americanRM default": {"size": [61, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 72], "canvas": [240, 240]},
+    "x_americanRM fidget": {"size": [61, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 72], "canvas": [240, 240]},
+    "x_americanRM fortify": {"size": [105, 97], "directions": 8, "frames": 10, "frameMs": 83, "offset": [74, 57], "canvas": [240, 240]},
+    "x_americanRM run": {"size": [66, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 72], "canvas": [240, 240]},
+    "x_americanRM victory": {"size": [73, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 65], "canvas": [240, 240]}
   }
 }

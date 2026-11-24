@@ -1,13 +1,13 @@
 {
   "actions": {
-    "DEFAULT": "RPGde",
-    "RUN": "RPGrun",
     "ATTACK1": "RPGata",
     "ATTACK2": "RPGatb",
     "ATTACK3": "RPGatc",
+    "DEFAULT": "RPGde",
     "DEATH": "RPGdie",
-    "FORTIFY": "RPGfo",
     "FIDGET": "RPGfi",
+    "FORTIFY": "RPGfo",
+    "RUN": "RPGrun",
     "VICTORY": "RPGvi"
   },
   "flics": {

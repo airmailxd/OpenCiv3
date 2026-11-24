@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "NapoleonicInfantryDefault",
-    "RUN": "NapoleonicInfantryRun",
     "ATTACK1": "NapoleonicInfantryAttack",
     "DEATH": "NapoleonicInfantryDeath",
-    "FORTIFY": "NapoleonicInfantryFortify",
+    "DEFAULT": "NapoleonicInfantryDefault",
     "FIDGET": "NapoleonicInfantryFidget",
+    "FORTIFY": "NapoleonicInfantryFortify",
+    "RUN": "NapoleonicInfantryRun",
     "VICTORY": "NapoleonicInfantryVictory"
   },
   "flics": {
-    "NapoleonicInfantryAttack": {"size": [193, 119], "directions": 8, "frames": 15, "frameMs": 66, "offset": [24, 23], "canvas": [240, 240]},
-    "NapoleonicInfantryDeath": {"size": [164, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [38, 61], "canvas": [240, 240]},
-    "NapoleonicInfantryDefault": {"size": [33, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [104, 65], "canvas": [240, 240]},
-    "NapoleonicInfantryFidget": {"size": [40, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [100, 63], "canvas": [240, 240]},
-    "NapoleonicInfantryFortify": {"size": [104, 80], "directions": 8, "frames": 10, "frameMs": 83, "offset": [68, 56], "canvas": [240, 240]},
-    "NapoleonicInfantryRun": {"size": [81, 66], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 67], "canvas": [240, 240]},
-    "NapoleonicInfantryVictory": {"size": [97, 80], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 51], "canvas": [240, 240]}
+    "NapoleonicInfantryAttack": {"size": [193, 139], "directions": 8, "frames": 15, "frameMs": 66, "offset": [24, 23], "canvas": [240, 240]},
+    "NapoleonicInfantryDeath": {"size": [181, 139], "directions": 8, "frames": 15, "frameMs": 66, "offset": [31, 32], "canvas": [240, 240]},
+    "NapoleonicInfantryDefault": {"size": [51, 85], "directions": 8, "frames": 15, "frameMs": 125, "offset": [102, 57], "canvas": [240, 240]},
+    "NapoleonicInfantryFidget": {"size": [53, 85], "directions": 8, "frames": 15, "frameMs": 125, "offset": [100, 57], "canvas": [240, 240]},
+    "NapoleonicInfantryFortify": {"size": [109, 98], "directions": 8, "frames": 10, "frameMs": 83, "offset": [68, 56], "canvas": [240, 240]},
+    "NapoleonicInfantryRun": {"size": [81, 86], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 56], "canvas": [240, 240]},
+    "NapoleonicInfantryVictory": {"size": [97, 91], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 51], "canvas": [240, 240]}
   }
 }

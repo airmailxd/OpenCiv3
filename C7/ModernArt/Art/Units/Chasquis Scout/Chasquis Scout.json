@@ -9,12 +9,12 @@
     "VICTORY": "Chasquis_Scout_Victory"
   },
   "flics": {
-    "Chasquis_Scout_Attack": {"size": [114, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [70, 45], "canvas": [240, 240]},
-    "Chasquis_Scout_Death": {"size": [146, 111], "directions": 8, "frames": 15, "frameMs": 66, "offset": [48, 49], "canvas": [240, 240]},
-    "Chasquis_Scout_Default": {"size": [89, 82], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 66], "canvas": [240, 240]},
-    "Chasquis_Scout_Fidget": {"size": [89, 82], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 66], "canvas": [240, 240]},
-    "Chasquis_Scout_Fortify": {"size": [125, 105], "directions": 8, "frames": 10, "frameMs": 83, "offset": [65, 53], "canvas": [240, 240]},
-    "Chasquis_Scout_Run": {"size": [93, 83], "directions": 8, "frames": 10, "frameMs": 66, "offset": [78, 66], "canvas": [240, 240]},
-    "Chasquis_Scout_Victory": {"size": [93, 88], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 60], "canvas": [240, 240]}
+    "Chasquis_Scout_Attack": {"size": [109, 105], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 49], "canvas": [240, 240]},
+    "Chasquis_Scout_Death": {"size": [161, 124], "directions": 8, "frames": 15, "frameMs": 66, "offset": [41, 40], "canvas": [240, 240]},
+    "Chasquis_Scout_Default": {"size": [87, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [86, 52], "canvas": [240, 240]},
+    "Chasquis_Scout_Fidget": {"size": [87, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 52], "canvas": [240, 240]},
+    "Chasquis_Scout_Fortify": {"size": [91, 98], "directions": 8, "frames": 10, "frameMs": 83, "offset": [83, 52], "canvas": [240, 240]},
+    "Chasquis_Scout_Run": {"size": [90, 98], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 52], "canvas": [240, 240]},
+    "Chasquis_Scout_Victory": {"size": [97, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 52], "canvas": [240, 240]}
   }
 }

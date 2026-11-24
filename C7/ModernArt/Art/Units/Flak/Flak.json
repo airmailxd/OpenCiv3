@@ -9,12 +9,12 @@
     "VICTORY": "QuadFlak_Victory"
   },
   "flics": {
-    "QuadFlak_Attack": {"size": [113, 120], "directions": 8, "frames": 15, "frameMs": 66, "offset": [62, 33], "canvas": [240, 240]},
-    "QuadFlak_Death": {"size": [122, 103], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 50], "canvas": [240, 240]},
-    "QuadFlak_Default": {"size": [116, 99], "directions": 8, "frames": 15, "frameMs": 125, "offset": [59, 54], "canvas": [240, 240]},
-    "QuadFlak_Fidget": {"size": [116, 99], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 54], "canvas": [240, 240]},
-    "QuadFlak_Fortify": {"size": [119, 101], "directions": 8, "frames": 10, "frameMs": 83, "offset": [56, 52], "canvas": [240, 240]},
-    "QuadFlak_Run": {"size": [119, 106], "directions": 8, "frames": 10, "frameMs": 66, "offset": [56, 47], "canvas": [240, 240]},
-    "QuadFlak_Victory": {"size": [116, 100], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 53], "canvas": [240, 240]}
+    "QuadFlak_Attack": {"size": [109, 122], "directions": 8, "frames": 15, "frameMs": 66, "offset": [62, 33], "canvas": [240, 240]},
+    "QuadFlak_Death": {"size": [120, 105], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 50], "canvas": [240, 240]},
+    "QuadFlak_Default": {"size": [112, 102], "directions": 8, "frames": 15, "frameMs": 125, "offset": [59, 53], "canvas": [240, 240]},
+    "QuadFlak_Fidget": {"size": [112, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 53], "canvas": [240, 240]},
+    "QuadFlak_Fortify": {"size": [115, 103], "directions": 8, "frames": 10, "frameMs": 83, "offset": [56, 52], "canvas": [240, 240]},
+    "QuadFlak_Run": {"size": [115, 108], "directions": 8, "frames": 10, "frameMs": 66, "offset": [56, 47], "canvas": [240, 240]},
+    "QuadFlak_Victory": {"size": [112, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 53], "canvas": [240, 240]}
   }
 }

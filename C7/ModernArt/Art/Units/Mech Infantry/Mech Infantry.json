@@ -8,10 +8,10 @@
     "RUN": "MechInfantryRun"
   },
   "flics": {
-    "MechInfantryAttackA": {"size": [117, 92], "directions": 8, "frames": 20, "frameMs": 90, "offset": [62, 56], "canvas": [240, 240]},
-    "MechInfantryDeath": {"size": [93, 110], "directions": 8, "frames": 15, "frameMs": 90, "offset": [74, 38], "canvas": [240, 240]},
-    "MechInfantryDefault": {"size": [94, 79], "directions": 8, "frames": 5, "frameMs": 83, "offset": [73, 69], "canvas": [240, 240]},
-    "MechInfantryFidget": {"size": [94, 79], "directions": 8, "frames": 10, "frameMs": 111, "offset": [73, 69], "canvas": [240, 240]},
-    "MechInfantryRun": {"size": [95, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
+    "MechInfantryAttackA": {"size": [117, 86], "directions": 8, "frames": 20, "frameMs": 90, "offset": [62, 56], "canvas": [240, 240]},
+    "MechInfantryDeath": {"size": [91, 105], "directions": 8, "frames": 15, "frameMs": 90, "offset": [74, 38], "canvas": [240, 240]},
+    "MechInfantryDefault": {"size": [92, 73], "directions": 8, "frames": 5, "frameMs": 83, "offset": [73, 69], "canvas": [240, 240]},
+    "MechInfantryFidget": {"size": [92, 73], "directions": 8, "frames": 10, "frameMs": 111, "offset": [73, 69], "canvas": [240, 240]},
+    "MechInfantryRun": {"size": [93, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
   }
 }

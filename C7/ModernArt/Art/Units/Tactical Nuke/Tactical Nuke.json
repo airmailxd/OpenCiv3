@@ -7,10 +7,10 @@
     "CAPTURE": "tact launch"
   },
   "flics": {
-    "Tact trail": {"size": [68, 188], "directions": 2, "frames": 21, "frameMs": 66, "offset": [113, 8], "canvas": [240, 240]},
+    "Tact trail": {"size": [85, 188], "directions": 2, "frames": 21, "frameMs": 66, "offset": [96, 8], "canvas": [240, 240]},
     "TacticalICBMBomb": {"size": [106, 115], "directions": 1, "frames": 29, "frameMs": 66, "offset": [77, 34], "canvas": [240, 240]},
     "TacticalICBMDeath": {"size": [116, 112], "directions": 1, "frames": 27, "frameMs": 66, "offset": [46, 41], "canvas": [240, 240]},
-    "TacticalICBMDefault": {"size": [37, 64], "directions": 1, "frames": 1, "frameMs": 1000, "offset": [107, 70], "canvas": [240, 240]},
-    "tact launch": {"size": [83, 175], "directions": 1, "frames": 38, "frameMs": 66, "offset": [113, 8], "canvas": [240, 240]}
+    "TacticalICBMDefault": {"size": [50, 59], "directions": 1, "frames": 1, "frameMs": 1000, "offset": [96, 71], "canvas": [240, 240]},
+    "tact launch": {"size": [100, 175], "directions": 1, "frames": 38, "frameMs": 66, "offset": [96, 8], "canvas": [240, 240]}
   }
 }

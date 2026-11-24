@@ -9,12 +9,12 @@
     "VICTORY": "RiderVictory"
   },
   "flics": {
-    "RiderAttackA": {"size": [86, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 55], "canvas": [240, 240]},
+    "RiderAttackA": {"size": [82, 92], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 55], "canvas": [240, 240]},
     "RiderDeath": {"size": [118, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 56], "canvas": [240, 240]},
-    "RiderDefault": {"size": [84, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 56], "canvas": [240, 240]},
-    "RiderFidget": {"size": [84, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 52], "canvas": [240, 240]},
-    "RiderFortify": {"size": [83, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 56], "canvas": [240, 240]},
-    "RiderRun": {"size": [84, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 56], "canvas": [240, 240]},
-    "RiderVictory": {"size": [84, 96], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 50], "canvas": [240, 240]}
+    "RiderDefault": {"size": [80, 91], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 56], "canvas": [240, 240]},
+    "RiderFidget": {"size": [80, 95], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 52], "canvas": [240, 240]},
+    "RiderFortify": {"size": [79, 91], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 56], "canvas": [240, 240]},
+    "RiderRun": {"size": [80, 91], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 56], "canvas": [240, 240]},
+    "RiderVictory": {"size": [80, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 50], "canvas": [240, 240]}
   }
 }

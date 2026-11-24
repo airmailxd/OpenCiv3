@@ -9,12 +9,12 @@
     "VICTORY": "x_CatapultVictory"
   },
   "flics": {
-    "x_CatapultAttack": {"size": [113, 89], "directions": 8, "frames": 20, "frameMs": 66, "offset": [60, 59], "canvas": [240, 240]},
-    "x_CatapultDeath": {"size": [106, 112], "directions": 8, "frames": 19, "frameMs": 66, "offset": [67, 36], "canvas": [240, 240]},
-    "x_CatapultDefault": {"size": [82, 76], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 72], "canvas": [240, 240]},
-    "x_CatapultFidget": {"size": [82, 76], "directions": 8, "frames": 14, "frameMs": 83, "offset": [81, 72], "canvas": [240, 240]},
-    "x_CatapultFortify": {"size": [84, 76], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 72], "canvas": [240, 240]},
-    "x_CatapultRun": {"size": [99, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [69, 72], "canvas": [240, 240]},
-    "x_CatapultVictory": {"size": [95, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
+    "x_CatapultAttack": {"size": [113, 91], "directions": 8, "frames": 20, "frameMs": 66, "offset": [60, 59], "canvas": [240, 240]},
+    "x_CatapultDeath": {"size": [106, 114], "directions": 8, "frames": 19, "frameMs": 66, "offset": [67, 36], "canvas": [240, 240]},
+    "x_CatapultDefault": {"size": [87, 77], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 73], "canvas": [240, 240]},
+    "x_CatapultFidget": {"size": [87, 77], "directions": 8, "frames": 14, "frameMs": 83, "offset": [81, 73], "canvas": [240, 240]},
+    "x_CatapultFortify": {"size": [89, 77], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 73], "canvas": [240, 240]},
+    "x_CatapultRun": {"size": [99, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [69, 73], "canvas": [240, 240]},
+    "x_CatapultVictory": {"size": [96, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
   }
 }

@@ -1,10 +1,10 @@
 {
   "actions": {
-    "DEFAULT": "RapierDefault",
-    "RUN": "RapierRun",
     "ATTACK1": "RapierAttack",
     "DEATH": "RapierDeath",
-    "FORTIFY": "RapierFortify"
+    "DEFAULT": "RapierDefault",
+    "FORTIFY": "RapierFortify",
+    "RUN": "RapierRun"
   },
   "flics": {
     "RapierAttack": {"size": [160, 120], "directions": 8, "frames": 15, "frameMs": 66, "offset": [40, 50], "canvas": [240, 240]},

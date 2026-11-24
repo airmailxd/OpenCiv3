@@ -10,7 +10,7 @@
     "StealthFighterAttackA": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]},
     "StealthFighterBomb": {"size": [240, 240], "directions": 8, "frames": 14, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
     "StealthFighterDeath": {"size": [240, 240], "directions": 8, "frames": 14, "frameMs": 76, "offset": [0, 0], "canvas": [240, 240]},
-    "StealthFighterDefault": {"size": [98, 91], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [81, 59], "canvas": [240, 240]},
+    "StealthFighterDefault": {"size": [91, 87], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [82, 61], "canvas": [240, 240]},
     "StealthFighterRun": {"size": [240, 240], "directions": 8, "frames": 5, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]}
   }
 }

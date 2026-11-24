@@ -9,12 +9,12 @@
     "VICTORY": "AncientCavalry_victory"
   },
   "flics": {
-    "AncientCavalry_Attack": {"size": [87, 89], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 56], "canvas": [240, 240]},
-    "AncientCavalry_Default": {"size": [84, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 56], "canvas": [240, 240]},
-    "AncientCavalry_Fidget": {"size": [86, 89], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 56], "canvas": [240, 240]},
+    "AncientCavalry_Attack": {"size": [89, 88], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 58], "canvas": [240, 240]},
+    "AncientCavalry_Default": {"size": [86, 88], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 58], "canvas": [240, 240]},
+    "AncientCavalry_Fidget": {"size": [88, 88], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 58], "canvas": [240, 240]},
     "AncientCavalry_death": {"size": [182, 114], "directions": 8, "frames": 16, "frameMs": 66, "offset": [29, 52], "canvas": [240, 240]},
-    "AncientCavalry_fortify": {"size": [88, 89], "directions": 8, "frames": 10, "frameMs": 83, "offset": [74, 56], "canvas": [240, 240]},
-    "AncientCavalry_run": {"size": [95, 89], "directions": 8, "frames": 11, "frameMs": 66, "offset": [67, 56], "canvas": [240, 240]},
-    "AncientCavalry_victory": {"size": [92, 100], "directions": 8, "frames": 15, "frameMs": 100, "offset": [70, 45], "canvas": [240, 240]}
+    "AncientCavalry_fortify": {"size": [90, 88], "directions": 8, "frames": 10, "frameMs": 83, "offset": [74, 58], "canvas": [240, 240]},
+    "AncientCavalry_run": {"size": [97, 89], "directions": 8, "frames": 11, "frameMs": 66, "offset": [67, 57], "canvas": [240, 240]},
+    "AncientCavalry_victory": {"size": [94, 101], "directions": 8, "frames": 15, "frameMs": 100, "offset": [70, 45], "canvas": [240, 240]}
   }
 }

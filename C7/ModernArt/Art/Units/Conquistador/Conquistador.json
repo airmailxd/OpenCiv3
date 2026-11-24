@@ -10,13 +10,13 @@
     "VICTORY": "x_conquist victory"
   },
   "flics": {
-    "x_conquist attack_a": {"size": [90, 103], "directions": 8, "frames": 20, "frameMs": 66, "offset": [74, 48], "canvas": [240, 240]},
-    "x_conquist attack_b": {"size": [92, 103], "directions": 8, "frames": 20, "frameMs": 66, "offset": [72, 48], "canvas": [240, 240]},
-    "x_conquist death": {"size": [104, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 48], "canvas": [240, 240]},
-    "x_conquist default": {"size": [86, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 48], "canvas": [240, 240]},
-    "x_conquist fidget": {"size": [88, 103], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 48], "canvas": [240, 240]},
-    "x_conquist fortify": {"size": [88, 103], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 48], "canvas": [240, 240]},
-    "x_conquist run": {"size": [87, 103], "directions": 8, "frames": 14, "frameMs": 50, "offset": [77, 48], "canvas": [240, 240]},
-    "x_conquist victory": {"size": [88, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 41], "canvas": [240, 240]}
+    "x_conquist attack_a": {"size": [90, 101], "directions": 8, "frames": 20, "frameMs": 66, "offset": [74, 40], "canvas": [240, 240]},
+    "x_conquist attack_b": {"size": [92, 102], "directions": 8, "frames": 20, "frameMs": 66, "offset": [72, 40], "canvas": [240, 240]},
+    "x_conquist death": {"size": [104, 106], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 40], "canvas": [240, 240]},
+    "x_conquist default": {"size": [86, 101], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 40], "canvas": [240, 240]},
+    "x_conquist fidget": {"size": [88, 102], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 40], "canvas": [240, 240]},
+    "x_conquist fortify": {"size": [88, 101], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 40], "canvas": [240, 240]},
+    "x_conquist run": {"size": [87, 102], "directions": 8, "frames": 14, "frameMs": 50, "offset": [77, 40], "canvas": [240, 240]},
+    "x_conquist victory": {"size": [88, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 40], "canvas": [240, 240]}
   }
 }

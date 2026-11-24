@@ -10,9 +10,9 @@
   "flics": {
     "ArtilleryAttackA": {"size": [166, 113], "directions": 8, "frames": 15, "frameMs": 66, "offset": [38, 37], "canvas": [240, 240]},
     "ArtilleryDeath": {"size": [103, 75], "directions": 8, "frames": 12, "frameMs": 83, "offset": [68, 72], "canvas": [240, 240]},
-    "ArtilleryDefault": {"size": [75, 58], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [84, 85], "canvas": [240, 240]},
-    "ArtilleryFidget": {"size": [76, 58], "directions": 8, "frames": 16, "frameMs": 83, "offset": [83, 85], "canvas": [240, 240]},
-    "ArtilleryFortify": {"size": [75, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 85], "canvas": [240, 240]},
-    "ArtilleryRun": {"size": [76, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 85], "canvas": [240, 240]}
+    "ArtilleryDefault": {"size": [75, 62], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [84, 82], "canvas": [240, 240]},
+    "ArtilleryFidget": {"size": [76, 62], "directions": 8, "frames": 16, "frameMs": 83, "offset": [83, 82], "canvas": [240, 240]},
+    "ArtilleryFortify": {"size": [75, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 82], "canvas": [240, 240]},
+    "ArtilleryRun": {"size": [76, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 82], "canvas": [240, 240]}
   }
 }

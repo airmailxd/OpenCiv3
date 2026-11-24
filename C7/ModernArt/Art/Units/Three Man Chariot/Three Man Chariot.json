@@ -9,12 +9,12 @@
     "VICTORY": "Three_Man_Chariot_victory"
   },
   "flics": {
-    "Three_Man_Chariot_attackA": {"size": [136, 117], "directions": 8, "frames": 15, "frameMs": 66, "offset": [44, 34], "canvas": [240, 240]},
+    "Three_Man_Chariot_attackA": {"size": [147, 124], "directions": 8, "frames": 15, "frameMs": 66, "offset": [44, 30], "canvas": [240, 240]},
     "Three_Man_Chariot_death": {"size": [240, 167], "directions": 8, "frames": 15, "frameMs": 83, "offset": [0, 26], "canvas": [240, 240]},
-    "Three_Man_Chariot_default": {"size": [136, 120], "directions": 8, "frames": 15, "frameMs": 125, "offset": [44, 31], "canvas": [240, 240]},
-    "Three_Man_Chariot_fidget": {"size": [136, 121], "directions": 8, "frames": 15, "frameMs": 100, "offset": [44, 30], "canvas": [240, 240]},
-    "Three_Man_Chariot_fortify": {"size": [136, 120], "directions": 8, "frames": 10, "frameMs": 83, "offset": [44, 31], "canvas": [240, 240]},
-    "Three_Man_Chariot_run": {"size": [137, 117], "directions": 8, "frames": 10, "frameMs": 66, "offset": [43, 34], "canvas": [240, 240]},
-    "Three_Man_Chariot_victory": {"size": [136, 120], "directions": 8, "frames": 15, "frameMs": 83, "offset": [44, 31], "canvas": [240, 240]}
+    "Three_Man_Chariot_default": {"size": [147, 124], "directions": 8, "frames": 15, "frameMs": 125, "offset": [44, 30], "canvas": [240, 240]},
+    "Three_Man_Chariot_fidget": {"size": [147, 124], "directions": 8, "frames": 15, "frameMs": 100, "offset": [44, 30], "canvas": [240, 240]},
+    "Three_Man_Chariot_fortify": {"size": [147, 124], "directions": 8, "frames": 10, "frameMs": 83, "offset": [44, 30], "canvas": [240, 240]},
+    "Three_Man_Chariot_run": {"size": [148, 124], "directions": 8, "frames": 10, "frameMs": 66, "offset": [43, 30], "canvas": [240, 240]},
+    "Three_Man_Chariot_victory": {"size": [147, 124], "directions": 8, "frames": 15, "frameMs": 83, "offset": [44, 30], "canvas": [240, 240]}
   }
 }

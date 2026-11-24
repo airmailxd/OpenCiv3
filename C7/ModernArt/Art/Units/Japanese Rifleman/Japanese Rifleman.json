@@ -1,20 +1,18 @@
 {
   "actions": {
-    "DEFAULT": "x_japaneseRM default",
-    "RUN": "x_japaneseRM run",
     "ATTACK1": "x_japaneseRM attack_a",
     "DEATH": "x_japaneseRM death",
+    "DEFAULT": "x_japaneseRM default",
     "FORTIFY": "x_japaneseRM fortify",
-    "FIDGET": "x_japaneseRM fidget",
+    "RUN": "x_japaneseRM run",
     "VICTORY": "x_japaneseRM victory"
   },
   "flics": {
-    "x_japaneseRM attack_a": {"size": [85, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 66], "canvas": [240, 240]},
-    "x_japaneseRM death": {"size": [112, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 71], "canvas": [240, 240]},
-    "x_japaneseRM default": {"size": [48, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 78], "canvas": [240, 240]},
-    "x_japaneseRM fidget": {"size": [75, 62], "directions": 8, "frames": 15, "frameMs": 100, "offset": [80, 74], "canvas": [240, 240]},
-    "x_japaneseRM fortify": {"size": [73, 67], "directions": 8, "frames": 10, "frameMs": 83, "offset": [80, 67], "canvas": [240, 240]},
-    "x_japaneseRM run": {"size": [61, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 78], "canvas": [240, 240]},
-    "x_japaneseRM victory": {"size": [68, 76], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 58], "canvas": [240, 240]}
+    "x_japaneseRM attack_a": {"size": [155, 118], "directions": 8, "frames": 15, "frameMs": 83, "offset": [48, 46], "canvas": [240, 240]},
+    "x_japaneseRM death": {"size": [112, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 53], "canvas": [240, 240]},
+    "x_japaneseRM default": {"size": [72, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 56], "canvas": [240, 240]},
+    "x_japaneseRM fortify": {"size": [119, 99], "directions": 8, "frames": 10, "frameMs": 83, "offset": [66, 56], "canvas": [240, 240]},
+    "x_japaneseRM run": {"size": [78, 89], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 56], "canvas": [240, 240]},
+    "x_japaneseRM victory": {"size": [81, 89], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 56], "canvas": [240, 240]}
   }
 }

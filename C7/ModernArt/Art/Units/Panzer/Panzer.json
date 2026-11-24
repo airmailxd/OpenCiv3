@@ -8,10 +8,10 @@
     "RUN": "PanzerRun"
   },
   "flics": {
-    "PanzerAttackA": {"size": [156, 114], "directions": 8, "frames": 20, "frameMs": 90, "offset": [43, 31], "canvas": [240, 240]},
-    "PanzerDeath": {"size": [90, 86], "directions": 8, "frames": 15, "frameMs": 90, "offset": [74, 59], "canvas": [240, 240]},
-    "PanzerDefault": {"size": [85, 69], "directions": 8, "frames": 5, "frameMs": 100, "offset": [79, 76], "canvas": [240, 240]},
-    "PanzerFidget": {"size": [85, 69], "directions": 8, "frames": 10, "frameMs": 111, "offset": [79, 76], "canvas": [240, 240]},
-    "PanzerRun": {"size": [85, 69], "directions": 8, "frames": 14, "frameMs": 58, "offset": [79, 76], "canvas": [240, 240]}
+    "PanzerAttackA": {"size": [156, 111], "directions": 8, "frames": 20, "frameMs": 90, "offset": [43, 31], "canvas": [240, 240]},
+    "PanzerDeath": {"size": [98, 83], "directions": 8, "frames": 15, "frameMs": 90, "offset": [71, 59], "canvas": [240, 240]},
+    "PanzerDefault": {"size": [98, 73], "directions": 8, "frames": 5, "frameMs": 100, "offset": [71, 69], "canvas": [240, 240]},
+    "PanzerFidget": {"size": [98, 73], "directions": 8, "frames": 10, "frameMs": 111, "offset": [71, 69], "canvas": [240, 240]},
+    "PanzerRun": {"size": [98, 73], "directions": 8, "frames": 14, "frameMs": 58, "offset": [71, 69], "canvas": [240, 240]}
   }
 }

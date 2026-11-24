@@ -1,11 +1,11 @@
 {
   "actions": {
-    "DEFAULT": "SteamTigerDefault",
-    "RUN": "SteamTigerRun",
     "ATTACK1": "SteamTigerAttack",
     "DEATH": "SteamTigerDeath",
+    "DEFAULT": "SteamTigerDefault",
     "FORTIFY": "SteamTigerFidget",
-    "FIDGET": "SteamTigerFidget"
+    "FIDGET": "SteamTigerFidget",
+    "RUN": "SteamTigerRun"
   },
   "flics": {
     "SteamTigerAttack": {"size": [140, 140], "directions": 8, "frames": 20, "frameMs": 66, "offset": [50, 50], "canvas": [240, 240]},

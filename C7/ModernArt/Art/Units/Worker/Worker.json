@@ -13,16 +13,16 @@
     "RUN": "workerRun"
   },
   "flics": {
-    "WorkerDefault": {"size": [68, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 55], "canvas": [240, 240]},
+    "WorkerDefault": {"size": [59, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 72], "canvas": [240, 240]},
     "WorkerPlant": {"size": [67, 69], "directions": 8, "frames": 10, "frameMs": 100, "offset": [88, 72], "canvas": [240, 240]},
-    "workerCaptured": {"size": [108, 111], "directions": 8, "frames": 15, "frameMs": 83, "offset": [75, 44], "canvas": [240, 240]},
-    "workerDeath": {"size": [145, 112], "directions": 8, "frames": 15, "frameMs": 83, "offset": [49, 49], "canvas": [240, 240]},
-    "workerForest": {"size": [123, 123], "directions": 8, "frames": 10, "frameMs": 83, "offset": [67, 35], "canvas": [240, 240]},
-    "workerFortress": {"size": [85, 89], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 58], "canvas": [240, 240]},
-    "workerIrrigate": {"size": [127, 101], "directions": 8, "frames": 10, "frameMs": 100, "offset": [63, 57], "canvas": [240, 240]},
-    "workerJungle": {"size": [96, 109], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 43], "canvas": [240, 240]},
-    "workerMine": {"size": [123, 122], "directions": 8, "frames": 10, "frameMs": 100, "offset": [62, 34], "canvas": [240, 240]},
-    "workerRoad": {"size": [129, 121], "directions": 8, "frames": 10, "frameMs": 100, "offset": [62, 38], "canvas": [240, 240]},
-    "workerRun": {"size": [74, 96], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 51], "canvas": [240, 240]}
+    "workerCaptured": {"size": [101, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 50], "canvas": [240, 240]},
+    "workerDeath": {"size": [129, 99], "directions": 8, "frames": 15, "frameMs": 83, "offset": [57, 57], "canvas": [240, 240]},
+    "workerForest": {"size": [124, 123], "directions": 8, "frames": 10, "frameMs": 83, "offset": [66, 35], "canvas": [240, 240]},
+    "workerFortress": {"size": [81, 86], "directions": 8, "frames": 10, "frameMs": 83, "offset": [84, 60], "canvas": [240, 240]},
+    "workerIrrigate": {"size": [127, 102], "directions": 8, "frames": 10, "frameMs": 100, "offset": [63, 56], "canvas": [240, 240]},
+    "workerJungle": {"size": [95, 107], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 44], "canvas": [240, 240]},
+    "workerMine": {"size": [124, 121], "directions": 8, "frames": 10, "frameMs": 100, "offset": [62, 35], "canvas": [240, 240]},
+    "workerRoad": {"size": [128, 121], "directions": 8, "frames": 10, "frameMs": 100, "offset": [62, 38], "canvas": [240, 240]},
+    "workerRun": {"size": [74, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 56], "canvas": [240, 240]}
   }
 }

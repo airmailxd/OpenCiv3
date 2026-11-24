@@ -9,12 +9,12 @@
     "VICTORY": "HorsemanVictory"
   },
   "flics": {
-    "HorsemanAttackA": {"size": [105, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 47], "canvas": [240, 240]},
+    "HorsemanAttackA": {"size": [100, 85], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 60], "canvas": [240, 240]},
     "HorsemanDeath": {"size": [119, 107], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 44], "canvas": [240, 240]},
-    "HorsemanDefault": {"size": [98, 103], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 47], "canvas": [240, 240]},
-    "HorsemanFidget": {"size": [98, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 47], "canvas": [240, 240]},
-    "HorsemanFortify": {"size": [98, 103], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 47], "canvas": [240, 240]},
-    "HorsemanRun": {"size": [98, 103], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 47], "canvas": [240, 240]},
-    "HorsemanVictory": {"size": [104, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 42], "canvas": [240, 240]}
+    "HorsemanDefault": {"size": [94, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [79, 56], "canvas": [240, 240]},
+    "HorsemanFidget": {"size": [94, 90], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 55], "canvas": [240, 240]},
+    "HorsemanFortify": {"size": [94, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 57], "canvas": [240, 240]},
+    "HorsemanRun": {"size": [94, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 57], "canvas": [240, 240]},
+    "HorsemanVictory": {"size": [99, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 42], "canvas": [240, 240]}
   }
 }

@@ -1,14 +1,14 @@
 {
   "actions": {
-    "DEFAULT": "XAirborneDefault",
-    "RUN": "XAirborneRun",
     "ATTACK1": "XAirborneAttack",
     "DEATH": "XAirborneDeath",
+    "DEFAULT": "XAirborneDefault",
     "FORTIFY": "XAirborneDefault",
-    "BUILD": "XAirborneDrop"
+    "BUILD": "XAirborneDrop",
+    "RUN": "XAirborneRun"
   },
   "flics": {
-    "XAirborneAttack": {"size": [140, 110], "directions": 8, "frames": 20, "frameMs": 51, "offset": [50, 50], "canvas": [240, 240]},
+    "XAirborneAttack": {"size": [140, 112], "directions": 8, "frames": 20, "frameMs": 51, "offset": [50, 50], "canvas": [240, 240]},
     "XAirborneDeath": {"size": [140, 110], "directions": 8, "frames": 20, "frameMs": 51, "offset": [50, 50], "canvas": [240, 240]},
     "XAirborneDefault": {"size": [140, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [50, 50], "canvas": [240, 240]},
     "XAirborneDrop": {"size": [140, 110], "directions": 8, "frames": 30, "frameMs": 66, "offset": [50, 50], "canvas": [240, 240]},

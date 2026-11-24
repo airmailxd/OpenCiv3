@@ -10,11 +10,11 @@
   },
   "flics": {
     "MusketmanAttackA": {"size": [183, 131], "directions": 8, "frames": 15, "frameMs": 83, "offset": [29, 32], "canvas": [240, 240]},
-    "MusketmanDeath": {"size": [185, 142], "directions": 8, "frames": 15, "frameMs": 66, "offset": [30, 28], "canvas": [240, 240]},
-    "MusketmanDefault": {"size": [63, 94], "directions": 8, "frames": 15, "frameMs": 125, "offset": [98, 49], "canvas": [240, 240]},
-    "MusketmanFidget": {"size": [63, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 49], "canvas": [240, 240]},
-    "MusketmanFortify": {"size": [115, 105], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 49], "canvas": [240, 240]},
-    "MusketmanRun": {"size": [64, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 49], "canvas": [240, 240]},
-    "MusketmanVictory": {"size": [75, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 49], "canvas": [240, 240]}
+    "MusketmanDeath": {"size": [187, 143], "directions": 8, "frames": 15, "frameMs": 66, "offset": [29, 28], "canvas": [240, 240]},
+    "MusketmanDefault": {"size": [63, 93], "directions": 8, "frames": 15, "frameMs": 125, "offset": [98, 50], "canvas": [240, 240]},
+    "MusketmanFidget": {"size": [63, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 50], "canvas": [240, 240]},
+    "MusketmanFortify": {"size": [116, 106], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 49], "canvas": [240, 240]},
+    "MusketmanRun": {"size": [65, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [96, 49], "canvas": [240, 240]},
+    "MusketmanVictory": {"size": [75, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 50], "canvas": [240, 240]}
   }
 }

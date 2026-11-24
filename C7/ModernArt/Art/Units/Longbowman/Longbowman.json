@@ -9,12 +9,12 @@
     "VICTORY": "LongbowmanVictory"
   },
   "flics": {
-    "LongbowmanAttackA": {"size": [124, 101], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 46], "canvas": [240, 240]},
-    "LongbowmanDeath": {"size": [140, 113], "directions": 8, "frames": 15, "frameMs": 66, "offset": [51, 45], "canvas": [240, 240]},
-    "LongbowmanDefault": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 56], "canvas": [240, 240]},
-    "LongbowmanFidget": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 56], "canvas": [240, 240]},
-    "LongbowmanFortify": {"size": [89, 96], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 51], "canvas": [240, 240]},
-    "LongbowmanRun": {"size": [70, 87], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 56], "canvas": [240, 240]},
-    "LongbowmanVictory": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [93, 56], "canvas": [240, 240]}
+    "LongbowmanAttackA": {"size": [133, 114], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 42], "canvas": [240, 240]},
+    "LongbowmanDeath": {"size": [171, 136], "directions": 8, "frames": 15, "frameMs": 66, "offset": [37, 30], "canvas": [240, 240]},
+    "LongbowmanDefault": {"size": [90, 99], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 48], "canvas": [240, 240]},
+    "LongbowmanFidget": {"size": [90, 99], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 48], "canvas": [240, 240]},
+    "LongbowmanFortify": {"size": [95, 101], "directions": 8, "frames": 10, "frameMs": 66, "offset": [77, 47], "canvas": [240, 240]},
+    "LongbowmanRun": {"size": [95, 102], "directions": 8, "frames": 10, "frameMs": 66, "offset": [78, 46], "canvas": [240, 240]},
+    "LongbowmanVictory": {"size": [90, 99], "directions": 8, "frames": 15, "frameMs": 66, "offset": [80, 48], "canvas": [240, 240]}
   }
 }

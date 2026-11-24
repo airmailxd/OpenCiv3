@@ -8,11 +8,11 @@
     "RUN": "SettlerModernRun"
   },
   "flics": {
-    "SettlerModernBuild": {"size": [62, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 63], "canvas": [240, 240]},
-    "SettlerModernCaptured": {"size": [61, 77], "directions": 8, "frames": 10, "frameMs": 83, "offset": [95, 63], "canvas": [240, 240]},
-    "SettlerModernDeath": {"size": [132, 106], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 51], "canvas": [240, 240]},
-    "SettlerModernDefault": {"size": [59, 77], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 63], "canvas": [240, 240]},
-    "SettlerModernFidget": {"size": [59, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [97, 63], "canvas": [240, 240]},
-    "SettlerModernRun": {"size": [60, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [96, 63], "canvas": [240, 240]}
+    "SettlerModernBuild": {"size": [55, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 73], "canvas": [240, 240]},
+    "SettlerModernCaptured": {"size": [54, 63], "directions": 8, "frames": 10, "frameMs": 83, "offset": [95, 74], "canvas": [240, 240]},
+    "SettlerModernDeath": {"size": [127, 96], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 58], "canvas": [240, 240]},
+    "SettlerModernDefault": {"size": [50, 63], "directions": 8, "frames": 15, "frameMs": 125, "offset": [99, 74], "canvas": [240, 240]},
+    "SettlerModernFidget": {"size": [51, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 74], "canvas": [240, 240]},
+    "SettlerModernRun": {"size": [53, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [96, 73], "canvas": [240, 240]}
   }
 }

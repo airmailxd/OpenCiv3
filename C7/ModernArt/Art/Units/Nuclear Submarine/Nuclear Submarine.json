@@ -9,9 +9,9 @@
   },
   "flics": {
     "NuclearSubmarineAttackA": {"size": [176, 88], "directions": 8, "frames": 20, "frameMs": 66, "offset": [33, 82], "canvas": [240, 240]},
-    "NuclearSubmarineDeath": {"size": [101, 75], "directions": 8, "frames": 20, "frameMs": 83, "offset": [70, 93], "canvas": [240, 240]},
-    "NuclearSubmarineDefault": {"size": [101, 57], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 93], "canvas": [240, 240]},
-    "NuclearSubmarineFidget": {"size": [101, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [70, 93], "canvas": [240, 240]},
-    "NuclearSubmarineRun": {"size": [125, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 93], "canvas": [240, 240]}
+    "NuclearSubmarineDeath": {"size": [112, 77], "directions": 8, "frames": 20, "frameMs": 83, "offset": [64, 91], "canvas": [240, 240]},
+    "NuclearSubmarineDefault": {"size": [112, 62], "directions": 8, "frames": 15, "frameMs": 125, "offset": [64, 91], "canvas": [240, 240]},
+    "NuclearSubmarineFidget": {"size": [112, 62], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 91], "canvas": [240, 240]},
+    "NuclearSubmarineRun": {"size": [125, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 91], "canvas": [240, 240]}
   }
 }

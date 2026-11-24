@@ -17,19 +17,19 @@
     "VICTORY": "EnslavedWorker_Victory"
   },
   "flics": {
-    "EnslavedWorker_Attack": {"size": [71, 74], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 67], "canvas": [240, 240]},
-    "EnslavedWorker_Build": {"size": [127, 124], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 34], "canvas": [240, 240]},
-    "EnslavedWorker_Captured": {"size": [121, 116], "directions": 8, "frames": 15, "frameMs": 83, "offset": [69, 43], "canvas": [240, 240]},
-    "EnslavedWorker_ClearForest": {"size": [128, 125], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 35], "canvas": [240, 240]},
-    "EnslavedWorker_ClearJungle": {"size": [96, 109], "directions": 8, "frames": 15, "frameMs": 66, "offset": [81, 43], "canvas": [240, 240]},
-    "EnslavedWorker_Death": {"size": [128, 103], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 53], "canvas": [240, 240]},
-    "EnslavedWorker_Default": {"size": [69, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [94, 56], "canvas": [240, 240]},
-    "EnslavedWorker_Fidget": {"size": [62, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [91, 75], "canvas": [240, 240]},
-    "EnslavedWorker_Fortify": {"size": [62, 66], "directions": 8, "frames": 10, "frameMs": 83, "offset": [91, 75], "canvas": [240, 240]},
-    "EnslavedWorker_Irrigate": {"size": [128, 100], "directions": 8, "frames": 15, "frameMs": 100, "offset": [62, 59], "canvas": [240, 240]},
-    "EnslavedWorker_Plant": {"size": [64, 69], "directions": 8, "frames": 10, "frameMs": 100, "offset": [93, 74], "canvas": [240, 240]},
-    "EnslavedWorker_Run": {"size": [85, 102], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 49], "canvas": [240, 240]},
-    "EnslavedWorker_Shovel": {"size": [129, 122], "directions": 8, "frames": 15, "frameMs": 83, "offset": [62, 38], "canvas": [240, 240]},
-    "EnslavedWorker_Victory": {"size": [62, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [91, 65], "canvas": [240, 240]}
+    "EnslavedWorker_Attack": {"size": [71, 73], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 67], "canvas": [240, 240]},
+    "EnslavedWorker_Build": {"size": [130, 128], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 31], "canvas": [240, 240]},
+    "EnslavedWorker_Captured": {"size": [114, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 49], "canvas": [240, 240]},
+    "EnslavedWorker_ClearForest": {"size": [129, 126], "directions": 8, "frames": 15, "frameMs": 66, "offset": [63, 34], "canvas": [240, 240]},
+    "EnslavedWorker_ClearJungle": {"size": [96, 111], "directions": 8, "frames": 15, "frameMs": 66, "offset": [81, 42], "canvas": [240, 240]},
+    "EnslavedWorker_Death": {"size": [132, 100], "directions": 8, "frames": 15, "frameMs": 66, "offset": [55, 58], "canvas": [240, 240]},
+    "EnslavedWorker_Default": {"size": [55, 65], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 75], "canvas": [240, 240]},
+    "EnslavedWorker_Fidget": {"size": [55, 65], "directions": 8, "frames": 15, "frameMs": 83, "offset": [97, 75], "canvas": [240, 240]},
+    "EnslavedWorker_Fortify": {"size": [57, 65], "directions": 8, "frames": 10, "frameMs": 83, "offset": [95, 75], "canvas": [240, 240]},
+    "EnslavedWorker_Irrigate": {"size": [130, 103], "directions": 8, "frames": 15, "frameMs": 100, "offset": [61, 57], "canvas": [240, 240]},
+    "EnslavedWorker_Plant": {"size": [64, 70], "directions": 8, "frames": 10, "frameMs": 100, "offset": [93, 73], "canvas": [240, 240]},
+    "EnslavedWorker_Run": {"size": [86, 96], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 54], "canvas": [240, 240]},
+    "EnslavedWorker_Shovel": {"size": [131, 123], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 37], "canvas": [240, 240]},
+    "EnslavedWorker_Victory": {"size": [58, 75], "directions": 8, "frames": 15, "frameMs": 66, "offset": [94, 65], "canvas": [240, 240]}
   }
 }

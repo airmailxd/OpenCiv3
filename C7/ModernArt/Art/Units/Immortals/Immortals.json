@@ -10,13 +10,13 @@
     "VICTORY": "ImmortalVictory"
   },
   "flics": {
-    "ImmortalAttackA": {"size": [97, 106], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 44], "canvas": [240, 240]},
-    "ImmortalAttackB": {"size": [85, 74], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 70], "canvas": [240, 240]},
-    "ImmortalDeath": {"size": [141, 112], "directions": 8, "frames": 15, "frameMs": 66, "offset": [50, 46], "canvas": [240, 240]},
-    "ImmortalDefault": {"size": [84, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 75], "canvas": [240, 240]},
-    "ImmortalFidget": {"size": [84, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 71], "canvas": [240, 240]},
-    "ImmortalFortify": {"size": [108, 99], "directions": 8, "frames": 10, "frameMs": 66, "offset": [69, 54], "canvas": [240, 240]},
-    "ImmortalRun": {"size": [86, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 69], "canvas": [240, 240]},
-    "ImmortalVictory": {"size": [84, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 69], "canvas": [240, 240]}
+    "ImmortalAttackA": {"size": [89, 89], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 58], "canvas": [240, 240]},
+    "ImmortalAttackB": {"size": [86, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 66], "canvas": [240, 240]},
+    "ImmortalDeath": {"size": [126, 101], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 54], "canvas": [240, 240]},
+    "ImmortalDefault": {"size": [78, 78], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 66], "canvas": [240, 240]},
+    "ImmortalFidget": {"size": [78, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 66], "canvas": [240, 240]},
+    "ImmortalFortify": {"size": [77, 82], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 62], "canvas": [240, 240]},
+    "ImmortalRun": {"size": [79, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 66], "canvas": [240, 240]},
+    "ImmortalVictory": {"size": [78, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 66], "canvas": [240, 240]}
   }
 }

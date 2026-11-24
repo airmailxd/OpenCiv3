@@ -1,20 +1,18 @@
 {
   "actions": {
-    "DEFAULT": "x_Ashigaru Spearman_default",
-    "RUN": "x_Ashigaru Spearman_run",
     "ATTACK1": "x_Ashigaru Spearman_attack_a",
     "DEATH": "x_Ashigaru Spearman_death",
+    "DEFAULT": "x_Ashigaru Spearman_default",
     "FORTIFY": "x_Ashigaru Spearman_fortify",
-    "FIDGET": "x_Ashigaru Spearman_fidget",
+    "RUN": "x_Ashigaru Spearman_run",
     "VICTORY": "x_Ashigaru Spearman_victory"
   },
   "flics": {
-    "x_Ashigaru Spearman_attack_a": {"size": [130, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 41], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_death": {"size": [164, 118], "directions": 8, "frames": 15, "frameMs": 83, "offset": [39, 43], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_default": {"size": [72, 74], "directions": 8, "frames": 9, "frameMs": 166, "offset": [73, 54], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_fidget": {"size": [72, 75], "directions": 8, "frames": 15, "frameMs": 100, "offset": [73, 54], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_fortify": {"size": [110, 91], "directions": 8, "frames": 11, "frameMs": 83, "offset": [56, 45], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_run": {"size": [105, 85], "directions": 8, "frames": 10, "frameMs": 66, "offset": [57, 48], "canvas": [240, 240]},
-    "x_Ashigaru Spearman_victory": {"size": [109, 83], "directions": 8, "frames": 15, "frameMs": 83, "offset": [57, 52], "canvas": [240, 240]}
+    "x_Ashigaru Spearman_attack_a": {"size": [151, 126], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 36], "canvas": [240, 240]},
+    "x_Ashigaru Spearman_death": {"size": [178, 141], "directions": 8, "frames": 15, "frameMs": 83, "offset": [32, 27], "canvas": [240, 240]},
+    "x_Ashigaru Spearman_default": {"size": [111, 115], "directions": 8, "frames": 9, "frameMs": 166, "offset": [73, 39], "canvas": [240, 240]},
+    "x_Ashigaru Spearman_fortify": {"size": [131, 118], "directions": 8, "frames": 11, "frameMs": 83, "offset": [56, 38], "canvas": [240, 240]},
+    "x_Ashigaru Spearman_run": {"size": [128, 118], "directions": 8, "frames": 10, "frameMs": 66, "offset": [57, 37], "canvas": [240, 240]},
+    "x_Ashigaru Spearman_victory": {"size": [127, 115], "directions": 8, "frames": 15, "frameMs": 83, "offset": [57, 39], "canvas": [240, 240]}
   }
 }

@@ -7,10 +7,10 @@
     "RUN": "BattleshipRun"
   },
   "flics": {
-    "BattleshipAttackA": {"size": [168, 121], "directions": 8, "frames": 20, "frameMs": 100, "offset": [37, 43], "canvas": [240, 240]},
+    "BattleshipAttackA": {"size": [168, 119], "directions": 8, "frames": 20, "frameMs": 100, "offset": [37, 43], "canvas": [240, 240]},
     "BattleshipDeath": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 100, "offset": [0, 0], "canvas": [240, 240]},
-    "BattleshipDefault": {"size": [143, 90], "directions": 8, "frames": 10, "frameMs": 200, "offset": [50, 74], "canvas": [240, 240]},
-    "BattleshipFidget": {"size": [143, 90], "directions": 8, "frames": 10, "frameMs": 111, "offset": [50, 74], "canvas": [240, 240]},
-    "BattleshipRun": {"size": [170, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [35, 74], "canvas": [240, 240]}
+    "BattleshipDefault": {"size": [144, 88], "directions": 8, "frames": 10, "frameMs": 200, "offset": [50, 74], "canvas": [240, 240]},
+    "BattleshipFidget": {"size": [144, 88], "directions": 8, "frames": 10, "frameMs": 111, "offset": [50, 74], "canvas": [240, 240]},
+    "BattleshipRun": {"size": [170, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [35, 74], "canvas": [240, 240]}
   }
 }
