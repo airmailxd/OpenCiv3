@@ -192,6 +192,12 @@ public partial class UnitButtons : VBoxContainer {
 	}
 
 	private void OnUnitMoved(ParameterWrapper<MapUnit> wrappedMapUnit) {
+		// In a networked game the unit comes by its id, and is null if it's
+		// gone by the time the message arrives (a settler that founded a
+		// city): nothing to show buttons for.
+		if (wrappedMapUnit.Value == null) {
+			return;
+		}
 		UpdateButtons(wrappedMapUnit.Value);
 	}
 

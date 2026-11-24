@@ -410,6 +410,12 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 
 	private void OnUnitMoved(ParameterWrapper<MapUnit> wrappedMapUnit) {
 		MapUnit unit = wrappedMapUnit.Value;
+		// In a networked game the unit comes by its id, and is null if it's
+		// gone by the time the message arrives (a settler that founded a
+		// city).
+		if (unit?.location == null) {
+			return;
+		}
 		UpdateUnitInfo(unit, unit.location.overlayTerrainType);
 	}
 }
