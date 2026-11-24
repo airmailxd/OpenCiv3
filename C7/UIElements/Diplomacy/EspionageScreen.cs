@@ -5,8 +5,7 @@ using C7Engine;
 using C7GameData;
 using Godot;
 
-// Civ3's Espionage screen, opened by the "E" button (Play the World's art,
-// Art/Espionage). As the Conquests Civilopedia describes it (GCON_Espionage,
+// The Espionage screen, opened by the "E" button. As the Civilopedia describes it (GCON_Espionage,
 // GCON_Espionage_Missions): "The Espionage screen is comprised of: current
 // opponents, available missions, your current asset information, city
 // selection, and operational cost options." A mission is sent by picking
@@ -16,47 +15,58 @@ using Godot;
 // city "(if appropriate)" and the operational cost, then Execute; Cancel
 // or leaving the screen sends nothing.
 //
-// The places of the parts are the artist's notes on X_ESPIONAGE PARTS.PCX:
-// the opponents' buttons from (50, 92), 10 pixels apart, with the embassy
-// and spy icons at (308, 106) and (340, 106) on the first; "BOXES START AT
-// 402, 117, 11 PIXELS SPACING IN BETWEEN"; the bars of the list at
-// (718, 106); and the scroll bars at (14, 95), 590 long, and (977, 106), 340
-// long. UNVERIFIED: which list goes where (we put the missions in the
-// boxes in the middle and the target cities on the bars at the right, with
-// the operational costs on the three bars below them, the mission type on
-// the bar under the middle panel and the assets below it). The words are
-// Civ3's where labels.txt has them, in its block after "ESPIONAGE" (the
-// title): "Select Mission", "Unmet", the assets' "Diplomatic Advance:",
-// "Espionage Advance:", "Intelligence Center:", "Spy Experience:",
-// "Immediately", "Carefully", "Safely" and "Execute".
+// The screen is drawn like the advisors' (its art is the game's own, made by
+// ArtGen/screens/espionage.py: C7/ModernArt/Art/Espionage): the advisors'
+// sandstone and paper, with three columns under taupe bands. On the left the
+// rivals, a plate each with the leader's face, the name and the embassy and
+// spy marks; in the middle the mission type (two tabs), the missions with
+// their check boxes, and two cards, the briefing (the mission picked, or why
+// it can't be sent) and our assets; on the right the target cities, the
+// three operational costs and Execute and Cancel. The words are the old
+// labels where there were some: "Select Mission", "Unmet", the assets'
+// "Diplomatic Advance:", "Espionage Advance:", "Intelligence Center:", "Spy
+// Experience:", "Immediately", "Carefully", "Safely" and "Execute".
 public partial class EspionageScreen : Control {
 	private static readonly Vector2 WindowSize = new(1024, 768);
 	private static readonly Color Parchment = Color.Color8(232, 214, 168);
 	private static readonly Color Ink = Color.Color8(40, 28, 16);
 	private static readonly Color Faded = Color.Color8(110, 100, 90);
-	private static readonly Color Highlight = Color.Color8(230, 140, 30);
 	private static readonly Color PickedInk = Color.Color8(150, 60, 0);
 	private static readonly Color UnavailableInk = Color.Color8(78, 70, 62);
 
-	private static readonly Vector2 CivListPosition = new(50, 92);
-	private static readonly Vector2 CivButtonSize = new(321, 48);
-	private const int CivButtonGap = 10;
-	// The width of the square tab at the left end of an opponent's button.
+	// The layout: the same numbers as ArtGen/screens/espionage.py's bands
+	// and cards, which the background has.
+	private static readonly Rect2 RivalsBand = new(80, 78, 300, 24);
+	private static readonly Rect2 MissionsBand = new(396, 78, 284, 24);
+	private static readonly Rect2 TargetBand = new(696, 78, 272, 24);
+	private static readonly Rect2 CostBand = new(696, 452, 272, 24);
+	private static readonly Rect2 BriefingCard = new(396, 340, 284, 206);
+	private static readonly Rect2 AssetsCard = new(396, 560, 284, 144);
+	private const float CardHead = 22;
+
+	private static readonly Rect2 CivListArea = new(80, 110, 288, 594);
+	private static readonly Vector2 CivButtonSize = new(288, 48);
+	private const int CivButtonGap = 6;
+	// The width of the square at the left end of a rival's plate, which
+	// holds the leader's face.
 	private const float CivButtonTab = 46;
-	private static readonly Rect2 CivScrollBar = new(14, 95, 26, 590);
+	private static readonly Rect2 CivScrollBar = new(372, 110, 8, 594);
 
-	private static readonly Vector2 FirstBox = new(402, 117);
-	private const int BoxPitch = 23 + 11;
+	private static readonly Rect2 DiplomaticTab = new(396, 110, 140, 28);
+	private static readonly Rect2 SpyTab = new(540, 110, 140, 28);
+	private static readonly Vector2 FirstBox = new(398, 150);
+	private const int BoxPitch = 30;
 
-	private static readonly Vector2 CityListPosition = new(718, 106);
-	private static readonly Vector2 BarSize = new(256, 24);
-	private const int BarGap = 6;
-	private static readonly Rect2 CityScrollBar = new(977, 106, 20, 340);
+	private static readonly Rect2 CityListArea = new(696, 110, 260, 330);
+	private static readonly Vector2 BarSize = new(260, 28);
+	private const int BarGap = 4;
+	private static readonly Rect2 CityScrollBar = new(960, 110, 8, 330);
 
-	private static readonly Rect2[] RiskBars = [new(717, 523, 276, 30), new(717, 555, 276, 30), new(717, 587, 276, 30)];
-	private static readonly Rect2 MissionTypeBar = new(403, 545, 210, 30);
-	private static readonly Rect2 AssetsArea = new(400, 584, 272, 92);
-	private static readonly Rect2 InfoArea = new(398, 452, 280, 86);
+	private static readonly Rect2[] RiskBars = [new(696, 484, 272, 34), new(696, 524, 272, 34), new(696, 564, 272, 34)];
+	private static readonly Rect2 ExecuteBox = new(696, 664, 132, 36);
+	private static readonly Rect2 CancelBox = new(836, 664, 132, 36);
+	private static readonly Rect2 AssetsArea = new(406, 588, 264, 110);
+	private static readonly Rect2 InfoArea = new(406, 368, 264, 170);
 
 	private enum MissionType {
 		Diplomatic,
@@ -76,14 +86,13 @@ public partial class EspionageScreen : Control {
 	private ScrollContainer cityScroll;
 	private Control missionBoxes;
 	private readonly Button[] riskButtons = new Button[3];
-	private readonly Panel[] riskFrames = new Panel[3];
 	private Button diplomaticButton;
 	private Button spyButton;
 	private Label assets;
 	private Label info;
-	private TextureButton execute;
-	private TextureButton cancel;
-	private Label title;
+	private Label cityHint;
+	private Button execute;
+	private Button cancel;
 
 	public EspionageScreen() {
 		MouseFilter = MouseFilterEnum.Stop;
@@ -102,85 +111,138 @@ public partial class EspionageScreen : Control {
 		if (background != null) {
 			AddChild(new TextureRect { Texture = background, Size = WindowSize, MouseFilter = MouseFilterEnum.Ignore });
 		} else {
-			// Without Play the World's art, a plain page with the panels
-			// drawn in.
+			// Without the art, a plain page with the bands and cards drawn
+			// in.
 			AddChild(new ColorRect { Color = Parchment, Size = WindowSize, MouseFilter = MouseFilterEnum.Ignore });
-			Color panel = Color.Color8(150, 135, 105);
-			foreach (Rect2 r in new[] { new Rect2(388, 94, 294, 352), new Rect2(703, 94, 304, 588), new Rect2(388, 540, 294, 142) }) {
-				AddChild(new ColorRect { Color = panel, Position = r.Position, Size = r.Size, MouseFilter = MouseFilterEnum.Ignore });
+			Color band = Color.Color8(190, 174, 140);
+			foreach (Rect2 r in new[] { RivalsBand, MissionsBand, TargetBand, CostBand }) {
+				AddChild(new ColorRect { Color = band, Position = r.Position, Size = r.Size, MouseFilter = MouseFilterEnum.Ignore });
+			}
+			foreach (Rect2 r in new[] { BriefingCard, AssetsCard }) {
+				AddChild(new ColorRect { Color = Colors.Black, Position = r.Position - Vector2.One, Size = r.Size + 2 * Vector2.One, MouseFilter = MouseFilterEnum.Ignore });
+				AddChild(new ColorRect { Color = Color.Color8(242, 240, 229), Position = r.Position, Size = r.Size, MouseFilter = MouseFilterEnum.Ignore });
+				AddChild(new ColorRect { Color = Color.Color8(195, 193, 182), Position = r.Position, Size = new Vector2(r.Size.X, CardHead), MouseFilter = MouseFilterEnum.Ignore });
 			}
 		}
 
-		title = AdvisorUtils.CreateLabel(this, "ESPIONAGE", new Rect2(170, 14, 690, 36), 20, HorizontalAlignment.Center);
-		title.AddThemeColorOverride("font_color", Ink);
+		AdvisorUtils.CreateAdvisorTitle(this, WindowSize.X, "ESPIONAGE");
 
-		// The opponents.
-		(civScroll, civList) = MakeScrollList(new Rect2(CivListPosition, new Vector2(CivButtonSize.X, CivScrollBar.Size.Y)), CivButtonGap, CivScrollBar);
+		// The headings, on the bands and the cards' heads.
+		Heading("Rivals", RivalsBand);
+		Heading("Missions", MissionsBand);
+		Heading("Target City", TargetBand);
+		Heading("Operational Cost", CostBand);
+		Heading("Briefing", new Rect2(BriefingCard.Position, new Vector2(BriefingCard.Size.X, CardHead)), 13);
+		Heading("Our Assets", new Rect2(AssetsCard.Position, new Vector2(AssetsCard.Size.X, CardHead)), 13);
 
-		// The missions, in the boxes of the middle panel.
+		// The rivals.
+		(civScroll, civList) = MakeScrollList(CivListArea, CivButtonGap, CivScrollBar);
+
+		// The mission type, on two tabs under the missions' band.
+		diplomaticButton = MakePlateButton("Diplomatic", DiplomaticTab);
+		diplomaticButton.Alignment = HorizontalAlignment.Center;
+		diplomaticButton.Pressed += () => PickMissionType(MissionType.Diplomatic);
+		spyButton = MakePlateButton("Spy", SpyTab);
+		spyButton.Alignment = HorizontalAlignment.Center;
+		spyButton.Pressed += () => PickMissionType(MissionType.Spy);
+
+		// The missions, a check box each under the tabs.
 		missionBoxes = new Control { Position = Vector2.Zero, Size = WindowSize, MouseFilter = MouseFilterEnum.Ignore };
 		AddChild(missionBoxes);
 
 		// The target cities.
-		(cityScroll, cityList) = MakeScrollList(new Rect2(CityListPosition, new Vector2(BarSize.X, CityScrollBar.Size.Y)), BarGap, CityScrollBar);
+		(cityScroll, cityList) = MakeScrollList(CityListArea, BarGap, CityScrollBar);
+		cityHint = AdvisorUtils.CreateLabel(this, "", new Rect2(CityListArea.Position + new Vector2(8, 6), new Vector2(CityListArea.Size.X - 16, 60)), 13);
+		cityHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		cityHint.VerticalAlignment = VerticalAlignment.Top;
+		cityHint.AddThemeColorOverride("font_color", Faded);
 
-		// The mission type, on the bar under the middle panel.
-		diplomaticButton = MakeFlatButton("Diplomatic", new Rect2(MissionTypeBar.Position, new Vector2(MissionTypeBar.Size.X / 2, MissionTypeBar.Size.Y)));
-		diplomaticButton.Pressed += () => PickMissionType(MissionType.Diplomatic);
-		spyButton = MakeFlatButton("Spy", new Rect2(MissionTypeBar.Position + new Vector2(MissionTypeBar.Size.X / 2, 0),
-			new Vector2(MissionTypeBar.Size.X / 2, MissionTypeBar.Size.Y)));
-		spyButton.Pressed += () => PickMissionType(MissionType.Spy);
-
-		// The operational costs, on the three bars at the bottom right, in
+		// The operational costs, on three plates under their band, in
 		// script.txt's order (#ESPIONAGE_SAFETY_LEVEL).
 		for (int i = 0; i < 3; i++) {
 			EspionageRisk r = (EspionageRisk)i;
-			riskButtons[i] = MakeFlatButton("", RiskBars[i]);
+			riskButtons[i] = MakePlateButton("", RiskBars[i]);
 			riskButtons[i].Pressed += () => {
 				risk = r;
 				Refresh();
 			};
-			riskFrames[i] = MakeFrame(RiskBars[i].Position, RiskBars[i].Size);
-			AddChild(riskFrames[i]);
 		}
 
-		// Execute and Cancel, under the operational costs.
-		execute = MakeBarButton("Execute", new Rect2(718, 636, 132, 26));
+		// Execute and Cancel, at the foot of the right column.
+		execute = MakeActionButton("Execute", ExecuteBox);
 		execute.Pressed += Execute;
-		cancel = MakeBarButton("Cancel", new Rect2(860, 636, 132, 26));
+		cancel = MakeActionButton("Cancel", CancelBox);
 		cancel.Pressed += () => {
 			selectedMission = null;
 			Refresh();
 		};
 
-		info = AdvisorUtils.CreateLabel(this, "", InfoArea, 12);
+		info = AdvisorUtils.CreateLabel(this, "", InfoArea, 13);
 		info.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		info.VerticalAlignment = VerticalAlignment.Top;
 		info.AddThemeColorOverride("font_color", Ink);
 
-		// Five lines, in a font small enough for all of them to fit.
-		assets = AdvisorUtils.CreateLabel(this, "", AssetsArea, 11);
+		assets = AdvisorUtils.CreateLabel(this, "", AssetsArea, 13);
 		assets.ClipText = false;
 		assets.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
-		assets.AddThemeConstantOverride("line_spacing", 0);
+		assets.AddThemeConstantOverride("line_spacing", 1);
 		assets.VerticalAlignment = VerticalAlignment.Top;
-		assets.AddThemeColorOverride("font_color", Parchment);
+		assets.AddThemeColorOverride("font_color", Ink);
 
 		TextureButton close = AdvisorUtils.CreateExitButton(this);
 		close.Pressed += () => { this.GetParent<Advisors>().Hide(); };
 	}
 
-	// An orange frame around something picked.
-	private static Panel MakeFrame(Vector2 position, Vector2 size) {
-		StyleBoxFlat frame = new() { DrawCenter = false, BorderColor = Highlight };
-		frame.SetBorderWidthAll(2);
-		Panel panel = new() { Position = position, Size = size, MouseFilter = MouseFilterEnum.Ignore };
-		panel.AddThemeStyleboxOverride("panel", frame);
-		return panel;
+	private void Heading(string text, Rect2 box, int fontSize = 14) {
+		Label label = AdvisorUtils.CreateLabel(this, text, new Rect2(box.Position + new Vector2(8, 0), box.Size - new Vector2(16, 0)), fontSize);
+		label.AddThemeColorOverride("font_color", Ink);
+		label.MouseFilter = MouseFilterEnum.Ignore;
 	}
 
-	// A list that scrolls, with its own scroll bar in the background's slot
-	// for it.
+	// The plate an entry or a choice is drawn on, in a state (normal, hover,
+	// selected or disabled), stretched to the control's size; a plain box
+	// without the art.
+	private static StyleBox Plate(string state) {
+		if (Art("plate." + state) is ImageTexture texture) {
+			StyleBoxTexture box = new() { Texture = texture };
+			box.SetTextureMarginAll(8);
+			box.SetContentMarginAll(4);
+			box.ContentMarginLeft = box.ContentMarginRight = 10;
+			return box;
+		}
+		StyleBoxFlat flat = new() {
+			BgColor = state switch {
+				"hover" => Color.Color8(222, 190, 128),
+				"selected" => Color.Color8(204, 160, 104),
+				"disabled" => Color.Color8(226, 212, 180),
+				_ => Color.Color8(206, 190, 154),
+			},
+			BorderColor = state == "selected" ? Color.Color8(226, 136, 28) : Color.Color8(92, 78, 56, (byte)(state == "disabled" ? 90 : 160)),
+		};
+		flat.SetBorderWidthAll(state == "selected" ? 2 : 1);
+		flat.SetCornerRadiusAll(5);
+		flat.SetContentMarginAll(4);
+		flat.ContentMarginLeft = flat.ContentMarginRight = 10;
+		return flat;
+	}
+
+	// Draws a button on the plates: on the selected one if it's picked (as
+	// the rival, the city or the operational cost picked is).
+	private static void StyleAsPlate(Button button, bool selected) {
+		StyleBox picked = Plate("selected");
+		button.AddThemeStyleboxOverride("normal", selected ? picked : Plate("normal"));
+		button.AddThemeStyleboxOverride("hover", selected ? picked : Plate("hover"));
+		button.AddThemeStyleboxOverride("pressed", picked);
+		button.AddThemeStyleboxOverride("hover_pressed", picked);
+		button.AddThemeStyleboxOverride("disabled", Plate("disabled"));
+		button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+		foreach (string state in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color" }) {
+			button.AddThemeColorOverride(state, Ink);
+		}
+		button.AddThemeColorOverride("font_disabled_color", Faded);
+	}
+
+	// A list that scrolls, with its own thin scroll bar beside it.
 	private (ScrollContainer, VBoxContainer) MakeScrollList(Rect2 area, int gap, Rect2 barArea) {
 		ScrollContainer scroll = new() {
 			Position = area.Position,
@@ -194,6 +256,19 @@ public partial class EspionageScreen : Control {
 		AddChild(scroll);
 
 		VScrollBar bar = new() { Position = barArea.Position, Size = barArea.Size, Visible = false };
+		// A taupe groove, as the bands are, with a darker grip.
+		StyleBoxFlat groove = new() { BgColor = Color.Color8(110, 95, 70, 70) };
+		groove.SetCornerRadiusAll(4);
+		bar.AddThemeStyleboxOverride("scroll", groove);
+		bar.AddThemeStyleboxOverride("scroll_focus", groove);
+		foreach ((string state, Color color) in new[] {
+				("grabber", Color.Color8(120, 100, 70)),
+				("grabber_highlight", Color.Color8(170, 110, 40)),
+				("grabber_pressed", Color.Color8(150, 90, 30)) }) {
+			StyleBoxFlat grip = new() { BgColor = color };
+			grip.SetCornerRadiusAll(4);
+			bar.AddThemeStyleboxOverride(state, grip);
+		}
 		AddChild(bar);
 		VScrollBar inner = scroll.GetVScrollBar();
 		void Sync() {
@@ -208,42 +283,61 @@ public partial class EspionageScreen : Control {
 		return (scroll, list);
 	}
 
-	private Button MakeFlatButton(string text, Rect2 box) {
-		Button button = new() { Text = text, Flat = true, Position = box.Position, Size = box.Size, CustomMinimumSize = box.Size };
-		button.AddThemeFontSizeOverride("font_size", 12);
-		foreach (string state in new[] { "font_color", "font_pressed_color", "font_focus_color" }) {
+	// A choice on a plate, its words on the left.
+	private Button MakePlateButton(string text, Rect2 box) {
+		Button button = new() {
+			Text = text,
+			Alignment = HorizontalAlignment.Left,
+			Position = box.Position,
+			Size = box.Size,
+			CustomMinimumSize = box.Size,
+			ClipText = true,
+			TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+		};
+		button.AddThemeFontSizeOverride("font_size", 13);
+		StyleAsPlate(button, false);
+		AddChild(button);
+		return button;
+	}
+
+	// A raised button that does something (Execute, Cancel); a plain box
+	// without the art.
+	private Button MakeActionButton(string text, Rect2 box) {
+		Button button = new() { Text = text, Position = box.Position, Size = box.Size, CustomMinimumSize = box.Size };
+		button.AddThemeFontSizeOverride("font_size", 15);
+		foreach ((string state, string art) in new[] {
+				("normal", "normal"), ("hover", "hover"), ("pressed", "pressed"), ("hover_pressed", "pressed"), ("disabled", "disabled") }) {
+			StyleBox face;
+			if (Art("button." + art) is ImageTexture texture) {
+				StyleBoxTexture t = new() { Texture = texture };
+				t.SetTextureMarginAll(8);
+				face = t;
+			} else {
+				StyleBoxFlat flat = new() {
+					BgColor = art switch {
+						"hover" => Color.Color8(244, 220, 156),
+						"pressed" => Color.Color8(198, 182, 146),
+						"disabled" => Color.Color8(214, 210, 200),
+						_ => Color.Color8(232, 225, 204),
+					},
+					BorderColor = art == "disabled" ? Color.Color8(150, 145, 135) : Color.Color8(58, 54, 44),
+				};
+				flat.SetBorderWidthAll(1);
+				flat.SetCornerRadiusAll(4);
+				face = flat;
+			}
+			button.AddThemeStyleboxOverride(state, face);
+		}
+		button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+		foreach (string state in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color" }) {
 			button.AddThemeColorOverride(state, Ink);
 		}
-		button.AddThemeColorOverride("font_hover_color", new Color(0.45f, 0, 0.45f));
 		button.AddThemeColorOverride("font_disabled_color", Faded);
 		AddChild(button);
 		return button;
 	}
 
-	// A button drawn with the list's bar, stretched to its size.
-	private TextureButton MakeBarButton(string text, Rect2 box) {
-		TextureButton button = new() {
-			Position = box.Position,
-			Size = box.Size,
-			CustomMinimumSize = box.Size,
-			IgnoreTextureSize = true,
-			StretchMode = TextureButton.StretchModeEnum.Scale,
-			TextureNormal = Art("bar.normal"),
-			TextureHover = Art("bar.selected"),
-			TexturePressed = Art("bar.selected"),
-			TextureDisabled = Art("bar.disabled"),
-		};
-		AddFallbackFace(button, box.Size);
-		Label label = AdvisorUtils.MakeLabel(text, 13, box.Size.X, HorizontalAlignment.Center);
-		label.Size = box.Size;
-		label.AddThemeColorOverride("font_color", Ink);
-		label.MouseFilter = MouseFilterEnum.Ignore;
-		button.AddChild(label);
-		AddChild(button);
-		return button;
-	}
-
-	// Without the art, a button is a plain box.
+	// Without the art, a check box is a plain box.
 	private static void AddFallbackFace(TextureButton button, Vector2 size) {
 		if (button.TextureNormal == null) {
 			button.AddChild(new ColorRect { Color = Color.Color8(200, 184, 140), Size = size, MouseFilter = MouseFilterEnum.Ignore, ShowBehindParent = true });
@@ -309,35 +403,22 @@ public partial class EspionageScreen : Control {
 				continue;
 			}
 			bool selected = civ == target;
-			TextureButton button = new() {
+			Button button = new() {
 				CustomMinimumSize = CivButtonSize,
-				TextureNormal = Art(selected ? "civ.selected" : "civ.normal"),
-				TextureHover = Art(selected ? "civ.selected" : "civ.hover"),
-				TexturePressed = Art("civ.selected"),
 				TooltipText = EmbassyReport(gameData, player, civ),
 			};
-			AddFallbackFace(button, CivButtonSize);
+			StyleAsPlate(button, selected);
 			AddLeaderHead(button, civ);
-			// The name goes on the bar, right of the square tab at the
-			// button's left end, and stops short of the icons.
-			float nameLeft = CivButtonTab + 10;
-			Label name = AdvisorUtils.MakeLabel(AdvisorUtils.CivTitle(civ), 15, 252 - nameLeft);
-			name.Position = new Vector2(nameLeft, 3);
-			name.Size = new Vector2(252 - nameLeft, CivButtonSize.Y - 6);
-			name.AddThemeColorOverride("font_color", selected ? PickedInk : Ink);
-			name.MouseFilter = MouseFilterEnum.Ignore;
+			// The name goes on the plate, right of the leader's face, and
+			// stops short of the marks.
+			Label name = MakeCivName(AdvisorUtils.CivTitle(civ), selected ? PickedInk : Ink);
 			button.AddChild(name);
-			// The civ picked is framed, as the operational cost picked is,
-			// since the art's own highlight is faint.
-			if (selected) {
-				button.AddChild(MakeFrame(new Vector2(CivButtonTab - 2, 2), CivButtonSize - new Vector2(CivButtonTab, 6)));
-			}
 			// "If the Embassy Icon is displayed, you currently have an
 			// embassy within that civilization's capitol city. If the Spy
 			// icon is present, you have a spy planted within that
 			// civilization."
-			AddIcon(button, "embassy", Espionage.HasEmbassy(player, civ), new Vector2(258, 14), "An Embassy");
-			AddIcon(button, "spy", Espionage.HasSpy(player, civ), new Vector2(290, 14), "A Spy");
+			AddIcon(button, "embassy", Espionage.HasEmbassy(player, civ), new Vector2(CivButtonSize.X - 64, 12), "An Embassy");
+			AddIcon(button, "spy", Espionage.HasSpy(player, civ), new Vector2(CivButtonSize.X - 34, 12), "A Spy");
 			ID id = civ.id;
 			button.Pressed += () => {
 				selectedCiv = id;
@@ -347,13 +428,35 @@ public partial class EspionageScreen : Control {
 		}
 	}
 
-	// The inside of the square tab at the left end of an opponent's
-	// button, within its bevel.
-	private static readonly Rect2 HeadBox = new(5, 5, CivButtonTab - 10, 48 - 10);
+	// The square at the left end of a rival's plate that the leader's face
+	// is shown in.
+	private static readonly Rect2 HeadBox = new(5, 5, CivButtonTab - 8, 48 - 10);
+
+	// A rival's name on its plate, right of the leader's face and short of
+	// the marks.
+	private static Label MakeCivName(string text, Color color) {
+		float left = CivButtonTab + 6;
+		float width = CivButtonSize.X - 70 - left;
+		Label name = AdvisorUtils.MakeLabel(text, 15, width);
+		name.Position = new Vector2(left, 3);
+		name.Size = new Vector2(width, CivButtonSize.Y - 6);
+		name.AddThemeColorOverride("font_color", color);
+		name.MouseFilter = MouseFilterEnum.Ignore;
+		return name;
+	}
 
 	// The civ's leader head (for its era, as on the diplomacy screens) in
-	// the square tab, filling it.
+	// the square, filling it, framed by a thin dark line.
 	private static void AddLeaderHead(Control button, Player civ) {
+		Panel well = new() {
+			Position = HeadBox.Position - Vector2.One,
+			Size = HeadBox.Size + 2 * Vector2.One,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		StyleBoxFlat line = new() { BgColor = Color.Color8(150, 136, 108), BorderColor = Color.Color8(58, 54, 44) };
+		line.SetBorderWidthAll(1);
+		well.AddThemeStyleboxOverride("panel", line);
+		button.AddChild(well);
 		Texture2D head;
 		try {
 			head = LeaderHeadTextures.Get(civ);
@@ -380,22 +483,15 @@ public partial class EspionageScreen : Control {
 		button.AddChild(frame);
 	}
 
-	// An opponent we haven't met: its button, greyed, that can't be picked.
-	private static TextureButton MakeUnmetButton() {
-		TextureButton button = new() {
+	// A rival we haven't met: its plate, greyed, that can't be picked.
+	private static Button MakeUnmetButton() {
+		Button button = new() {
 			CustomMinimumSize = CivButtonSize,
-			TextureNormal = Art("civ.normal"),
 			Disabled = true,
 			MouseDefaultCursorShape = CursorShape.Arrow,
 		};
-		AddFallbackFace(button, CivButtonSize);
-		float nameLeft = CivButtonTab + 10;
-		Label name = AdvisorUtils.MakeLabel(UnmetName, 15, 252 - nameLeft);
-		name.Position = new Vector2(nameLeft, 3);
-		name.Size = new Vector2(252 - nameLeft, CivButtonSize.Y - 6);
-		name.AddThemeColorOverride("font_color", UnavailableInk);
-		name.MouseFilter = MouseFilterEnum.Ignore;
-		button.AddChild(name);
+		StyleAsPlate(button, false);
+		button.AddChild(MakeCivName(UnmetName, UnavailableInk));
 		return button;
 	}
 
@@ -443,10 +539,9 @@ public partial class EspionageScreen : Control {
 			missionBoxes.RemoveChild(child);
 			child.QueueFree();
 		}
-		diplomaticButton.ButtonPressed = missionType == MissionType.Diplomatic;
-		spyButton.ButtonPressed = missionType == MissionType.Spy;
-		diplomaticButton.AddThemeColorOverride("font_color", missionType == MissionType.Diplomatic ? Ink : Faded);
-		spyButton.AddThemeColorOverride("font_color", missionType == MissionType.Spy ? Ink : Faded);
+		// The type shown is the tab picked.
+		StyleAsPlate(diplomaticButton, missionType == MissionType.Diplomatic);
+		StyleAsPlate(spyButton, missionType == MissionType.Spy);
 
 		int row = 0;
 		foreach (EspionageMission mission in MissionsOf(missionType)) {
@@ -454,22 +549,25 @@ public partial class EspionageScreen : Control {
 			bool picked = selectedMission == mission;
 			Espionage.MissionOption option = target == null ? null : Option(gameData, player, target, mission, EspionageRisk.Immediately);
 			bool available = option?.available ?? false;
+			// A mission that can't be sent has a greyed box, and can still
+			// be picked to read why in the briefing.
 			TextureButton box = new() {
 				Position = position,
-				CustomMinimumSize = new Vector2(24, 23),
-				TextureNormal = Art(picked ? "box.checked" : "box.normal"),
+				CustomMinimumSize = new Vector2(24, 24),
+				TextureNormal = Art(picked ? "box.checked" : available ? "box.normal" : "box.disabled"),
 				TextureHover = Art(picked ? "box.checked_hover" : "box.hover"),
 				TooltipText = option?.reason ?? "",
 			};
-			AddFallbackFace(box, new Vector2(24, 23));
+			AddFallbackFace(box, new Vector2(24, 24));
 			Button label = new() {
 				Text = Espionage.Describe(mission),
 				Flat = true,
 				Alignment = HorizontalAlignment.Left,
-				Position = position + new Vector2(30, -2),
-				Size = new Vector2(240, 27),
+				Position = position + new Vector2(28, -2),
+				Size = new Vector2(252, 28),
 				TooltipText = option?.reason ?? "",
 			};
+			label.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
 			label.AddThemeFontSizeOverride("font_size", 14);
 			// Dark on the stone of the panel: black if it can be sent, grey if
 			// not, and dark orange when picked.
@@ -505,6 +603,10 @@ public partial class EspionageScreen : Control {
 	// know of. Only for city missions.
 	private void FillCities(GameData gameData, Player player, Player target) {
 		AdvisorUtils.ClearList(cityList);
+		cityHint.Text = target == null ? ""
+			: selectedMission is not EspionageMission m ? "Pick a mission."
+			: !Espionage.TargetsCity(m) ? "This mission needs no target city."
+			: "";
 		if (target == null || selectedMission is not EspionageMission mission || !Espionage.TargetsCity(mission)) {
 			return;
 		}
@@ -512,24 +614,24 @@ public partial class EspionageScreen : Control {
 		foreach (City city in target.cities.Where(c => player.tileKnowledge.isTileKnown(c.location))
 				.OrderByDescending(c => c.IsCapital()).ThenBy(c => c.name)) {
 			bool selected = city == picked;
-			TextureButton bar = new() {
+			Button bar = new() {
+				Text = city.IsCapital() ? $"{city.name} (capital)" : city.name,
+				Alignment = HorizontalAlignment.Left,
 				CustomMinimumSize = BarSize,
-				TextureNormal = Art(selected ? "bar.selected" : "bar.normal"),
-				TextureHover = Art(selected ? "bar.selected" : "bar.hover"),
+				ClipText = true,
+				TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
 			};
-			AddFallbackFace(bar, BarSize);
-			Label name = AdvisorUtils.MakeLabel(city.name, 13, BarSize.X - 16);
-			name.Position = new Vector2(8, 0);
-			name.Size = new Vector2(BarSize.X - 16, BarSize.Y);
-			name.AddThemeColorOverride("font_color", Ink);
-			name.MouseFilter = MouseFilterEnum.Ignore;
-			bar.AddChild(name);
+			bar.AddThemeFontSizeOverride("font_size", 13);
+			StyleAsPlate(bar, selected);
 			City c = city;
 			bar.Pressed += () => {
 				selectedCity = c;
 				Refresh();
 			};
 			cityList.AddChild(bar);
+		}
+		if (cityList.GetChildCount() == 0) {
+			cityHint.Text = "We know of none of their cities.";
 		}
 	}
 
@@ -552,7 +654,7 @@ public partial class EspionageScreen : Control {
 			Button button = riskButtons[i];
 			bool enabled = target != null && mission != null && (choice || r == EspionageRisk.Immediately);
 			button.Disabled = !enabled;
-			riskFrames[i].Visible = enabled && r == risk;
+			StyleAsPlate(button, enabled && r == risk);
 			if (target == null || mission == null) {
 				button.Text = name;
 				continue;
@@ -567,7 +669,6 @@ public partial class EspionageScreen : Control {
 			button.Text = enabled && option.available ? $"{name} ({option.cost} gold{chance})" : name;
 		}
 		execute.Disabled = chosen == null || !chosen.available;
-		execute.Modulate = execute.Disabled ? new Color(1, 1, 1, 0.5f) : Colors.White;
 		cancel.Disabled = mission == null;
 	}
 

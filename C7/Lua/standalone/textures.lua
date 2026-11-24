@@ -424,6 +424,41 @@ return function(civ3_textures)
   -- draws them itself.
   c7_textures.terrain_improvements.colony.path = "Art/Terrain/TerrainBuildings.pcx"
 
+  -- The Espionage screen has art of its own (C7/ModernArt/Art/Espionage,
+  -- made by ArtGen/screens/espionage.py): the background, the advisors'
+  -- page with the screen's bands and cards, and a sheet of its parts. A
+  -- plate (an entry or a choice) and a button in their four states, 64x32
+  -- each, stretched by their margins; the mission check box in five; the
+  -- embassy and spy marks.
+  local espionage_parts = "Art/Espionage/EspionageParts.png"
+  local function espionage_part(x, y, w, h)
+    return { path = espionage_parts, crop_region = { x, y, w, h } }
+  end
+  c7_textures.espionage = {
+    background = "Art/Espionage/EspionageBackground.png",
+    plate = {
+      normal = espionage_part(0, 0, 64, 32),
+      hover = espionage_part(64, 0, 64, 32),
+      selected = espionage_part(128, 0, 64, 32),
+      disabled = espionage_part(192, 0, 64, 32),
+    },
+    button = {
+      normal = espionage_part(0, 32, 64, 32),
+      hover = espionage_part(64, 32, 64, 32),
+      pressed = espionage_part(128, 32, 64, 32),
+      disabled = espionage_part(192, 32, 64, 32),
+    },
+    box = {
+      normal = espionage_part(0, 64, 24, 24),
+      hover = espionage_part(24, 64, 24, 24),
+      checked = espionage_part(48, 64, 24, 24),
+      checked_hover = espionage_part(72, 64, 24, 24),
+      disabled = espionage_part(96, 64, 24, 24),
+    },
+    embassy = espionage_part(128, 64, 24, 24),
+    spy = espionage_part(152, 64, 24, 24),
+  }
+
   function c7_textures.borders:find_column(_)
     return 0
   end

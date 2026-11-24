@@ -15,6 +15,9 @@ Civ3's):
     Art/VictoryScreen/*.png               the end-of-game screen's seven
                                           backgrounds, its bubble, frames
                                           and buttons                      (victory.py)
+    Art/Espionage/*.png                   the Espionage screen's background
+                                          and parts (at their own sizes,
+                                          not a remake of other art)       (espionage.py)
 
 They're used with the Modern graphics option, and in standalone mode for
 the files the standalone asset pack doesn't have (the box and the two
@@ -28,6 +31,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import city_buttons  # noqa: E402
 import city_icons  # noqa: E402
+import espionage  # noqa: E402
 import victory  # noqa: E402
 import wonders  # noqa: E402
 
@@ -36,3 +40,4 @@ if __name__ == '__main__':
     city_icons.build()
     city_buttons.build()
     victory.build()
+    espionage.build()
