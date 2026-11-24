@@ -243,6 +243,9 @@ namespace C7Engine {
 				RisingTide.BeginTurn(gameData);
 				CityStates.BeginTurn(gameData);
 				Staging.BeginTurn(gameData);
+
+				// A server game decides now whether the humans move at once.
+				EngineStorage.newTurnBeginning?.Invoke(gameData);
 			}
 		}
 

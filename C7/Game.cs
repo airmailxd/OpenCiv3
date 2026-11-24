@@ -2793,6 +2793,16 @@ public partial class Game : Node {
 	public void OnSaveGame() {
 		popupOverlay.OnHidePopup(); // hide game menu
 
+		// A server game is kept on the server, which saves it as it's
+		// played. What this machine has is only what its civilization can
+		// see, which couldn't go back to the server, so it isn't saved here.
+		if (ServerGames.InServerGame) {
+			popupOverlay.ShowPopup(new InformationalPopup(
+				"This game is kept on the game server, which saves it as you play. Your moves are saved there within a few seconds.",
+				AdvisorHead.Advisor.Domestic), PopupOverlay.PopupCategory.Info);
+			return;
+		}
+
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 

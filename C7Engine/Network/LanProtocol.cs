@@ -288,8 +288,11 @@ public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeat
 // seconds each turn has (null for no limit), whether joining takes a
 // password, the turn it's at (0 before it starts), and the settings and
 // rules as the Multiplayer Setup screen lists them (see LobbySummary).
+// scaledTurnTimer is the rules' scaled timer's formula, such as "16 s + 2 s
+// per city + 1 s per unit", when turns are timed by it (see
+// ScaledTurnTimer), and turnSeconds is then null; null otherwise.
 public record LobbyDetails(string gameName, double? turnSeconds, bool hasPassword, int turn,
-	List<LobbySetting> settings = null, List<LobbyRule> rules = null);
+	List<LobbySetting> settings = null, List<LobbyRule> rules = null, string scaledTurnTimer = null);
 
 // A setting, such as "World Size:" and "Standard".
 public record LobbySetting(string label, string value);

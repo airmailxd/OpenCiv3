@@ -57,6 +57,9 @@ public class NewGameChoices {
 	// and its turn timer in minutes (0 for none); null if never chosen.
 	public string MultiplayerGameType;
 	public int? TurnTimerMinutes;
+	// Whether the turn timer chosen was the rules' scaled one (see
+	// ScaledTurnTimer) rather than TurnTimerMinutes; null if never chosen.
+	public bool? ScaledTurnTimer;
 
 	// The rules. Null for those never chosen, which take the ruleset's or
 	// the screen's default.
@@ -98,6 +101,7 @@ public class NewGameChoices {
 		public const string AdvancedAiSlots = nameof(AdvancedAiSlots);
 		public const string MultiplayerGameType = nameof(MultiplayerGameType);
 		public const string TurnTimerMinutes = nameof(TurnTimerMinutes);
+		public const string ScaledTurnTimer = nameof(ScaledTurnTimer);
 		public const string ConquestVictory = nameof(ConquestVictory);
 		public const string DominationVictory = nameof(DominationVictory);
 		public const string SpaceRaceVictory = nameof(SpaceRaceVictory);
@@ -167,6 +171,7 @@ public class NewGameChoices {
 		choices.MultiplayerGameType = NonEmpty(get(Keys.MultiplayerGameType));
 		int timer = ParseSlot(get(Keys.TurnTimerMinutes));
 		choices.TurnTimerMinutes = timer >= 0 ? timer : null;
+		choices.ScaledTurnTimer = ParseBool(get(Keys.ScaledTurnTimer));
 
 		choices.ConquestVictory = ParseBool(get(Keys.ConquestVictory));
 		choices.DominationVictory = ParseBool(get(Keys.DominationVictory));
@@ -212,6 +217,7 @@ public class NewGameChoices {
 		set(Keys.AdvancedAiSlots, JoinList(AdvancedAiSlots.Select(s => s.ToString(CultureInfo.InvariantCulture))));
 		set(Keys.MultiplayerGameType, MultiplayerGameType);
 		set(Keys.TurnTimerMinutes, TurnTimerMinutes?.ToString(CultureInfo.InvariantCulture));
+		set(Keys.ScaledTurnTimer, FormatBool(ScaledTurnTimer));
 
 		set(Keys.ConquestVictory, FormatBool(ConquestVictory));
 		set(Keys.DominationVictory, FormatBool(DominationVictory));

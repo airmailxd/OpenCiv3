@@ -15,15 +15,22 @@ public static class LanSession {
 	public static bool IsSpectator => Client?.IsSpectator == true;
 
 	// The name this player goes by in LAN and online games, which everyone
-	// in them sees, kept in the settings. It's never taken from the
+	// in them sees: their account's (AccountName) when they're signed in,
+	// else the one kept in the settings. It's never taken from the
 	// computer, whose user name is often the player's own.
 	public static string PlayerName {
 		get {
+			string account = AccountName;
+			if (account != null) {
+				return account;
+			}
 			string name = C7Settings.GetSettingsValueOrDefault(SettingsSection, "playerName", null);
 			return string.IsNullOrWhiteSpace(name) ? DefaultPlayerName : name.Trim();
 		}
 		set {
-			if (string.IsNullOrWhiteSpace(value) || value.Trim() == PlayerName) {
+			// Signed in, the account names them; the name typed is for
+			// when they aren't.
+			if (NamedByAccount || string.IsNullOrWhiteSpace(value) || value.Trim() == PlayerName) {
 				return;
 			}
 			C7Settings.SetValue(SettingsSection, "playerName", value.Trim());
@@ -32,20 +39,41 @@ public static class LanSession {
 	}
 
 	public const string DefaultPlayerName = "Player";
+
+	// The account the player is signed in with, as the game server names
+	// them in its games (and Roma in its city), or null: C7_PLAYER_NAME, which
+	// Roma gives OpenCiv when it starts it, else the game-server session (the
+	// launcher's or Roma's hand-off, or one logged in with on Server Games).
+	public static string AccountName {
+		get {
+			string name = System.Environment.GetEnvironmentVariable("C7_PLAYER_NAME");
+			if (string.IsNullOrWhiteSpace(name)) {
+				try {
+					name = GameServerSettings.SavedSession(GameServerSettings.Url)?.Username;
+				} catch (System.Exception) {
+					name = null;
+				}
+			}
+			if (string.IsNullOrWhiteSpace(name)) {
+				return null;
+			}
+			name = name.Trim();
+			return name.Length > LanHost.MaxPlayerNameLength ? name[..LanHost.MaxPlayerNameLength] : name;
+		}
+	}
+
+	public static bool NamedByAccount => AccountName != null;
 	private const string SettingsSection = "lan";
 
 	// Developer options for trying LAN games from the command line, after "--":
 	//   --lan-host=<save>     host the saved game, starting once every seat is taken
-	//   --lan-join=<address>  join the host there (or the online game with that
-	//                         join code) and take the first open seat
+	//   --lan-join=<address>  join the host there and take the first open seat
 	//   --lan-watch=<address> join the host there as a spectator
-	//   --lan-online          also host the game online, through the relay
 	//   --lan-autoplay        end each of this machine's turns soon after it starts
 	//   --lan-turn-time=<s>   give each player this many seconds for their turn
 	public static readonly string DevHostSave;
 	public static readonly string DevJoinAddress;
 	public static readonly bool DevWatch;
-	public static readonly bool DevHostOnline;
 	public static readonly bool DevAutoplay;
 	public static readonly int? DevTurnSeconds;
 	private static bool devStartUsed = false;
@@ -59,8 +87,6 @@ public static class LanSession {
 			} else if (arg.StartsWith("--lan-watch=")) {
 				DevJoinAddress = arg["--lan-watch=".Length..];
 				DevWatch = true;
-			} else if (arg == "--lan-online") {
-				DevHostOnline = true;
 			} else if (arg == "--lan-autoplay") {
 				DevAutoplay = true;
 			} else if (arg.StartsWith("--lan-turn-time=") && int.TryParse(arg["--lan-turn-time=".Length..], out int seconds)) {
@@ -96,8 +122,8 @@ public static class LanSession {
 	public static LanResumeInfo ResumeGame;
 
 	// The LAN game this machine last joined, kept in the settings so that
-	// its player can rejoin it after closing their game: where it was, on
-	// the network or online.
+	// its player can rejoin it after closing their game: where it was on the
+	// network. Server games are rejoined from Server Games instead.
 	public record LastGame(string hostName, LanEndpoint endpoint, string token) {
 		public string address => (endpoint as LanAddressEndpoint)?.Address;
 		public int port => (endpoint as LanAddressEndpoint)?.Port ?? 0;
@@ -111,13 +137,9 @@ public static class LanSession {
 			if (string.IsNullOrEmpty(token)) {
 				return null;
 			}
-			string code = C7Settings.GetSettingsValueOrDefault(LastGameSection, "JoinCode", null);
-			string relayUrl = C7Settings.GetSettingsValueOrDefault(LastGameSection, "RelayUrl", null);
 			string address = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Address", null);
 			LanEndpoint endpoint;
-			if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(relayUrl)) {
-				endpoint = new RelayEndpoint(relayUrl, code);
-			} else if (!string.IsNullOrEmpty(address)
+			if (!string.IsNullOrEmpty(address)
 				&& int.TryParse(C7Settings.GetSettingsValueOrDefault(LastGameSection, "Port", ""), out int port)) {
 				endpoint = new LanAddressEndpoint(address, port);
 			} else {
@@ -129,21 +151,14 @@ public static class LanSession {
 
 	// Remembers the game the client is playing in, to rejoin it later.
 	public static void RememberJoinedGame(LanClient client) {
-		if (client.IsSpectator || client.ReconnectToken == null) {
+		// Only games on the network: a server game, joined through the relay,
+		// is rejoined from Server Games.
+		if (client.IsSpectator || client.ReconnectToken == null || client.Endpoint is not LanAddressEndpoint) {
 			return;
 		}
 		C7Settings.SetValue(LastGameSection, "HostName", client.Lobby?.hostName ?? client.HostAddress);
-		if (client.Endpoint is RelayEndpoint online) {
-			C7Settings.SetValue(LastGameSection, "RelayUrl", online.RelayUrl);
-			C7Settings.SetValue(LastGameSection, "JoinCode", online.Code);
-			C7Settings.RemoveValue(LastGameSection, "Address");
-			C7Settings.RemoveValue(LastGameSection, "Port");
-		} else {
-			C7Settings.SetValue(LastGameSection, "Address", client.Address);
-			C7Settings.SetValue(LastGameSection, "Port", client.Port.ToString());
-			C7Settings.RemoveValue(LastGameSection, "RelayUrl");
-			C7Settings.RemoveValue(LastGameSection, "JoinCode");
-		}
+		C7Settings.SetValue(LastGameSection, "Address", client.Address);
+		C7Settings.SetValue(LastGameSection, "Port", client.Port.ToString());
 		C7Settings.SetValue(LastGameSection, "Token", client.ReconnectToken);
 		C7Settings.SaveSettings();
 	}
@@ -250,8 +265,8 @@ public static class LanSession {
 // teamCount is how many teams players choose among, or 0 for a
 // free-for-all, and guestTeams the team each guest seat starts on. The
 // Multiplayer Setup screen also sets the game's name, its turn timer (null
-// for none), whether turns are simultaneous, and whether to host online
-// too; null or false leaves them to the lobby.
+// for none, or scaledTurnTimer for the rules' scaled one), and whether turns
+// are simultaneous; null leaves them to the lobby.
 public record PendingLanGame(GameSetup setup, C7GameData.Save.SaveGame save, int guestSeats, int teamCount = 0,
 	System.Collections.Generic.List<int> guestTeams = null, string gameName = null, System.TimeSpan? turnTimeLimit = null,
-	bool? simultaneousTurns = null, bool hostOnline = false);
+	bool? simultaneousTurns = null, bool scaledTurnTimer = false);

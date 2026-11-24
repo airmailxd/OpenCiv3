@@ -48,8 +48,6 @@ public partial class MultiplayerSetupScreen : Control {
 	private static readonly (string text, MultiplayerGameType? type, string tooltip)[] GameTypes = [
 		("Hotseat", MultiplayerGameType.Hotseat, "Everyone plays at this computer, taking turns."),
 		("LAN", MultiplayerGameType.Lan, "Players on your local network join from \"Join LAN Game\"."),
-		("Internet", MultiplayerGameType.Internet,
-			"Players on your network, and anywhere else with the join code the lobby shows, through the online relay."),
 		("Play By Email", MultiplayerGameType.PlayByEmail,
 			"Each player plays their turn on their own computer, then saves the game and emails it to the next player."),
 	];
@@ -126,10 +124,15 @@ public partial class MultiplayerSetupScreen : Control {
 
 	private bool launching;
 
-	private MultiplayerGameType GameType => GameTypes[gameType.Selected].type ?? MultiplayerGameType.Lan;
+	// A server game's seats are set up here as hotseat players are, each
+	// Open slot another human's (see MultiplayerSetupScreen.ServerGame).
+	private MultiplayerGameType GameType => serverGame ? MultiplayerGameType.Hotseat
+		: GameTypes[gameType.Selected].type ?? MultiplayerGameType.Lan;
 	private string HostName => LanSession.PlayerName;
 
 	public override void _Ready() {
+		serverGame = ServerGame;
+		ServerGame = false;
 		global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		choices = NewGameChoices.Load();
 		// A new game's rules, loaded here as the world setup screen does,
@@ -158,6 +161,9 @@ public partial class MultiplayerSetupScreen : Control {
 		right.AddChild(MakeGameRules());
 		right.AddChild(MakeMessages());
 		AddBottomStrip(frame, BackToMenu);
+		if (serverGame) {
+			SetUpForServerGame();
+		}
 
 		ShowGameType();
 		GetViewport().SizeChanged += Fit;
@@ -179,7 +185,7 @@ public partial class MultiplayerSetupScreen : Control {
 		gameNameEdit = MakeDarkField();
 		gameNameEdit.Text = MultiplayerSlots.DefaultGameName(HostName);
 		gameNameEdit.MaxLength = C7Relay.RelayProtocol.MaxGameNameLength;
-		gameNameEdit.TooltipText = "The game's name, as the online game list shows it.";
+		gameNameEdit.TooltipText = "The game's name, as the lists of games show it.";
 		box.AddChild(gameNameEdit);
 
 		ScrollContainer scroll = new() {
@@ -193,7 +199,8 @@ public partial class MultiplayerSetupScreen : Control {
 		settingsList = settings;
 
 		Enum.TryParse(choices.MultiplayerGameType, out MultiplayerGameType lastType);
-		if (choices.MultiplayerGameType == null) {
+		// Internet games are played on the game server now, from Server Games.
+		if (choices.MultiplayerGameType == null || lastType == MultiplayerGameType.Internet) {
 			lastType = MultiplayerGameType.Lan;
 		}
 		gameType = AddSetting(settings, "Game Type:", GameTypes.Select(t => t.text),
@@ -226,9 +233,11 @@ public partial class MultiplayerSetupScreen : Control {
 		}
 		gameMode.ItemSelected += index => ChooseGameMode(GameModes[index].mode);
 
-		List<string> timers = LanLobby.TurnTimeChoices.Select(m => m == 0 ? "None" : $"{m} Minutes").ToList();
-		turnTimer = AddSetting(settings, "Turn Timer:", timers, Math.Max(0, Array.IndexOf(LanLobby.TurnTimeChoices, choices.TurnTimerMinutes ?? 0)),
-			"How long each player has for their turn before it ends for them. With simultaneous moves, how long everyone has for the round.");
+		// The fixed timers, then the rules' scaled one (see ScaledTurnTimer).
+		turnTimer = AddSetting(settings, "Turn Timer:", LanLobby.TurnTimerItems(save.Rules),
+			choices.ScaledTurnTimer == true ? LanLobby.ScaledTimerIndex
+				: Math.Max(0, Array.IndexOf(LanLobby.TurnTimeChoices, choices.TurnTimerMinutes ?? 0)),
+			TurnTimerHelp);
 
 		WorldSize lastSize = NewGameChoices.DefaultWorldSize(save.WorldSizes);
 		int sizeIndex = choices.WorldSize == NewGameChoices.Random
@@ -414,6 +423,7 @@ public partial class MultiplayerSetupScreen : Control {
 		if (GameSetup.RulesetDirFor(chosen) != loadedRulesetDir) {
 			LoadRules(chosen);
 		}
+		ShowTurnTimerRules(IsLeagueMode(chosen));
 		// Eternal War and Rising Tide are played on a pangaea, Kings &
 		// Nomads on continents or a pangaea.
 		bool pangaeaOnly = chosen is GameScenario.EternalWar or GameScenario.RisingTide;
@@ -598,7 +608,9 @@ public partial class MultiplayerSetupScreen : Control {
 				++playerNumber;
 			}
 			kind.SetItemText(0, open && hotseat ? NewGameChoices.HotseatName(slot.name, playerNumber) : "Open");
-			kind.TooltipText = byEmail
+			kind.TooltipText = serverGame
+				? "Open: another human player's seat, which they claim from Open Games on the game server. Closed: no civilization. Computer: a civilization the computer plays."
+				: byEmail
 				? "Open: another player, who plays their turns from the saves emailed to them. Closed: no civilization. Computer: a civilization the computer plays."
 				: hotseat
 				? "Open: another player at this computer. Closed: no civilization. Computer: a civilization the computer plays."
@@ -656,10 +668,11 @@ public partial class MultiplayerSetupScreen : Control {
 		}
 	}
 
-	// The host can always be renamed, and in hotseat the other players at
-	// this computer; people joining bring their own names.
+	// The host can be renamed unless signed in (the account names them), and
+	// in hotseat the other players at this computer; people joining bring
+	// their own names.
 	private bool CanRename(int row) {
-		return row == -1 || (row < slots.Count && slots[row].kind == SlotKind.Open && MultiplayerSlots.SeatsSetUpHere(GameType));
+		return (row == -1 && !LanSession.NamedByAccount) || (row < slots.Count && slots[row].kind == SlotKind.Open && MultiplayerSlots.SeatsSetUpHere(GameType));
 	}
 
 	private void Rename() {
@@ -839,6 +852,39 @@ public partial class MultiplayerSetupScreen : Control {
 
 	private void AddMessage(string text, Color? color = null) => SetupStyle.AddMessage(messages, text, color);
 
+	// ---- Turn timer ----
+
+	private const string TurnTimerHelp = "How long each player has for their turn before it ends for them. With simultaneous moves, "
+		+ "how long everyone has for the round. Scaled is Civ3's timer, from the rules: a base time and more for each city and unit "
+		+ "the player has; with simultaneous moves, the largest player's.";
+
+	// Whether the rules' scaled timer is chosen, rather than a fixed one.
+	private bool TurnTimerScaled => turnTimer.Selected == LanLobby.ScaledTimerIndex;
+
+	// The fixed timer chosen, or null for none or the scaled one.
+	private TimeSpan? TurnTimeLimit {
+		get {
+			int minutes = TurnTimerScaled ? 0 : LanLobby.TurnTimeChoices[Math.Max(0, turnTimer.Selected)];
+			return minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
+		}
+	}
+
+	// The scaled timer's choice shows the loaded rules' formula. A League
+	// mode (and MDJ, played on the League's MP Tournament ladder) starts
+	// with it, as Civ3's multiplayer games under those mods were timed.
+	private void ShowTurnTimerRules(bool leagueDefault) {
+		if (turnTimer == null) {
+			return;
+		}
+		turnTimer.SetItemText(LanLobby.ScaledTimerIndex, C7Engine.Network.ScaledTurnTimer.ChoiceText(save.Rules));
+		if (leagueDefault) {
+			turnTimer.Select(LanLobby.ScaledTimerIndex);
+		}
+	}
+
+	private static bool IsLeagueMode(GameScenario scenario) =>
+		scenario is GameScenario.MpTournament or GameScenario.Qc or GameScenario.Modern or GameScenario.Future or GameScenario.Mdj;
+
 	// ---- Game type ----
 
 	private void ShowGameType() {
@@ -846,30 +892,28 @@ public partial class MultiplayerSetupScreen : Control {
 		// Hotseat and play by email aren't played over the network.
 		bool hotseat = MultiplayerSlots.SeatsSetUpHere(type);
 		// Only a networked game has a turn clock and simultaneous turns (see
-		// LanHost), and a name to list it under.
-		turnTimer.Disabled = hotseat;
+		// LanHost), and a name to list it under. A server game is hosted by
+		// the game server, which times its turns (see LanHost.Dedicated)
+		// and decides for itself whether they're simultaneous.
+		turnTimer.Disabled = hotseat && !serverGame;
 		simultaneousMoves.Disabled = hotseat;
 		simultaneousMoves.Modulate = new Color(1, 1, 1, hotseat ? 0.5f : 1);
-		gameNameEdit.Editable = !hotseat;
-		string networkOnly = hotseat ? " Only in a networked game." : "";
-		turnTimer.TooltipText = "How long each player has for their turn before it ends for them. With simultaneous moves, how long everyone "
-			+ "has for the round." + networkOnly;
+		gameNameEdit.Editable = !hotseat || serverGame;
+		string networkOnly = hotseat && !serverGame ? " Only in a networked game." : "";
+		turnTimer.TooltipText = TurnTimerHelp + networkOnly;
 		UpdateHosting();
 		ShowSlots();
 		messages.Clear();
-		string what = type switch {
+		string what = serverGame ? "a server game" : type switch {
 			MultiplayerGameType.Hotseat => "a hotseat game",
 			MultiplayerGameType.PlayByEmail => "a play by email game",
 			_ => gameNameEdit.Text,
 		};
 		AddMessage($"Setting up {what}, hosted by {HostName}.");
-		AddMessage(type switch {
+		AddMessage(serverGame ? ServerGameHelp : type switch {
 			MultiplayerGameType.Hotseat => "Each Open slot is another player at this computer, taking turns with you. Rename gives them their names.",
 			MultiplayerGameType.PlayByEmail => "Each Open slot is another player. Each plays their turn on their own computer, then saves "
 				+ "the game and emails the save to the next player. Rename gives them their names.",
-			MultiplayerGameType.Internet => "The game is hosted online too: players anywhere join the Open slots with the join code under Game "
-				+ "Settings, and players on your network from \"Join LAN Game\". They choose their civilizations here. Launch starts the game "
-				+ "once every Open slot is taken.",
 			_ => "Players on your network join the Open slots from \"Join LAN Game\" and choose their civilizations here. "
 				+ "Launch starts the game once every Open slot is taken.",
 		});
@@ -889,6 +933,10 @@ public partial class MultiplayerSetupScreen : Control {
 			save.Civilizations.Where(c => !guestCivs.Contains(c.name)).ToList(), random);
 		if (plan.problem != null) {
 			AddMessage(plan.problem, ProblemColor);
+			return;
+		}
+		if (serverGame && plan.hotseatPlayers.Count == 0) {
+			AddMessage("A server game needs another human player: set a slot to Open for each.", ProblemColor);
 			return;
 		}
 
@@ -952,14 +1000,33 @@ public partial class MultiplayerSetupScreen : Control {
 		if (MultiplayerSlots.SeatsSetUpHere(type)) {
 			LanSession.HostNextGame = false;
 			AddMessage("Creating the world...");
+			// A server game keeps its turn timer in its save, which the game
+			// server hosts it by (see LanHost.Dedicated).
+			int? serverTimerSeconds = serverGame && TurnTimeLimit is TimeSpan chosenLimit ? (int)chosenLimit.TotalSeconds : null;
+			bool serverTimerScaled = serverGame && TurnTimerScaled;
 			// World generation can take a while, so not on the UI thread.
 			Task.Run(() => {
 				try {
 					setup.Populate(save);
 					// Each plays on their own computer (see PlayByEmail).
 					save.PlayByEmail = type == MultiplayerGameType.PlayByEmail;
+					save.TurnTimerSeconds = serverTimerSeconds;
+					save.ScaledTurnTimer = serverTimerScaled;
 				} catch (Exception e) {
 					Callable.From(() => LaunchFailed(e)).CallDeferred();
+					return;
+				}
+				if (serverGame) {
+					// Put on the server rather than played here.
+					SaveGame created = save;
+					byte[] bytes;
+					try {
+						bytes = created.ToCompactJSON();
+					} catch (Exception e) {
+						Callable.From(() => LaunchFailed(e)).CallDeferred();
+						return;
+					}
+					Callable.From(() => ServerGameCreated(created, bytes)).CallDeferred();
 					return;
 				}
 				Callable.From(StartGame).CallDeferred();
@@ -977,14 +1044,13 @@ public partial class MultiplayerSetupScreen : Control {
 		// Couldn't host here: the lobby hosts it, where the guests choose
 		// their civilizations, and the game is created once the host starts
 		// it there.
-		int minutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
 		string name = gameNameEdit.Text.Trim();
 		LanSession.HostNextGame = true;
 		LanSession.PendingGame = new PendingLanGame(setup, save, plan.guestSeats,
 			gameName: name == "" ? null : name,
-			turnTimeLimit: minutes == 0 ? null : TimeSpan.FromMinutes(minutes),
+			turnTimeLimit: TurnTimeLimit,
 			simultaneousTurns: simultaneousMoves.ButtonPressed,
-			hostOnline: type == MultiplayerGameType.Internet);
+			scaledTurnTimer: TurnTimerScaled);
 		StartGame();
 	}
 
@@ -1004,6 +1070,9 @@ public partial class MultiplayerSetupScreen : Control {
 	// the world and player setup screens do.
 	private void RememberChoices(MultiplayerGameType type) {
 		try {
+			// A server game's setup is remembered, but not as the game type
+			// to offer next time.
+			string lastType = choices.MultiplayerGameType;
 			choices.WorldSize = worldSize.Selected < save.WorldSizes.Count ? save.WorldSizes[worldSize.Selected].name : NewGameChoices.Random;
 			choices.Barbarians = barbarians.Selected < BarbarianLevels.Length ? BarbarianLevels[barbarians.Selected] : null;
 			choices.Landform = Landforms[landMass.Selected];
@@ -1014,7 +1083,11 @@ public partial class MultiplayerSetupScreen : Control {
 			choices.Civilization = civNames[hostCivilization.Selected];
 			choices.Difficulty = save.Difficulties[difficulty.Selected].Name;
 			MultiplayerSlots.RememberSlots(choices, type, slots.Take(rows.Count).ToList());
-			choices.TurnTimerMinutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
+			if (serverGame) {
+				choices.MultiplayerGameType = lastType;
+			}
+			choices.TurnTimerMinutes = (int)(TurnTimeLimit?.TotalMinutes ?? 0);
+			choices.ScaledTurnTimer = TurnTimerScaled;
 			choices.SetVictoryConditions(victoryConditions);
 			choices.ShowScoreboard = showScoreboard.ButtonPressed;
 			// Not the four rules multiplayer sets by default (see MakeGameRules),
@@ -1039,7 +1112,7 @@ public partial class MultiplayerSetupScreen : Control {
 		SetLaunching(false);
 		AddMessage($"Couldn't create the game: {e.Message}", ProblemColor);
 		// The rules were changed making the world; start again from fresh.
-		LoadRules(mdjRules);
+		LoadRules(loadedRulesetDir != null ? scenario : GameScenario.None);
 	}
 
 	private void StartGame() {
@@ -1057,6 +1130,8 @@ public partial class MultiplayerSetupScreen : Control {
 		StopHosting();
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
+		// Back to the Server Games screen a server game was set up from.
+		ServerGames.OpenOnMenu = serverGame;
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}
 }

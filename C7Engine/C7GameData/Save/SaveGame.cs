@@ -105,6 +105,8 @@ namespace C7GameData.Save {
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
 				SimultaneousTurns = data.simultaneousTurns,
+				TurnTimerSeconds = data.turnTimerSeconds,
+				ScaledTurnTimer = data.scaledTurnTimer,
 				PlayByEmail = data.playByEmail,
 				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
@@ -180,6 +182,8 @@ namespace C7GameData.Save {
 			data.victoryBonus = VictoryBonus;
 			data.nuclearEvents = NuclearEvents;
 			data.simultaneousTurns = SimultaneousTurns;
+			data.turnTimerSeconds = TurnTimerSeconds;
+			data.scaledTurnTimer = ScaledTurnTimer;
 			data.playByEmail = PlayByEmail;
 			data.debugMode = DebugMode;
 
@@ -770,6 +774,10 @@ namespace C7GameData.Save {
 		public int NuclearEvents { get; set; }
 		// Older saves, without it, have the humans take turns one by one.
 		public bool SimultaneousTurns { get; set; }
+		// See GameData.turnTimerSeconds and scaledTurnTimer. Older saves,
+		// without them, have no turn timer.
+		public int? TurnTimerSeconds { get; set; }
+		public bool ScaledTurnTimer { get; set; }
 		// See GameData.playByEmail. Older saves, without it, aren't.
 		public bool PlayByEmail { get; set; }
 		// See GameData.debugMode. Older saves, without it, aren't in debug

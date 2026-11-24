@@ -43,6 +43,12 @@ namespace C7Engine {
 		// player is at this machine.
 		public static Func<ID, bool> playerReachable;
 
+		// Called as each new turn begins, once the round's bookkeeping is
+		// done and before anyone moves, for a LAN host to decide how the
+		// turn is played (see LanHost.ChooseTurnsFromWhoIsConnected). Null
+		// for nothing.
+		public static Action<GameData> newTurnBeginning;
+
 		// A deal one human proposed to another, waiting for their answer.
 		internal static MsgProposeDeal pendingDeal;
 
@@ -333,6 +339,7 @@ namespace C7Engine {
 			newsForComputerPlayers = false;
 			uiFollowsActivePlayer = true;
 			playerReachable = null;
+			newTurnBeginning = null;
 			diplomacyPlayerID = null;
 			diplomacyAIPlayerID = null;
 			pendingDeal = null;

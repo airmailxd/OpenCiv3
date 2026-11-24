@@ -12,9 +12,9 @@ namespace C7Engine.Network;
 //   [online]
 //   relayUrl=wss://relay.example.org
 public static class OnlineRelay {
-	// The relay used unless one is chosen. This is a placeholder: set it to a
-	// running relay (see Relay/README.md) for everyone to use it.
-	public const string DefaultUrl = "wss://relay.example.com";
+	// The relay used unless one is chosen: Roma's public server, which runs
+	// the relay beside its game server (see Relay/README.md).
+	public const string DefaultUrl = "wss://play.roma-online.net";
 
 	public const string SettingsSection = "online";
 	public const string UrlSetting = "relayUrl";

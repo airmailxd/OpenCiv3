@@ -40,10 +40,6 @@ public partial class LanLobby {
 	// Who has come and gone, for the messages.
 	private readonly LobbyEvents lobbyEvents = new();
 
-	// Hosting: the game type shown, which goes from LAN to Internet when the
-	// game is hosted online.
-	private Label gameTypeValue;
-
 	// Hosting: how players join, and who may.
 	private HostJoiningSection joiningSection;
 
@@ -185,7 +181,10 @@ public partial class LanLobby {
 		return note;
 	}
 
-	private static string TurnTimeText(double? seconds) {
+	private static string TurnTimeText(double? seconds, string scaled = null) {
+		if (scaled != null) {
+			return $"Scaled ({scaled})";
+		}
 		if (seconds is not double s) {
 			return "None";
 		}
@@ -204,8 +203,7 @@ public partial class LanLobby {
 		name.TextChanged += text => host.PublicName = text;
 		settingsList.AddChild(name);
 
-		gameTypeValue = MakeValue("LAN", "Players on your network join from \"Join LAN Game\"; hosted online, players anywhere join with its code.");
-		AddSetting("Game Type:", gameTypeValue);
+		AddSetting("Game Type:", MakeValue("LAN", "Players on your network join from \"Join LAN Game\"."));
 		AddSetting("Turn Timer:", MakeTurnTimer());
 		foreach (LobbySetting setting in host.LobbySettings ?? []) {
 			AddSetting(setting.label, MakeValue(setting.value));
@@ -214,25 +212,19 @@ public partial class LanLobby {
 		ShowRules(host.LobbyRules);
 
 		joiningSection = new HostJoiningSection();
-		joiningSection.Build(this, hostOnlineButtonShown: true);
-		joiningSection.OnlineChanged += online => gameTypeValue.Text = online ? "Internet" : "LAN";
+		joiningSection.Build(this);
 		settingsList.AddChild(joiningSection);
-		// A game resumed from one hosted online goes online again, with the
-		// same code, so that its guests find it where they left it.
-		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
-			joiningSection.HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
-		} else if (LanSession.DevHostOnline || LanSession.PendingGame?.hostOnline == true) {
-			joiningSection.HostOnline();
-		}
 	}
 
 	// How long each player has for their turn; a resumed game keeps its own.
 	private OptionButton MakeTurnTimer() {
 		OptionButton choice = MakeDropdown("How long each player has for their turn before it ends for them. "
 			+ "With simultaneous moves, how long everyone has for the round.");
-		AddItems(choice, TurnTimeChoices.Select(m => m == 0 ? "None" : $"{m} Minutes"), 0);
+		AddItems(choice, TurnTimerItems(LanSession.Host.TurnTimerRules), 0);
 		TimeSpan? startingLimit = LanSession.Host.TurnTimeLimit;
-		if (startingLimit is TimeSpan limit) {
+		if (LanSession.Host.ScaledTurnTimer) {
+			choice.Select(ScaledTimerIndex);
+		} else if (startingLimit is TimeSpan limit) {
 			int index = Array.IndexOf(TurnTimeChoices, (int)limit.TotalMinutes);
 			if (index < 0 || limit.TotalMinutes != (int)limit.TotalMinutes) {
 				choice.AddItem(TurnTimeText(limit.TotalSeconds));
@@ -241,7 +233,12 @@ public partial class LanLobby {
 			choice.Select(index);
 		}
 		choice.ItemSelected += index => {
-			if (index >= TurnTimeChoices.Length) {
+			LanSession.Host.ScaledTurnTimer = index == ScaledTimerIndex;
+			if (index == ScaledTimerIndex) {
+				LanSession.Host.TurnTimeLimit = null;
+				return;
+			}
+			if (index > ScaledTimerIndex) {
 				// The resumed game's own time.
 				LanSession.Host.TurnTimeLimit = startingLimit;
 				return;
@@ -250,6 +247,7 @@ public partial class LanLobby {
 			LanSession.Host.TurnTimeLimit = minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
 		};
 		if (LanSession.DevTurnSeconds is int seconds) {
+			LanSession.Host.ScaledTurnTimer = false;
 			LanSession.Host.TurnTimeLimit = TimeSpan.FromSeconds(seconds);
 			choice.Disabled = true;
 			choice.AddItem($"{seconds} Seconds");
@@ -290,7 +288,7 @@ public partial class LanLobby {
 		if (details != null) {
 			shown.Add(("", details.gameName));
 		}
-		shown.Add(("Turn Timer:", TurnTimeText(details?.turnSeconds)));
+		shown.Add(("Turn Timer:", TurnTimeText(details?.turnSeconds, details?.scaledTurnTimer)));
 		foreach (LobbySetting setting in details?.settings ?? []) {
 			shown.Add((setting.label, setting.value));
 		}
@@ -454,6 +452,10 @@ public partial class LanLobby {
 		hostName.Text = host.HostName;
 		hostName.MaxLength = LanHost.MaxPlayerNameLength;
 		hostName.TooltipText = "You, hosting: what the other players see you as. Press Enter to change it.";
+		if (LanSession.NamedByAccount) {
+			hostName.Editable = false;
+			hostName.TooltipText = "You, hosting: your account's name.";
+		}
 		void Rename() {
 			if (LanSession.Host == null || string.IsNullOrWhiteSpace(hostName.Text) || hostName.Text == LanSession.Host.HostName) {
 				return;

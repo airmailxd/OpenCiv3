@@ -26,11 +26,13 @@ namespace C7Engine.Network;
 //
 // The password's verifier is as good as the password for joining this game
 // (see GamePassword), so the file is to be kept as private as a password.
+// scaledTurnTimer is whether turns are timed by the rules' scaled timer (see
+// ScaledTurnTimer); older files, without it, aren't.
 public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats,
 	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true,
 	string passwordSalt = null, string passwordVerifier = null, List<string> bannedTokens = null, List<string> bannedAddresses = null,
 	List<string> relayBans = null, bool listPublicly = false, string publicName = null, string publicDescription = null,
-	bool? allowSpectators = null, string relayBanScope = null, SpectatorViews? spectatorViews = null);
+	bool? allowSpectators = null, string relayBanScope = null, SpectatorViews? spectatorViews = null, bool scaledTurnTimer = false);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 

@@ -66,6 +66,14 @@ namespace C7Engine.Network;
 //
 // Hosting online, the host can also list its game in the relay's public
 // list (ListPublicly), which it keeps up to date as the game goes on.
+//
+// A dedicated host (see Dedicated), as a game server's worker runs, has no
+// player of its own: every human is a guest, each seat is held from the
+// start for whoever says hello with that seat's token, and nobody else gets
+// in. Its guests may act only when the game waits on them (see MayActNow),
+// so one whose turn it isn't views the game as their own civilization until
+// it is. It decides at the start of each turn whether the humans move at
+// once: they do when they're all connected (see ChooseTurnsFromWhoIsConnected).
 public class LanHost : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanHost>();
 
@@ -371,11 +379,56 @@ public class LanHost : IDisposable {
 		set {
 			if (turnTimeLimit != value) {
 				turnTimeLimit = value;
+				KeepTimerWithGame();
 				BroadcastLobby();
 			}
 		}
 	}
 	private TimeSpan? turnTimeLimit;
+
+	// Whether turns are timed by the rules' scaled timer (see
+	// ScaledTurnTimer) instead of TurnTimeLimit: each turn's time is worked
+	// out from the cities and units of the players about to move.
+	public bool ScaledTurnTimer {
+		get => scaledTurnTimer;
+		set {
+			if (scaledTurnTimer != value) {
+				scaledTurnTimer = value;
+				KeepTimerWithGame();
+				BroadcastLobby();
+			}
+		}
+	}
+	private bool scaledTurnTimer;
+
+	// The rules the scaled timer is described by before the game is made
+	// (the setup screen's); once it's made, the game's own.
+	public Rules TurnTimerRules { get; set; }
+
+	// The scaled timer's formula, as the lobby shows it, or null if turns
+	// aren't timed by it.
+	private string ScaledTurnTimerText() {
+		if (!ScaledTurnTimer) {
+			return null;
+		}
+		Rules rules = Started && EngineStorage.gameData?.rules != null ? EngineStorage.gameData.rules : TurnTimerRules;
+		return C7Engine.Network.ScaledTurnTimer.Describe(rules);
+	}
+
+	// How long the turn under way has, by whichever timer times it; null
+	// for no limit, or before a scaled turn's time is worked out.
+	public TimeSpan? CurrentTurnLimit => ScaledTurnTimer ? scaledLimit : TurnTimeLimit;
+	private TimeSpan? scaledLimit;
+
+	// The game keeps its timer, so that its saves are hosted again with it
+	// (see GameData.turnTimerSeconds).
+	private void KeepTimerWithGame() {
+		if (!Started || EngineStorage.gameData is not GameData gameData) {
+			return;
+		}
+		gameData.turnTimerSeconds = TurnTimeLimit is TimeSpan limit ? (int)Math.Ceiling(limit.TotalSeconds) : null;
+		gameData.scaledTurnTimer = ScaledTurnTimer;
+	}
 
 	// How the game is set up, as the Multiplayer Setup screen lists it,
 	// for the lobby to show everyone (see LobbySummary); null if not known.
@@ -400,7 +453,8 @@ public class LanHost : IDisposable {
 	public LobbyDetails CurrentDetails() {
 		int turn = Started && EngineStorage.gameData != null ? EngineStorage.gameData.turn : lobbyTurn;
 		string name = string.IsNullOrWhiteSpace(PublicName) ? DefaultPublicName : PublicName.Trim();
-		return new LobbyDetails(name, TurnTimeLimit?.TotalSeconds, HasPassword, turn, lobbySettings, lobbyRules);
+		return new LobbyDetails(name, ScaledTurnTimer ? null : TurnTimeLimit?.TotalSeconds, HasPassword, turn, lobbySettings, lobbyRules,
+			ScaledTurnTimerText());
 	}
 
 	// Whether the humans play their turns at the same time rather than one
@@ -473,6 +527,13 @@ public class LanHost : IDisposable {
 
 	// Raised on Poll() when players join, leave, or take seats.
 	public event Action LobbyChanged;
+
+	// Raised on Poll() with each command a guest sends that the host takes,
+	// as its player, just before the engine is given it; not for those it
+	// refuses. A game server's worker logs them (see the server's
+	// MoveLog). The engine reads the message later, so a handler that
+	// keeps it should copy what it needs at once.
+	public event Action<MessageToEngine> CommandAccepted;
 
 	// Seats for the human players other than the host's, in turn order.
 	public IReadOnlyList<SeatInfo> Seats =>
@@ -604,6 +665,72 @@ public class LanHost : IDisposable {
 	// hasn't created yet.
 	public bool GuestsChooseCivilizations => choosable != null;
 
+	// Whether the host has no player of its own (see Dedicated).
+	public bool IsDedicated => hostPlayerID == null;
+
+	// The seats the host has itself among the game's, as the lobby and the
+	// game lists count them.
+	private int HostSeats => IsDedicated ? 0 : 1;
+
+	public const string DedicatedJoinReason = "This game is played on a game server. Join it from My Games.";
+
+	// A seat of a dedicated host's game: its human player, the token that
+	// alone takes it, and the name of whoever plays it.
+	public sealed record DedicatedSeat(ID playerID, string token, string playerName);
+
+	// Hosts a game that already exists with no player of its own, as a game
+	// server's worker does (see doc/server-games.md). Each human player
+	// who isn't defeated is a seat, held for whoever says hello with its
+	// token; a guest with no token, or another, is turned away, and nobody
+	// may watch. The host listens only on this machine, since its guests
+	// come through the relay (HostOnline). The game is played with the
+	// humans moving at once whenever they're all connected as a turn begins.
+	public static LanHost Dedicated(string hostName, SaveGame save, IEnumerable<DedicatedSeat> seatTokens, int port = 0) {
+		Dictionary<ID, DedicatedSeat> tokens = seatTokens.ToDictionary(s => s.playerID);
+		List<Seat> seats = save.Players
+			.Where(p => p.human && !p.defeated)
+			.Select(p => {
+				DedicatedSeat given = tokens.GetValueOrDefault(p.id);
+				return new Seat {
+					info = new SeatInfo(p.id, p.civilization, p.name, false, null, team: TeamOf(save, p)),
+					token = string.IsNullOrEmpty(given?.token) ? null : given.token,
+					takenBy = TidyName(given?.playerName) ?? p.name,
+				};
+			})
+			.ToList();
+		LanHost host = new(hostName, null, null, seats, null, port, answerDiscovery: false, save.TurnNumber, IPAddress.Loopback) {
+			resumed = true,
+			allowSpectators = false,
+			ChooseTurnsFromWhoIsConnected = true,
+			GameType = LanGameList.GameTypeOf(save),
+			// A server game's timer is the one it was set up with, kept in
+			// its save (see GameData.turnTimerSeconds).
+			TurnTimeLimit = save.TurnTimerSeconds is int seconds && seconds > 0 ? TimeSpan.FromSeconds(seconds) : null,
+			ScaledTurnTimer = save.ScaledTurnTimer,
+			TurnTimerRules = save.Rules,
+		};
+		if (save.Map?.tilesWide > 0) {
+			host.MapSize = $"{save.Map.tilesWide}x{save.Map.tilesTall}";
+		}
+		host.PublishDiscoveryReply();
+		return host;
+	}
+
+	// Whether the humans move at once in a turn is decided as it begins:
+	// they do if every human still in the game is connected, and otherwise
+	// they move one at a time, in turn order. A turn keeps the way it began,
+	// so if someone drops partway through a simultaneous turn the others
+	// still finish theirs, and the turn waits for them to come back. A game
+	// started this way begins in turn, since its players come in one by one.
+	public bool ChooseTurnsFromWhoIsConnected { get; set; }
+
+	// The human players whose guests are connected now.
+	public IReadOnlyList<ID> ConnectedPlayerIDs => seats.Where(s => s.IsTaken).Select(s => s.info.playerID).ToList();
+
+	// Commands from guests whose players may not act now, which a dedicated
+	// host refuses (see MayActNow); for tests.
+	internal int RefusedCommands { get; private set; }
+
 	// The human player the host plays: the first one who isn't defeated.
 	public static SavePlayer HostPlayer(SaveGame save) {
 		return save.Players.FirstOrDefault(p => p.human && !p.defeated);
@@ -618,6 +745,10 @@ public class LanHost : IDisposable {
 			MapSize = $"{save.Map.tilesWide}x{save.Map.tilesTall}";
 		}
 		GameType = LanGameList.GameTypeOf(save);
+		// The timer the game was played with, until the host changes it.
+		turnTimeLimit = save.TurnTimerSeconds is int seconds && seconds > 0 ? TimeSpan.FromSeconds(seconds) : null;
+		scaledTurnTimer = save.ScaledTurnTimer;
+		TurnTimerRules = save.Rules;
 	}
 
 	// Hosts a game again from its autosave, with the settings it had, and
@@ -626,6 +757,8 @@ public class LanHost : IDisposable {
 	public static LanHost Resume(string hostName, SaveGame save, LanResumeInfo info, int? port = null, bool answerDiscovery = true) {
 		LanHost host = new(hostName, save, port ?? info.port, answerDiscovery) {
 			TurnTimeLimit = info.turnSeconds is double seconds ? TimeSpan.FromSeconds(seconds) : null,
+			ScaledTurnTimer = info.scaledTurnTimer,
+			TurnTimerRules = save.Rules,
 			SimultaneousTurns = info.simultaneousTurns,
 			HideUnseen = info.hideUnseen,
 			resumed = true,
@@ -703,7 +836,7 @@ public class LanHost : IDisposable {
 	}
 
 	private LanHost(string hostName, ID hostPlayerID, string hostCivilization, List<Seat> seats,
-		List<Civilization> choosable, int port, bool answerDiscovery, int lobbyTurn) {
+		List<Civilization> choosable, int port, bool answerDiscovery, int lobbyTurn, IPAddress listenOn = null) {
 		this.hostName = TidyName(hostName) ?? UnnamedGuest;
 		this.lobbyTurn = lobbyTurn;
 		this.hostPlayerID = hostPlayerID;
@@ -711,7 +844,7 @@ public class LanHost : IDisposable {
 		this.seats = seats;
 		this.choosable = choosable;
 
-		listener = new TcpListener(IPAddress.Any, port);
+		listener = new TcpListener(listenOn ?? IPAddress.Any, port);
 		listener.Start();
 		Thread acceptThread = new(AcceptLoop) { IsBackground = true, Name = "LAN accept" };
 		acceptThread.Start();
@@ -773,7 +906,7 @@ public class LanHost : IDisposable {
 		int turn = Started && EngineStorage.gameData != null ? EngineStorage.gameData.turn : lobbyTurn;
 		string locale = System.Globalization.CultureInfo.CurrentCulture.Name;
 		return new GameListing(name, description, HasPassword,
-			seats.Count + 1, seats.Count(s => s.IsTaken || s.IsHeld) + 1, AllowSpectators, turn, Started,
+			seats.Count + HostSeats, seats.Count(s => s.IsTaken || s.IsHeld) + HostSeats, AllowSpectators, turn, Started,
 			MapSize, SimultaneousTurns, TurnTimeLimit?.TotalSeconds, HideUnseen, hostName, locale == "" ? null : locale);
 	}
 
@@ -837,7 +970,7 @@ public class LanHost : IDisposable {
 		string gameName = string.IsNullOrWhiteSpace(PublicName) ? null : PublicName.Trim();
 		// The host's own seat counts among the seats, as the lobby shows them.
 		DiscoveryReply next = new(hostName, Port, openSeats, Started, HasPassword, LanProtocol.Version,
-			gameName, seats.Count + 1, seats.Count - openSeats + 1, MapSize, turn, GameType, AllowSpectators);
+			gameName, seats.Count + HostSeats, seats.Count - openSeats + HostSeats, MapSize, turn, GameType, AllowSpectators);
 		if (next != discoveryReply) {
 			discoveryReply = next;
 		}
@@ -941,8 +1074,16 @@ public class LanHost : IDisposable {
 			throw new InvalidOperationException("Create the game before starting it");
 		}
 		Started = true;
+		if (ChooseTurnsFromWhoIsConnected) {
+			// The players come in one by one, so the turn under way is
+			// played in turn; the next ones are decided as they begin.
+			simultaneousTurns = false;
+			EngineStorage.newTurnBeginning = ChooseTurns;
+		}
 		EngineStorage.gameData.simultaneousTurns = SimultaneousTurns;
+		KeepTimerWithGame();
 		EngineStorage.uiFollowsActivePlayer = false;
+		// A dedicated host has no UI of its own, nor a player to show it.
 		EngineStorage.uiControllerID = hostPlayerID;
 		EngineStorage.activePlayerID = TurnHandling.FirstHumanToPlay(EngineStorage.gameData).id;
 		EngineStorage.animationsEnabled = false;
@@ -958,6 +1099,20 @@ public class LanHost : IDisposable {
 		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
 		PublishDiscoveryReply();
+	}
+
+	// As a new turn begins, has the humans move at once if they're all
+	// connected, or else in turn (see ChooseTurnsFromWhoIsConnected).
+	private void ChooseTurns(GameData gameData) {
+		bool everyone = seats
+			.Where(s => gameData.GetPlayer(s.info.playerID) is Player { defeated: false })
+			.All(s => s.IsTaken);
+		if (gameData.simultaneousTurns != everyone) {
+			log.Information("Turn {Turn} is played {How}", gameData.turn,
+				everyone ? "simultaneously, with everyone connected" : "in turn, since not everyone is connected");
+		}
+		gameData.simultaneousTurns = everyone;
+		SimultaneousTurns = everyone;
 	}
 
 	private IEnumerable<Seat> SeatsOf(Guest guest) => seats.Where(s => s.guest == guest);
@@ -1101,9 +1256,31 @@ public class LanHost : IDisposable {
 			clockTurn = gameData.turn;
 			turnClock.Restart();
 			turnTimedOut = false;
+			scaledLimit = null;
+		}
+		// A dedicated host's players come and go (a server game can wait
+		// days for one), so its clock only runs while someone it times is
+		// connected, and only they run out of time.
+		List<ID> timed = TimedPlayers(toMove);
+		if (IsDedicated) {
+			if (timed.Count == 0) {
+				turnClock.Stop();
+			} else if (!turnClock.IsRunning) {
+				turnClock.Start();
+			}
+		}
+		// The scaled timer's time for the turn, as its humans start moving
+		// it, from their cities and units then (see ScaledTurnTimer).
+		if (ScaledTurnTimer && scaledLimit == null && timed.Count > 0) {
+			scaledLimit = C7Engine.Network.ScaledTurnTimer.LimitFor(gameData, timed);
+			if (scaledLimit is TimeSpan scaled) {
+				log.Information("Turn {Turn} has {Seconds} s by the scaled timer", gameData.turn, scaled.TotalSeconds);
+				// Heard with the clock below.
+				clockPlayersToMove = null;
+			}
 		}
 		// Everyone hears when someone finishes, too.
-		if (newTurn || active != clockPlayerID || !toMove.SequenceEqual(clockPlayersToMove)) {
+		if (newTurn || active != clockPlayerID || clockPlayersToMove == null || !toMove.SequenceEqual(clockPlayersToMove)) {
 			clockPlayerID = active;
 			clockPlayersToMove = toMove;
 			BroadcastTurnClock();
@@ -1118,14 +1295,23 @@ public class LanHost : IDisposable {
 			Autosave();
 		}
 
-		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit || toMove.Count == 0) {
+		if (CurrentTurnLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit || timed.Count == 0) {
 			return;
 		}
 		turnTimedOut = true;
-		foreach (ID id in toMove) {
+		foreach (ID id in timed) {
 			log.Information("{Player} ran out of time, ending their turn", gameData.GetPlayer(id));
 			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = id, turn = gameData.turn });
 		}
+	}
+
+	// The players to move whom the clock times: all of them, or on a
+	// dedicated host those whose guests are connected.
+	private List<ID> TimedPlayers(List<ID> toMove) {
+		if (!IsDedicated) {
+			return toMove;
+		}
+		return toMove.Where(id => seats.Any(s => s.info.playerID == id && s.IsTaken)).ToList();
 	}
 
 	// Ends the turn of each away player still to move, once a turn, the way
@@ -1203,7 +1389,7 @@ public class LanHost : IDisposable {
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
 			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen,
 			passwordSalt, passwordVerifier, [.. bannedTokens], [.. bannedAddresses], Online == null ? resumedRelayBans : [.. Online.Bans],
-			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope, spectatorViews);
+			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope, spectatorViews, ScaledTurnTimer);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -1351,13 +1537,13 @@ public class LanHost : IDisposable {
 			return null;
 		}
 		return new TurnClockInfo(clockPlayerID, clockTurn, turnClock.Elapsed.TotalSeconds,
-			TurnTimeLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove,
+			CurrentTurnLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove,
 			seats.Where(s => s.away).Select(s => s.info.playerID).ToList());
 	}
 
 	private List<ID> ConnectedPlayers() {
 		return [
-			hostPlayerID,
+			.. IsDedicated ? [] : new[] { hostPlayerID },
 			.. seats.Where(s => s.IsTaken).Select(s => s.info.playerID),
 		];
 	}
@@ -1427,6 +1613,13 @@ public class LanHost : IDisposable {
 					return false;
 				}
 				guest.name = TidyName(hello.playerName) ?? UnnamedGuest;
+				// A dedicated host's guests come only to their own seats.
+				if (IsDedicated && (hello.reconnectToken == null || bannedTokens.Contains(hello.reconnectToken)
+					|| !seats.Any(s => s.token == hello.reconnectToken))) {
+					log.Information("Turned away {Name}, who has no seat's token", guest.name);
+					Reject(guest, DedicatedJoinReason);
+					return false;
+				}
 				if (hello.reconnectToken != null) {
 					if (bannedTokens.Contains(hello.reconnectToken)) {
 						log.Information("Turned away {Name}, who is banned", guest.name);
@@ -1846,9 +2039,33 @@ public class LanHost : IDisposable {
 			log.Warning("Ignoring {Message} from {Name} for {Player}, who isn't theirs", msg.GetType().Name, guest.name, msg.playerID);
 			return;
 		}
+		// A dedicated host's guests may view the game whenever they like,
+		// but act only when it waits on them.
+		if (IsDedicated && !MayActNow(msg.playerID)) {
+			log.Information("Refusing {Message} from {Name}, whose player may not act now", msg.GetType().Name, guest.name);
+			RefusedCommands++;
+			return;
+		}
 		msg.DistrustRemoteSender(id => theirs.Any(s => s.info.playerID == id));
+		CommandAccepted?.Invoke(msg);
 		EngineStorage.ReceiveFromRemote(msg);
 		guest.awaitsAnswer |= frame.kind == FrameKind.PredictedCommand;
+	}
+
+	// Whether the game waits on the player to act: it's their turn, or an
+	// AI or another human waits on their answer, or the Mercenary Market on
+	// their bids. The engine checks each message for itself too (see
+	// MessageToEngine.IsAllowed); this keeps a viewer from acting at all.
+	public static bool MayActNow(ID playerID) {
+		GameData gameData = EngineStorage.gameData;
+		Player player = gameData?.GetPlayer(playerID);
+		if (player == null) {
+			return false;
+		}
+		return TurnHandling.IsPlayersTurn(gameData, playerID)
+			|| EngineStorage.diplomacyPlayerID == playerID
+			|| EngineStorage.pendingDeal?.opponent?.id == playerID
+			|| Staging.IsBidding(gameData, player);
 	}
 
 	// A guest's choice of civilization: one nobody else has chosen, or null
@@ -1985,7 +2202,7 @@ public class LanHost : IDisposable {
 	private SpectatorViewInfo DefaultSpectatorView() {
 		SpectatorViews allowed = SpectatorViews;
 		return allowed.HasFlag(SpectatorViews.AllCivs) ? new SpectatorViewInfo(SpectatorViewMode.AllCivs)
-			: allowed.HasFlag(SpectatorViews.OneCiv) ? new SpectatorViewInfo(SpectatorViewMode.OneCiv, hostPlayerID)
+			: allowed.HasFlag(SpectatorViews.OneCiv) && !IsDedicated ? new SpectatorViewInfo(SpectatorViewMode.OneCiv, hostPlayerID)
 			: new SpectatorViewInfo(SpectatorViewMode.Omniscient);
 	}
 
@@ -2055,7 +2272,9 @@ public class LanHost : IDisposable {
 		}
 
 		if (msg.IsForEveryone) {
-			EngineStorage.SendToLocalUI(msg);
+			if (!IsDedicated) {
+				EngineStorage.SendToLocalUI(msg);
+			}
 			byte[] json = NetSerialization.Serialize(msg);
 			foreach (Guest guest in SeatedGuests()) {
 				QueueUiMessage(guest, json);
@@ -2070,7 +2289,10 @@ public class LanHost : IDisposable {
 		}
 		Seat recipientSeat = to == null ? null : seats.Find(s => s.info.playerID == to.id);
 		if (recipientSeat == null) {
-			EngineStorage.SendToLocalUI(msg);
+			// For the host's own player; a dedicated host has nobody to tell.
+			if (!IsDedicated) {
+				EngineStorage.SendToLocalUI(msg);
+			}
 		} else if (recipientSeat.IsTaken) {
 			QueueUiMessage(recipientSeat.guest, NetSerialization.Serialize(msg));
 		} else if (recipientSeat.IsHeld) {
@@ -2240,7 +2462,7 @@ public class LanHost : IDisposable {
 
 	private void SendLobby(LanConnection connection, List<ID> yourSeats, string reconnectToken = null, SpectatorViewInfo spectatorView = null) {
 		List<SeatInfo> seatInfos = [
-			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName, team: hostTeam),
+			.. IsDedicated ? [] : new[] { new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName, team: hostTeam) },
 			.. Seats,
 		];
 		List<CivilizationChoice> civilizations = choosable?.Where(c => !reservedCivilizations.Contains(c.name)).Select(c => new CivilizationChoice(

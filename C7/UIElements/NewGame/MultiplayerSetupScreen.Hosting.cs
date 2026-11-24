@@ -11,7 +11,7 @@ using Godot;
 using static SetupStyle;
 
 // The Multiplayer Setup screen as the host's lobby (owner's request,
-// 2026-11-07), as Civ3's is: for a LAN or Internet game the game is hosted
+// 2026-11-07), as Civ3's is: for a LAN game the game is hosted
 // as soon as the screen is up, players join its Open slots and choose their
 // civilizations while the host sets it up, and Launch creates the world and
 // starts it once every Open slot is taken. A smaller world, or a slot set to
@@ -57,7 +57,6 @@ public partial class MultiplayerSetupScreen {
 			return;
 		}
 		Host.Poll();
-		joiningSection?.Update();
 		sinceSummary += delta;
 		if (sinceSummary >= 0.5) {
 			sinceSummary = 0;
@@ -72,15 +71,6 @@ public partial class MultiplayerSetupScreen {
 			StartHosting();
 		} else if (!networked && Hosting) {
 			StopHosting();
-		}
-		if (!Hosting) {
-			return;
-		}
-		bool online = Host.Online != null;
-		if (GameType == MultiplayerGameType.Internet && !online) {
-			joiningSection.HostOnline();
-		} else if (GameType == MultiplayerGameType.Lan && online) {
-			joiningSection.StopOnline();
 		}
 	}
 
@@ -98,7 +88,7 @@ public partial class MultiplayerSetupScreen {
 		lobbyEvents.Reset();
 
 		joiningSection = new HostJoiningSection();
-		joiningSection.Build(this, hostOnlineButtonShown: false);
+		joiningSection.Build(this);
 		settingsList.AddChild(joiningSection);
 		hostStatus.Visible = true;
 		removeButton.Visible = true;
@@ -282,17 +272,18 @@ public partial class MultiplayerSetupScreen {
 			}
 		}
 		List<LobbyRule> rules = ruleBoxes.Select(r => new LobbyRule(r.Text, r.ButtonPressed, r.TooltipText)).ToList();
-		int minutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
 		string name = gameNameEdit.Text.Trim();
 		string key = string.Join("\n", settings.Select(s => s.label + s.value)) + "|" + string.Join(",", rules.Select(r => r.on))
-			+ $"|{minutes}|{name}|{simultaneousMoves.ButtonPressed}|{HostName}";
+			+ $"|{turnTimer.GetItemText(turnTimer.Selected)}|{name}|{simultaneousMoves.ButtonPressed}|{HostName}";
 		if (key == sentSummary) {
 			return;
 		}
 		sentSummary = key;
 		Host.HostName = HostName;
 		Host.PublicName = name == "" ? null : name;
-		Host.TurnTimeLimit = minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
+		Host.TurnTimerRules = save.Rules;
+		Host.TurnTimeLimit = TurnTimeLimit;
+		Host.ScaledTurnTimer = TurnTimerScaled;
 		Host.SimultaneousTurns = simultaneousMoves.ButtonPressed;
 		Host.GameType = LanGameList.GameTypeName(scenario);
 		WorldSize size = worldSize.Selected < save.WorldSizes.Count ? save.WorldSizes[worldSize.Selected] : null;
@@ -315,14 +306,13 @@ public partial class MultiplayerSetupScreen {
 			SetLaunching(false);
 			return;
 		}
-		int minutes = LanLobby.TurnTimeChoices[turnTimer.Selected];
 		string name = gameNameEdit.Text.Trim();
 		LanSession.HostNextGame = true;
 		LanSession.PendingGame = new PendingLanGame(setup, save, plan.guestSeats,
 			gameName: name == "" ? null : name,
-			turnTimeLimit: minutes == 0 ? null : TimeSpan.FromMinutes(minutes),
+			turnTimeLimit: TurnTimeLimit,
 			simultaneousTurns: simultaneousMoves.ButtonPressed,
-			hostOnline: GameType == MultiplayerGameType.Internet);
+			scaledTurnTimer: TurnTimerScaled);
 		creatingGame = true;
 		setup.hotseatPlayers = Host.BeginCreatingGame();
 		AddMessage("Creating the world...");

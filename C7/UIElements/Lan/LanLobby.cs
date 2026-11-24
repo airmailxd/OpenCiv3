@@ -7,7 +7,6 @@ using C7Engine;
 using C7Engine.Network;
 using C7GameData;
 using C7GameData.Save;
-using C7Relay;
 using Godot;
 using Serilog;
 using static SetupStyle;
@@ -26,10 +25,8 @@ using static SetupStyle;
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
-	// Whether we came here to join a game rather than host one, and whether
-	// to open the server browser straight away.
+	// Whether we came here to join a game rather than host one.
 	public static bool joining = false;
-	public static bool openBrowser = false;
 
 	private GlobalSingleton Global;
 
@@ -46,11 +43,9 @@ public partial class LanLobby : Control {
 	private bool creatingGame = false;
 	private string createFailure;
 
-	// Joining: the name to play under, the list of games, and the join
-	// code typed.
+	// Joining: the name to play under, and the list of games.
 	private LineEdit nameEdit;
 	private LanGameBrowser gameList;
-	private LineEdit codeEdit;
 
 	// Joining a game with a password: where the player types it.
 	private HBoxContainer passwordPrompt;
@@ -187,6 +182,8 @@ public partial class LanLobby : Control {
 				// As set on the Multiplayer Setup screen.
 				LanSession.Host.PublicName = pending.gameName;
 				LanSession.Host.TurnTimeLimit = pending.turnTimeLimit;
+				LanSession.Host.TurnTimerRules = save.Rules;
+				LanSession.Host.ScaledTurnTimer = pending.scaledTurnTimer;
 				// For the game list's Game Type column; not in the save until the game is made.
 				LanSession.Host.GameType = LanGameList.GameTypeName(pending.setup.scenario);
 				(LanSession.Host.LobbySettings, LanSession.Host.LobbyRules) = LobbySummary.Of(pending.setup, save);
@@ -224,6 +221,13 @@ public partial class LanLobby : Control {
 	// 0 means no limit.
 	public static readonly int[] TurnTimeChoices = [0, 2, 5, 10, 15, 20, 30, 45, 60];
 
+	// The turn timer lists' choices: TurnTimeChoices' fixed timers, then
+	// the rules' scaled timer at ScaledTimerIndex (see ScaledTurnTimer).
+	public static int ScaledTimerIndex => TurnTimeChoices.Length;
+	public static List<string> TurnTimerItems(C7GameData.Rules rules) {
+		return [.. TurnTimeChoices.Select(m => m == 0 ? "None" : $"{m} Minutes"), ScaledTurnTimer.ChoiceText(rules)];
+	}
+
 	// The latest autosave that loads, which is the one before the last if the
 	// last was cut short.
 	private SaveGame LoadAutosave() {
@@ -245,7 +249,8 @@ public partial class LanLobby : Control {
 		}
 		return SaveManager.LoadSave(path, GamePaths.DefaultBicPath, scenarioSearchPath => {
 			Util.setModPath(scenarioSearchPath);
-			return Util.Civ3MediaPath("Text/PediaIcons.txt");
+			// Only the mod path matters here; the game may have no such file.
+			return Util.HasCiv3Media("Text/PediaIcons.txt") ? Util.Civ3MediaPath("Text/PediaIcons.txt") : null;
 		});
 	}
 
@@ -362,31 +367,18 @@ public partial class LanLobby : Control {
 		nameLabel.AddThemeFontSizeOverride("font_size", 16);
 		nameRow.AddChild(nameLabel);
 		nameEdit = new LineEdit { Text = LanSession.PlayerName, MaxLength = LanHost.MaxPlayerNameLength, CustomMinimumSize = new Vector2(170, 0) };
+		if (LanSession.NamedByAccount) {
+			nameEdit.Editable = false;
+			nameEdit.TooltipText = "Your account's name.";
+		}
 		nameRow.AddChild(nameEdit);
 		gameList.AddToTopRow(nameRow);
-
-		// A host elsewhere, hosting online, gives a join code; or one is
-		// listed publicly on the relay.
-		HBoxContainer onlineRow = new();
-		onlineRow.AddThemeConstantOverride("separation", 10);
-		Label onlineLabel = new() { Text = "Online game code:" };
-		onlineLabel.AddThemeFontSizeOverride("font_size", 16);
-		onlineRow.AddChild(onlineLabel);
-		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 200, CustomMinimumSize = new Vector2(180, 0) };
-		codeEdit.TextSubmitted += _ => ConnectWithCode(false);
-		onlineRow.AddChild(codeEdit);
-		onlineRow.AddChild(LanGameBrowser.MakeButton("Join", () => ConnectWithCode(false)));
-		onlineRow.AddChild(LanGameBrowser.MakeButton("Watch", () => ConnectWithCode(true)));
-		onlineRow.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-		onlineRow.AddChild(LanGameBrowser.MakeButton("Browse Online Games", OpenBrowser));
-		gameList.AddRow(onlineRow);
 
 		// The game last joined from here, to get back into after closing
 		// the game; the list's Rejoin also finds it at a new address.
 		if (LanSession.LastJoinedGame is LanSession.LastGame last) {
-			string where = last.endpoint is RelayEndpoint online ? $"online, code {RelayProtocol.FormatCode(online.Code)}" : $"at {last.address}";
 			Button rejoin = LanGameBrowser.MakeButton("Rejoin Last Game", () => Connect(last.endpoint, false, last.token));
-			rejoin.TooltipText = $"Your last game: {last.hostName} {where}";
+			rejoin.TooltipText = $"Your last game: {last.hostName} at {last.address}";
 			gameList.AddBottomButton(rejoin);
 		}
 
@@ -405,30 +397,10 @@ public partial class LanLobby : Control {
 		passwordPrompt.AddChild(enter);
 		content.AddChild(passwordPrompt);
 
-		if (LanSession.DevJoinAddress != null && RelayProtocol.NormalizeCode(LanSession.DevJoinAddress) != null
-			&& !LanSession.DevJoinAddress.Contains('.')) {
-			codeEdit.Text = LanSession.DevJoinAddress;
-			ConnectWithCode(LanSession.DevWatch);
-		} else if (LanSession.DevJoinAddress != null) {
+		if (LanSession.DevJoinAddress != null) {
 			gameList.AddressEdit.Text = LanSession.DevJoinAddress;
 			gameList.JoinAddress(LanSession.DevWatch);
 		}
-
-		if (openBrowser) {
-			openBrowser = false;
-			OpenBrowser();
-		}
-	}
-
-	// The server browser, over the join screen; joining a game from it
-	// joins as typing its code would.
-	private void OpenBrowser() {
-		ServerBrowser browser = new();
-		browser.JoinRequested += (code, relayUrl, name, watch, password) => {
-			codeEdit.Text = OnlineRelay.Invite(RelayProtocol.FormatCode(code), relayUrl);
-			Connect(new RelayEndpoint(relayUrl, code), watch, password: password);
-		};
-		AddChild(browser);
 	}
 
 	private void SendPassword() {
@@ -466,27 +438,10 @@ public partial class LanLobby : Control {
 		}
 	}
 
-	// Joins the game with the code typed, through the relay.
-	private void ConnectWithCode(bool watch) {
-		if (codeEdit.Text.Trim() == "") {
-			return;
-		}
-		// The host's invite may name its relay, as in KQ7-4MZ@relay.example.org.
-		if (!OnlineRelay.TryParseInvite(codeEdit.Text, out string code, out string relayUrl)) {
-			status.Text = "A join code is six letters and digits, like KQ7-4MZ, sometimes followed by the host's relay server. Check it with the host.";
-			return;
-		}
-		if (OnlineRelay.Problem(relayUrl) is string problem) {
-			status.Text = problem;
-			return;
-		}
-		Connect(new RelayEndpoint(relayUrl, code), watch);
-	}
-
 	// Joins the host there; with the token from a game we were in, to have
 	// our seats in it back. Connecting happens in the background, since a
 	// host that doesn't answer can take a while to give up on.
-	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null, string password = null) {
+	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null) {
 		LanSession.PlayerName = nameEdit.Text;
 		connecting?.Cancel();
 		CancellationTokenSource cancel = new();
@@ -494,7 +449,7 @@ public partial class LanLobby : Control {
 		status.Text = $"Connecting to {endpoint.Description}...";
 		LanClient client;
 		try {
-			client = await LanClient.ConnectAsync(endpoint, LanSession.PlayerName, reconnectToken, cancel: cancel.Token, password: password);
+			client = await LanClient.ConnectAsync(endpoint, LanSession.PlayerName, reconnectToken, cancel: cancel.Token);
 		} catch (OperationCanceledException) when (cancel.IsCancellationRequested) {
 			return;
 		} catch (Exception e) {
@@ -593,7 +548,6 @@ public partial class LanLobby : Control {
 
 	public override void _Process(double delta) {
 		LanSession.Host?.Poll();
-		joiningSection?.Update();
 
 		LanClient client = LanSession.Client;
 		if (client != null) {

@@ -36,6 +36,15 @@ public partial class MainMenu : Node {
 			if (LanSession.TakeDevStart()) {
 				PlayMusic();
 				CallDeferred(nameof(StartDevLanGame));
+			} else if (ServerHandoff.TakeGameStart()) {
+				// Handed a server game by the program that started us (see
+				// ServerHandoff): straight into it, with no menu.
+				ButtonContainer.Visible = false;
+				PlayMusic();
+				CallDeferred(nameof(JoinHandedOffGame));
+			} else if (ServerHandoff.TakeGamesStart()) {
+				PlayMusic();
+				CallDeferred(nameof(OpenServerGames));
 			} else if (!devWatchUsed && Array.IndexOf(OS.GetCmdlineUserArgs(), "--watch-ai") >= 0) {
 				// The --watch-ai developer option goes straight into a game
 				// to watch, the first time the menu shows.
@@ -99,7 +108,7 @@ public partial class MainMenu : Node {
 		ButtonContainer.LoadScenario.Visible = false;
 		ButtonContainer.HostLan.Pressed += HostLanGame;
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
-		ButtonContainer.BrowseOnline.Pressed += BrowseOnlineGames;
+		ButtonContainer.ServerGames.Pressed += ShowServerGames;
 		ButtonContainer.HallOfFame.Pressed += HallOfFame;
 		ButtonContainer.Settings.Pressed += ShowSettings;
 		ButtonContainer.Preferences.Pressed += Preferences;
@@ -109,6 +118,11 @@ public partial class MainMenu : Node {
 		ButtonContainer.Credits.Pressed += showCredits;
 		ButtonContainer.Exit.Pressed += _on_Exit_pressed;
 
+		// Back from setting up a server game, to the screen it was set up from.
+		if (ServerGames.OpenOnMenu) {
+			ServerGames.OpenOnMenu = false;
+			CallDeferred(nameof(OpenServerGames));
+		}
 	}
 
 	public void GoToWorldSetup() {
@@ -225,12 +239,21 @@ public partial class MainMenu : Node {
 		GetTree().ChangeSceneToFile(LanSession.LobbyScene);
 	}
 
-	// The join screen, with the server browser open over it.
-	public void BrowseOnlineGames() {
-		LanLobby.openBrowser = true;
-		JoinLanGame();
+	// Server games: logging in to the game server, the player's games and
+	// the open ones, over the menu until closed.
+	public void ShowServerGames() {
+		PlayButtonPressedSound();
+		OpenServerGames();
 	}
 
+	private void OpenServerGames() {
+		ServerGamesScreen screen = new();
+		ShowOverMenu(screen, h => screen.Closed += h);
+	}
+
+	private void JoinHandedOffGame() {
+		ServerHandoff.JoinGame(this);
+	}
 
 	public void showCredits() {
 		log.Information("credits button pressed");

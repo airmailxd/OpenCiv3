@@ -54,7 +54,7 @@ public class OnlineRelayTests {
 	[Fact]
 	public async Task AnAddressWithNoRelaySaysSo() {
 		Assert.NotNull(await OnlineRelay.CheckAsync("ws://127.0.0.1:1"));
-		Assert.NotNull(await OnlineRelay.CheckAsync(OnlineRelay.DefaultUrl));
+		Assert.NotNull(await OnlineRelay.CheckAsync("wss://relay.example.com"));
 		Assert.NotNull(await OnlineRelay.CheckAsync("ftp://relay.example.org"));
 	}
 }

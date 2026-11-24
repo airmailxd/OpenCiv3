@@ -11,7 +11,7 @@ public partial class MenuButtonContainer : VBoxContainer {
 	public Civ3MenuButton LoadScenario { get; private set; }
 	public Civ3MenuButton HostLan { get; private set; }
 	public Civ3MenuButton JoinLan { get; private set; }
-	public Civ3MenuButton BrowseOnline { get; private set; }
+	public Civ3MenuButton ServerGames { get; private set; }
 	public Civ3MenuButton HallOfFame { get; private set; }
 	public Civ3MenuButton Settings { get; private set; }
 	public Civ3MenuButton Preferences { get; private set; }
@@ -33,7 +33,7 @@ public partial class MenuButtonContainer : VBoxContainer {
 		LoadScenario = null;
 		HostLan = null;
 		JoinLan = null;
-		BrowseOnline = null;
+		ServerGames = null;
 		HallOfFame = null;
 		Settings = null;
 		Preferences = null;
@@ -65,8 +65,8 @@ public partial class MenuButtonContainer : VBoxContainer {
 		JoinLan = new Civ3MenuButton() { Text = "Join LAN Game" };
 		AddChild(JoinLan);
 
-		BrowseOnline = new Civ3MenuButton() { Text = "Browse Online Games" };
-		AddChild(BrowseOnline);
+		ServerGames = new Civ3MenuButton() { Text = "Server Games" };
+		AddChild(ServerGames);
 
 		HallOfFame = new Civ3MenuButton() { Text = "Hall of Fame" };
 		AddChild(HallOfFame);
@@ -83,7 +83,8 @@ public partial class MenuButtonContainer : VBoxContainer {
 		Credits = new Civ3MenuButton() { Text = "Credits" };
 		AddChild(Credits);
 
-		Exit = new Civ3MenuButton() { Text = "Exit" };
+		// Started by Roma (see ServerHandoff), leaving goes back to Roma.
+		Exit = new Civ3MenuButton() { Text = ServerHandoff.Active ? "Return to Roma" : "Exit" };
 		AddChild(Exit);
 	}
 }

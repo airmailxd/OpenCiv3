@@ -208,6 +208,13 @@ namespace C7GameData {
 		// Whether the humans play their turns at the same time, rather than
 		// one after another. Only LAN games do.
 		public bool simultaneousTurns = false;
+		// A networked game's turn timer, as its host set it (see
+		// LanHost.TurnTimeLimit and ScaledTurnTimer): how many seconds a turn
+		// has, null for no limit, or scaledTurnTimer for the rules' timer,
+		// which scales with each player's cities and units. Kept with the
+		// game so that it is hosted again with them, as server games are.
+		public int? turnTimerSeconds;
+		public bool scaledTurnTimer = false;
 		// Play by email (Civ3's "Play By Email" game type): each human plays
 		// their turn on their own computer, from the save the human before
 		// them sent on (see PlayByEmail).

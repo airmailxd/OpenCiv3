@@ -226,12 +226,6 @@ public partial class LanGameBrowser : VBoxContainer {
 	// Beside the tabs, such as the name to play under.
 	public void AddToTopRow(Control control) => topRow.AddChild(control);
 
-	// A row above the bottom one, such as joining online with a code.
-	public void AddRow(Control row) {
-		AddChild(row);
-		MoveChild(row, bottomRow.GetIndex());
-	}
-
 	// A button in the bottom row, after the tips.
 	public void AddBottomButton(Control button) {
 		bottomRow.AddChild(button);
@@ -537,11 +531,11 @@ public partial class LanGameBrowser : VBoxContainer {
 				+ "macOS: System Settings > Network, choose the connection, then Details. Linux: run hostname -I in a terminal.",
 			"Addresses on a home network usually start with 192.168. or 10. One starting with 127. or 169.254. won't work from another computer.",
 			"Both computers must be on the same network, such as the same router or Wi-Fi. Guest Wi-Fi often keeps devices from seeing each other.",
-			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv3 through it "
+			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv through it "
 				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games). "
 				+ "Windows counts Tailscale and other virtual networks as Public networks, so allow it on Public networks too.",
 			$"If the host uses a different port, add it after the address, like 192.168.1.20:{LanProtocol.DefaultPort + 1}.",
-			"Playing over the internet? Ask the host to choose \"Host Online\", then type the join code it shows under \"Online game code\".",
+			"Playing over the internet? Use Server Games on the main menu.",
 			"Or both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it. "
 				+ "Games on the machines of your Tailscale network are listed under Tailscale, and the hosts you've joined under History.",
 			"A host you add to Favorites is asked directly each time the list is refreshed, even on a network that doesn't carry the search.",

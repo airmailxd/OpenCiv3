@@ -129,8 +129,12 @@ public partial class SettingsMenu : Control {
 		AddWindowSettings(column);
 		AddAudioSettings(column);
 		AddOnlineSettings(column);
-		AddMapGenerationSettings(column);
-		AddAdvancedAiSettings(column);
+		// Started by Roma for its game server (see ServerHandoff), the options
+		// for testing and tuning the game on this machine aren't offered.
+		if (!ServerHandoff.Active) {
+			AddMapGenerationSettings(column);
+			AddAdvancedAiSettings(column);
+		}
 		AddDeveloperSettings(column);
 
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
@@ -287,13 +291,17 @@ public partial class SettingsMenu : Control {
 		return scale.ToString("0.00", CultureInfo.InvariantCulture) + "x";
 	}
 
-	// The relay server that games hosted and joined online go through.
+	// The game server that server games are played on.
 	private void AddOnlineSettings(VBoxContainer column) {
 		column.AddChild(MakeHeading("Online"));
+		AddGameServerSetting(column);
+	}
 
-		LineEdit relay = new() {
-			Text = OnlineRelay.SameRelay(OnlineRelay.Url, OnlineRelay.DefaultUrl) ? "" : OnlineRelay.Url,
-			PlaceholderText = "relay.example.org",
+	// The game server that server games are kept on (see ServerGames).
+	private void AddGameServerSetting(VBoxContainer column) {
+		LineEdit server = new() {
+			Text = GameServerSettings.SameServer(GameServerSettings.Url, GameServerSettings.DefaultUrl) ? "" : GameServerSettings.Url,
+			PlaceholderText = "play.roma-online.net (the default)",
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		Label result = MakeLabel("", 14, TextColor, HorizontalAlignment.Left);
@@ -301,16 +309,20 @@ public partial class SettingsMenu : Control {
 		result.CustomMinimumSize = new Vector2(540, 0);
 
 		void Save() {
-			if (!string.IsNullOrWhiteSpace(relay.Text) && OnlineRelay.Problem(relay.Text) is string problem) {
+			if (!string.IsNullOrWhiteSpace(server.Text) && GameServerSettings.Problem(server.Text) is string problem) {
 				result.Text = problem;
 				return;
 			}
-			OnlineRelay.SetUrl(relay.Text);
-			log.Information("Online relay set to {Url}", OnlineRelay.Url);
-			result.Text = string.IsNullOrWhiteSpace(relay.Text) ? "Using the default relay server." : "Saved.";
+			string chosen = string.IsNullOrWhiteSpace(server.Text) ? GameServerSettings.DefaultUrl : server.Text;
+			if (GameServerSettings.SameServer(chosen, GameServerSettings.Url)) {
+				return;
+			}
+			GameServerSettings.SetUrl(server.Text);
+			log.Information("Game server set to {Url}", GameServerSettings.Url);
+			result.Text = string.IsNullOrWhiteSpace(server.Text) ? "Using the default game server." : "Saved.";
 		}
-		relay.TextSubmitted += _ => Save();
-		relay.FocusExited += Save;
+		server.TextSubmitted += _ => Save();
+		server.FocusExited += Save;
 
 		Civ3MenuButton test = new() { Text = "Test", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
 		test.Pressed += async () => {
@@ -318,25 +330,24 @@ public partial class SettingsMenu : Control {
 			try {
 				PlayClick();
 				Save();
-				string url = OnlineRelay.Url;
+				string url = GameServerSettings.Url;
 				result.Text = "Checking...";
-				string problem = await OnlineRelay.CheckAsync(url);
+				string problem = await GameServerSettings.CheckAsync(url);
 				if (IsInstanceValid(result)) {
-					result.Text = problem ?? "The relay server answered. Games can be hosted and joined online through it.";
+					result.Text = problem ?? "The game server answered. Log in to it from Server Games on the main menu.";
 				}
 			} catch (Exception ex) {
-				log.Warning(ex, "Couldn't check the relay server");
+				log.Warning(ex, "Couldn't check the game server");
 				if (IsInstanceValid(result)) {
-					result.Text = $"Couldn't check the relay server: {ex.Message}";
+					result.Text = $"Couldn't check the game server: {ex.Message}";
 				}
 			}
 		};
-		column.AddChild(MakeRow("Relay server", relay, test));
+		column.AddChild(MakeRow("Game server", server, test));
 		column.AddChild(result);
 		column.AddChild(MakeNote(
-			"Games hosted online go through this server, which gives each a join code. A host can also choose " +
-			"one when hosting; players joining that host's game are told it along with the code. Leave it blank " +
-			"for the default."));
+			"Server games are kept on this server, for friends to play over days or weeks, each taking their turn when they can. "
+			+ "Whoever runs it gives out its address. You stay logged in to it until you log out."));
 	}
 
 	private void AddMapGenerationSettings(VBoxContainer column) {
@@ -441,6 +452,9 @@ public partial class SettingsMenu : Control {
 			"and the units it can see now, as you must. Takes effect for the next game you start or load; " +
 			"in a network game, the host's setting counts."));
 
+		if (ServerHandoff.Active) {
+			return;
+		}
 		Civ3Checkbox recordPlayLog = new() {
 			Text = "Record play log",
 			FontSize = 16,
