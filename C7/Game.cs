@@ -500,6 +500,8 @@ public partial class Game : Node {
 				// The others at this machine also need to look away.
 				ShowHotseatHandoff(active, BeginLanTurn);
 			} else {
+				// Our turn goes on if it becomes one played at once.
+				simultaneousPlayingRound = EngineStorage.gameData.turn;
 				MaybeAutoplayLanTurn();
 			}
 		} else if (PlayByEmail.IsOn(EngineStorage.gameData)) {
@@ -1203,6 +1205,11 @@ public partial class Game : Node {
 				return;
 			}
 			HideLanWaiting();
+			// A server game's turn played in turn may become one played at
+			// once partway through (LanHost.MoveAtOnceOnceEveryoneIsHere):
+			// this player's turn then goes on rather than beginning again
+			// (see ContinueSimultaneousTurns).
+			simultaneousPlayingRound = EngineStorage.gameData.turn;
 			if (LanSession.HasSeveralLocalPlayers) {
 				// This machine's players take turns at it, as in a hotseat
 				// game.

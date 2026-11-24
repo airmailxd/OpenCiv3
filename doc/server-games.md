@@ -31,10 +31,15 @@ At the start of each turn the server looks at who's connected:
 - Anyone missing: the humans move one at a time, in turn order, as in a
   hotseat game. Whoever is next plays when they connect; the others can View.
 
-A turn keeps the way it began. If a player drops partway through a
-simultaneous turn, the others can still finish theirs; the dropped player's
+A turn played in turn becomes simultaneous as soon as every human is
+connected: those still to play it begin at once, alongside whoever is moving,
+and everyone is sent the game again. A simultaneous turn stays that way. If a
+player drops partway through a simultaneous turn, the others can still finish theirs; the dropped player's
 turn stays open until they come back, and the next turn is played in turn.
 The computer players move on the server once the humans have finished.
+
+With a turn timer, turn 0 isn't timed: the game waits for every human to end
+it, and the timer starts with turn 1, as in Civ3's multiplayer games.
 
 Between those, when nobody is connected, the game is at rest: "whose turn it
 is" is the first human in turn order who hasn't finished this turn.
@@ -60,7 +65,8 @@ builds with this one's engine. What's here is the game's side:
   plays on when their turn comes. As each turn begins
   (`EngineStorage.newTurnBeginning`) it has the humans move at once if
   they're all connected, and in turn otherwise
-  (`LanHost.ChooseTurnsFromWhoIsConnected`).
+  (`LanHost.ChooseTurnsFromWhoIsConnected`); a turn played in turn becomes
+  simultaneous once they all are (`LanHost.MoveAtOnceOnceEveryoneIsHere`).
 - **The screens**: `C7/UIElements/ServerGames/` (Server Games on the main
   menu: log in, My Games, Open Games, and joining a game) and
   `MultiplayerSetupScreen.ServerGame.cs` (setting up a new server game).

@@ -164,6 +164,8 @@ public class ScaledTurnTimerTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Player[] humans = Humans(gameData);
 		// A second, so the host's turn runs out.
 		SetTimer(gameData, 1, 0, 0);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		PumpUntil(host, [client], () => client.StartingGame != null);
 		client.SnapshotReceived = _ => { };
@@ -201,6 +203,8 @@ public class ScaledTurnTimerTest : IClassFixture<SaveGameFixture>, IDisposable {
 		C7GameData.GameData gameData = await CreateGame(save, simultaneous: false);
 		Player[] humans = Humans(gameData);
 		SetTimer(gameData, 1, 0, 0);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		PumpUntil(host, [guest], () => guest.StartingGame != null);
 		guest.SnapshotReceived = _ => { };
@@ -209,13 +213,13 @@ public class ScaledTurnTimerTest : IClassFixture<SaveGameFixture>, IDisposable {
 		// One of the guest's players finishes; the host and the other don't,
 		// and the round's second runs out for both of them.
 		guest.SendCommand(new MsgEndTurn { playerID = humans[2].id });
-		PumpUntil(host, [guest], () => humans[2].hasPlayedThisTurn || gameData.turn == 1);
-		PumpUntil(host, [guest], () => gameData.turn == 1);
+		PumpUntil(host, [guest], () => humans[2].hasPlayedThisTurn || gameData.turn == 2);
+		PumpUntil(host, [guest], () => gameData.turn == 2);
 		// The next round's time, from its players' empires as it begins.
 		SetTimer(gameData, 3600, 60, 7);
 		Assert.Equal(humans, TurnHandling.PlayersToMove(gameData));
 
-		PumpUntil(host, [guest], () => guest.CurrentClock()?.turn == 1 && guest.CurrentClock().secondsAllowed != null);
+		PumpUntil(host, [guest], () => guest.CurrentClock()?.turn == 2 && guest.CurrentClock().secondsAllowed != null);
 		int expected = humans.Max(p => ScaledTurnTimer.SecondsFor(gameData.rules, p));
 		Assert.Equal(expected, guest.CurrentClock().secondsAllowed.Value, 3);
 		Assert.Equal(humans.Select(p => p.id), guest.CurrentClock().playersToMove);
@@ -314,6 +318,8 @@ public class ScaledTurnTimerTest : IClassFixture<SaveGameFixture>, IDisposable {
 			new LanHost.DedicatedSeat(humans[1].id, SecondToken, "bob"),
 		]);
 		Assert.True(host.ScaledTurnTimer);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		EngineStorage.messagesToUI.Clear();
 		// The worker saves the game as it stands: still with its timer.

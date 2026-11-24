@@ -284,6 +284,8 @@ public class SimultaneousTurnsTest : IClassFixture<SaveGameFixture>, IDisposable
 		// The game was set up for turns one by one; the host's choice wins.
 		C7GameData.GameData gameData = await CreateGame(save, simultaneous: false);
 		Player[] humans = Humans(gameData);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		Assert.True(gameData.simultaneousTurns);
 		PumpUntil(host, client, () => client.StartingGame != null);
@@ -299,22 +301,22 @@ public class SimultaneousTurnsTest : IClassFixture<SaveGameFixture>, IDisposable
 		// The guest can act while the host is moving, and finishes first.
 		MapUnit unit = UnfortifiedUnit(humans[1]);
 		client.SendCommand(new MsgSetFortification(unit.id, true));
-		client.SendCommand(new MsgEndTurn { turn = 0 });
+		client.SendCommand(new MsgEndTurn { turn = 1 });
 		PumpUntil(host, client, () => client.CurrentClock().playersToMove.Count == 1);
 		Assert.True(unit.isFortified);
 		Assert.Equal([humans[0].id], client.CurrentClock().playersToMove);
-		Assert.Equal(0, gameData.turn);
+		Assert.Equal(1, gameData.turn);
 
 		// Nobody ends the host's turn, so once the round's time is short the
 		// host's clock does, and the next round starts. The pump checks for
 		// it straight after the engine handles it, before the host polls
 		// again, so the time can go back up before the next round is timed.
 		host.TurnTimeLimit = TimeSpan.FromMilliseconds(50);
-		PumpUntil(host, client, () => gameData.turn == 1);
+		PumpUntil(host, client, () => gameData.turn == 2);
 		host.TurnTimeLimit = longLimit;
 		Assert.Equal(humans, TurnHandling.PlayersToMove(gameData));
 
-		PumpUntil(host, client, () => client.CurrentClock().turn == 1);
+		PumpUntil(host, client, () => client.CurrentClock().turn == 2);
 		TurnClockInfo clock = client.CurrentClock();
 		Assert.Equal([humans[0].id, seatID], clock.playersToMove);
 		Assert.True(clock.secondsElapsed < longLimit.TotalSeconds);
@@ -337,6 +339,8 @@ public class SimultaneousTurnsTest : IClassFixture<SaveGameFixture>, IDisposable
 
 		C7GameData.GameData gameData = await CreateGame(save, simultaneous: false);
 		Player[] humans = Humans(gameData);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		PumpUntil(host, guest, () => guest.StartingGame != null);
 		guest.SnapshotReceived = _ => { };
@@ -349,7 +353,7 @@ public class SimultaneousTurnsTest : IClassFixture<SaveGameFixture>, IDisposable
 
 		// Running out of time ends both their turns, and the round.
 		host.TurnTimeLimit = TimeSpan.FromMilliseconds(50);
-		PumpUntil(host, guest, () => gameData.turn == 1);
+		PumpUntil(host, guest, () => gameData.turn == 2);
 		host.TurnTimeLimit = TimeSpan.FromHours(1);
 		Assert.Equal(humans, TurnHandling.PlayersToMove(gameData));
 	}

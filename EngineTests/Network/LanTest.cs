@@ -452,6 +452,8 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 		C7GameData.GameData gameData = await CreateTwoHumanGame();
 		Player[] humans = Humans(gameData);
+		// Turn 0 isn't timed (see LanHost.CurrentTurnLimit): time a later turn.
+		EngineStorage.gameData.turn = 1;
 		host.StartGame();
 		PumpUntil(host, client, () => client.StartingGame != null);
 		client.SnapshotReceived = _ => { };

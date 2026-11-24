@@ -126,36 +126,70 @@ public class DedicatedHostTest : IClassFixture<SaveGameFixture>, IDisposable {
 			Assert.False(gameData.simultaneousTurns);
 			Assert.Equal([humans[0]], TurnHandling.PlayersToMove(gameData));
 
-			using LanClient alice = Join(host, FirstToken, "alice");
+			// Bob comes first, and views: Alice moves first and isn't here.
+			// His orders are refused by the host, not just the UI.
 			using LanClient bob = Join(host, SecondToken, "bob");
-			LanClient[] both = [alice, bob];
-
-			// Bob views: his orders are refused by the host, not just the UI.
 			MapUnit bobsUnit = humans[1].units.First(u => !u.isFortified);
 			bob.SendCommand(new MsgSetFortification(bobsUnit.id, true));
 			bob.SendCommand(new MsgEndTurn { turn = 0 });
-			PumpUntil(host, both, () => host.RefusedCommands == 2);
+			PumpUntil(host, [bob], () => host.RefusedCommands == 2);
 			Assert.False(bobsUnit.isFortified);
 			Assert.False(humans[1].hasPlayedThisTurn);
+			Assert.False(gameData.simultaneousTurns);
 
-			// Alice plays.
+			// Alice comes: with everyone here, the rest of the turn is played
+			// at once, so Bob's orders now go through, on the same connection.
+			using LanClient alice = Join(host, FirstToken, "alice");
+			LanClient[] both = [alice, bob];
+			PumpUntil(host, both, () => gameData.simultaneousTurns);
+			Assert.True(host.SimultaneousTurns);
+			Assert.Equal(0, gameData.turn);
+			Assert.Equal(humans, TurnHandling.PlayersToMove(gameData));
+			bob.SendCommand(new MsgSetFortification(bobsUnit.id, true));
+			PumpUntil(host, both, () => bobsUnit.isFortified);
 			MapUnit alicesUnit = humans[0].units.First(u => !u.isFortified);
 			alice.SendCommand(new MsgSetFortification(alicesUnit.id, true));
 			PumpUntil(host, both, () => alicesUnit.isFortified);
-			alice.SendCommand(new MsgEndTurn { turn = 0 });
-			PumpUntil(host, both, () => TurnHandling.IsPlayersTurn(gameData, humans[1].id));
-
-			// Now Bob's orders go through, on the same connection.
-			bob.SendCommand(new MsgSetFortification(bobsUnit.id, true));
-			PumpUntil(host, both, () => bobsUnit.isFortified);
 			Assert.Equal(2, host.RefusedCommands);
 
-			// With both connected as the next turn begins, it's played at once.
+			// Bob finishes first; the turn waits for Alice, then goes on.
 			bob.SendCommand(new MsgEndTurn { turn = 0 });
+			PumpUntil(host, both, () => humans[1].hasPlayedThisTurn);
+			PumpFor(host, both, TimeSpan.FromMilliseconds(200));
+			Assert.Equal(0, gameData.turn);
+			alice.SendCommand(new MsgEndTurn { turn = 0 });
 			PumpUntil(host, both, () => gameData.turn == 1 && !TurnHandling.TurnInProgress);
 			Assert.True(gameData.simultaneousTurns);
-			Assert.True(host.SimultaneousTurns);
 			Assert.Equal(humans, TurnHandling.PlayersToMove(gameData));
+		}
+	}
+
+	// Turn 0 is never timed: the game waits for every human to end it, and
+	// the timer starts with turn 1 (as in Civ3's multiplayer games).
+	[Fact]
+	public async Task TheFirstTurnIsNotTimedAndTheSecondIs() {
+		(LanHost host, Player[] humans) = await HostGame();
+		using (host) {
+			C7GameData.GameData gameData = EngineStorage.gameData;
+			host.TurnTimeLimit = TimeSpan.FromMilliseconds(50);
+			using LanClient alice = Join(host, FirstToken, "alice");
+			using LanClient bob = Join(host, SecondToken, "bob");
+			LanClient[] both = [alice, bob];
+			PumpUntil(host, both, () => gameData.simultaneousTurns);
+			PumpUntil(host, both, () => bob.CurrentClock() != null);
+			Assert.Null(bob.CurrentClock().secondsAllowed);
+
+			// Far longer than the limit: nobody's turn is ended for them.
+			PumpFor(host, both, TimeSpan.FromMilliseconds(500));
+			Assert.Equal(0, gameData.turn);
+			Assert.False(humans[0].hasPlayedThisTurn);
+			Assert.False(humans[1].hasPlayedThisTurn);
+
+			// Once both have ended it, turn 1 is timed, and runs out.
+			alice.SendCommand(new MsgEndTurn { turn = 0 });
+			bob.SendCommand(new MsgEndTurn { turn = 0 });
+			PumpUntil(host, both, () => gameData.turn >= 1 && !TurnHandling.TurnInProgress);
+			PumpUntil(host, both, () => gameData.turn >= 2);
 		}
 	}
 
@@ -167,9 +201,9 @@ public class DedicatedHostTest : IClassFixture<SaveGameFixture>, IDisposable {
 			LanClient alice = Join(host, FirstToken, "alice");
 			LanClient bob = Join(host, SecondToken, "bob");
 			try {
-				// Turn 0 is played in turn; turn 1 at once.
+				// With both here, turns are played at once.
+				PumpUntil(host, [alice, bob], () => gameData.simultaneousTurns);
 				alice.SendCommand(new MsgEndTurn { turn = 0 });
-				PumpUntil(host, [alice, bob], () => TurnHandling.IsPlayersTurn(gameData, humans[1].id));
 				bob.SendCommand(new MsgEndTurn { turn = 0 });
 				PumpUntil(host, [alice, bob], () => gameData.turn == 1 && !TurnHandling.TurnInProgress);
 				Assert.True(gameData.simultaneousTurns);

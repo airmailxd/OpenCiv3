@@ -416,8 +416,14 @@ public class LanHost : IDisposable {
 	}
 
 	// How long the turn under way has, by whichever timer times it; null
-	// for no limit, or before a scaled turn's time is worked out.
-	public TimeSpan? CurrentTurnLimit => ScaledTurnTimer ? scaledLimit : TurnTimeLimit;
+	// for no limit, or before a scaled turn's time is worked out. The first
+	// turn is never timed: as in Civ3's multiplayer games, the timer starts
+	// once every human has ended turn 0, so nobody loses their first turn
+	// to players still joining.
+	public TimeSpan? CurrentTurnLimit => IsUntimedFirstTurn ? null : ScaledTurnTimer ? scaledLimit : TurnTimeLimit;
+
+	// Whether the game is on its first turn, which the timer leaves alone.
+	private bool IsUntimedFirstTurn => Started && EngineStorage.gameData?.turn == 0;
 	private TimeSpan? scaledLimit;
 
 	// The game keeps its timer, so that its saves are hosted again with it
@@ -1101,6 +1107,37 @@ public class LanHost : IDisposable {
 		PublishDiscoveryReply();
 	}
 
+	// A turn played in turn, because not everyone was connected as it began,
+	// becomes one the humans play at once as soon as they all are, rather
+	// than waiting for the next turn: those still to play it begin now, the
+	// clock starts afresh for them, and everyone is sent the game again. It
+	// waits until the engine is idle with a human to move (not while the
+	// AIs play, nor during Staging). Someone dropping out doesn't turn it
+	// back: the turn keeps going at once, and the next one is played in turn
+	// (see ChooseTurns).
+	private void MoveAtOnceOnceEveryoneIsHere(GameData gameData) {
+		if (!ChooseTurnsFromWhoIsConnected || gameData.simultaneousTurns || gameData.gameOver
+			|| TurnHandling.TurnInProgress || EngineStorage.HasPendingMessagesToEngine()
+			|| Staging.InProgress(gameData) || TurnHandling.PlayersToMove(gameData).Count == 0) {
+			return;
+		}
+		bool everyone = seats
+			.Where(s => gameData.GetPlayer(s.info.playerID) is Player { defeated: false })
+			.All(s => s.IsTaken);
+		if (!everyone) {
+			return;
+		}
+		log.Information("Everyone is connected: the rest of turn {Turn} is played simultaneously", gameData.turn);
+		TurnHandling.BeginSimultaneousMovesMidTurn(gameData);
+		SimultaneousTurns = true;
+		// Timed afresh, now for everyone still to move.
+		clockTurn = -1;
+		clockPlayersToMove = null;
+		snapshotPending = true;
+		spectatorSnapshotPending = true;
+		sinceChange.Restart();
+	}
+
 	// As a new turn begins, has the humans move at once if they're all
 	// connected, or else in turn (see ChooseTurnsFromWhoIsConnected).
 	private void ChooseTurns(GameData gameData) {
@@ -1249,6 +1286,7 @@ public class LanHost : IDisposable {
 	// clock times the whole round, from when the humans start moving.
 	private void UpdateTurnClock() {
 		GameData gameData = EngineStorage.gameData;
+		MoveAtOnceOnceEveryoneIsHere(gameData);
 		ID active = EngineStorage.activePlayerID;
 		List<ID> toMove = TurnHandling.PlayersToMove(gameData).Select(p => p.id).ToList();
 		bool newTurn = gameData.turn != clockTurn || (!gameData.simultaneousTurns && active != clockPlayerID);
@@ -1271,7 +1309,7 @@ public class LanHost : IDisposable {
 		}
 		// The scaled timer's time for the turn, as its humans start moving
 		// it, from their cities and units then (see ScaledTurnTimer).
-		if (ScaledTurnTimer && scaledLimit == null && timed.Count > 0) {
+		if (ScaledTurnTimer && scaledLimit == null && timed.Count > 0 && !IsUntimedFirstTurn) {
 			scaledLimit = C7Engine.Network.ScaledTurnTimer.LimitFor(gameData, timed);
 			if (scaledLimit is TimeSpan scaled) {
 				log.Information("Turn {Turn} has {Seconds} s by the scaled timer", gameData.turn, scaled.TotalSeconds);

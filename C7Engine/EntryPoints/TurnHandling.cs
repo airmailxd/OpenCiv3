@@ -327,6 +327,27 @@ namespace C7Engine {
 			EngineStorage.uiControllerID = next.id;
 		}
 
+		// Turns the turn under way, played in turn, into one the humans play
+		// at once: the human moving now goes on, and every other human yet to
+		// play it begins their turn now rather than after them. The humans
+		// come before the AIs in turn order, so the AIs still move once the
+		// last human is done (see MsgEndTurn). For a server game whose players
+		// are all back (see LanHost.ChooseTurnsFromWhoIsConnected).
+		internal static void BeginSimultaneousMovesMidTurn(GameData gameData) {
+			if (gameData.simultaneousTurns) {
+				return;
+			}
+			gameData.simultaneousTurns = true;
+			ID active = EngineStorage.activePlayerID;
+			foreach (Player human in PlayersToMove(gameData)) {
+				if (human.id == active) {
+					continue;
+				}
+				BeginPlayersTurn(human, gameData);
+				StartHumanTurn(human, gameData);
+			}
+		}
+
 		// Hands the turn to a human, or to the player being observed.
 		// What happens to the player's units as its own turn begins, rather
 		// than at the end of the round (InitTurnData): their air missions
