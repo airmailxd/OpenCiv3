@@ -17,12 +17,42 @@ public partial class DisplayScale : Node {
 	public const float Min = 0.5f;
 	public const float Max = 4f;
 
+	// The game's screens (the advisors, the city screen) are laid out for at
+	// least this many logical pixels. In a window with less room than the
+	// chosen scale leaves (a small window, or the game shown inside another
+	// program's 1280 by 720 one), the scale applied is lowered to what fits,
+	// and comes back when there is room again.
+	private const float LayoutWidth = 1024f;
+	private const float LayoutHeight = 768f;
+
+	// The scale the player chose (or the screen's default); the window's own
+	// may be lower, to fit.
+	private float wanted;
+
 	public override void _Ready() {
 		Window window = GetTree().Root;
 		window.ContentScaleMode = Window.ContentScaleModeEnum.Disabled;
-		window.ContentScaleFactor = LoadScale();
+		wanted = LoadScale();
+		window.SizeChanged += Apply;
+		Apply();
 		if (Fullscreen) {
 			window.Mode = Window.ModeEnum.Fullscreen;
+		}
+	}
+
+	public override void _ExitTree() {
+		GetTree().Root.SizeChanged -= Apply;
+	}
+
+	// Gives the window the chosen scale, or the largest that leaves the
+	// screens their room if that is less.
+	private void Apply() {
+		Window window = GetTree().Root;
+		Vector2I size = window.Size;
+		float fits = size.X > 0 && size.Y > 0 ? Mathf.Min(size.X / LayoutWidth, size.Y / LayoutHeight) : wanted;
+		float scale = Mathf.Clamp(Mathf.Min(wanted, fits), Min, Max);
+		if (!Mathf.IsEqualApprox(window.ContentScaleFactor, scale)) {
+			window.ContentScaleFactor = scale;
 		}
 	}
 
@@ -56,7 +86,8 @@ public partial class DisplayScale : Node {
 
 	public void SetScale(float scale) {
 		scale = Mathf.Clamp(scale, Min, Max);
-		GetTree().Root.ContentScaleFactor = scale;
+		wanted = scale;
+		Apply();
 		C7Settings.SetValue(Section, Key, scale.ToString(CultureInfo.InvariantCulture));
 		C7Settings.SaveSettings();
 	}
@@ -64,7 +95,8 @@ public partial class DisplayScale : Node {
 	// Goes back to the scale that fits the screen and forgets the saved one, so
 	// the scale follows the screen again.
 	private void ResetScale() {
-		GetTree().Root.ContentScaleFactor = DefaultScale();
+		wanted = DefaultScale();
+		Apply();
 		C7Settings.RemoveValue(Section, Key);
 		C7Settings.SaveSettings();
 	}
@@ -73,6 +105,8 @@ public partial class DisplayScale : Node {
 		if (@event is not InputEventKey { Pressed: true, Echo: false, CtrlPressed: true } key) {
 			return;
 		}
+		// From the scale in the window, so that a step is always seen (the
+		// chosen scale may be more than fits).
 		float current = GetTree().Root.ContentScaleFactor;
 		switch (key.Keycode) {
 			case Godot.Key.Equal or Godot.Key.Plus or Godot.Key.KpAdd:
