@@ -1,0 +1,205 @@
+{
+  "unit": "Troop Ship",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.81,
+    138.5
+  ],
+  "anchor_override": null,
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        92.63,
+        138
+      ],
+      "top": 97,
+      "height": 42,
+      "bbox": [
+        84,
+        97,
+        154,
+        138
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.86,
+        144
+      ],
+      "top": 90,
+      "height": 55,
+      "bbox": [
+        109,
+        90,
+        130,
+        144
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        146.89,
+        138
+      ],
+      "top": 97,
+      "height": 41,
+      "bbox": [
+        85,
+        97,
+        155,
+        138
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.27,
+        126
+      ],
+      "top": 103,
+      "height": 24,
+      "bbox": [
+        73,
+        103,
+        169,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        92.94,
+        139
+      ],
+      "top": 96,
+      "height": 44,
+      "bbox": [
+        85,
+        96,
+        155,
+        139
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.75,
+        144
+      ],
+      "top": 90,
+      "height": 55,
+      "bbox": [
+        109,
+        90,
+        130,
+        144
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        146.57,
+        139
+      ],
+      "top": 95,
+      "height": 44,
+      "bbox": [
+        84,
+        95,
+        154,
+        139
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.15,
+        126
+      ],
+      "top": 103,
+      "height": 24,
+      "bbox": [
+        70,
+        103,
+        166,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "CargoD.flc",
+  "flics": {
+    "CargoD.flc": {
+      "actions": [
+        "DEFAULT",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 86,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 80
+    },
+    "CargoRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 4,
+      "frameMs": 166
+    },
+    "CargoAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 6,
+      "frameMs": 166
+    },
+    "CargoDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 166
+    }
+  }
+}

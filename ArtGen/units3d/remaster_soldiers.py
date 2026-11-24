@@ -254,81 +254,110 @@ REMASTER = {
         # civ-color boonie hat, a white shirt under a civ-color vest, khaki
         # trousers, dark high boots, a huge brown pack with a bedroll on top
         'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.74, 'proportions': 0.74},
-        'colors': {'skin': '#9a7254', 'hair': '#413025', 'top': '#cfc8b8', 'bottom': '#a19379',
+        'colors': {'skin': '#a87e5c', 'hair': '#413025', 'top': '#cfc8b8', 'bottom': '#a19379',
                    'belt': '#3a2a1e', 'boots': '#221a14', 'olive_dark': '#6a4a2e', 'olive': '#a08e64',   # a pale bedroll roll on the pack
-                   'wood': '#4e3420', 'leather': '#3a2a1c'},
+                   'wood': '#4e3420', 'leather': '#3a2a1c', 'book_cover': '#3a281a', 'gold': '#b09050'},
         # the hat is tinted per the note, but the reference row shows tan: the
         # owner's call. MISSING: boonie_level (the pinned brim tilts it); tall_boots
-        'helmet': None, 'headgear': 'boonie', 'metal': [],
+        # (realism round 2: a felt slouch hat with a modest brim, a dented crown and a band, so the face shows)
+        'helmet': None, 'headgear': 'slouch_hat', 'metal': [],
         'hair': 'short', 'beard': True,
         'top': 'sleeved',
         'cuirass': True,                        # the civ-color vest ('metal' leaves it out: leather)
         'bottom': 'long', 'wraps': 'boots',
         # the pack's shoulder straps, dark and wide over the vest
         'gear': [('chest_strap', {'color': '#241a12', 'width': 0.08, 'cross': True, 'offset': 0.035})],
-        # the tall frame pack with its bedroll on top
-        'back': 'mil_backpack', 'back_params': {'size': 1.6},
+        # (realism pass, notes/realism/Settler Modern Times.md) the frame pack: rails, a flapped bag with
+        # side pockets, the bedroll strapped on top, a billy can and a coil of rope; a suitcase in the left hand
+        'back': 'settler_pack', 'back_params': {'size': 1.45},
+        'offhand': 'holdall', 'offhand_mesh': ('holdall', {'scale': 1.1}), 'offhand_dir': (0, 0, 1),   # (a3: a modern olive holdall)
+        'unit_scale': 0.96,                     # the pack and the case: the opaque area back near the shipped
         'weapon': 'staff',
-        'props': {'staff': ('staff', {'length': 1.9})},
-        # the staff is held straight up (equip's staff branch ignores
-        # 'upright_dir'), so the right upper arm comes in to bring it close
-        'stance_name': 'upright',
-        'pose_extra': ARM_DOWN_L + [('upperarm_r', (-0.15, -0.05, -1))],
+        'props': {'staff': ('staff', {'length': 1.9, 'grip': 1.0})},
+        # (realism round 2) the staff upright in the right fist at shoulder width, the elbow bent and the
+        # fist forward at chest height (it hung from a near-straight arm out at the side)
+        # (a3: the upper arm down at the side, the forearm forward and down to the fist before the hip, the
+        # staff planted a forearm out; further forward the arm read as stuck straight out in the side views)
+        'stance_name': 'ready', 'hand_r_at': (-0.04, -0.1, -0.36), 'elbow_r': 0.15,
+        'weapon_dir': (-0.06, -0.08, 1.0), 'edge_dir': (0, -1, 0),   # (the top leans in over the fist, the foot out)
+        'pose_extra': ARM_DOWN_L,
+        'bands': [('neck', 'tint', 0.07)],      # a civ neckerchief (round 2)
         'tint': ['helmet', 'cuirass'],
         'grime': 0.65, 'upper_bulk': 1.15,
     },
     'Worker Modern Times': {
+        # (realism/all, staging) the DEFAULT flic keeps the still, as its final; the Worker's actions still animate
+        'still_default': True,
         # a slight forward lean, legs apart; a shovel low in both hands, blade
         # forward and down; bareheaded, short brown hair; a civ-color shirt
         # with rolled sleeves, light tan bib overalls with Y braces, a dark
         # tool belt with pouches, black boots
         'macro': {'muscle': 0.95, 'weight': 0.6, 'height': 0.74, 'proportions': 0.74},
-        'colors': {'skin': '#9a7052', 'hair': '#5a3a22', 'bottom': '#a8946c',
-                   'belt': '#2e241a', 'boots': '#1e1814', 'wood': '#9a7a52', 'steel': '#7e8084'},
-        'helmet': None, 'hair': 'short', 'beard': False,
+        'colors': {'skin': '#9a7052', 'hair': '#5a3a22', 'bottom': '#a8946c', 'cuirass': '#a8946c', 'hardhat': '#d8a820',
+                   'top': '#9a948a', 'belt': '#2e241a', 'boots': '#1e1814', 'wood': '#9a7a52'},
+        # (realism pass, notes/realism/Worker Modern Times.md) a yellow hard hat; the tan bib over the civ
+        # shirt; the shovel upright in the right fist, blade up, the left fist on the hip
+        'helmet': None, 'headgear': 'hard_hat', 'hair': 'short', 'beard': False,
         'top': 'sleeved',                       # long civ-color sleeves (rolled: MISSING rolled_sleeves)
-        'cuirass': False,
-        'bottom': 'long', 'puffy': True,        # the overalls sit over the shirt (no red at the crotch)
+        'cuirass': True, 'metal': [],           # the overalls' bib, front and back (leather key, in tan)
+        'bottom': 'long',                       # (round 2: no puffy sleeves; they ballooned like pads)
+        # (realism round 2) a neutral grey work shirt; the civ in the bib panel and a bandana; a dark edge
+        # to the bib, darker knee patches and patch pockets on the bib
+        'hem_bands': [('cuirass', '#4a3a26', 0.035)],
+        'bands': [('neck', 'tint', 0.12), ('wrist', 'tint', 0.05), ('knee', '#8a7450', 0.09)],   # bandana, cuffs, knee patches
+        'pockets': '#8a7450', 'pocket_z': 1.2, 'pocket_size': 0.07,
+        'cuirass_width': 0.12,                  # (a3: a narrower civ bib, split by the braces and tan pockets)
         'boots': True, 'wraps': 'boots',
         # the braces, dark and wide; MISSING: y_braces (straight braces; these cross), tool_belt
         'gear': [('chest_strap', {'color': '#241c14', 'width': 0.08, 'cross': True, 'offset': 0.03})],
         'hip_gear': [('cartridge_box', {'scale': 1.1}, 'r'), ('cartridge_box', {'scale': 0.9}, 'l')],   # tool-belt pouches
         'weapon': 'shovel',
-        'props': {'shovel': ('shovel', {'length': 1.25, 'd_grip': True})},
-        # level across the waist in both hands: the blade (the prop's +Z, along
-        # -tool_dir) at the figure's left, the right hand on the haft toward the D-grip
-        'stance_name': 'low_across', 'two_hands': True, 'tool_dir': (-0.95, 0.0, 0.2),
-        'tint': ['top'],
-        'grime': 0.85, 'upper_bulk': 1.2,
+        'props': {'shovel': ('work_shovel', {'length': 1.3, 'blade_w': 0.3})},
+        # (realism round 2) planted blade-down before his right foot, the wide blade face-on, both hands
+        # on the shaft: the right fist on the D-grip, the left lower down
+        # (a3: in front of him, clear of the legs, both hands on the shaft, the weight leaning on it; the
+        # blade turned 45 degrees so its face shows in the side views too)
+        'stance_name': 'ready', 'hand_r_at': (0.0, -0.34, -0.24), 'elbow_r': 0.45,
+        'weapon_dir': (-0.12, -0.3, -1.0), 'edge_dir': (0.7, -0.7, 0),
+        'two_hands': True, 'grip2': -0.28, 'elbow_l': 0.4,
+        'pose_extra': [('spine_02', (0, -0.06, 1)), ('spine_03', (0, -0.06, 1))],
+        'tint': ['cuirass'],
+        'grime': 0.85, 'upper_bulk': 1.05,
     },
     'Crusader': {
-        # upright; a sword low in the right hand, blade down-forward; a heater
-        # shield on the left arm; a closed flat-topped great helm, full mail,
-        # an off-white knee-length surcoat quartered civ color with a white
-        # cross, civ-color shoulders and hem band; gold at the spurs
-        'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.78, 'proportions': 0.68},
-        'colors': {'skin': '#94704f', 'top': '#d6d2c8', 'bottom': '#d6d2c8', 'helmet': '#7e8086',
-                   'mail': '#5e5e62', 'belt': '#4a3220', 'greaves': '#6e7074', 'gold': '#a8842e',
-                   'steel': '#a8aaae', 'shield_face': '#d6d2c8', 'shield_rim': '#6e5434', 'bronze': '#8a6a36'},
+        # (realism pass, notes/realism/Crusader.md: a knight of the Third Crusade on foot) a flat-topped
+        # great helm; dark mail sleeves and chausses; an undyed linen surcoat to the knee, belted, with the
+        # civ cross front and back, civ shoulders and a civ hem; the heater shield (civ face, pale cross)
+        # held by its grip; the sword ready at the hip, point forward and out (the melee family's stance)
+        'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.78, 'proportions': 0.74},   # (round 2: a longer torso)
+        # (a3: mail mufflers on the hands, so no skin dots show at the shoulder seams either)
+        'colors': {'skin': '#6a6c70', 'top': '#d8d2c4', 'bottom': '#d8d2c4', 'helmet': '#505258',
+                   'mail': '#7e8086', 'belt': '#4a3220', 'greaves': '#5e6064', 'gold': '#a8842e',
+                   'steel': '#9a9ca0', 'shield_face': '#d6d2c8', 'shield_rim': '#5a4430', 'bronze': '#8a6a36',
+                   'shield_pale': '#e8e4d8', 'boots': '#4a4c52'},
         'headgear': 'great_helm', 'helmet': None, 'metal': [], 'hair_asset': None, 'beard': False,
         'top': 'vest', 'neck': 'high', 'collar': 'mail',
-        'mail_parts': ['arms', 'legs'],         # mail sleeves and chausses
-        'bottom': 'skirt',                      # the surcoat's skirt to the knee
-        'chest_emblem': ('cross', '#ece8dc', 0.32), 'back_emblem': 'both',   # a white cross front and back
-        'hem_bands': [('bottom', 'tint', 0.05)],
-        'bands': [('neck', 'tint'), ('upperarm', 'tint'), ('ankle', 'gold')],   # civ-color shoulders, gold spurs
-        'wraps': 'greaves', 'leather_bracers': False,
+        'mail_parts': ['arms', 'legs'], 'mail_rows': True,   # mail sleeves and chausses, in ring courses
+        'mail_metallic': 0.5, 'mail_roughness': 0.62,          # (a3: lighter steel whose ring courses catch the light; still matte)
+        'headgear_scale': 0.8,                                # (round 2: the helm read top-heavy)
+        # the surcoat's skirt to the knee, cut from the coat over the mail (round 2: the 'skirt' let the mail
+        # chausses show through as grey blotches)
+        'bottom': None, 'coat_length': 0.62, 'coat_flare': 1.2,
+        'chest_emblem': ('cross', 'tint', 0.42), 'back_emblem': 'both',   # (with upper_bulk 1.1 the bar's ends stood off the body in dir 4)
+        'unit_scale': 1.03,                     # (round 2: matte mail and the smaller helm: pixels 0.89)
+        'hem_bands': [('coat', 'tint', 0.08)],
+        'bands': [('waist', 'belt', 0.05), ('ankle', 'gold'), ('neck', '#9a9ca2', 0.05)],   # (a3: the coif's edge)   # belt, gold spurs (round 2: no civ shoulder bands; their edge stood off the body as a speck in dir 4)
+        'wraps': None, 'boots': True, 'leather_bracers': False,   # (round 2: mail chausses, no plate greaves)
         'gear': [],
         'weapon': 'sword',
-        'props': {'sword': ('sword', {'length': 0.85, 'width': 0.06, 'guard': 0.2})},
-        'hang_dir': (-0.3, -0.25, -0.92),       # blade low, down and a little forward
-        # the left forearm stays across the body, in the shield's straps
-        # the original's blue heater with a white cross
+        'props': {'sword': ('sword', {'length': 0.85, 'width': 0.09, 'guard': 0.22, 'hilt': 'iron'})},   # (0.075 left a 1 px tip speck in dir 6)
+        'stance_name': 'shield_ready', 'sword_dir': (-0.55, -0.8, 0.1), 'edge_dir': (0, 0, 1),   # (round 2: off the shield in dir 7)
         'offhand': 'shield_heater', 'offhand_mesh': ('shield_heater', {'w': 0.66, 'h': 0.9}),
-        'shield_out': 0.2,
-        'stance_name': 'guard',
-        'tint': ['shield_emblem', 'top', 'bottom'],   # the surcoat in the civ color
-        'grime': 0.65, 'upper_bulk': 1.3,
+        # by its grip, the board well in front of the knuckles (+0.05 still showed the fist on the face)
+        'shield_at': 'grip', 'grip_depth': 0.12, 'shield_yaw': -20.0, 'shield_roll': 0.0,
+        'plate_metallic': 0.6, 'plate_roughness': 0.5,
+        'tint': ['shield_emblem'],              # plus the tinted cross and bands above
+        'grime': 0.0, 'upper_bulk': 1.2,       # (1.3 read as pauldrons; 1.1 left the cross bar standing off the body)
     },
     'TOW Infantry': {
         # a two-man team round a TOW launcher on a low tripod: one kneels at
@@ -390,3 +419,195 @@ REMASTER = {
 # y_harness          1  TOW Infantry: a tinted Y harness (crossed tinted chest straps stand in).
 # ground_props       1  TOW Infantry: tow_launcher on its tripod and missile crates on the ground (no crate prop).
 # team               1  TOW Infantry: a second, kneeling figure at the sight.
+
+
+# ------------------------------------------------------------------ realism pass (PC2, realism/infantry)
+# The gunpowder and modern infantry remade for the realism overhaul (notes/realism/<Unit>.md, and
+# notes/realism/_infantry.md for the family). REALISM[unit] is laid over the entry above (keys replaced,
+# None clears). LEGACY keeps the entries as they were before it: the siege crews (crews.py: the Cannon's
+# gunner is '_base' Musketman, the Artillery and Flak crews are '_base' Infantry, the TOW team '_base'
+# TOW Infantry) read remaster.REMASTER live, so pointing them at LEGACY keeps those finals unchanged.
+import copy as _copy
+
+LEGACY = {_u: _copy.deepcopy(REMASTER[_u]) for _u in
+          ('Musketman', 'Musketeer', 'Rifleman', 'Infantry', 'Marine', 'Paratrooper', 'WWII Paratrooper',
+           'Guerilla', 'TOW Infantry')}
+
+REALISM = {
+    'Musketman': {
+        # a matchlock musketeer of the 1630s-40s (Thirty Years War, English Civil War): a steel morion with a
+        # civ plume, a buff-leather coat over a russet doublet, civ cuffs and a civ sash over the coat, grey
+        # stockings; the twelve apostles on a bandolier; the matchlock on the right shoulder, the forked rest
+        # planted in the left hand. (round 2: the face lit under the morion, the rest full length with a wide
+        # Y, the civ off the whole sleeves onto the plume, cuffs and sash)
+        'colors': {'skin': '#a87e5c', 'hair': '#3a2a1c', 'helmet': '#7a7c82', 'cuirass': '#7a6446', 'top': '#5a3a2a',
+                   'belt': '#2a2220', 'wraps': '#8a857c', 'wraps_band': '#5e5a54', 'boots': '#1e1a16',
+                   'wood': '#4a3020', 'steel': '#4a4c52', 'bronze': '#8a6a36', 'bottom': '#4a3a2e'},
+        'face_fill': 12.0, 'brow_drop': 0.06, 'beard_style': 'mustache',   # (round 3: 35 W made a white mask)
+        'offhand_mesh': ('musket_rest', {'length': 1.62, 'grip': 0.85, 'fork_w': 2.4, 'shaft_w': 1.6,
+                                         'fork_spread': 1.8}),
+        'cuirass': True, 'metal': [], 'cuirass_trim': '#3e2c1c', 'trim_width': 0.035,   # the buff coat (round 3: darker,
+        # desaturated, so it no longer reads as bare skin), its edges bound dark
+        'pockets': '#5e4c34', 'pocket_size': 0.07,   # the coat's pocket flaps
+        'top': 'sleeved', 'puffy': False,
+        'tint': ['plume'],
+        'gear': [('chest_strap', {'tint': True, 'width': 0.14, 'offset': 0.045})],   # the field sign: a sash over the coat
+        'bands': [('waist', 'tint', 0.16, 0.04), ('wrist', 'tint', 0.1, 0.013), ('neck', '#3e2c1c', 0.05)],   # sash, cuffs, collar
+        'props': {'musket': ('musket', {'length': 1.78, 'barrel_w': 1.6})},
+        'hem_bands': [('bottom', '#2a2220', 0.04)],   # the breeches' garter band at the knee
+    },
+    'Musketeer': {
+        # a cavalier-era musketeer, about 1630: a broad felt hat with a civ plume, cropped hair and moustache;
+        # a buff coat with skirts over the doublet, a broad white falling collar; a wide civ baldric and a civ
+        # sash and cuffs; a cup-hilt rapier at the left hip; dark breeches and tall bucket boots; the musket at
+        # the port. (round 2: the face lit under the brim, a thicker musket angled off the body, a shorter
+        # rapier, a broad collar to break the hat and hair from behind)
+        'colors': {'skin': '#c09070', 'hair': '#2a1e16', 'top': '#94744c', 'bottom': '#2e2824', 'belt': '#221e1a',
+                   'boots': '#1a1614', 'wood': '#4a3020', 'steel': '#4a4c52', 'felt': '#2a2220', 'helmet': '#2a2220',
+                   'bronze': '#8a6a36', 'ruff': '#e4e0d4'},
+        'face_fill': 9.0, 'brow_drop': 0.055,
+        'hair': 'short', 'hair_asset': 'short02',
+        'beard_style': 'mustache', 'beard_length_short': 0.026, 'beard_density': 1100,   # a dark moustache that reads
+        'coat_length': 0.55, 'coat_flare': 1.2, 'hem_bands': [('coat', '#5a4028', 0.04)],
+        'ruff': '#e4e0d4', 'ruff_size': 0.08,
+        'gear': [('chest_strap', {'tint': True, 'width': 0.16})],   # the baldric
+        'bands': [('waist', 'tint', 0.18), ('knee', '#3a2a1e', 0.06), ('wrist', 'tint', 0.08, 0.013)],
+        'hip': ('sheathed_sword', {'rapier': True, 'length': 0.78, 'scale': 1.0}),
+        'props': {'musket': ('musket', {'length': 1.6, 'barrel_w': 2.0, 'stock_w': 1.5})},
+        'headgear_params': {'plume': 1.0, 'tip': 0.017},   # (round 3: the plume cut about 25 %)
+        'gun_dir': (0.75, -0.45, 0.55), 'fore_end': 0.4,   # the port, angled out off the body
+        'tint': ['plume', 'strap'],
+    },
+    'Rifleman': {
+        # FINAL = round 2 (restored; the later rounds regressed: notes/realism/Rifleman.md)
+        # a line rifleman of the 1860s-70s: a dark navy kepi with a civ band, sloped forward over a broad peak; a
+        # dark navy tunic with short skirts, a civ collar and cuffs (the regiment's facings); sky-grey trousers;
+        # a black waist belt with a brass plate and the cartridge box, a canvas haversack, white gaiters; the
+        # long rifle with its bayonet at the port. (round 2: civ off the trousers; a real kepi; a lighter
+        # navy; a thicker rifle)
+        'colors': {'skin': '#a87e5c', 'hair': '#2a1e16', 'top': '#34426a', 'bottom': '#7e8ea2', 'belt': '#16140f',
+                   'boots': '#141210', 'wraps': '#c8c0a8', 'wraps_band': '#9a9280', 'wood': '#6a4428',
+                   'steel': '#5a5c62', 'hat': '#2a3452', 'helmet': '#2a3452', 'buckle': '#c8a04a'},
+        'headgear_params': {'band': 'dark', 'slope': 14.0, 'peak': 1.4, 'tall': 1.25},   # civ crown, navy band
+        'coat_length': 0.3, 'hem_bands': [('coat', '#222a44', 0.03)],
+        'gear': [('chest_strap', {'color': '#16140f', 'width': 0.06})],   # the haversack's sling
+        'wraps': 'wraps', 'wraps_height': 0.3, 'boots': True,
+        'tint': ['hat'],
+        'props': {'rifle': ('rifle_bolt', {'length': 1.65, 'bayonet': True, 'bayonet_w': 3.0, 'barrel_w': 1.7,
+                                           'stock_w': 1.5})},
+        'bands': [('wrist', 'tint', 0.07, 0.013), ('neck', 'tint', 0.05, 0.013)],   # the cuffs and collar
+    },
+    'Infantry': {
+        # a WWII rifleman (US, 1943-44): the M1 helmet in olive steel with a civ band, olive drab wool shirt
+        # and trousers, dark webbing (cartridge belt, suspenders, canteen), canvas leggings, brown boots, an
+        # olive pack; flat civ armbands; the Garand with its bayonet at the hip, the muzzle forward and out.
+        # (round 2: darker, warmer OD wool, matte; dark webbing; an olive helmet; a thicker Garand)
+        'colors': {'skin': '#a87e5c', 'hair': '#3a2a1c', 'olive': '#4a4e34', 'olive_dark': '#8a7c58',
+                   'top': '#504a2c', 'bottom': '#57502e', 'belt': '#9a8a60', 'boots': '#4a3020',
+                   'wraps': '#a49878', 'wraps_band': '#7e7460', 'wood': '#6a4024', 'steel': '#3a3c3e'},
+        'cloth_rough': 0.95,
+        'patterns': {},
+        'headgear_params': {'band': True, 'band_w': 0.07},
+        'back_params': {'size': 1.3, 'tint': False},
+        # (round 3: khaki webbing, belt, canteen cover and pouch against the OD wool)
+        'gear': [('chest_strap', {'color': '#9a8a60', 'width': 0.08, 'cross': True, 'offset': 0.03})],
+        'hip_gear': [('canteen', {'scale': 1.4}, 'l'), ('cartridge_box', {'scale': 0.8}, 'r')],
+        'bands': [('waist', 'belt', 0.08), ('upperarm', 'tint', 0.18, 0.013)],
+        'props': {'rifle': ('rifle_bolt', {'length': 1.2, 'bayonet': True, 'bayonet_w': 3.0, 'barrel_w': 1.7,
+                                           'stock_w': 1.5})},
+        'gun_dir': (-0.7, -0.7, 0.16),   # (round 3: out at 45 degrees, so the front view sees its length)
+        'tint': [],
+    },
+    'Marine': {
+        # FINAL = round 1 (restored; the later rounds regressed: notes/realism/Marine.md)
+        # a modern US Marine: the helmet in a woodland cover, MARPAT woodland blouse and trousers, a coyote
+        # plate carrier, civ knee pads and civ patches on both upper arms, black boots; the M16 at the hip
+        'colors': {'skin': '#a07858', 'hair': '#2a2018', 'olive': '#454c3c', 'olive_dark': '#6e6450',
+                   'cuirass': '#6e5e44', 'top': '#4e5a40', 'bottom': '#4e5a40', 'belt': '#3a3426', 'boots': '#2a241c'},
+        'headgear_params': {'band': True, 'camo': True, 'band_w': 0.06},
+        'patterns': {'bottom': ('camo', '#3a4a30', '#5a4632', '#8a8a66'),
+                     'top': ('camo', '#3a4a30', '#5a4632', '#8a8a66')},
+        'tint_shade': {},
+        'bands': [('upperarm', 'tint', 0.15), ('knee', 'tint', 0.13)],
+        'props': {'rifle': ('assault_rifle', {'scale': 1.5, 'barrel_w': 1.8, 'whole': True})},
+        'tint': [],
+    },
+    'Paratrooper': {
+        # a modern paratrooper: an olive helmet cover, tan arid camouflage, a big squared main parachute
+        # container high on the back with harness straps crossing the chest, an olive reserve on the belly
+        # with civ trim, flat civ armbands and civ knee pads, tall brown jump boots; a carbine at the hip, the
+        # muzzle forward and out. (round 2: away from the Marine: tan camo, the chute and harness, jump boots)
+        'colors': {'skin': '#a87e5c', 'hair': '#2a2018', 'olive': '#565838', 'olive_dark': '#3e3c2e',
+                   'top': '#9a8a64', 'bottom': '#9a8a64', 'belt': '#3a3426', 'boots': '#4a3020', 'chute_grey': '#5a5c3c',
+                   'webbing': '#2e2e22'},
+        'headgear_params': {'band': True, 'band_w': 0.06},
+        'cuirass': False,
+        'patterns': {'top': ('camo', '#7a6a48', '#5a4a32', '#c0b08a'),
+                     'bottom': ('camo', '#7a6a48', '#5a4a32', '#c0b08a')},
+        'bands': [('knee', 'tint', 0.12), ('upperarm', 'tint', 0.16, 0.013), ('thigh', 'webbing', 0.045)],   # + leg straps
+        'back': 'chute_pack', 'back_params': {'size': 1.35, 'straps': True}, 'pack_up': 0.14,
+        'chest_gear': ('reserve_chute', {'tint': True, 'trim': True, 'scale': 1.45, 'buckle': True}),
+        'props': {'rifle': ('assault_rifle', {'scale': 1.3, 'barrel_w': 1.8, 'whole': True})},
+        'gun_dir': (-0.7, -0.7, 0.16),
+        'harness': True,
+        'boots_height': 0.44,
+        'unit_scale': 0.965,   # the bigger chute put it at 1.14 of the shipped area
+        'tint': [],
+    },
+    'WWII Paratrooper': {
+        # a WWII airborne trooper (US, 1944): the netted M1, the plain khaki M42 jump suit, the T-5 main chute
+        # as a squared OD canvas pack on the back, an OD reserve on the belly with civ trim, a flat civ armband
+        # and knee bands, brown jump boots; the Thompson at the hip. (round 2: a backpack-sized squared chute
+        # in plain OD, not a camo shell; a bigger Thompson)
+        'colors': {'skin': '#a87e5c', 'hair': '#2a2018', 'olive': '#4e4d3c', 'top': '#7a7050', 'bottom': '#7a7050',
+                   'belt': '#5a543c', 'boots': '#5a3a22', 'pack': '#4e4d3c', 'wood': '#6e4428',
+                   'chute_grey': '#56553a', 'olive_dark': '#5e3e22', 'webbing': '#34342a', 'canvas': '#6a6146'},
+        'harness': True, 'headgear_params': {'net': True, 'band': True, 'band_w': 0.05},
+        'pockets': '#6a6146', 'pocket_size': 0.085, 'pocket_z': 1.22,   # the M42's chest pockets
+        'hip_gear': [('haversack', {'scale': 0.6}, 'l'), ('haversack', {'scale': 0.6}, 'r')],   # bellows cargo pockets
+        'cuirass': False, 'patterns': {}, 'shoulder_patch': None,
+        'bands': [('upperarm', 'tint', 0.16, 0.013), ('waist', '#5a543c', 0.07), ('knee', 'tint', 0.1)],
+        'back': 'chute_pack', 'back_params': {'size': 1.15, 'straps': True},
+        'chest_gear': ('reserve_chute', {'tint': True, 'trim': True, 'scale': 1.4, 'buckle': True}),
+        'props': {'smg': ('smg', {'scale': 1.65, 'whole': True})},
+        'gun_dir': (-0.3, -1.0, 0.12),
+        'boots_height': 0.42,
+        'tint': [],
+    },
+    'Guerilla': {
+        # an irregular fighter: a civ head band, a civ scarf at the neck and flat civ armbands; an olive
+        # T-shirt, faded woodland trousers (matte), dark boots, brown leather bandoliers crossed on the chest,
+        # a small pack; the AK at the low ready, the muzzle forward and out. (round 2: the face lit; matte
+        # trousers without the rim halo; the AK out past the right hip)
+        'beard': False,
+        'colors': {'skin': '#ac8262', 'hair': '#1a140e', 'top': '#4e5236', 'bottom': '#5a5a3e', 'belt': '#3a2818',
+                   'boots': '#2e2216', 'olive_dark': '#5a4430', 'olive': '#4a3a28', 'wood': '#5e3e16'},
+        'face_fill': 5.0,
+        'cloth_rough': 0.97,
+        'macro': {'muscle': 0.95, 'weight': 0.6, 'height': 0.72, 'proportions': 0.6},   # (round 3: a shorter inseam)
+        'patterns': {'bottom': ('camo', '#3a4426', '#5e4a2a', '#26281a')},
+        'puffy': False, 'trouser_offset': 0.012,
+        'gear': [('chest_strap', {'color': '#4a3220', 'width': 0.07, 'cross': True, 'offset': 0.035})],
+        'bands': [('neck', 'tint', 0.08), ('upperarm', 'tint', 0.16, 0.013)],
+        'props': {'rifle': ('ak', {'scale': 1.35, 'barrel_w': 1.6, 'whole': True})},
+        'stance_name': 'hip_hold', 'gun_dir': (-0.3, -1.0, 0.1), 'upright_dir': None, 'pose_extra': [],
+        'tint': ['helmet'],
+    },
+    'TOW Infantry': {
+        # the TOW team's crewmen (siege.tow_team, crews.py): 1980s US woodland BDUs, PASGT helmets in camo
+        # covers with a civ band, olive flak vests (not civ), olive LBE suspenders; flat civ armbands and civ
+        # knee pads; brown boots
+        'colors': {'skin': '#b08462', 'hair': '#2a2018', 'olive': '#4e5240', 'top': '#4e5440', 'bottom': '#4e5440',
+                   'belt': '#3a3a2c', 'boots': '#3a2a1c', 'cuirass': '#5a5e46'},
+        'patterns': {'top': ('camo', '#3e4430', '#62492e', '#8e8e6a'),   # (round 3: a lighter woodland)
+                     'bottom': ('camo', '#3e4430', '#62492e', '#8e8e6a')},
+        'gear': [('chest_strap', {'color': '#3a3a2c', 'width': 0.06, 'cross': True, 'offset': 0.035})],
+        'bands': [('upperarm', 'tint', 0.12, 0.013), ('knee', 'tint', 0.1)],
+        'headgear_params': {'camo': True, 'band': True, 'band_w': 0.05},
+        'shoulder_patch': None,
+        'tint': [],
+    },
+}
+
+for _u, _over in REALISM.items():
+    REMASTER[_u] = dict(REMASTER[_u], **_over)

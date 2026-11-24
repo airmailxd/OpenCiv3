@@ -48,6 +48,7 @@ DEFAULTS = {
     'rope': ('#b89a68', 0.85, 0.0, 'rope'),
     'string': ('#ddd4bc', 0.7, 0.0, None),
     'fletch': ('#e6e0ce', 0.8, 0.0, None),
+    'sinew': ('#4a3626', 0.7, 0.0, None),
     'shield_face': ('#c8b894', 0.6, 0.0, 'wood'),
     'shield_rim': ('#5a4028', 0.58, 0.0, 'leather'),
     'shield_emblem': ('#ffffff', 0.6, 0.0, None),
@@ -88,7 +89,7 @@ def material(key, colors, tint=False, weather=None):
     if tint:
         w = {} if kind == 'polished' else {'grime': 0.2}   # the civ color stays readable, just a little worn (flags: clean)
     w.update(weather or {})
-    tag = '_'.join(f'{k[0]}{round(v * 100)}' for k, v in sorted(w.items()) if v)
+    tag = '_'.join(f'{k if k in _WEATHER_EXTRA else k[0]}{round(v * 100)}' for k, v in sorted(w.items()) if v)
     camo = None if tint else CAMO.get(key)
     if camo:
         tag += '_c' + format(abs(hash(tuple(camo))) % 0xFFFFFF, 'x')
@@ -126,9 +127,13 @@ def _camo(m, layers):
     rgb.outputs[0].default_value = bc.default_value
     out = rgb.outputs[0]
     tc = N.new('ShaderNodeTexCoord')
-    for color, scale, th, seed in layers:
+    for layer in layers:
+        color, scale, th, seed = layer[:4]
+        soft = layer[4] if len(layer) > 4 else 0.015   # the blob edge's width in noise units (soft mottling: wider)
         mp = N.new('ShaderNodeMapping')
         mp.inputs['Location'].default_value = (seed * 3.1, seed * 1.7, seed * 0.9)
+        if len(layer) > 5:   # an optional per-axis stretch: (1, 1, 0.3) draws the blobs out into vertical bands
+            mp.inputs['Scale'].default_value = tuple(layer[5])
         L.new(tc.outputs['Object'], mp.inputs['Vector'])
         t = N.new('ShaderNodeTexNoise')
         t.inputs['Scale'].default_value = scale
@@ -137,7 +142,7 @@ def _camo(m, layers):
         L.new(mp.outputs['Vector'], t.inputs['Vector'])
         r = N.new('ShaderNodeMapRange')
         r.inputs['From Min'].default_value = th
-        r.inputs['From Max'].default_value = th + 0.015
+        r.inputs['From Max'].default_value = th + soft
         L.new(t.outputs['Fac'], r.inputs['Value'])
         mix = N.new('ShaderNodeMix')
         mix.data_type = 'RGBA'
@@ -151,6 +156,21 @@ def _camo(m, layers):
 
 def _srgb_to_linear(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+# Opt-in weathering keys (0 unless a model asks; armor.py's Tank uses them):
+# 'dust' paints a pale dust up from the ground (object z), fading out by
+# 'dust_h' m and broken up by noise, so it collects low (tracks, lower hull);
+# 'chips' paints dark steel chips on convex edges (pointiness) where a fine
+# noise lets them through, so edges are broken, not outlined.
+# 'exhaust' darkens with soot toward the rear (object y below 'exhaust_y'),
+# where a vehicle's exhaust blackens its rear plate.
+# 'fade' varies the value in soft patches ~0.3 m across (sun-faded,
+# retouched paint); 'streaks' runs dust down the steep faces in vertical
+# streaks (flat decks keep clean paint).
+_WEATHER_EXTRA = ('dust', 'dust_h', 'chips', 'exhaust', 'exhaust_y', 'fade', 'streaks')
+DUST = (0.40, 0.33, 0.21, 1.0)   # linear: a pale, slightly warm road dust
+CHIP = (0.05, 0.042, 0.032, 1.0)  # linear: dark bare steel / primer
 
 
 def _weather(m, w):
@@ -211,6 +231,16 @@ def _weather(m, w):
         fac = mul(fac, remap(geo.outputs['Pointiness'], 0.5, 0.58, 1.0, 1.0 + w.get('edges', 0.25)))
     if soot:
         fac = mul(fac, remap(noise(1.3, 4.0, 0.5), 0.48, 0.7, 1.0, 1.0 - 0.75 * soot))
+    if w.get('fade'):
+        fac = mul(fac, remap(noise(3.2, 2.0, 0.45), 0.32, 0.68, 1.0 - w['fade'], 1.0 + w['fade']))
+    if w.get('exhaust'):
+        sxyz = N.new('ShaderNodeSeparateXYZ')
+        L.new(tc.outputs['Object'], sxyz.inputs['Vector'])
+        y0 = w.get('exhaust_y', -0.6)
+        back = remap(sxyz.outputs['Y'], y0, y0 - 0.2, 0.0, 1.0)
+        streak = remap(noise(7.0, 3.0, 0.5), 0.35, 0.65, 0.4, 1.0)
+        dark = mul(mul(back, streak), remap(back, 0.0, 1.0, 0.0, w['exhaust']))
+        fac = mul(fac, remap(dark, 0.0, 1.0, 1.0, 0.25))
     hsv = N.new('ShaderNodeHueSaturation')
     hsv.inputs['Hue'].default_value = 0.5
     hsv.inputs['Saturation'].default_value = 1.0
@@ -227,6 +257,48 @@ def _weather(m, w):
         L.new(remap(noise(scale), lo, lo + 0.18, 0.0, amount), mix.inputs['Factor'])
         L.new(out, mix.inputs['A'])
         mix.inputs['B'].default_value = color
+        out = mix.outputs['Result']
+    if w.get('chips'):
+        geo = N.new('ShaderNodeNewGeometry')
+        edge = remap(geo.outputs['Pointiness'], 0.56, 0.62, 0.0, 1.0)
+        brk = remap(noise(48.0, 2.0, 0.6), 0.56, 0.62, 0.0, w['chips'])
+        mix = N.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        L.new(mul(edge, brk), mix.inputs['Factor'])
+        L.new(out, mix.inputs['A'])
+        mix.inputs['B'].default_value = CHIP
+        out = mix.outputs['Result']
+    if w.get('streaks'):
+        mp = N.new('ShaderNodeMapping')
+        mp.inputs['Scale'].default_value = (16.0, 16.0, 1.6)   # long along z: vertical runs
+        L.new(tc.outputs['Object'], mp.inputs['Vector'])
+        t = N.new('ShaderNodeTexNoise')
+        t.inputs['Scale'].default_value = 1.0
+        t.inputs['Detail'].default_value = 3.0
+        L.new(mp.outputs['Vector'], t.inputs['Vector'])
+        g2 = N.new('ShaderNodeNewGeometry')
+        nz = N.new('ShaderNodeSeparateXYZ')
+        L.new(g2.outputs['Normal'], nz.inputs['Vector'])
+        ab = N.new('ShaderNodeMath')
+        ab.operation = 'ABSOLUTE'
+        L.new(nz.outputs['Z'], ab.inputs[0])
+        steep = remap(ab.outputs[0], 0.35, 0.75, 1.0, 0.0)
+        mix = N.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        L.new(mul(steep, remap(t.outputs['Fac'], 0.48, 0.66, 0.0, w['streaks'])), mix.inputs['Factor'])
+        L.new(out, mix.inputs['A'])
+        mix.inputs['B'].default_value = DUST
+        out = mix.outputs['Result']
+    if w.get('dust'):
+        sep = N.new('ShaderNodeSeparateXYZ')
+        L.new(tc.outputs['Object'], sep.inputs['Vector'])
+        low = remap(sep.outputs['Z'], 0.0, w.get('dust_h', 0.35), 1.0, 0.0)
+        patch = remap(noise(5.0, 4.0, 0.6), 0.36, 0.66, 0.35, 1.0)
+        mix = N.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        L.new(mul(mul(low, patch), remap(low, 0.0, 1.0, 0.35 * w['dust'], w['dust'])), mix.inputs['Factor'])
+        L.new(out, mix.inputs['A'])
+        mix.inputs['B'].default_value = DUST
         out = mix.outputs['Result']
     L.new(out, bc)
 
@@ -362,6 +434,7 @@ DEFAULTS.update({
     'cloth_wrap': ('#3a2e26', 0.85, 0.0, 'cloth'),
     'lacquer': ('#1e1614', 0.35, 0.0, 'leather'),
     'gunmetal': ('#2e3032', 0.4, 1.0, 'metal'),
+    'forged_iron': ('#6a6a6c', 0.62, 0.45, 'metal'),   # matte forged iron (props.spade's face)
     'polymer': ('#26282a', 0.55, 0.0, None),
     'olive': ('#4e5034', 0.7, 0.0, 'cloth'),
     'olive_dark': ('#3a3c28', 0.8, 0.0, 'cloth'),
@@ -624,7 +697,7 @@ def stone_axe(p, length=0.52, scale=1.0):
 
 
 def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, shaft_tint=False, flat=0.3,
-          wrap=False):
+          wrap=False, spike=False, tip=0.0):
     """A long ash spear held `grip` m from its butt: a leaf-shaped iron head on
     a socket, a leather grip binding and an optional butt spike. shaft_tint
     paints the shaft in the civ color; wrap: a fur wrap below the head with
@@ -644,6 +717,10 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, 
           bevel=0.002, smooth=True, tint=shaft_tint)
     # leaf head: a lathe flattened across Y with a raised midrib (diamond section)
     prof = [(0.0, 0.022), (0.06, 0.026), (0.12, 0.048), (0.2, 0.043), (0.27, 0.02), (0.33, 0.0)]
+    if spike:   # (the realism pass) a pika's slim tapered spike, no leaf
+        prof = [(0.0, 0.026), (0.06, 0.028), (0.14, 0.026), (0.26, 0.018), (0.33, 0.0)]
+    if tip:     # a blunter point: its last pixel stays joined at 1x/2x (specks.py)
+        prof = prof[:-1] + [(prof[-1][0], tip)]
     head_m = lathe(prof, seg=4, scale_xy=(1.0, flat))   # flat: the head's thickness across its width
     p.add(head_m, 'steel', T(0, 0, z1 - 0.33 * head) @ R('Z', 90) @ S(head), bevel=0.0015)
     # socket with a collar ring
@@ -666,31 +743,43 @@ def pike(p, length=4.2, grip=1.4, scale=1.0, shaft_tint=False):
         p.add(box(0.008, 0.012, 0.4), 'steel', T(sx * (SHAFT_R + 0.003), 0, z1 - 0.55), bevel=0.002)
 
 
-def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0, head=2.3, shaft=0.05, flat=0.3):
+def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0, head=2.3, shaft=0.05, flat=0.3, spike=False, tip=0.0):
     """A horseman's long spear, held further back than a footman's: a stout
     shaft and a broad head so it reads from the saddle at 1x (a fuller `flat`
     keeps the head broad when it's seen edge-on)."""
-    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=shaft, head=head, flat=flat)
+    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=shaft, head=head, flat=flat, spike=spike, tip=tip)
 
 
-def javelin(p, length=1.6, grip=0.6, scale=1.0):
-    """A light throwing spear: a slim shaft and a long, narrow iron head."""
-    spear(p, length=length, grip=grip, butt=False, scale=scale, shaft=0.024, head=1.1)
+def javelin(p, length=1.6, grip=0.6, scale=1.0, shaft=0.024, head=1.1, tip=0.0, flat=0.3):
+    """A light throwing spear: a slim shaft and a long, narrow iron head (tip: a blunter point, one piece at 2x)."""
+    spear(p, length=length, grip=grip, butt=False, scale=scale, shaft=shaft, head=head, tip=tip, flat=flat)
 
 
-def lance(p, length=3.4, grip=1.0, scale=1.0):
+def lance(p, length=3.4, grip=1.0, scale=1.0, girth=1.0, head=1.0, pennon=False, bold=False):
     """A knight's or conquistador's lance: a long shaft swelling to a vamplate
-    (the round hand guard) in front of the grip, and a slim steel point."""
+    (the round hand guard) in front of the grip, and a slim steel point;
+    girth thickens the shaft (so it reads at 1x)."""
     z0, z1 = -grip, length - grip
     prof = [(z0, 0.03), (-0.15, 0.034), (0.0, 0.03), (0.14, 0.05), (0.5, 0.036), (z1 - 0.3, 0.022), (z1 - 0.22, 0.02)]
-    p.add(tube([(0, 0, z) for z, _ in prof], [r for _, r in prof], seg=12), 'wood', smooth=True)
+    p.add(tube([(0, 0, z) for z, _ in prof], [r * girth for _, r in prof], seg=12), 'wood', smooth=True)
     p.add(lathe([(0.0, 0.03), (0.05, 0.12), (0.075, 0.125), (0.09, 0.04)], seg=20), 'steel', T(0, 0, 0.12),
           smooth=True)                                                         # vamplate
-    p.add(lathe([(0.0, 0.022), (0.08, 0.02), (0.26, 0.0)], seg=8), 'steel', T(0, 0, z1 - 0.26), smooth=True)
+    hk = head   # head: (the realism pass) a bigger, leaf-shaped point; pennon: a small civ swallow-tail below it
+    if hk != 1.0:
+        p.add(lathe([(0.0, 0.022), (0.08 * hk, 0.03 * hk), (0.26 * hk, 0.016 if bold else 0.006)], seg=8,
+                    scale_xy=(1.0, 0.8 if bold else 0.55)), 'steel',
+              T(0, 0, z1 - 0.26 * hk), smooth=True)   # bold: (numpy-mounted) a blunter, rounder point that stays one piece at 1x
+    else:
+        p.add(lathe([(0.0, 0.022), (0.08, 0.02), (0.26, 0.0)], seg=8), 'steel', T(0, 0, z1 - 0.26), smooth=True)
+    if pennon:
+        zt = z1 - 0.3 * hk
+        fl = (slab([(0.0, 0.0), (0.0, -0.24), (0.32, -0.19), (0.25, -0.12), (0.32, -0.05)], 0.02, 'Y') if bold else   # bold: thicker, broader tails
+              slab([(0.0, 0.0), (0.0, -0.22), (0.3, -0.16), (0.22, -0.11), (0.3, -0.06)], 0.006, 'Y'))
+        p.add(fl, 'tint', T(0.02, 0, zt), tint=True, bevel=0.002)
     p.add(tube([(0, 0, -0.12), (0, 0, 0.1)], 0.034, seg=12), 'leather', smooth=True)
 
 
-def sabre(p, length=0.84, width=0.034, curve=0.07, scale=1.0):
+def sabre(p, length=0.84, width=0.034, curve=0.07, scale=1.0, guard='steel', guard_r=None, spine=0.004, tip=0.0, edge=False):
     """A curved cavalry sabre: a single-edged blade bowing back from the edge
     (+Y), a stirrup hilt guard, a wrapped grip and a steel pommel cap."""
     L = length * scale
@@ -701,11 +790,15 @@ def sabre(p, length=0.84, width=0.034, curve=0.07, scale=1.0):
         z = 0.07 + L * t
         bow = -curve * scale * (t ** 1.6)
         hw = width / 2 * scale * (1.0 - 0.25 * t if t < 0.85 else (1 - t) / 0.15 * 0.79)
-        back = 0.004 * scale * (1 - 0.5 * t)
+        hw = max(hw, tip * scale)   # tip: a blunter point (its last pixel stays joined: specks.py)
+        back = spine * scale * (1 - 0.5 * t)   # spine: the blade's half thickness at the hilt
         rings.append([(0.0, bow - hw, z), (back, bow + hw * 0.7, z), (0.0, bow + hw, z), (-back, bow + hw * 0.7, z)])
     p.add(loft(rings), 'steel', bevel=0.0006, angle=50.0)
-    p.add(tube([(0, -0.03, 0.06), (0, 0.05, 0.03), (0, 0.065, -0.05), (0, 0.03, -0.1)], 0.006, seg=6), 'steel',
-          smooth=True)                                                         # stirrup guard
+    if edge:   # (the realism pass) a bright polished strip along the cutting edge, so the blade reads at 1x
+        DEFAULTS.setdefault('blade_edge', ('#f4f6f8', 0.15, 1.0, 'polished'))
+        p.add(tube([r[0] for r in rings[:-1]], 0.0045 * scale, seg=6), 'blade_edge', smooth=True)
+    p.add(tube([(0, -0.03, 0.06), (0, 0.05, 0.03), (0, 0.065, -0.05), (0, 0.03, -0.1)], guard_r or (0.006 if guard == 'steel' else 0.01),
+               seg=6), guard, smooth=True)                                     # stirrup guard (guard: its material key)
     p.add(tube([(0, 0, -0.1), (0, 0, 0.06)], [0.016, 0.018], seg=10), 'leather', smooth=True)
     _wrap(p, -0.095, 0.055, 0.0185, 'leather_dark', turns=10)
     p.add(ellipsoid(0.02, 0.024, 0.018), 'steel', T(0, 0.004, -0.11), smooth=True)
@@ -719,20 +812,22 @@ def long_sword(p, length=0.95, width=0.055, guard=0.24, scale=1.0):
     p.add(ellipsoid(0.032, 0.026, 0.03), 'steel', T(0, 0, -0.22), smooth=True)
 
 
-def rifle(p, length=1.25, scale=1.0):
+def rifle(p, length=1.25, scale=1.0, barrel_w=1.0, stock_w=1.0):
     """A cavalry carbine or rifle held at the wrist of the stock (origin), the
     muzzle toward +Z: a wooden stock and fore-end, a steel barrel and lock."""
     s = scale
     stock = slab([(-0.05, -0.36), (0.035, -0.36), (0.04, -0.12), (0.02, 0.0), (0.02, 0.62), (-0.012, 0.62),
                   (-0.016, 0.02), (-0.04, -0.1)], 0.042, 'X')
-    p.add(stock, 'wood', S(s), bevel=0.006)
-    p.add(tube([(0, 0.012, 0.0), (0, 0.012, (length - 0.36) * s)], 0.011 * s, seg=10), 'steel', smooth=True)
+    p.add(stock, 'wood', S(s * stock_w, s * stock_w, s), bevel=0.006)   # stock_w (realism infantry): a thicker stock
+    if stock_w != 1.0:   # and a lock plate that stands out of it
+        p.add(box(0.046 * stock_w, 0.034, 0.1), 'steel', T(0, 0.006, 0.04 * s), bevel=0.004)
+    p.add(tube([(0, 0.012, 0.0), (0, 0.012, (length - 0.36) * s)], 0.011 * s * barrel_w, seg=10), 'steel', smooth=True)
     p.add(box(0.03, 0.03, 0.09), 'steel', T(0, 0.006, 0.04 * s), bevel=0.004)   # lock
     for z in (0.3, 0.55):
         p.add(lathe([(0.0, 0.026), (0.015, 0.026)], seg=12), 'steel', T(0, 0.004, z * s), smooth=True)
 
 
-def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
+def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0, hilt='bronze'):
     """A straight short sword: a waisted, long-pointed blade along +Z (flat to
     X, edges toward +-Y) with a central ridge, a bar guard, a wrapped leather
     grip and a round pommel."""
@@ -750,10 +845,10 @@ def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
         rings.append([(0.0, -hw, z), (ridge, 0.0, z), (0.0, hw, z), (-ridge, 0.0, z)])
     p.add(loft(rings), blade, bevel=0.0008, angle=50.0)
     # guard, grip, pommel
-    p.add(box(0.04, guard * scale, 0.028), 'bronze', T(0, 0, 0.06), bevel=0.006)
+    p.add(box(0.04, guard * scale, 0.028), hilt, T(0, 0, 0.06), bevel=0.006)
     p.add(tube([(0, 0, -0.075), (0, 0, 0.045)], [0.017, 0.019], seg=12), 'leather', smooth=True)
     _wrap(p, -0.07, 0.04, 0.0192, 'leather_dark', turns=9)
-    p.add(ellipsoid(0.03, 0.022, 0.026), 'bronze', T(0, 0, -0.1), bevel=0.0, smooth=True)
+    p.add(ellipsoid(0.03, 0.022, 0.026), hilt, T(0, 0, -0.1), bevel=0.0, smooth=True)
 
 
 def _bow_points(height, draw, bend, recurve, n=17):
@@ -768,18 +863,32 @@ def _bow_points(height, draw, bend, recurve, n=17):
     return pts
 
 
-def bow(p, height=1.45, draw=0.0, bend=0.12, recurve=0.07, string=True, scale=1.0):
+def bow(p, height=1.45, draw=0.0, bend=0.12, recurve=0.07, string=True, scale=1.0, thick=1.0, string_r=None, string_key='string',
+        composite=False, round_=False):
     """A recurve bow held at its grip: limbs up and down along Z bending back
     toward the archer (-Y), the tips curling forward; leather grip; string."""
     h = height * scale
     pts = _bow_points(h, draw, bend, recurve)
-    radii = [0.006 + 0.012 * (1 - abs(-1 + 2 * i / (len(pts) - 1))) ** 0.7 for i in range(len(pts))]
-    p.add(tube(pts, radii, seg=8, scale_xy=(1.0, 0.75)), 'wood', smooth=True)
+    radii = [(0.006 + 0.012 * (1 - abs(-1 + 2 * i / (len(pts) - 1))) ** 0.7) * thick for i in range(len(pts))]   # thick: heavier limbs (one piece at 2x)
+    if composite:   # (the realism pass) a composite bow: a dark lacquered back, a pale horn belly, dark stiff ears (siyahs)
+        DEFAULTS.setdefault('bow_lacquer', ('#4a1e14', 0.45, 0.0, None))
+        DEFAULTS.setdefault('bow_horn', ('#d8c49a', 0.5, 0.0, None))
+        DEFAULTS.setdefault('bow_ear', ('#1e140e', 0.5, 0.0, None))
+        n_ = len(pts)
+        mid = [i for i in range(n_) if abs(-1 + 2 * i / (n_ - 1)) <= 0.82]
+        p.add(tube(pts, radii, seg=12, scale_xy=(1.0, 0.75)), 'bow_lacquer', smooth=True)
+        belly = [(x, y - 0.4 * radii[i] * 0.75, z) for i, (x, y, z) in enumerate(pts)]
+        p.add(tube([belly[i] for i in mid], [radii[i] * 0.8 for i in mid], seg=12, scale_xy=(1.0, 0.75)), 'bow_horn', smooth=True)
+        p.add(tube(pts[:4], [r * 1.1 for r in radii[:4]], seg=12, scale_xy=(1.0, 0.8)), 'bow_ear', smooth=True)
+        p.add(tube(pts[-4:], [r * 1.1 for r in radii[-4:]], seg=12, scale_xy=(1.0, 0.8)), 'bow_ear', smooth=True)
+    else:   # round_: (the realism pass) a round limb, not faceted
+        p.add(tube(pts, radii, seg=12 if round_ else 8, scale_xy=(1.0, 0.9 if round_ else 0.75)), 'wood', smooth=True)
     p.add(tube([(0, -0.002, -0.07), (0, -0.002, 0.07)], 0.02, seg=12), 'leather', smooth=True)
     if string:
         top, bot = pts[-1], pts[0]
         mid = (0.0, top[1] - 0.04 - 0.55 * draw, 0.0)
-        p.add(tube([bot, mid, top], 0.0028, seg=5), 'string', smooth=True)
+        sr = string_r if string_r else (0.0028 if thick == 1.0 else 0.0055 * thick)   # string_r, string_key: (the realism pass) a thin sinew string
+        p.add(tube([bot, mid, top], sr, seg=5), string_key, smooth=True)   # (a heavy bow: a string that stays one line at 2x)
 
 
 def arrow(p, length=0.75, scale=1.0):
@@ -833,7 +942,8 @@ def _star_emblem(p, rx, rz, thick, dome, gap, rays=12):
           smooth=True, tint=True)
 
 
-def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0, rim_tint=False, emblem='cross'):
+def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0, rim_tint=False, emblem='cross',
+                back=None, boss=1.0):
     """The Spearman's big wooden shield (round by default, oval if w != h):
     a tan board face, a leather-bound rim, a quartered cross emblem in the civ
     color (tint) and a small bronze boss; arm strap at the origin. rim_tint
@@ -863,8 +973,11 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
         half_len = 0.93 * rx * rz / math.hypot(rz * math.cos(a), rx * math.sin(a))
         b = _emblem_band(rx, rz, thick, dome, half_len, band / 2 * scale)
         p.add(b, 'shield_emblem', T(0, gap, 0) @ R('Y', ang), smooth=True, tint=True)
-    p.add(ellipsoid(0.055, 0.03, 0.055), 'bronze', T(0, gap - thick - dome - 0.008, 0), smooth=True)
-    _strap_back(p)
+    p.add(ellipsoid(0.055 * boss, 0.03 * boss, 0.055 * boss), 'bronze', T(0, gap - thick - dome - 0.008 * boss, 0), smooth=True)   # boss: (the realism pass) a scutum's big boss
+    if back:   # a structured back (the realism pass)
+        _round_back(p, min(rx, rz), gap, porpax=back == 'porpax')
+    else:
+        _strap_back(p)
 
 
 DEFAULTS.setdefault('bronze_face', ('#b8904a', 0.24, 1.0, 'polished'))   # a polished bronze shield face (low roughness: it shines)
@@ -892,7 +1005,7 @@ def _round_device(rr, emblem):
                 return ('shield_device', False)
         elif emblem == 'cross':
             if (abs(x) < 0.16 or abs(z) < 0.16) and d < 0.88:
-                return ('tint', True)
+                return ('shield_emblem', True)   # (was 'tint': its faces never reached the tint mask)
         elif emblem == 'jaguar':
             # dark spots scattered over the civ-colored face (solid, so they read at 1x)
             u, v = x * 3.2, z * 3.2
@@ -905,8 +1018,24 @@ def _round_device(rr, emblem):
     return keys
 
 
+def _round_back(p, rr, gap, porpax=False):
+    """The structure behind a round board (toward +Y from its flat back at y=gap): two
+    wooden battens across, a leather-wrapped hand grip between them; `porpax`: a bronze arm
+    band at the centre and a cord grip near the rim (a hoplite's aspis)."""
+    for z in (-0.32, 0.32):
+        half = rr * (1 - z * z) ** 0.5 * 0.88
+        p.add(box(2 * half, 0.022, 0.055 * min(1.6, rr / 0.3 + 0.4)), 'wood', T(0, gap + 0.011, z * rr), bevel=0.004)
+    if porpax:
+        p.add(box(0.1, 0.03, 0.05), 'bronze', T(0, gap + 0.016, 0), bevel=0.008)
+        p.add(tube([(rr * 0.78, gap + 0.002, -0.06), (rr * 0.82, gap + 0.035, 0.0), (rr * 0.78, gap + 0.002, 0.06)],
+                   0.008, seg=6), 'leather_dark', smooth=True)
+    else:
+        p.add(tube([(-0.07, gap + 0.002, 0.0), (-0.05, gap + 0.035, 0.0), (0.05, gap + 0.035, 0.0), (0.07, gap + 0.002, 0.0)],
+                   0.012, seg=8), 'leather_dark', smooth=True)
+
+
 def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_tint=False, emblem=None,
-                 boss_key=None, face_metal=False):
+                 boss_key=None, face_metal=False, back=None):
     """The Swordsman's small round shield: a dark plank board, a rim and boss
     in the civ color (tint, as in the original); arm strap at the origin.
     tint: 'both', 'rim', 'boss' or 'none' (which parts take the civ color;
@@ -918,8 +1047,20 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_
     thick, gap = 0.02, -0.045
     # face_metal: a bronze-faced shield (the Hoplite's aspis), not a wooden board
     face_key = 'shield_emblem' if face_tint else ('bronze_face' if face_metal else 'shield_face')
+    keys = _round_device(rr, emblem) if emblem and emblem != 'cross' else None
+    if back:   # the board's inside is bare wood, whatever its face
+        front = keys
+
+        def keys(f):   # told by depth: the flat back lies at y = gap, the face in front of it
+            if f.calc_center_median().y > gap - thick * 0.5:
+                return ('wood', False)
+            return front(f) if front else None
     p.add(domed_disc(rr, rr, thick, dome, rings=10 if emblem else 6, seg=64 if emblem else 40), face_key,
-          T(0, gap, 0), smooth=True, tint=face_tint, keys=_round_device(rr, emblem) if emblem else None)
+          T(0, gap, 0), smooth=True, tint=face_tint, keys=keys)
+    if emblem == 'cross':   # raised civ bands following the dome (face keys never reached the tint mask)
+        for ang in (0.0, 90.0):
+            band = _emblem_band(rr, rr, thick, dome, 0.9 * rr, 0.15 * rr)
+            p.add(band, 'shield_emblem', T(0, gap, 0) @ R('Y', ang), smooth=True, tint=True)
     k = 56
     ring = [(rr * math.cos(2 * math.pi * i / k), gap - thick * 0.6, rr * math.sin(2 * math.pi * i / k))
             for i in range(k + 1)]
@@ -931,10 +1072,13 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_
         b = lathe(prof, seg=24)
         bk = boss_key or ('shield_emblem' if boss_t else 'bronze')
         p.add(b, bk, T(0, gap - thick - dome + 0.01, 0) @ R('X', 90), smooth=True, tint=bk == 'shield_emblem')
-    _strap_back(p, half=0.08)
+    if back:   # 'battens' or 'porpax': a structured back (the realism pass)
+        _round_back(p, rr, gap, porpax=back == 'porpax')
+    else:
+        _strap_back(p, half=0.08)
 
 
-def shield_heater(p, w=0.62, h=0.82, scale=1.0, cross=True):
+def shield_heater(p, w=0.62, h=0.82, scale=1.0, cross=True, back_key=None):
     """A knight's heater shield: flat-topped, its sides curving to a point,
     slightly curved across; the face in the civ color with a pale cross
     ('shield_pale'), a dark leather-bound rim; arm strap at the origin, face -Y."""
@@ -948,6 +1092,11 @@ def shield_heater(p, w=0.62, h=0.82, scale=1.0, cross=True):
     for v in board.verts:   # curved across, the edges swept back
         v.co.y += 0.06 * (2 * v.co.x / W) ** 2
     p.add(board, 'shield_emblem', T(0, -0.05, 0), bevel=0.004, tint=True)
+    if back_key:   # a leather-faced back, so the civ field doesn't show from behind (back_key: its material)
+        back = slab(pts, 0.008, 'Y')
+        for v in back.verts:
+            v.co.y += 0.06 * (2 * v.co.x / W) ** 2
+        p.add(back, back_key, T(0, -0.033, 0), bevel=0.002)
     ring = [(x * 1.0, -0.062 + 0.06 * (2 * x / W) ** 2, z) for x, z in pts] + [(pts[0][0], -0.062 + 0.06, pts[0][1])]
     p.add(tube(ring, 0.012, seg=6), 'shield_rim', smooth=True)
     if cross:
@@ -1002,6 +1151,35 @@ def shovel(p, length=1.15, grip=0.0, d_grip=False, scale=1.0):
         p.add(tube(dg, 0.014, seg=8), 'wood', smooth=True)
 
 
+def spade(p, length=1.2, grip=0.2, blade=1.0, width=1.0, handle='t', scale=1.0):
+    """A Roman iron-shod spade (the pala; realism pass, the Worker and Enslaved Worker): an ash haft
+    along +Z from `grip` m below the origin (where the fist holds it) to the blade at the top, a broad
+    dished iron blade (`blade` scales its height, `width` its width) with a socket, a bright worn
+    cutting edge and a dark forged face, its face toward +Y; `handle` 't' a short crosspiece at the
+    haft's end, None a plain end. Thicker than life, so it reads at 1x."""
+    L = length * scale
+    r = SHAFT_R + 0.004
+    top = L - grip - 0.3 * blade           # where the blade's socket begins
+    p.add(tube([(0, 0, -grip), (0, 0, top + 0.02)], [r + 0.002, r], seg=12), 'wood', bevel=0.002, smooth=True)
+    if handle == 't':
+        p.add(tube([(-0.07, 0, -grip - 0.012), (0.07, 0, -grip - 0.012)], 0.019, seg=10), 'wood', smooth=True)
+    hw, hh = 0.135 * width, 0.3 * blade
+    outline = [(-hw * 0.92, 0.0), (hw * 0.92, 0.0), (hw, hh * 0.55), (hw * 0.86, hh * 0.86), (hw * 0.5, hh * 0.98),
+               (0.0, hh), (-hw * 0.5, hh * 0.98), (-hw * 0.86, hh * 0.86), (-hw, hh * 0.55)]
+    face = slab(outline, 0.008, 'Y')
+    for v in face.verts:  # dished across the blade
+        v.co.y += 0.03 * (v.co.x / hw) ** 2
+    p.add(face, 'forged_iron', T(0, 0, top + 0.06), bevel=0.002)
+    # the bright worn cutting edge: a band round the blade's lower rim
+    rim = [(x * 1.02, z) for x, z in outline[2:]]
+    edge = tube([(x, 0.03 * (x / hw) ** 2, top + 0.06 + z) for x, z in rim], 0.008, seg=6)
+    p.add(edge, 'steel', smooth=True)
+    # the socket and its straps up the haft
+    p.add(lathe([(0.0, r + 0.012), (0.1, r + 0.004)], seg=12), 'iron', T(0, 0, top - 0.04), smooth=True)
+    for x in (-0.05, 0.05):
+        p.add(box(0.02, 0.012, 0.09), 'iron', T(x, 0.004, top + 0.04), bevel=0.003)
+
+
 # ------------------------------------------------------------ worn gear
 
 def quiver(p, arrows=7, scale=1.0):
@@ -1028,7 +1206,7 @@ def quiver(p, arrows=7, scale=1.0):
             p.add(fl, 'fletch', T(x, y, 0.03) @ tilt @ R('Z', f + rnd.uniform(-20, 20)))
 
 
-def backpack(p, size=1.0):
+def backpack(p, size=1.0, cords=False):
     """The Settler's bundle: a stuffed cloth sack hanging behind (-Y) with a
     bedroll strapped across the top, a copper pot lashed to the side and
     shoulder straps running forward (+Y) from the attach point at the origin."""
@@ -1042,7 +1220,22 @@ def backpack(p, size=1.0):
             v.co.y *= 1.06
     jitter(sack, 0.006 * s, seed=5)
     jitter(sack, 0.02 * s, seed=9)     # lumpy, stuffed
+    if cords:
+        # (off by default; the Settler's realism pass) bulges between the cords that bind it
+        for v in sack.verts:
+            v.co.z += 0.0
+            pinch = min(abs(v.co.z - 0.06 * s), abs(v.co.z + 0.08 * s), abs(v.co.x))
+            if pinch < 0.02 * s:
+                v.co.x *= 0.9
+                v.co.y *= 0.9
     p.add(sack, 'pack', T(0, -0.2 * s, -0.12 * s), smooth=True)
+    if cords:
+        # two rope bands round the sack and one down its middle, a darker patch sewn on
+        # two vertical lashings over the sack's back, from the neck to under its foot
+        for x in (-0.065, 0.065):
+            p.add(tube([(x * s, -0.2 * s - 0.2 * s * math.sin(a), (-0.12 + 0.25 * math.cos(a)) * s)
+                        for a in [math.pi * i / 16 for i in range(17)]], 0.011 * s, seg=6), 'rope', smooth=True)
+        p.add(box(0.1 * s, 0.01 * s, 0.09 * s), 'leather', T(0.07 * s, -0.385 * s, -0.16 * s) @ R('Z', -18), bevel=0.004)
     # tied neck of the sack
     p.add(lathe([(0.0, 0.05 * s), (0.04 * s, 0.035 * s), (0.07 * s, 0.05 * s)], seg=12), 'pack',
           T(0, -0.16 * s, 0.1 * s), smooth=True)
@@ -1070,11 +1263,12 @@ def backpack(p, size=1.0):
 
 # ------------------------------------------------------------ more weapons (the footmen)
 
-def battle_axe(p, length=1.1, scale=1.0, head=1.0):
+def battle_axe(p, length=1.1, scale=1.0, head=1.0, below=0.35):
     """A two-handed bearded axe: a long ash haft, an iron head whose blade
-    hangs down (the beard) to an edge facing +Y; head scales the head alone."""
+    hangs down (the beard) to an edge facing +Y; head scales the head alone;
+    `below`: the haft's length under the grip (metres; more for a second fist far down)."""
     L = length * scale
-    p.add(tube([(0, 0, -0.35), (0, 0, L - 0.35)], [SHAFT_R, SHAFT_R * 0.9], seg=10), 'wood', bevel=0.002, smooth=True)
+    p.add(tube([(0, 0, -below), (0, 0, L - 0.35)], [SHAFT_R, SHAFT_R * 0.9], seg=10), 'wood', bevel=0.002, smooth=True)
     blade = slab([(-0.03, -0.04), (0.05, -0.035), (0.17, -0.16), (0.21, -0.12), (0.2, 0.05), (0.16, 0.08),
                   (0.05, 0.04), (-0.03, 0.04)], 0.016, 'X')
     for v in blade.verts:   # thin toward the edge
@@ -1148,12 +1342,15 @@ def scimitar(p, length=0.8, scale=1.0):
     sabre(p, length=length, width=0.05, curve=0.11, scale=scale)
 
 
-def kama(p, length=0.42, scale=1.0):
-    """A kama: a short wooden handle with a curved sickle blade at the top, at right angles."""
+def kama(p, length=0.42, scale=1.0, blade=1.0):
+    """A kama: a short wooden handle with a curved sickle blade at the top, at right angles
+    (`blade` scales the blade alone)."""
     L = length * scale
+    b = blade
     p.add(tube([(0, 0, -0.1), (0, 0, L - 0.1)], 0.018, seg=10), 'wood', smooth=True)
-    pts = [(0.0, 0.0, L - 0.1), (0.0, 0.08, L - 0.09), (0.0, 0.15, L - 0.12), (0.0, 0.19, L - 0.18)]
-    p.add(tube(pts, [0.012, 0.011, 0.008, 0.002], seg=4, scale_xy=(0.25, 1.0)), 'steel', smooth=True)
+    pts = [(0.0, 0.0, L - 0.1), (0.0, 0.08 * b, L - 0.1 + 0.01 * b), (0.0, 0.15 * b, L - 0.1 - 0.02 * b),
+           (0.0, 0.19 * b, L - 0.1 - 0.08 * b)]
+    p.add(tube(pts, [0.012 * b, 0.011 * b, 0.008 * b, 0.002 * b], seg=4, scale_xy=(0.25, 1.0)), 'steel', smooth=True)
 
 
 def katana(p, length=0.72, scale=1.0, sheathed=False, thick=1.0):
@@ -1185,16 +1382,30 @@ def katana_sheathed(p, length=0.72, scale=1.0, thick=1.0):
     katana(p, length=length, scale=scale, sheathed=True, thick=thick)
 
 
-def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
+def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0, empty=False, key='leather', shashka=False):
     """A sword in its scabbard, worn at the hip (attach point at the scabbard
     mouth, the origin; hilt toward -Z, blade toward +Z as it hangs): a
     leather scabbard with a metal chape, the hilt showing (a cup-hilt rapier
     or a gladius pommel)."""
     L = length * scale
+    if shashka:   # (the realism pass) a Cossack's shashka: a gently curved scabbard, a guardless hilt, a split pommel
+        sc = [(0, 0, 0.0), (0, 0.025 * scale, L * 0.5), (0, 0.075 * scale, L)]
+        p.add(tube(sc, [width * 0.5 * scale, width * 0.45 * scale, width * 0.32 * scale], seg=10, scale_xy=(0.35, 1.0)), key,
+              smooth=True)
+        for z in (0.03, L * 0.35):   # the silver scabbard mounts
+            p.add(lathe([(z - 0.015, width * 0.56 * scale), (z + 0.015, width * 0.56 * scale)], seg=10, scale_xy=(0.4, 1.0)),
+                  'steel', T(0, 0.05 * scale * (z / L) ** 2, 0), smooth=True)
+        p.add(tube([(0, 0, 0.0), (0, -0.015, -0.12), (0, -0.04, -0.2)], [0.022, 0.02, 0.022], seg=8), 'shashka_hilt', smooth=True)
+        p.add(ellipsoid(0.022, 0.04, 0.026, seg=12), 'steel', T(0, -0.055, -0.21), smooth=True)   # the split (eagle-head) pommel
+        return
     sc = [(0, 0, 0.0), (0, 0, L)]
-    p.add(tube(sc, [width * 0.5 * scale, width * 0.35 * scale], seg=10, scale_xy=(0.35, 1.0)), 'leather', smooth=True)
+    p.add(tube(sc, [width * 0.5 * scale, width * 0.35 * scale], seg=10, scale_xy=(0.35, 1.0)), key, smooth=True)
     p.add(lathe([(0.0, width * 0.36 * scale), (0.06, width * 0.3 * scale), (0.08, 0.004)], seg=10,
                 scale_xy=(0.4, 1.0)), 'bronze', T(0, 0, L - 0.02), smooth=True)                # chape
+    if empty:   # the sword drawn: only the scabbard's mouth band
+        p.add(lathe([(-0.02, width * 0.52 * scale), (0.03, width * 0.52 * scale)], seg=10, scale_xy=(0.4, 1.0)), 'bronze',
+              smooth=True)
+        return
     if rapier:
         p.add(ellipsoid(0.06, 0.06, 0.035, seg=16), 'steel', T(0, 0, -0.03), smooth=True)     # cup hilt
         p.add(box(0.2, 0.014, 0.014), 'steel', T(0, 0, -0.045), bevel=0.004)                   # the quillons
@@ -1204,6 +1415,10 @@ def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
         p.add(box(0.035, 0.16, 0.03), 'bronze', T(0, 0, -0.015), bevel=0.006)   # a cross guard that reads at the hip
         p.add(tube([(0, 0, -0.03), (0, 0, -0.12)], 0.017, seg=8), 'wood', smooth=True)
         p.add(ellipsoid(0.03, 0.025, 0.022, seg=12), 'bronze', T(0, 0, -0.135), smooth=True)
+
+
+DEFAULTS.setdefault('shashka', ('#8a6440', 0.55, 0.0, 'leather'))
+DEFAULTS.setdefault('shashka_hilt', ('#d8ccb0', 0.5, 0.0, 'leather'))   # a pale bone grip (it reads at the hip)   # a lighter leather scabbard (reads on a grey horse)
 
 
 def glaive(p, length=2.0, grip=0.8, scale=1.0, curved=False):
@@ -1234,7 +1449,7 @@ DEFAULTS.setdefault('tint', ('#3a6ad0', 0.7, 0.0, 'cloth'))   # civ-colored part
 DEFAULTS.setdefault('tassel_yellow', ('#d8b040', 0.85, 0.0, 'rope'))
 
 
-def javelin_bundle(p, n=5, length=1.9, scale=1.0, shaft_tint=False, tassels=False):
+def javelin_bundle(p, n=5, length=1.9, scale=1.0, shaft_tint=False, tassels=False, shaft_r=0.013, flat=0.3, tip=0.0):
     """4-5 javelins bound together near the middle, carried upright (the grip,
     where they're bound, at the origin). shaft_tint paints the shafts in the
     civ color; tassels hangs a yellow tassel under each head."""
@@ -1243,9 +1458,9 @@ def javelin_bundle(p, n=5, length=1.9, scale=1.0, shaft_tint=False, tassels=Fals
         off = Vector((0.03 * math.cos(a), 0.03 * math.sin(a), 0.0))
         tilt = R('X', 3 * math.sin(a)) @ R('Y', 3 * math.cos(a))
         m = Matrix.Translation(off) @ tilt
-        p.add(tube([(0, 0, -0.85), (0, 0, length - 0.95)], 0.013, seg=8), 'tint' if shaft_tint else 'wood', m,
+        p.add(tube([(0, 0, -0.85), (0, 0, length - 0.95)], shaft_r, seg=8), 'tint' if shaft_tint else 'wood', m,
               smooth=True, tint=shaft_tint)
-        head = lathe([(0.0, 0.014), (0.05, 0.022), (0.13, 0.0)], seg=4, scale_xy=(1.0, 0.3))
+        head = lathe([(0.0, 0.014), (0.05, 0.022), (0.13, tip)], seg=4, scale_xy=(1.0, flat))   # (shaft_r, flat, tip: one piece at 2x)
         p.add(head, 'steel', m @ T(0, 0, length - 0.95), bevel=0.001)
         if tassels:
             zt = length - 0.97
@@ -1256,68 +1471,126 @@ def javelin_bundle(p, n=5, length=1.9, scale=1.0, shaft_tint=False, tassels=Fals
         p.add(lathe([(0.0, 0.05), (0.025, 0.05)], seg=14), 'leather_dark', T(0, 0, z), smooth=True)
 
 
-def partisan(p, length=2.4, grip=1.0, scale=1.0):
-    """A partisan: a long pike with a broad spear head and two curved side lugs."""
-    spear(p, length=length, grip=grip, butt=True, scale=scale, shaft=SHAFT_R, head=1.4)
+def partisan(p, length=2.4, grip=1.0, scale=1.0, head=1.4, shaft=None):
+    """A partisan: a long pike with a broad spear head and two curved side lugs
+    (`head` scales the blade and the lugs)."""
+    spear(p, length=length, grip=grip, butt=True, scale=scale, shaft=shaft or SHAFT_R, head=head)
     z1 = length - grip
+    k = head / 1.4
     for sy in (-1, 1):
-        lug = tube([(0, 0, z1 - 0.42), (0, sy * 0.07, z1 - 0.4), (0, sy * 0.1, z1 - 0.34)], [0.012, 0.009, 0.003],
-                   seg=4, scale_xy=(0.3, 1.0))
+        lug = tube([(0, 0, z1 - 0.33 - 0.09 * k), (0, sy * 0.07 * k, z1 - 0.33 - 0.07 * k), (0, sy * 0.1 * k, z1 - 0.33 - 0.01 * k)],
+                   [0.012 * k, 0.009 * k, 0.003], seg=4, scale_xy=(0.3, 1.0))
         p.add(lug, 'steel', smooth=True)
 
 
-def torch(p, length=0.55, scale=1.0):
-    """A wooden torch: a haft, rags bound at the head, a small flame."""
+def torch(p, length=0.55, scale=1.0, flame=1.0):
+    """A wooden torch: a haft, rags bound at the head, a small flame (`flame` scales it)."""
     L = length * scale
     p.add(tube([(0, 0, -0.12), (0, 0, L)], [0.018, 0.024], seg=10), 'wood', smooth=True)
     p.add(tube([(0, 0, L - 0.08), (0, 0, L + 0.02)], 0.038, seg=12), 'cloth_wrap', smooth=True)
-    flame = lathe([(0.0, 0.035), (0.05, 0.045), (0.12, 0.025), (0.19, 0.0)], seg=10)
+    fk = flame
+    flame = lathe([(0.0, 0.035 * fk), (0.05 * fk, 0.045 * fk), (0.12 * fk, 0.025 * fk), (0.19 * fk, 0.0)], seg=10)
     jitter(flame, 0.006, seed=9)
     p.add(flame, 'flame', T(0, 0, L + 0.01), smooth=True)
 
 
 # ------------------------------------------------------------ more shields
 
-def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0, face_tint=False):
+def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0, face_tint=False, bold=1.0, device='shield_pale', rim=0.012,
+           inside='plank'):
     """A legionary's scutum: a tall curved rectangular board (face grey,
-    'shield_face'), a bronze boss, and a winged-thunderbolt emblem in the civ
-    color ('shield_emblem'); arm strap at the origin, face -Y. face_tint
-    swaps them: a civ-colored face with a pale emblem ('shield_pale')."""
+    'shield_face'), a bronze boss, and a wings-and-thunderbolt device round the
+    boss in the civ color ('shield_emblem'); the grip at the origin, face -Y,
+    the board's middle just ahead of it (the board wraps round the fist). face_tint
+    swaps them: a civ-colored face with the device in `device` (a color key).
+    `bold` widens the device's strokes; inside, bare leather, a wooden boss
+    backing and a grip bar on two posts."""
     W, H = w * scale, h * scale
-    gap = -0.06
+    gap = curve * 0.5 - 0.075     # the board's middle 7.5 cm ahead of the grip
     rings = []
-    for j in range(13):
-        z = -H / 2 + H * j / 12
+    NZ, NX = 48, 36         # fine enough that the device's outline is clean, not flecks
+    for j in range(NZ + 1):
+        z = -H / 2 + H * j / NZ
         ring = []
-        for i in range(17):
-            x = -W / 2 + W * i / 16
+        for i in range(NX + 1):
+            x = -W / 2 + W * i / NX
             y = gap - curve * (1 - (2 * x / W) ** 2) * 0.5
             ring.append((x, y, z))
         rings.append(ring)
     face = bmesh.new()
     vs = [[face.verts.new(c) for c in r] for r in rings]
     for a, b in zip(vs[:-1], vs[1:]):
-        for i in range(16):
+        for i in range(NX):
             face.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
+    face.normal_update()        # (without normals the solidify had no thickness: two coincident shells)
     bmesh.ops.solidify(face, geom=face.faces[:], thickness=0.02)
+
+    def surface(x):
+        return gap - curve * (1 - (2 * x / W) ** 2) * 0.5
+
+    def depth(c):       # how far behind the board's front surface (its curve at x) a point lies
+        return c.y - surface(c.x)
+    front = min(depth(v.co) for v in face.verts)
+
+    def tri(t):         # a triangle wave, -1..1
+        t = t % 1.0
+        return 4 * t - 1 if t < 0.5 else 3 - 4 * t
+
+    def device_at(x, z):
+        """x, z: the face's position over its width and height (-0.5..0.5)."""
+        k = bold
+        r = math.hypot(x, z * H / W)
+        if r < 0.15:
+            return False                                      # the boss and its plate
+        ax = abs(x)
+        # two spread wings from the boss, sweeping up and out, their feathers
+        # a saw edge below
+        if 0.12 < ax < 0.44:
+            t = (ax - 0.12) / 0.32
+            mid = 0.03 + 0.09 * t
+            half = (0.05 - 0.03 * t) * k
+            saw = 0.012 * k * (tri(t * 4) + 1)
+            if mid - half - saw < z < mid + half:
+                return True
+        # thunderbolts: a zigzag up and down from the boss, and two diagonal ones
+        # down and out on each side, each ending in a point
+        if abs(z) > 0.11 and abs(z) < 0.45:
+            if abs(x - 0.035 * tri(abs(z) * 6)) < 0.028 * k * (1.0 - 0.6 * max(0.0, abs(z) - 0.35) / 0.1):
+                return True
+        if z < -0.06 and 0.08 < ax < 0.38:
+            along = -z - 0.9 * ax * W / H      # distance from the diagonal line, in height units
+            if abs(along + 0.03 * tri(ax * 6)) < 0.022 * k:
+                return True
+        return False
 
     def emblem(f):
         c = f.calc_center_median()
+        if depth(c) > front + 0.012:
+            # the back of the board, unpainted: bare planking, or ('leather') dark leather-faced
+            return ('leather_dark' if inside == 'leather' else 'wood', False)
         if f.normal.y > -0.3:
             return None
-        x, z = c.x / W, c.z / H
-        bolt = abs(x - 0.06 * math.sin(z * 18)) < 0.035 and abs(z) < 0.42
-        wings = abs(z) < 0.07 and 0.08 < abs(x) < 0.4 and abs(z - 0.12 * (abs(x) - 0.08)) < 0.05
-        if (bolt or wings) and math.hypot(x, z * 1.4) > 0.1:
-            return ('shield_pale', False) if face_tint else ('shield_emblem', True)
+        if device_at(c.x / W, c.z / H):
+            return (device, False) if face_tint else ('shield_emblem', True)
         return None
 
     p.add(face, 'shield_emblem' if face_tint else 'shield_face', smooth=True, tint=face_tint, keys=emblem)
-    edge = [rings[0][0], rings[0][-1], rings[-1][-1], rings[-1][0]]
-    for a, b in zip(edge, edge[1:] + edge[:1]):
-        p.add(tube([a, b], 0.012, seg=6), 'bronze', smooth=True)
-    p.add(ellipsoid(0.08, 0.05, 0.08, seg=16), 'bronze', T(0, gap - curve * 0.5 - 0.015, 0), smooth=True)
-    _strap_back(p, half=0.1)
+    # the rim all round: the curved top and bottom edges, the straight sides
+    for r in (rings[0], rings[-1]):
+        p.add(tube(r[::3] + ([r[-1]] if (len(r) - 1) % 3 else []), rim, seg=6), 'bronze', smooth=True)
+    for i in (0, -1):
+        p.add(tube([rings[0][i], rings[-1][i]], rim, seg=6), 'bronze', smooth=True)
+    p.add(ellipsoid(0.09, 0.055, 0.09, seg=18), 'bronze', T(0, surface(0) - 0.012, 0), smooth=True)
+    # inside: a wooden boss backing, and the grip bar across it on two posts
+    back = surface(0) + 0.02
+    if inside == 'leather':
+        p.add(ellipsoid(0.11, 0.03, 0.11, seg=16), 'bronze', T(0, back + 0.006, 0), smooth=True)   # the boss's bulge inside
+        p.add(tube([(-0.075, 0.0, 0.0), (0.075, 0.0, 0.0)], 0.016, seg=8), 'wood', smooth=True)   # the grip bar
+    else:
+        p.add(ellipsoid(0.1, 0.012, 0.1, seg=16), 'wood', T(0, back + 0.006, 0), smooth=True)
+        p.add(tube([(-0.065, 0.0, 0.0), (0.065, 0.0, 0.0)], 0.014, seg=8), 'leather_dark', smooth=True)
+    for x in (-0.065, 0.065):
+        p.add(tube([(x, 0.0, 0.0), (x, surface(x) + 0.02, 0.0)], 0.01, seg=6), 'wood', smooth=True)
 
 
 def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False, tuft=False):
@@ -1350,19 +1623,67 @@ def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False, tuft=False):
     _strap_back(p, half=0.06)
 
 
-def chimalli(p, r=0.3, emblem=False, scale=1.0):
+def chimalli(p, r=0.3, emblem=False, scale=1.0, face_tint=False, rim=False):
     """An Aztec chimalli: a round shield with a fringe of feathers hanging
-    from the bottom; optionally a civ-colored central emblem."""
+    from the bottom; optionally a civ-colored central emblem. face_tint (off
+    by default): the face civ-colored, with a pale centre disc when emblem;
+    rim: a bound rim of pale feather-work round the face."""
     rr = r * scale
-    p.add(domed_disc(rr, rr, 0.014, 0.02, rings=6, seg=40), 'shield_face', T(0, -0.05, 0), smooth=True,
-          keys=(lambda f: ('shield_emblem', True) if emblem and f.normal.y < -0.3 and
-                math.hypot(f.calc_center_median().x, f.calc_center_median().z) < rr * 0.4 else None))
+    if face_tint:
+        p.add(domed_disc(rr, rr, 0.014, 0.02, rings=6, seg=40), 'tint', T(0, -0.05, 0), smooth=True, tint=True,
+              keys=(lambda f: ('shield_emblem', False) if emblem and f.normal.y < -0.3 and
+                    math.hypot(f.calc_center_median().x, f.calc_center_median().z) < rr * 0.32 else
+                    (('shield_back', False) if f.normal.y > 0.3 else None)))
+    else:
+        p.add(domed_disc(rr, rr, 0.014, 0.02, rings=6, seg=40), 'shield_face', T(0, -0.05, 0), smooth=True,
+              keys=(lambda f: ('shield_emblem', True) if emblem and f.normal.y < -0.3 and
+                    math.hypot(f.calc_center_median().x, f.calc_center_median().z) < rr * 0.4 else None))
+    if rim:
+        ring = [(rr * math.cos(2 * math.pi * k / 40), -0.062, rr * math.sin(2 * math.pi * k / 40)) for k in range(41)]
+        p.add(tube(ring, 0.014, seg=6), 'feather', smooth=True)
     for i in range(13):
         a = math.radians(200 + 140 * i / 12)
         base = (rr * math.cos(a), -0.06, rr * math.sin(a))
         tip = (base[0] * 1.05, -0.07, base[2] - 0.17)
         p.add(tube([base, tip], [0.022, 0.006], seg=5, scale_xy=(1.0, 0.3)), 'feather', smooth=True)
     _strap_back(p, half=0.08)
+
+
+DEFAULTS.setdefault('shield_back', ('#6a5034', 0.75, 0.0, 'wood'))
+
+
+def spyglass(p, length=0.46, scale=1.0):
+    """(ranged family) A drawn brass spyglass held at its main tube (the origin),
+    the eyepiece toward -Z, the objective toward +Z: a leather-covered main
+    tube and two brass draws, brass rings at the joints."""
+    s = scale
+    L = length * s
+    p.add(tube([(0, 0, -0.08 * s), (0, 0, 0.2 * s)], 0.022 * s, seg=14), 'leather_dark', smooth=True)
+    p.add(tube([(0, 0, 0.2 * s), (0, 0, 0.24 * s)], 0.027 * s, seg=14), 'brass', smooth=True)   # the objective cell
+    p.add(tube([(0, 0, -0.08 * s), (0, 0, -0.08 * s - (L - 0.32 * s) * 0.55)], 0.018 * s, seg=12), 'brass', smooth=True)
+    z1 = -0.08 * s - (L - 0.32 * s) * 0.55
+    p.add(tube([(0, 0, z1), (0, 0, -L + 0.24 * s)], 0.015 * s, seg=12), 'brass', smooth=True)
+    for z in (-0.08 * s, z1):
+        p.add(tube([(0, 0, z - 0.006), (0, 0, z + 0.006)], 0.024 * s if z == -0.08 * s else 0.02 * s, seg=12), 'brass',
+              smooth=True)
+
+
+DEFAULTS.setdefault('shell', ('#e4d4ba', 0.45, 0.0, 'stone'))
+
+
+def conch(p, scale=1.0):
+    """(ranged family) A pututu, the Andean conch trumpet, held at its body
+    (the origin): a spindle shell along +Z, its spire up, a flared lip on one
+    side (+X), a mouthpiece at the spire."""
+    s = scale
+    body = lathe([(-0.13 * s, 0.0), (-0.1 * s, 0.025 * s), (-0.03 * s, 0.062 * s), (0.03 * s, 0.058 * s),
+                  (0.08 * s, 0.035 * s), (0.12 * s, 0.014 * s), (0.15 * s, 0.0)], seg=14)
+    p.add(body, 'shell', smooth=True)
+    for k in range(4):   # the spire's whorls
+        z = 0.05 * s + 0.024 * k * s
+        p.add(tube([(0, 0, z - 0.004), (0, 0, z + 0.004)], (0.05 - 0.009 * k) * s, seg=12), 'shell', smooth=True)
+    p.add(ellipsoid(0.035 * s, 0.015 * s, 0.075 * s, seg=12), 'shell', T(0.052 * s, 0.0, -0.035 * s), smooth=True)
+    p.add(tube([(0, 0, 0.14 * s), (0, 0, 0.17 * s)], 0.008 * s, seg=8), 'leather_dark', smooth=True)
 
 
 def plain_round(p, r=0.26, dome=0.04, scale=1.0, face_tint=False, emblem=None):
@@ -1434,14 +1755,17 @@ def shackles(p, span=0.3, scale=1.0):
 
 # ------------------------------------------------------------ firearms and soldier gear
 
-def _bayonet(p, z, s=1.0):
-    """A socket bayonet: a slim spike blade above the muzzle at z."""
+def _bayonet(p, z, s=1.0, w=1.0):
+    """A socket bayonet: a slim spike blade above the muzzle at z; `w` widens the blade (realism infantry:
+    a thin one breaks into specks at 1x)."""
     p.add(lathe([(0.0, 0.014 * s), (0.04 * s, 0.012 * s)], seg=8), 'steel', T(0, 0.008, z), smooth=True)
-    blade = lathe([(0.0, 0.009 * s), (0.25 * s, 0.006 * s), (0.4 * s, 0.0)], seg=3)
+    # a widened blade (w != 1) runs near parallel to a blunt point, round in section (no 1 px specks at its tip)
+    tip = 0.0 if w == 1.0 else 0.0048 * s * w
+    blade = lathe([(0.0, 0.009 * s * w), (0.25 * s, 0.006 * s * w), (0.4 * s, tip)], seg=3 if w == 1.0 else 6)
     p.add(blade, 'steel', T(0, 0.022, z + 0.02 * s), bevel=0.0005)
 
 
-def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False):
+def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False, barrel_w=1.0, bayonet_w=1.0, stock_w=1.0):
     """A flintlock musket held at the wrist of the stock (origin), muzzle +Z:
     a long wooden stock to near the muzzle, a steel barrel, a lock, brass
     bands; optional bayonet; flared: a bright steel bell at the muzzle
@@ -1450,8 +1774,9 @@ def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False):
     L = length * s
     stock = slab([(-0.055, -0.38), (0.04, -0.38), (0.045, -0.12), (0.02, 0.0), (0.016, L - 0.5), (-0.01, L - 0.5),
                   (-0.016, 0.02), (-0.045, -0.1)], 0.045, 'X')
-    p.add(stock, 'wood', S(1.0), bevel=0.006)
-    p.add(tube([(0, 0.01, 0.0), (0, 0.01, L - 0.38)], [0.013 * s, 0.011 * s], seg=10), 'steel', smooth=True)
+    p.add(stock, 'wood', S(stock_w, stock_w, 1.0), bevel=0.006)   # stock_w (realism infantry): a thicker stock
+    p.add(tube([(0, 0.01, 0.0), (0, 0.01, L - 0.38)], [0.013 * s * barrel_w, 0.011 * s * barrel_w], seg=10), 'steel',
+          smooth=True)
     p.add(box(0.03, 0.035, 0.1), 'steel', T(0, 0.004, 0.06), bevel=0.004)
     for z in (0.35, 0.65, L - 0.55):
         p.add(lathe([(0.0, 0.028), (0.014, 0.028)], seg=12), 'bronze', T(0, 0.004, z), smooth=True)
@@ -1459,39 +1784,41 @@ def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False):
         p.add(lathe([(0.0, 0.012 * s), (0.08, 0.02 * s), (0.15, 0.05 * s), (0.18, 0.054 * s)], seg=16), 'steel',
               T(0, 0.01, L - 0.53), smooth=True)
     if bayonet:
-        _bayonet(p, L - 0.38, s)
+        _bayonet(p, L - 0.38, s, bayonet_w)
 
 
-def rifle_bolt(p, length=1.2, bayonet=False, scale=1.0):
+def rifle_bolt(p, length=1.2, bayonet=False, scale=1.0, barrel_w=1.0, bayonet_w=1.0, stock_w=1.0):
     """A bolt-action service rifle (Rifleman, WWII): rifle() plus an optional bayonet."""
-    rifle(p, length=length, scale=scale)
+    rifle(p, length=length, scale=scale, barrel_w=barrel_w, stock_w=stock_w)
     if bayonet:
-        _bayonet(p, (length - 0.36) * scale, scale)
+        _bayonet(p, (length - 0.36) * scale, scale, bayonet_w)
 
 
-def assault_rifle(p, scale=1.0):
+def assault_rifle(p, scale=1.0, barrel_w=1.0, whole=False):
     """A modern assault rifle held at the pistol grip (origin), muzzle +Z:
     receiver, curved magazine, handguard, barrel, stock; dark parkerized."""
     s = scale
-    p.add(box(0.045, 0.07, 0.36), 'gunmetal', T(0, 0.01, 0.12 * s), bevel=0.006)                  # receiver
-    p.add(box(0.04, 0.06, 0.2), 'polymer', T(0, 0.01, 0.38 * s), bevel=0.008)                    # handguard
-    p.add(tube([(0, 0.02, 0.48 * s), (0, 0.02, 0.62 * s)], 0.009 * s, seg=8), 'gunmetal', smooth=True)
+    K = S(s) if whole else S(1.0)   # whole (realism infantry): the boxes scale too, so a scaled gun stays joined
+    p.add(box(0.045, 0.07, 0.36), 'gunmetal', T(0, 0.01, 0.12 * s) @ K, bevel=0.006)                  # receiver
+    p.add(box(0.04, 0.06, 0.2), 'polymer', T(0, 0.01, 0.38 * s) @ K, bevel=0.008)                    # handguard
+    p.add(tube([(0, 0.02, 0.48 * s), (0, 0.02, 0.62 * s)], 0.009 * s * barrel_w, seg=8), 'gunmetal', smooth=True)
     mag = tube([(0, -0.03, 0.1 * s), (0, -0.12, 0.13 * s), (0, -0.2, 0.18 * s)], 0.022 * s, seg=4, scale_xy=(0.5, 1.3))
     p.add(mag, 'gunmetal', bevel=0.003)
-    p.add(box(0.035, 0.05, 0.1), 'polymer', T(0, -0.04, 0.0), bevel=0.006)                       # pistol grip
+    p.add(box(0.035, 0.05, 0.1), 'polymer', T(0, -0.04, 0.0) @ K, bevel=0.006)                       # pistol grip
     p.add(slab([(-0.06, -0.3), (0.05, -0.3), (0.04, -0.08), (-0.02, -0.08)], 0.04, 'X'), 'polymer', S(s), bevel=0.006)
-    p.add(box(0.012, 0.03, 0.06), 'gunmetal', T(0, 0.06, 0.2 * s), bevel=0.003)                   # rear sight / handle
+    p.add(box(0.012, 0.03, 0.06), 'gunmetal', T(0, 0.06, 0.2 * s) @ K, bevel=0.003)                   # rear sight / handle
 
 
-def smg(p, scale=1.0):
+def smg(p, scale=1.0, whole=False):
     """A submachine gun (Thompson-style): short barrel with a finned jacket,
     a drum or stick magazine, a wooden stock and foregrip."""
     s = scale
-    p.add(box(0.045, 0.06, 0.26), 'gunmetal', T(0, 0.01, 0.1 * s), bevel=0.006)
+    K = S(s) if whole else S(1.0)   # whole (realism infantry): the boxes scale too, so a scaled gun stays joined
+    p.add(box(0.045, 0.06, 0.26), 'gunmetal', T(0, 0.01, 0.1 * s) @ K, bevel=0.006)
     p.add(tube([(0, 0.02, 0.23 * s), (0, 0.02, 0.4 * s)], 0.016 * s, seg=10), 'gunmetal', smooth=True)
     p.add(tube([(0, -0.04, 0.12 * s), (0, -0.2, 0.12 * s)], 0.018 * s, seg=4, scale_xy=(0.5, 1.4)), 'gunmetal')
-    p.add(box(0.035, 0.05, 0.1), 'wood', T(0, -0.04, 0.0), bevel=0.006)
-    p.add(box(0.035, 0.05, 0.08), 'wood', T(0, -0.04, 0.22 * s), bevel=0.006)
+    p.add(box(0.035, 0.05, 0.1), 'wood', T(0, -0.04, 0.0) @ K, bevel=0.006)
+    p.add(box(0.035, 0.05, 0.08), 'wood', T(0, -0.04, 0.22 * s) @ K, bevel=0.006)
     p.add(slab([(-0.06, -0.28), (0.04, -0.28), (0.035, -0.04), (-0.02, -0.04)], 0.04, 'X'), 'wood', S(s), bevel=0.006)
 
 
@@ -1534,18 +1861,24 @@ def tow_launcher(p, scale=1.0):
 DEFAULTS.setdefault('helmet_net', ('#2a2a1e', 0.9, 0.0, 'rope'))
 
 
-def modern_helmet(p, scale=1.0, band=False, net=False, camo=False):
+def modern_helmet(p, scale=1.0, band=False, net=False, camo=False, paint=False, band_w=None):
     """A steel combat helmet (M1-style): a dome with a slight brim and a
     canvas cover; the origin at the brow line, +Y forward (as headgear).
     band: a civ-colored band round it (Marine); net: a dark camouflage net
     over the dome with a few cords hanging free (WWII Para); camo: a woodland
-    cover, green and brown blotches over the 'olive' (Marine, TOW Infantry)."""
+    cover, green and brown blotches over the 'olive' (Marine, TOW Infantry). (realism infantry) paint: the
+    shell painted in the civ colour; band_w: the band's height (m)."""
     s = scale
     dome = lathe([(-0.005, 0.135), (0.0, 0.132), (0.06, 0.125), (0.12, 0.09), (0.16, 0.0)], seg=24)
-    p.add(dome, 'olive', S(s), smooth=True, keys=_woodland(0.05) if camo else None)
-    p.add(lathe([(-0.01, 0.142), (0.002, 0.142)], seg=24), 'olive', S(s), smooth=True)
+    shell = 'tint' if paint else 'olive'
+    p.add(dome, shell, S(s), smooth=True, keys=_woodland(0.05) if camo else None, tint=paint)
+    p.add(lathe([(-0.01, 0.142), (0.002, 0.142)], seg=24), shell, S(s), smooth=True, tint=paint)
     if band:
-        p.add(lathe([(0.02, 0.134), (0.055, 0.128)], seg=24), 'tint', S(s), smooth=True, tint=True)
+        if band_w is None:   # (realism/all) the band as before the infantry pass: the siege crews' finals (Artillery, Flak)
+            p.add(lathe([(0.02, 0.134), (0.055, 0.128)], seg=24), 'tint', S(s), smooth=True, tint=True)
+        else:
+            p.add(lathe([(0.02, 0.134), (0.02 + band_w, 0.134 - band_w * 0.17)], seg=24), 'tint', S(s), smooth=True,
+                  tint=True)
     if net:
         # a coarse mesh: meridian and parallel cords standing just off the dome
         prof = [(0.0, 0.135), (0.06, 0.128), (0.12, 0.093), (0.155, 0.03)]
@@ -1714,7 +2047,7 @@ DEFAULTS.setdefault('gold_gem', ('#3a6ac8', 0.15, 0.0, 'polished'))
 DEFAULTS.setdefault('jewel', ('#b0202a', 0.15, 0.0, 'polished'))
 
 
-def chute_pack(p, size=1.0):
+def chute_pack(p, size=1.0, straps=False):
     """A paratrooper's parachute container for the back (as backpack: the
     straps' top at the origin, the load toward -Y): a big squared grey pack,
     its closing flaps and pins, harness straps forward over the shoulders and
@@ -1728,9 +2061,15 @@ def chute_pack(p, size=1.0):
         path = [(x, -0.06 * s, 0.08 * s), (x, 0.02 * s, 0.13 * s), (x, 0.12 * s, 0.06 * s), (x * 1.1, 0.13 * s, -0.25 * s)]
         p.add(tube(path, 0.022 * s, seg=6, scale_xy=(1.0, 0.3)), 'webbing', smooth=True)
     p.add(box(0.05 * s, 0.03 * s, 0.03 * s), 'shield_accent', T(-0.15 * s, 0.14 * s, -0.08 * s), bevel=0.006)   # ripcord
+    if straps:
+        # (realism infantry) the container's webbing: two vertical straps over it and the side flaps' raised edges
+        for x in (-0.12 * s, 0.12 * s):
+            p.add(box(0.045 * s, 0.014 * s, 0.54 * s), 'webbing', T(x, -0.258 * s, -0.16 * s), bevel=0.004)
+        for x in (-0.205 * s, 0.205 * s):
+            p.add(box(0.018 * s, 0.17 * s, 0.48 * s), 'webbing', T(x, -0.15 * s, -0.16 * s), bevel=0.004)
 
 
-def para_pack(p, size=1.0, bag='olive_dark', camo=False):
+def para_pack(p, size=1.0, bag='olive_dark', camo=False, gap=0.17):
     """A WWII paratrooper's parachute for the back (as backpack): a rounded,
     stuffed olive-tan pack with a static-line bag on top and harness straps;
     a reserve chute belongs on the chest."""
@@ -1742,44 +2081,73 @@ def para_pack(p, size=1.0, bag='olive_dark', camo=False):
             v.co.y *= 0.4
     jitter(pack, 0.012 * s, seed=21)
     # bag: the bundle's color key; camo: woodland blotches over it
-    p.add(pack, bag, T(0, -0.17 * s, -0.18 * s), smooth=True, keys=_woodland(0.06 * s) if camo else None)
-    p.add(box(0.28 * s, 0.12 * s, 0.08 * s), 'olive', T(0, -0.16 * s, 0.11 * s), bevel=0.03 * s)   # static line bag
-    p.add(tube([(0.0, -0.22 * s, 0.1 * s), (0.08 * s, -0.3 * s, 0.0), (0.05 * s, -0.31 * s, -0.25 * s)], 0.008 * s,
-               seg=5), 'webbing', smooth=True)   # the static line
+    # gap (realism infantry): how far behind the straps the bundle's centre sits (0.17 left it floating off the back)
+    p.add(pack, bag, T(0, -gap * s, -0.18 * s), smooth=True, keys=_woodland(0.06 * s) if camo else None)
+    dy = (0.17 - gap) * s   # the static-line bag and line move in with the bundle
+    p.add(box(0.28 * s, 0.12 * s, 0.08 * s), 'olive', T(0, -0.16 * s + dy, 0.11 * s), bevel=0.03 * s)   # static line bag
+    p.add(tube([(0.0, -0.22 * s + dy, 0.1 * s), (0.08 * s, -0.3 * s + dy, 0.0), (0.05 * s, -0.31 * s + dy, -0.25 * s)],
+               0.008 * s, seg=5), 'webbing', smooth=True)   # the static line
     for x in (-0.11 * s, 0.11 * s):
         path = [(x, -0.06 * s, 0.08 * s), (x, 0.02 * s, 0.13 * s), (x, 0.12 * s, 0.06 * s), (x * 1.1, 0.13 * s, -0.25 * s)]
         p.add(tube(path, 0.02 * s, seg=6, scale_xy=(1.0, 0.3)), 'webbing', smooth=True)
 
 
-def ak(p, scale=1.0):
+def reserve_chute(p, scale=1.0, tint=False, handle=True, trim=False, buckle=False):
+    """(realism infantry) A paratrooper's reserve parachute worn on the belly (chest_gear: origin mid-chest,
+    +Y out from the body, +Z up): a wide squared pack below the chest, its cover a painted panel ('tint':
+    the civ colour, else 'olive'), dark edge binding, a webbing strap to each side and a metal ripcord
+    handle. Off unless an entry asks for it. trim: an olive pack, the civ colour only on one band round its
+    middle (the cover's flap seam)."""
+    s = scale
+    key = 'tint' if tint and not trim else 'olive'
+    p.add(box(0.3 * s, 0.14 * s, 0.2 * s), key, T(0, 0.05 * s, -0.2 * s), bevel=0.035 * s, tint=key == 'tint')
+    p.add(box(0.31 * s, 0.03 * s, 0.025 * s), 'webbing', T(0, 0.115 * s, -0.11 * s), bevel=0.006)   # the flap's edge
+    p.add(box(0.31 * s, 0.03 * s, 0.025 * s), 'webbing', T(0, 0.115 * s, -0.29 * s), bevel=0.006)
+    if trim:   # one civ band round the pack at the cover's flap seam, the olive showing above and below
+        p.add(box(0.312 * s, 0.152 * s, 0.06 * s), 'tint', T(0, 0.05 * s, -0.2 * s), bevel=0.008, tint=True)
+    for x in (-0.19 * s, 0.19 * s):   # the straps to the harness
+        p.add(box(0.1 * s, 0.03 * s, 0.035 * s), 'webbing', T(x, 0.0, -0.17 * s), bevel=0.006)
+    if handle:
+        p.add(box(0.06 * s, 0.03 * s, 0.03 * s), 'gunmetal', T(0.07 * s, 0.13 * s, -0.2 * s), bevel=0.006)
+    if buckle:   # the harness's quick-release box on the chest above the reserve, its straps running up
+        p.add(box(0.075 * s, 0.03 * s, 0.075 * s), 'steel', T(0, 0.03 * s, 0.02 * s), bevel=0.01 * s)
+        for sx in (-1, 1):
+            p.add(box(0.035 * s, 0.02 * s, 0.16 * s), 'webbing', T(sx * 0.05 * s, 0.015 * s, -0.06 * s) @ R('Y', sx * 25),
+                  bevel=0.004)
+
+
+def ak(p, scale=1.0, barrel_w=1.0, whole=False):
     """A Kalashnikov held at the pistol grip (origin), muzzle +Z: a stamped
     receiver, red-brown wooden stock, pistol grip and handguard, a gas tube
     over the barrel, the curved banana magazine."""
     s = scale
-    p.add(box(0.042, 0.07, 0.3), 'gunmetal', T(0, 0.01, 0.12 * s), bevel=0.005)                   # receiver
-    p.add(box(0.044, 0.062, 0.17), 'ak_wood', T(0, 0.005, 0.35 * s), bevel=0.012)                 # handguard
+    K = S(s) if whole else S(1.0)   # whole (realism infantry): the boxes scale too, so a scaled gun stays joined
+    p.add(box(0.042, 0.07, 0.3), 'gunmetal', T(0, 0.01, 0.12 * s) @ K, bevel=0.005)                   # receiver
+    p.add(box(0.044, 0.062, 0.17), 'ak_wood', T(0, 0.005, 0.35 * s) @ K, bevel=0.012)                 # handguard
     p.add(tube([(0, 0.035, 0.27 * s), (0, 0.035, 0.46 * s)], 0.011 * s, seg=8), 'ak_wood', smooth=True)   # upper guard
-    p.add(tube([(0, 0.01, 0.43 * s), (0, 0.01, 0.63 * s)], 0.009 * s, seg=8), 'gunmetal', smooth=True)    # barrel
+    p.add(tube([(0, 0.01, 0.43 * s), (0, 0.01, 0.63 * s)], 0.009 * s * barrel_w, seg=8), 'gunmetal', smooth=True)    # barrel
     p.add(tube([(0, 0.032, 0.46 * s), (0, 0.032, 0.52 * s)], 0.008 * s, seg=8), 'gunmetal', smooth=True)  # gas block
-    p.add(box(0.012, 0.04, 0.03), 'gunmetal', T(0, 0.035, 0.61 * s), bevel=0.003)                 # front sight
+    p.add(box(0.012, 0.04, 0.03), 'gunmetal', T(0, 0.035, 0.61 * s) @ K, bevel=0.003)                 # front sight
     mag = [(0, -0.03, 0.2 * s), (0, -0.1, 0.22 * s), (0, -0.17, 0.27 * s), (0, -0.22, 0.34 * s)]  # the banana curve
     p.add(tube(mag, 0.022 * s, seg=4, scale_xy=(0.5, 1.25)), 'gunmetal', bevel=0.003)
-    p.add(box(0.034, 0.05, 0.1), 'ak_wood', T(0, -0.04, 0.0) @ R('X', -15), bevel=0.008)          # pistol grip
+    p.add(box(0.034, 0.05, 0.1), 'ak_wood', T(0, -0.04, 0.0) @ R('X', -15) @ K, bevel=0.008)          # pistol grip
     p.add(slab([(-0.08, -0.36), (0.035, -0.36), (0.03, -0.04), (-0.025, -0.04)], 0.04, 'X'), 'ak_wood', S(s),
           bevel=0.008)                                                                             # stock
 
 
-def musket_rest(p, length=1.3, grip=0.75, scale=1.0):
+def musket_rest(p, length=1.3, grip=0.75, scale=1.0, fork_w=1.0, shaft_w=1.0, fork_spread=1.0):
     """A musket rest held like a staff `grip` m from its iron-shod foot: a
     straight ash pole ending in an iron fork that cradles the barrel."""
     L = length * scale
-    p.add(tube([(0, 0, -grip), (0, 0, L - grip - 0.06)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', bevel=0.002,
-          smooth=True)
+    # fork_w, shaft_w (realism infantry): thicker horns and pole, so the rest reads (and doesn't speck) at 1x
+    p.add(tube([(0, 0, -grip), (0, 0, L - grip - 0.06)], [(SHAFT_R + 0.002) * shaft_w, SHAFT_R * shaft_w], seg=10), 'wood',
+          bevel=0.002, smooth=True)
     zt = L - grip
     p.add(lathe([(-0.07, 0.02), (0.0, 0.02)], seg=10), 'steel', T(0, 0, zt - 0.06), smooth=True)   # ferrule
     for sx in (-1, 1):   # the fork's two curving horns
-        p.add(tube([(0, 0, zt - 0.02), (sx * 0.045, 0, zt + 0.04), (sx * 0.06, 0, zt + 0.1)], [0.012, 0.01, 0.006],
-                   seg=6), 'steel', smooth=True)
+        k = fork_spread   # (realism infantry) a wider, taller Y that reads at 1x
+        p.add(tube([(0, 0, zt - 0.02), (sx * 0.045 * k, 0, zt + 0.04 * k), (sx * 0.06 * k, 0, zt + 0.1 * k)],
+                   [0.012 * fork_w, 0.01 * fork_w, 0.006 * fork_w], seg=6), 'steel', smooth=True)
     p.add(lathe([(0.0, 0.0005), (0.08, 0.018)], seg=8), 'steel', T(0, 0, -grip - 0.08), smooth=True)   # spike foot
     p.add(tube([(0, 0, -0.08), (0, 0, 0.1)], SHAFT_R + 0.0035, seg=12), 'leather', smooth=True)
 
@@ -2031,7 +2399,7 @@ DEFAULTS['dog_fur'] = ('#625e58', 0.95, 0.0, 'polished')   # mid grey-brown (it 
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 
-def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6):
+def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6, tip_key=None, tip_frac=0.2):
     """A flat tapered feather (a card, not a tube: tubes read as sausages):
     a vane widening from the quill to two thirds up and tapering to a point,
     curling a little back along `normal`, with a darker quill down it."""
@@ -2049,7 +2417,10 @@ def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6):
     for i in range(n):
         bm.faces.new((left[i], left[i + 1], right[i + 1], right[i]))
     bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.004)
-    p.add(bm, key, smooth=False, tint=tint)   # flat: smoothing across the thin edges turned the cards black
+    keys = None
+    if tip_key:   # (the realism pass) the outer tip_frac in another colour, on the same card (one piece at 2x)
+        keys = lambda f: (tip_key, False) if (f.calc_center_median() - base).dot(d) / d.length_squared > 1 - tip_frac else None
+    p.add(bm, key, smooth=False, tint=tint, keys=keys)   # flat: smoothing across the thin edges turned the cards black
 
 
 def feather_standard(p, length=2.1, grip=1.2, scale=1.0, fan=1.0):
@@ -2121,7 +2492,7 @@ DEFAULTS.setdefault('dog_black', ('#1e1a18', 0.7, 0.0, 'polished'))
 DEFAULTS.setdefault('dog_tan', ('#a8703a', 0.7, 0.0, 'polished'))
 
 
-def war_dog(p, scale=1.0):
+def war_dog(p, scale=1.0, real=False):
     """A black-and-tan war mastiff standing, facing +Y, paws on the ground: a
     deep chest, thick neck, broad head with a blunt muzzle and pricked ears,
     sturdy legs; a black saddle over the back and head, tan legs, chest and
@@ -2139,8 +2510,22 @@ def war_dog(p, scale=1.0):
         p.add(ellipsoid(0.014 * s, 0.012 * s, 0.012 * s, seg=8), 'dog_tan', T(sx * 0.045 * s, 0.57 * s, 0.7 * s), smooth=True)  # tan brows
     for (x, y) in ((0.08, 0.26), (-0.08, 0.26), (0.08, -0.3), (-0.08, -0.3)):   # sturdy tan legs
         top = 0.42 if y > 0 else 0.42
+        if real:   # (the realism pass) jointed legs (elbow / stifle and hock), paws with toes
+            if y > 0:
+                path = [(x, y, top), (x, y - 0.02, 0.26), (x, y + 0.0, 0.1), (x, y + 0.03, 0.035)]
+                rr = [0.055, 0.04, 0.03, 0.028]
+            else:
+                path = [(x, y + 0.02, top + 0.02), (x, y - 0.07, 0.27), (x, y - 0.03, 0.12), (x, y, 0.035)]
+                rr = [0.07, 0.045, 0.03, 0.028]
+            p.add(tube([(a * s, b * s, c_ * s) for a, b, c_ in path], [r_ * s for r_ in rr], seg=12), 'dog_tan', smooth=True)
+            for tx in (-0.018, 0.0, 0.018):
+                p.add(ellipsoid(0.016 * s, 0.022 * s, 0.016 * s, seg=8), 'dog_tan', T((x + tx) * s, (y + 0.06) * s, 0.016 * s), smooth=True)
+            p.add(ellipsoid(0.034 * s, 0.04 * s, 0.022 * s, seg=10), 'dog_tan', T(x * s, (y + 0.035) * s, 0.022 * s), smooth=True)
+            continue
         p.add(tube([(x * s, y * s, top * s), (x * s, (y + 0.01) * s, 0.2 * s), (x * s, (y + 0.03) * s, 0.03 * s)], [0.05 * s, 0.04 * s, 0.035 * s], seg=12), 'dog_tan', smooth=True)
         p.add(ellipsoid(0.04 * s, 0.055 * s, 0.03 * s, seg=10), 'dog_tan', T(x * s, (y + 0.05) * s, 0.03 * s), smooth=True)
+    if real:   # a tapered keel of a chest under the body
+        p.add(ellipsoid(0.07 * s, 0.16 * s, 0.09 * s, seg=16), 'dog_tan', T(0, 0.2 * s, 0.33 * s), smooth=True)
     p.add(tube([(0, -0.4 * s, 0.5 * s), (0, -0.5 * s, 0.42 * s), (0, -0.55 * s, 0.3 * s)], [0.03 * s, 0.022 * s, 0.012 * s], seg=8), 'dog_black', smooth=True)  # the tail
     m = T(0, 0.4 * s, 0.56 * s) @ R('X', -40)
     p.add(lathe([(0.0, 0.11 * s), (0.06 * s, 0.105 * s)], seg=20), 'tint', m, smooth=True, tint=True)   # the broad civ collar
@@ -2206,6 +2591,7 @@ def sunglasses(p, scale=1.0):
 # ------------------------------------------------------------ registry
 
 BUILDERS = {
+    'spade': spade,
     'stone_axe': stone_axe,
     'spear': spear,
     'cav_spear': cav_spear,
@@ -2238,6 +2624,7 @@ BUILDERS = {
     'chute_pack': chute_pack,
     'arrow_bag': arrow_bag,
     'chest_pack': chest_pack,
+    'reserve_chute': reserve_chute,
     'para_pack': para_pack,
     'ak': ak,
     'musket_rest': musket_rest,
@@ -2246,6 +2633,8 @@ BUILDERS = {
     'bandolier_bottles': bandolier_bottles,
     'book': book,
     'map': map,
+    'spyglass': spyglass,
+    'conch': conch,
     'gourd': gourd,
     'shackles': shackles,
     'musket': musket,
@@ -2298,3 +2687,135 @@ def make(name, mats_colors=None, weather=None, **params):
     p = Prop(name, mats_colors or {}, weather)
     BUILDERS[name](p, **params)
     return p.finish()
+
+
+# ------------------------------------------------------------ realism/misc (new entries only)
+
+def settler_pack(p, size=1.0):
+    """A settler's external-frame pack for the back (mil_backpack's space: the straps' top at the origin,
+    the load behind, -Y): two wooden frame rails, a canvas bag with a leather top flap and buckles, two side
+    pockets, a blanket roll strapped on top, a tin billy can hung low on the back and a coil of rope."""
+    s = size
+    # the external frame: bent aluminium tubes standing proud of the bag above and below, two cross bars,
+    # a padded hip belt round the front (the modern cue: a 1950s-70s Kelty-style pack, not a soldier's)
+    for x in (-0.15 * s, 0.15 * s):
+        p.add(tube([(x, -0.07 * s, 0.3 * s), (x, -0.08 * s, 0.2 * s), (x, -0.08 * s, -0.36 * s), (x, -0.05 * s, -0.42 * s)],
+                   0.013 * s, seg=8), 'alu', smooth=True)
+    p.add(tube([(-0.15 * s, -0.072 * s, 0.3 * s), (0.15 * s, -0.072 * s, 0.3 * s)], 0.012 * s, seg=8), 'alu', smooth=True)
+    p.add(tube([(-0.15 * s, -0.075 * s, 0.17 * s), (0.15 * s, -0.075 * s, 0.17 * s)], 0.011 * s, seg=8), 'alu', smooth=True)
+    belt = [(0.16 * s * math.sin(a), 0.11 * s - 0.15 * s * math.cos(a) * (1.0 if math.cos(a) > 0 else 0.8), -0.4 * s)
+            for a in [math.radians(v) for v in range(-120, 121, 15)]]
+    p.add(tube(belt, 0.03 * s, seg=8, scale_xy=(0.5, 1.0)), 'leather', smooth=True)
+    p.add(box(0.28 * s, 0.17 * s, 0.4 * s), 'olive_dark', T(0, -0.17 * s, -0.08 * s), bevel=0.035 * s)   # the bag
+    p.add(box(0.29 * s, 0.18 * s, 0.03 * s), 'leather', T(0, -0.175 * s, 0.11 * s), bevel=0.01 * s)     # the flap's fold
+    p.add(box(0.2 * s, 0.012 * s, 0.14 * s), 'leather', T(0, -0.262 * s, 0.05 * s), bevel=0.006 * s)    # the flap down the back
+    for x in (-0.07 * s, 0.07 * s):   # its two straps and brass buckles
+        p.add(box(0.025 * s, 0.014 * s, 0.2 * s), 'leather', T(x, -0.266 * s, -0.04 * s))
+        p.add(box(0.032 * s, 0.018 * s, 0.022 * s), 'brass', T(x, -0.27 * s, -0.03 * s), bevel=0.004 * s)
+    for sx in (-1, 1):   # the side pockets
+        p.add(box(0.06 * s, 0.12 * s, 0.15 * s), 'olive_dark', T(sx * 0.165 * s, -0.17 * s, -0.17 * s), bevel=0.02 * s)
+        p.add(box(0.065 * s, 0.125 * s, 0.03 * s), 'leather', T(sx * 0.167 * s, -0.17 * s, -0.09 * s), bevel=0.008 * s)
+    # the blanket roll across the top, strapped down at both ends
+    p.add(tube([(-0.21 * s, 0, 0), (0.21 * s, 0, 0)], 0.065 * s, seg=16), 'olive', T(0, -0.15 * s, 0.19 * s), smooth=True)
+    for x in (-0.13 * s, 0.13 * s):
+        p.add(lathe([(-0.012 * s, 0.069 * s), (0.012 * s, 0.069 * s)], seg=16), 'leather',
+              T(x, -0.15 * s, 0.19 * s) @ R('Y', 90), smooth=True)
+    # a tin billy can hung by its bail on the back of the bag, low
+    p.add(lathe([(-0.06 * s, 0.05 * s), (0.06 * s, 0.05 * s)], seg=16), 'steel', T(0, -0.3 * s, -0.2 * s), smooth=True)
+    p.add(tube([(-0.05 * s, -0.3 * s, -0.14 * s), (0, -0.3 * s, -0.09 * s), (0.05 * s, -0.3 * s, -0.14 * s)], 0.004 * s, seg=5),
+          'steel', smooth=True)
+    # a coil of rope on the right side
+    p.add(lathe([(-0.025 * s, 0.07 * s), (0.025 * s, 0.07 * s)], seg=16), 'canvas', T(0.2 * s, -0.16 * s, -0.02 * s) @ R('Y', 90),
+          smooth=True)
+    for x in (-0.11 * s, 0.11 * s):   # the shoulder straps, over the shoulders and down the front
+        path = [(x, -0.06 * s, 0.1 * s), (x, 0.0, 0.14 * s), (x, 0.1 * s, 0.1 * s), (x * 1.05, 0.12 * s, -0.1 * s)]
+        p.add(tube(path, 0.016 * s, seg=6, scale_xy=(1.0, 0.35)), 'leather', smooth=True)
+
+
+BUILDERS['settler_pack'] = settler_pack
+DEFAULTS.setdefault('alu', ('#a4a8ac', 0.45, 1.0, 'metal'))   # aluminium tube
+
+
+def suitcase(p, scale=1.0):
+    """A travelling suitcase held by its handle (origin), hanging -Z: a leather case with a darker piped
+    edge all round, brass corner caps and latches, two leather straps with buckles round it, a thick
+    handle on brass loops."""
+    s = scale
+    w, d, h = 0.44 * s, 0.13 * s, 0.32 * s      # length (Y), depth (X), height
+    zc = -0.04 * s - h / 2
+    p.add(box(d, w, h), 'book_cover', T(0, 0, zc), bevel=0.018 * s)
+    for sx in (-1, 1):   # the piping round both faces
+        ring = [(sx * d / 2, -w / 2, zc - h / 2), (sx * d / 2, w / 2, zc - h / 2), (sx * d / 2, w / 2, zc + h / 2),
+                (sx * d / 2, -w / 2, zc + h / 2), (sx * d / 2, -w / 2, zc - h / 2)]
+        p.add(tube(ring, 0.007 * s, seg=6), 'leather_dark', smooth=True)
+    for sy in (-1, 1):   # the brass corner caps
+        for sz in (-1, 1):
+            for sx in (-1, 1):
+                p.add(ellipsoid(0.02 * s, 0.022 * s, 0.022 * s, seg=8), 'brass', T(sx * d / 2, sy * w / 2, zc + sz * h / 2), smooth=True)
+    for y in (-0.12 * s, 0.12 * s):   # the straps round it and their buckles; the latches by the handle
+        p.add(box(d + 0.012 * s, 0.035 * s, h + 0.012 * s), 'leather', T(0, y, zc))
+        for sx in (-1, 1):
+            p.add(box(0.008 * s, 0.045 * s, 0.035 * s), 'brass', T(sx * (d / 2 + 0.008 * s), y, zc + 0.05 * s), bevel=0.003 * s)
+            p.add(box(0.008 * s, 0.03 * s, 0.025 * s), 'brass', T(sx * (d / 2 + 0.005 * s), y * 0.55, zc + h / 2 - 0.03 * s), bevel=0.003 * s)
+    p.add(tube([(0, -0.07 * s, -0.04 * s), (0, -0.06 * s, 0.01 * s), (0, 0.06 * s, 0.01 * s), (0, 0.07 * s, -0.04 * s)],
+               [0.012 * s, 0.016 * s, 0.016 * s, 0.012 * s], seg=8), 'leather_dark', smooth=True)
+    for y in (-0.07 * s, 0.07 * s):
+        p.add(box(0.03 * s, 0.03 * s, 0.015 * s), 'brass', T(0, y, -0.045 * s), bevel=0.004 * s)
+
+
+def work_shovel(p, length=1.3, blade_w=0.3, scale=1.0):
+    """A labourer's long-handled round-point shovel, held from the top (origin): a wooden D-grip, the haft
+    along +Z, a wide dished steel blade at the far end, its face toward -Y (the hollow toward +Y), with
+    turned-over treads on its top edge, a socket and rivets."""
+    s = scale
+    L = length * s
+    p.add(tube([(0, 0, -0.02 * s), (0, 0, L - 0.3 * s)], [0.017 * s, 0.016 * s], seg=10), 'wood', smooth=True)
+    dg = [(0.07 * s * math.sin(math.pi * t), 0.0, -0.02 * s - 0.13 * s * math.sin(math.pi * t / 2)) for t in [i / 12 for i in range(13)]]
+    p.add(tube(dg, 0.015 * s, seg=8), 'wood', smooth=True)
+    p.add(tube([(-0.07 * s, 0, -0.15 * s), (0.07 * s, 0, -0.15 * s)], 0.016 * s, seg=8), 'wood', smooth=True)   # the D's cross grip
+    b = blade_w * s / 2
+    outline = [(-b, 0.0), (b, 0.0), (b * 1.02, 0.16 * s), (b * 0.7, 0.27 * s), (0.0, 0.32 * s), (-b * 0.7, 0.27 * s), (-b * 1.02, 0.16 * s)]
+    blade = slab(outline, 0.007 * s, 'Y')
+    for v in blade.verts:   # dished across
+        v.co.y += 0.04 * s * (v.co.x / b) ** 2
+    p.add(blade, 'shovel_steel', T(0, 0, L - 0.3 * s), bevel=0.002 * s)
+    # the worn, earth-dark cutting edge round the point
+    edge = [(b * 1.02, 0.04 * s, 0.16 * s + L - 0.3 * s)] + [(x, 0.04 * s * (x / b) ** 2, z + L - 0.3 * s) for x, z in
+            [(b * 0.7, 0.27 * s), (0.0, 0.32 * s), (-b * 0.7, 0.27 * s)]] + [(-b * 1.02, 0.04 * s, 0.16 * s + L - 0.3 * s)]
+    p.add(tube(edge, 0.011 * s, seg=6), 'earth_edge', smooth=True)
+    p.add(box(blade_w * s * 0.98, 0.035 * s, 0.014 * s), 'shovel_steel', T(0, 0.02 * s, L - 0.3 * s), bevel=0.004 * s)   # the treads
+    p.add(lathe([(0.0, 0.024 * s), (0.13 * s, 0.018 * s)], seg=12), 'shovel_steel', T(0, 0, L - 0.42 * s), smooth=True)  # the socket
+    for z in (L - 0.38 * s, L - 0.34 * s):
+        p.add(ellipsoid(0.006 * s, 0.007 * s, 0.006 * s, seg=8), 'brass', T(0, -0.024 * s, z), smooth=True)
+
+
+BUILDERS['suitcase'] = suitcase
+BUILDERS['work_shovel'] = work_shovel
+DEFAULTS.setdefault('shovel_steel', ('#7c7e82', 0.62, 0.65, 'metal'))   # a used spade: grey, not a mirror
+DEFAULTS.setdefault('earth_edge', ('#4a4034', 0.9, 0.2, 'metal'))       # its worn, earthy edge
+DEFAULTS.setdefault('holdall', ('#3e4a3a', 0.8, 0.0, 'cloth'))          # an olive nylon holdall
+
+
+def holdall(p, scale=1.0):
+    """A modern holdall (duffel bag) carried by its two handles (origin), hanging -Z: an olive nylon
+    cylinder lying along Y with dark end panels, a zip track along the top, two webbing handles joined at
+    the grip, a shoulder strap clipped to the ends and a front pocket."""
+    s = scale
+    L, r = 0.5 * s, 0.13 * s
+    zc = -0.06 * s - r
+    p.add(tube([(0, -L / 2, zc), (0, L / 2, zc)], r, seg=20, scale_xy=(0.9, 1.0)), 'holdall', smooth=True)
+    for sy in (-1, 1):   # the end panels
+        p.add(lathe([(-0.01 * s, r * 0.95), (0.01 * s, r * 0.95)], seg=20), 'leather_dark', T(0, sy * L / 2, zc) @ R('X', 90), smooth=True)
+    p.add(box(0.025 * s, L * 0.9, 0.012 * s), 'leather_dark', T(0, 0, zc + r * 0.98))            # the zip track
+    p.add(box(0.012 * s, 0.24 * s, 0.13 * s), 'holdall', T(r * 0.9, 0, zc - 0.02 * s), bevel=0.01 * s)   # the front pocket
+    for sx in (-1, 1):   # the webbing handles, from the sides up to the grip
+        p.add(tube([(sx * r * 0.75, -0.1 * s, zc + r * 0.6), (sx * 0.02 * s, -0.05 * s, 0.0), (sx * 0.02 * s, 0.05 * s, 0.0),
+                    (sx * r * 0.75, 0.1 * s, zc + r * 0.6)], 0.008 * s, seg=6, scale_xy=(0.5, 1.0)), 'leather_dark', smooth=True)
+    p.add(tube([(0, -0.05 * s, 0.0), (0, 0.05 * s, 0.0)], 0.016 * s, seg=8), 'leather_dark', smooth=True)   # the grip wrap
+    p.add(tube([(0, -L / 2, zc + r * 0.5), (-0.06 * s, -L * 0.3, zc + r * 1.3), (-0.06 * s, L * 0.3, zc + r * 1.3), (0, L / 2, zc + r * 0.5)],
+               0.006 * s, seg=6, scale_xy=(0.5, 1.0)), 'leather_dark', smooth=True)   # the slack shoulder strap
+    for sy in (-1, 1):
+        p.add(box(0.02 * s, 0.03 * s, 0.02 * s), 'alu', T(0, sy * L / 2, zc + r * 0.5), bevel=0.004 * s)   # its clips
+
+
+BUILDERS['holdall'] = holdall

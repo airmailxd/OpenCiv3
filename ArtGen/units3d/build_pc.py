@@ -23,10 +23,14 @@ import build  # noqa: E402  (the foot units' builder: blender(), PREVIEWS, UNITS
 import compose  # noqa: E402
 
 DESAT = 0.9   # the vehicles were reviewed at full color; a touch calmer, as the foot units' 0.85
+# units whose flics get only their declared direction rows (compose.write_unit's declared_rows; others as before)
+DECLARED_ROWS = {'ICBM', 'Tactical Nuke', 'Cruise Missile'}
 
 
-def render(units):
+def render(units, tag=''):
     env = dict(os.environ, CRISP='1')
+    if tag:   # a variant: rendered into <Unit><tag>/ (render_vehicles.py RV_TAG)
+        env['RV_TAG'] = tag
     cmd = [build.blender(), '-b', '--factory-startup', '--python-exit-code', '1', '--python',
            os.path.join(HERE, 'render_vehicles.py'), '--', *units]
     log = subprocess.run(cmd, capture_output=True, text=True, env=env)
@@ -37,13 +41,16 @@ def render(units):
         raise SystemExit(f'rendering failed:\n{log.stdout[-1500:]}\n{log.stderr[-800:]}')
 
 
-def compose_unit(unit, install=False):
-    out = os.path.join(build.PREVIEWS, unit)
+def compose_unit(unit, install=False, tag=''):
+    # tag (build_pc --tag=, the siege branch's) and RENDER_TAG (the air branch's env opt-in) both name a variant:
+    # it renders into <Unit><tag>/ and composes to sheets<tag>/<Unit>/; both unset = as before
+    tag = tag + os.environ.get('RENDER_TAG', '')
+    out = os.path.join(build.PREVIEWS, unit + tag)
     cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json'), encoding='utf-8'))
-    sheets = os.path.join(build.PREVIEWS, 'sheets', unit)
+    sheets = os.path.join(build.PREVIEWS, 'sheets' + tag, unit)   # a variant's sheets go to sheets<tag>/<Unit>/
     import shutil
     shutil.rmtree(sheets, ignore_errors=True)
-    meta, grown = compose.write_unit(unit, out, cal, sheets, desat=DESAT)
+    meta, grown = compose.write_unit(unit, out, cal, sheets, desat=DESAT, declared_rows=unit in DECLARED_ROWS)
     print(f'  {unit}: {len(meta["flics"])} flics, grown {grown} -> {os.path.relpath(sheets, build.REPO)}', flush=True)
     if install:
         dst = os.path.join(build.UNITS_ART, unit)
@@ -59,11 +66,13 @@ def compose_unit(unit, install=False):
 
 def main(argv):
     units = [a for a in argv if not a.startswith('--')]
-    subprocess.run([sys.executable, os.path.join(HERE, 'catalog_json.py')], check=True)
+    tag = next((a.split('=', 1)[1] for a in argv if a.startswith('--tag=')), '')   # a variant (see render())
+    if '--no-catalog' not in argv:
+        subprocess.run([sys.executable, os.path.join(HERE, 'catalog_json.py')], check=True)
     if '--no-render' not in argv:
-        render(units)
+        render(units, tag)
     for unit in units:
-        compose_unit(unit, install='--install' in argv)
+        compose_unit(unit, install='--install' in argv and not tag, tag=tag)
 
 
 if __name__ == '__main__':

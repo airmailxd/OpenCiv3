@@ -1,0 +1,237 @@
+{
+  "unit": "Ashigaru Spearman",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.1,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 66.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.87,
+        122
+      ],
+      "top": 58,
+      "height": 65,
+      "bbox": [
+        107,
+        58,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.37,
+        123
+      ],
+      "top": 56,
+      "height": 68,
+      "bbox": [
+        109,
+        56,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.33,
+        125
+      ],
+      "top": 60,
+      "height": 66,
+      "bbox": [
+        103,
+        60,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        122.84,
+        124
+      ],
+      "top": 63,
+      "height": 62,
+      "bbox": [
+        96,
+        63,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.35,
+        121
+      ],
+      "top": 60,
+      "height": 62,
+      "bbox": [
+        103,
+        60,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.96,
+        121
+      ],
+      "top": 56,
+      "height": 66,
+      "bbox": [
+        110,
+        56,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.46,
+        122
+      ],
+      "top": 54,
+      "height": 69,
+      "bbox": [
+        108,
+        54,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.52,
+        122
+      ],
+      "top": 54,
+      "height": 69,
+      "bbox": [
+        110,
+        54,
+        143,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.5972,
+    "fit": 0.9153,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Ashigaru Spearman_default.flc",
+  "flics": {
+    "x_Ashigaru Spearman_attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 130,
+      "height": 98,
+      "offset_left": 47,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Ashigaru Spearman_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 164,
+      "height": 118,
+      "offset_left": 39,
+      "offset_top": 43,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ashigaru Spearman_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 74,
+      "offset_left": 73,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 9,
+      "frameMs": 166
+    },
+    "x_Ashigaru Spearman_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 110,
+      "height": 91,
+      "offset_left": 56,
+      "offset_top": 45,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 83
+    },
+    "x_Ashigaru Spearman_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 105,
+      "height": 85,
+      "offset_left": 57,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Ashigaru Spearman_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 109,
+      "height": 83,
+      "offset_left": 57,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

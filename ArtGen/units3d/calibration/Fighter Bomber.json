@@ -1,0 +1,218 @@
+{
+  "unit": "Fighter Bomber",
+  "source": "installed NumPy sheet (art-base), DEFAULT frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.69,
+    102.0
+  ],
+  "anchor_override": null,
+  "standing_height": 28.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        126.66,
+        100
+      ],
+      "top": 72,
+      "height": 29,
+      "bbox": [
+        101,
+        72,
+        146,
+        100
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.65,
+        100
+      ],
+      "top": 72,
+      "height": 29,
+      "bbox": [
+        94,
+        72,
+        146,
+        100
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        122.62,
+        102
+      ],
+      "top": 72,
+      "height": 31,
+      "bbox": [
+        94,
+        72,
+        140,
+        102
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.74,
+        102
+      ],
+      "top": 75,
+      "height": 28,
+      "bbox": [
+        93,
+        75,
+        135,
+        102
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        108.59,
+        104
+      ],
+      "top": 77,
+      "height": 28,
+      "bbox": [
+        94,
+        77,
+        139,
+        104
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.25,
+        104
+      ],
+      "top": 77,
+      "height": 28,
+      "bbox": [
+        94,
+        77,
+        146,
+        104
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        131.91,
+        104
+      ],
+      "top": 76,
+      "height": 29,
+      "bbox": [
+        100,
+        76,
+        146,
+        104
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.98,
+        102
+      ],
+      "top": 75,
+      "height": 28,
+      "bbox": [
+        105,
+        75,
+        147,
+        102
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null
+  },
+  "default_flic": "x_P38Default.flc",
+  "flics": {
+    "x_P38Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 118,
+      "height": 89,
+      "offset_left": 62,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_P38Bomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 138,
+      "height": 103,
+      "offset_left": 52,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "x_P38Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 98,
+      "height": 115,
+      "offset_left": 71,
+      "offset_top": 33,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 66
+    },
+    "x_P38Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 74,
+      "height": 79,
+      "offset_left": 84,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "x_P38Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "combat",
+      "width": 114,
+      "height": 91,
+      "offset_left": 64,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "unit": "Teutonic Knight",
+  "source": "the installed NumPy-generator sheet (C7/ModernArt), DEFAULT frame 0 (no Civ3 original on PC2)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.1,
+    128.0
+  ],
+  "anchor_override": null,
+  "standing_height": 53.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        113.05,
+        128
+      ],
+      "top": 76,
+      "height": 53,
+      "bbox": [
+        96,
+        76,
+        133,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.08,
+        128
+      ],
+      "top": 76,
+      "height": 53,
+      "bbox": [
+        106,
+        76,
+        130,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.31,
+        128
+      ],
+      "top": 76,
+      "height": 53,
+      "bbox": [
+        103,
+        76,
+        135,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.12,
+        125
+      ],
+      "top": 76,
+      "height": 50,
+      "bbox": [
+        98,
+        76,
+        146,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.13,
+        128
+      ],
+      "top": 70,
+      "height": 59,
+      "bbox": [
+        104,
+        70,
+        141,
+        128
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.99,
+        128
+      ],
+      "top": 70,
+      "height": 59,
+      "bbox": [
+        107,
+        70,
+        130,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        124.34,
+        128
+      ],
+      "top": 70,
+      "height": 59,
+      "bbox": [
+        104,
+        70,
+        134,
+        128
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.39,
+        125
+      ],
+      "top": 73,
+      "height": 53,
+      "bbox": [
+        91,
+        73,
+        139,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": null,
+    "fit": null,
+    "archetype": "mdj_horse_rider"
+  },
+  "default_flic": "KnightDefault.flc",
+  "flics": {
+    "KnightAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 75,
+      "height": 81,
+      "offset_left": 81,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "KnightDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 87,
+      "offset_left": 62,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "KnightDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 69,
+      "height": 64,
+      "offset_left": 82,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "KnightFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 72,
+      "height": 68,
+      "offset_left": 82,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "KnightFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 67,
+      "height": 77,
+      "offset_left": 83,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "KnightRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 73,
+      "height": 77,
+      "offset_left": 82,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "KnightVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 77,
+      "offset_left": 82,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

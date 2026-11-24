@@ -1,0 +1,237 @@
+{
+  "unit": "Oda Arquebusier",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.71,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.68,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        110,
+        82,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.79,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        109,
+        82,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.71,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        109,
+        82,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.74,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        100,
+        81,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.3,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        103,
+        80,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        110,
+        79,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.86,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        108,
+        80,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.4,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        106,
+        80,
+        139,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 44.725,
+    "fit": 0.8601,
+    "archetype": "ashigaru_gunner"
+  },
+  "default_flic": "x_Oda default.flc",
+  "flics": {
+    "x_Oda attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 112,
+      "height": 84,
+      "offset_left": 65,
+      "offset_top": 46,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Oda death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 79,
+      "height": 59,
+      "offset_left": 79,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Oda default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 48,
+      "height": 50,
+      "offset_left": 93,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Oda fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 62,
+      "offset_left": 79,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Oda run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 55,
+      "height": 59,
+      "offset_left": 88,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Oda victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 58,
+      "height": 60,
+      "offset_left": 86,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

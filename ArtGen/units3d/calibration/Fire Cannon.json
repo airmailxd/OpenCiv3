@@ -1,0 +1,249 @@
+{
+  "unit": "Fire Cannon",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.82,
+    129.0
+  ],
+  "anchor_override": null,
+  "standing_height": 45.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.57,
+        129
+      ],
+      "top": 80,
+      "height": 50,
+      "bbox": [
+        94,
+        80,
+        147,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.8,
+        127
+      ],
+      "top": 76,
+      "height": 52,
+      "bbox": [
+        109,
+        76,
+        131,
+        127
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.17,
+        129
+      ],
+      "top": 81,
+      "height": 49,
+      "bbox": [
+        92,
+        81,
+        145,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.81,
+        127
+      ],
+      "top": 91,
+      "height": 37,
+      "bbox": [
+        85,
+        91,
+        154,
+        127
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        101.5,
+        133
+      ],
+      "top": 92,
+      "height": 42,
+      "bbox": [
+        92,
+        92,
+        145,
+        133
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.84,
+        137
+      ],
+      "top": 87,
+      "height": 50,
+      "bbox": [
+        109,
+        87,
+        131,
+        137
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        138.47,
+        133
+      ],
+      "top": 92,
+      "height": 42,
+      "bbox": [
+        94,
+        92,
+        147,
+        133
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.01,
+        127
+      ],
+      "top": 88,
+      "height": 39,
+      "bbox": [
+        85,
+        88,
+        154,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "x_FirecannonDefault.flc",
+  "flics": {
+    "x_FirecannonDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 82,
+      "height": 65,
+      "offset_left": 78,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_FirecannonRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 85,
+      "height": 59,
+      "offset_left": 77,
+      "offset_top": 83,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_FirecannonAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 115,
+      "height": 67,
+      "offset_left": 62,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_FirecannonDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 158,
+      "height": 142,
+      "offset_left": 42,
+      "offset_top": 9,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 19,
+      "frameMs": 66
+    },
+    "x_FirecannonFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 81,
+      "height": 64,
+      "offset_left": 79,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_FirecannonFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 80,
+      "height": 64,
+      "offset_left": 79,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_FirecannonVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 81,
+      "height": 65,
+      "offset_left": 79,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

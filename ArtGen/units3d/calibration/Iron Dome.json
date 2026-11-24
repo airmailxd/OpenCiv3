@@ -1,0 +1,219 @@
+{
+  "unit": "Iron Dome",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    121.35,
+    137.0
+  ],
+  "anchor_override": null,
+  "standing_height": 50.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.24,
+        137
+      ],
+      "top": 79,
+      "height": 59,
+      "bbox": [
+        91,
+        79,
+        152,
+        137
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.06,
+        137
+      ],
+      "top": 78,
+      "height": 60,
+      "bbox": [
+        106,
+        78,
+        135,
+        137
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        129.49,
+        137
+      ],
+      "top": 79,
+      "height": 59,
+      "bbox": [
+        89,
+        79,
+        150,
+        137
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.9,
+        132
+      ],
+      "top": 84,
+      "height": 48,
+      "bbox": [
+        86,
+        84,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        109.8,
+        140
+      ],
+      "top": 91,
+      "height": 50,
+      "bbox": [
+        89,
+        91,
+        150,
+        140
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.64,
+        140
+      ],
+      "top": 90,
+      "height": 51,
+      "bbox": [
+        106,
+        90,
+        135,
+        140
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        131.78,
+        140
+      ],
+      "top": 91,
+      "height": 50,
+      "bbox": [
+        91,
+        91,
+        152,
+        140
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        126.81,
+        132
+      ],
+      "top": 84,
+      "height": 49,
+      "bbox": [
+        88,
+        84,
+        155,
+        132
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "RapierDefault.flc",
+  "flics": {
+    "RapierDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 160,
+      "height": 120,
+      "offset_left": 40,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 81
+    },
+    "RapierRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 160,
+      "height": 120,
+      "offset_left": 40,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 69
+    },
+    "RapierAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 160,
+      "height": 120,
+      "offset_left": 40,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "RapierDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 160,
+      "height": 120,
+      "offset_left": 40,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "RapierFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 160,
+      "height": 120,
+      "offset_left": 40,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 81
+    }
+  }
+}

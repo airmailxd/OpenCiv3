@@ -1,0 +1,220 @@
+{
+  "unit": "Pirate",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.75,
+    133.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        104.22,
+        133
+      ],
+      "top": 92,
+      "height": 42,
+      "bbox": [
+        95,
+        92,
+        146,
+        133
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.8,
+        137
+      ],
+      "top": 87,
+      "height": 51,
+      "bbox": [
+        110,
+        87,
+        129,
+        137
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        135.2,
+        133
+      ],
+      "top": 90,
+      "height": 44,
+      "bbox": [
+        93,
+        90,
+        144,
+        133
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.13,
+        128
+      ],
+      "top": 96,
+      "height": 32,
+      "bbox": [
+        84,
+        96,
+        153,
+        128
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        102.72,
+        134
+      ],
+      "top": 95,
+      "height": 40,
+      "bbox": [
+        93,
+        95,
+        144,
+        134
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.71,
+        138
+      ],
+      "top": 94,
+      "height": 45,
+      "bbox": [
+        110,
+        94,
+        129,
+        138
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        136.75,
+        134
+      ],
+      "top": 95,
+      "height": 40,
+      "bbox": [
+        95,
+        95,
+        146,
+        134
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.53,
+        128
+      ],
+      "top": 98,
+      "height": 31,
+      "bbox": [
+        86,
+        98,
+        155,
+        128
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "SteamTigerDefault.flc",
+  "flics": {
+    "SteamTigerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 140,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "SteamTigerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 140,
+      "height": 140,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    },
+    "SteamTigerAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 140,
+      "height": 140,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "SteamTigerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 140,
+      "height": 140,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 82
+    },
+    "SteamTigerFidget.flc": {
+      "actions": [
+        "FORTIFY",
+        "FIDGET"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 140,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    }
+  }
+}

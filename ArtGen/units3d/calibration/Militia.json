@@ -1,0 +1,249 @@
+{
+  "unit": "Militia",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.91,
+    123.0
+  ],
+  "anchor_override": null,
+  "standing_height": 46.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.42,
+        123
+      ],
+      "top": 68,
+      "height": 56,
+      "bbox": [
+        112,
+        68,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.93,
+        123
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        104,
+        73,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.87,
+        124
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        104,
+        80,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.27,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        111,
+        81,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.06,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        111,
+        79,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.77,
+        122
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        109,
+        79,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.52,
+        123
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        111,
+        74,
+        136,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.88,
+        123
+      ],
+      "top": 69,
+      "height": 55,
+      "bbox": [
+        109,
+        69,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 52.5424,
+    "archetype": "numpy"
+  },
+  "default_flic": "NapoleonicInfantryDefault.flc",
+  "flics": {
+    "NapoleonicInfantryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 33,
+      "height": 64,
+      "offset_left": 104,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "NapoleonicInfantryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 81,
+      "height": 66,
+      "offset_left": 80,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "NapoleonicInfantryAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 193,
+      "height": 119,
+      "offset_left": 24,
+      "offset_top": 23,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "NapoleonicInfantryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 164,
+      "height": 102,
+      "offset_left": 38,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "NapoleonicInfantryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 104,
+      "height": 80,
+      "offset_left": 68,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "NapoleonicInfantryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 40,
+      "height": 66,
+      "offset_left": 100,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "NapoleonicInfantryVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 97,
+      "height": 80,
+      "offset_left": 72,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

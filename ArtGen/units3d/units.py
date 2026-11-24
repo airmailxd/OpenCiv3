@@ -88,16 +88,21 @@ def dress(entry, mesh, arm):
     c = _colors(entry)
     top, bottom = entry.get('top'), entry.get('bottom')
     torso = ['spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'pelvis']
-    if top in ('tunic', 'sleeved', 'mantle', 'vest'):
+    if top in ('tunic', 'sleeved', 'mantle', 'vest', 'exomis'):
         bones = list(torso)
-        if top in ('tunic', 'mantle'):
+        if top in ('tunic', 'mantle', 'exomis'):
             bones += ['upperarm_l', 'upperarm_r']
         if top == 'sleeved':
             bones += ['upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r']
         keep = None
         if top in ('tunic', 'mantle'):
-            # short sleeves: the upper half of the upper arm
-            keep = lambda co: abs(co.x) < 0.27
+            # short sleeves: the upper half of the upper arm ('sleeve_x': where they end)
+            keep = lambda co, sx=entry.get('sleeve_x', 0.27): abs(co.x) < sx
+        elif top == 'exomis':
+            # the Greek working tunic: pinned on the left shoulder, the right
+            # shoulder, arm and the top of the chest bare (a line from the left
+            # side of the neck down to under the right arm, front and back)
+            keep = lambda co: abs(co.x) < 0.27 and co.z < 1.27 + 1.15 * (co.x + 0.15)
         # (a 'physique' body's shoulders sit higher and wider: the top rises with them)
         zmax = entry.get('top_zmax', 1.47 + 0.07 * entry.get('physique', 0.0))
         if entry.get('neck') == 'high':
@@ -114,8 +119,9 @@ def dress(entry, mesh, arm):
         if entry.get('collar') == 'mail':
             # a mail collar (coif's lower part) around the neck and over the shoulders
             G.shell(mesh, arm, 'Collar', ['neck_01', 'clavicle_l', 'clavicle_r', 'spine_03'],
-                    B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=0.55, metallic=0.85,
-                               nodes=G.mail_nodes), zmin=1.42, zmax=1.62, offset=0.014, thickness=0.006)
+                    B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=entry.get('mail_roughness', 0.55), metallic=entry.get('mail_metallic', 0.85),
+                               nodes=G.mail_rows_nodes if entry.get('mail_rows') else G.mail_nodes),
+                    zmin=1.42, zmax=1.62, offset=0.014, thickness=0.006)
     elif top == 'strap':
         # a sash over the left shoulder, across the chest
         G.shell(mesh, arm, 'Top', torso, _mat(entry, 'top', G.cloth), zmin=0.95, zmax=1.45, offset=0.009,
@@ -124,8 +130,11 @@ def dress(entry, mesh, arm):
         G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.7,
                 flare=entry.get('gown_flare', 1.55), folds=0.1, drop=entry.get('robe_drop', 0.5))
     if bottom in ('skirt', 'kilt'):
-        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.55 if bottom == 'skirt' else 0.7,
-                flare=1.12 + 0.3 * entry.get('robe_drop', 0.0), folds=0.08, drop=entry.get('robe_drop', 0.0))
+        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6),
+                length=entry.get('skirt_length', 0.55 if bottom == 'skirt' else 0.7),
+                flare=entry.get('skirt_flare', 1.12 + 0.3 * entry.get('robe_drop', 0.0)),
+                folds=entry.get('skirt_folds', 0.08), drop=entry.get('robe_drop', 0.0),
+                troughs=entry.get('skirt_troughs'))
     elif bottom == 'loincloth':
         pass    # flaps from the belt, after posing (dress_posed)
     elif bottom in ('long', 'breeches'):
@@ -152,6 +161,23 @@ def dress(entry, mesh, arm):
                 thickness=0.004, min_weight=0.2, keep=lambda co, yc=yc / G._scale: co.y - yc < 0.02)
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
+        if name == 'v_collar':
+            # (PC2 numpy-mdj-foot) a kimono's crossed collar (eri): two bands down the front of the
+            # chest from either side of the neck, meeting low at the centre in a V; 'tint' or a
+            # 'color', 'width' (m), 'depth' (the V's bottom), 'spread' (its half-width at the neck)
+            gp = (g[1] or {}) if isinstance(g, (list, tuple)) and len(g) > 1 else {}
+            vt = gp.get('tint')
+            vmat = G.cloth('v_collar', (1, 1, 1), tint=True) if vt else G.cloth('v_collar', B.hex_color(gp.get('color', c['belt'])))
+            w, z0, sp = gp.get('width', 0.035) / 2, gp.get('depth', 1.2), gp.get('spread', 0.075)
+            z1 = 1.56
+            for sgn in (1.0, -1.0):
+                inside = (lambda co, sg=sgn: co.y < -0.02 and z0 - 0.02 < co.z < z1 and
+                          abs(co.x - sg * sp * (co.z - z0) / (z1 - z0)) < w)
+                o = G.shell(mesh, arm, 'VCollar', torso + ['neck_01'], vmat, zmin=z0 - 0.04, zmax=z1, offset=0.012,
+                            thickness=0.005, keep=lambda co, sg=sgn: co.y < -0.0 and
+                            abs(co.x - sg * sp * (co.z - z0) / (z1 - z0)) < w + 0.06)
+                G.trim(o, inside)
+            continue
         if name == 'chest_strap':
             gp = (g[1] or {}) if isinstance(g, (list, tuple)) and len(g) > 1 else {}
             col = gp.get('color', c['belt'])
@@ -180,8 +206,8 @@ def dress(entry, mesh, arm):
     # chausses from the thigh to the foot), under the other clothes
     mail = entry.get('mail_parts', [])
     if mail:
-        mm = B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=0.55, metallic=0.85,
-                        nodes=G.mail_nodes)
+        mm = B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=entry.get('mail_roughness', 0.55), metallic=entry.get('mail_metallic', 0.85),
+                        nodes=G.mail_rows_nodes if entry.get('mail_rows') else G.mail_nodes)
         if 'arms' in mail:
             G.shell(mesh, arm, 'MailArms', ['upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r'], mm,
                     zmin=0.82, offset=0.007, thickness=0.004, min_weight=0.3)
@@ -209,7 +235,8 @@ def dress(entry, mesh, arm):
                                   tuple(min(1.0, v * 1.6 + 0.06) for v in belt_rgb)), pouch=entry.get('pouch', True))
     if entry.get('pauldrons'):
         # shoulder pieces: the top of the upper arms and shoulders
-        pmat = (_mat(entry, 'cuirass', lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9,
+        pmat = (_mat(entry, 'cuirass', lambda n, col, tint=False: B.material(n, col, roughness=entry.get('plate_roughness', 0.35),
+                                                                             metallic=entry.get('plate_metallic', 0.9),
                                                                              tint=tint, nodes=G.plate_bands(3)))
                 if entry['pauldrons'] == 'metal' else _mat(entry, 'top', G.leather))
         G.shell(mesh, arm, 'Pauldrons', ['upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r'],
@@ -218,7 +245,9 @@ def dress(entry, mesh, arm):
     if entry.get('cuirass'):
         metal = 'cuirass' in entry.get('metal', ['cuirass'])
         bands = entry.get('cuirass_bands')       # lorica segmentata: N horizontal plates
-        maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint,
+        # ('plate_metallic' / 'plate_roughness': a duller plate; a mirror one reflects the dark sky as black)
+        maker = (lambda n, col, tint=False: B.material(n, col, roughness=entry.get('plate_roughness', 0.35),
+                                                       metallic=entry.get('plate_metallic', 0.9), tint=tint,
                                                        nodes=G.plate_bands(bands) if bands else None)) \
             if metal else (G.cloth if 'cuirass' in entry.get('patterns', {}) else G.leather)   # a camo vest is cloth
         cu = G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
@@ -238,6 +267,9 @@ def dress(entry, mesh, arm):
             wtint = 'wraps' in entry.get('tint', [])
             wmat = (G.fur('wraps_' + side, (1, 1, 1), (0.55, 0.55, 0.55), tint=True) if wtint else
                     G.fur('wraps_' + side, B.hex_color(c['wraps']), B.hex_color(c['wraps_band'])))
+            if entry.get('wraps_plain'):
+                # (PC2 numpy-mdj-foot) single-tone cloth gaiters (kyahan), not banded wraps; off by default
+                wmat = G.cloth('wraps_' + side, (1, 1, 1) if wtint else B.hex_color(c['wraps']), tint=wtint, weave=0.5)
             G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], wmat, zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
                     thickness=0.012)
         if wraps == 'shoes' or entry.get('shoes'):     # 'shoes': True also goes over hose (wraps)
@@ -246,17 +278,17 @@ def dress(entry, mesh, arm):
                     _mat(entry, 'shoes', G.leather), zmax=0.11, offset=0.007, thickness=0.006)
         if wraps == 'boots' or entry.get('boots'):
             G.shell(mesh, arm, 'Boot_' + side, ['calf_' + side, 'foot_' + side, 'ball_' + side],
-                    _mat(entry, 'boots', G.leather), zmax=0.36, offset=0.008, thickness=0.006)
+                    _mat(entry, 'boots', G.leather), zmax=entry.get('boots_height', 0.36), offset=0.008, thickness=0.006)
         if wraps == 'greaves':      # over boots, when both
             G.shell(mesh, arm, 'Greave_' + side, ['calf_' + side], (lambda n, col, tint=False: B.material(
                 n, col, roughness=0.4, metallic=0.85, tint=tint))('greaves', B.hex_color(c['greaves'])),
                 zmin=0.1, zmax=0.48, offset=0.016, thickness=0.006)
         if entry.get('sandals') and wraps not in ('boots',):
             G.shell(mesh, arm, 'Sandal_' + side, ['foot_' + side, 'ball_' + side], _mat(entry, 'sandal', G.leather),
-                    zmax=0.025, offset=0.004, thickness=0.008)
+                    zmax=entry.get('sandal_height', 0.025), offset=0.004, thickness=0.008)
             # straps laced up the ankle
             G.shell(mesh, arm, 'SandalStrap_' + side, ['foot_' + side, 'calf_' + side], _mat(entry, 'sandal', G.leather),
-                    zmin=0.04, zmax=0.17, offset=0.006, thickness=0.004,
+                    zmin=0.04, zmax=entry.get('lace_height', 0.17), offset=0.006, thickness=0.004,
                     keep=lambda co: (co.z * 60.0) % 2.0 < 0.75)
         if entry.get('bracers') or entry.get('leather_bracers'):
             G.shell(mesh, arm, 'Bracer_' + side, ['lowerarm_' + side], _mat(entry, 'bracers', G.cloth),
@@ -268,11 +300,14 @@ def dress(entry, mesh, arm):
     for b in entry.get('bands', []):
         where, part = (b, b) if isinstance(b, str) else (b[0], b[1])
         bw = b[2] if not isinstance(b, str) and len(b) > 2 else None     # optional width (m)
+        # optional 4th: the band's offset off the body (m; default 0.022). (realism infantry) a small one
+        # (~0.014) sits flush on a sleeve: a flat armband, not a roll
+        bo = {'offset': b[3]} if not isinstance(b, str) and len(b) > 3 else {}
         bones, z = G.BANDS[where]
         tint = part in entry.get('tint', []) or part == 'tint'
         G.band(mesh, arm, 'Band_' + where, bones, (G.cloth('band_' + where, (1, 1, 1), tint=True) if tint else
                G.leather('band_' + where, B.hex_color(c.get(part, c['belt'])))), z,
-               width=bw or (0.05 if where in ('waist', 'neck') else 0.045))
+               width=bw or (0.05 if where in ('waist', 'neck') else 0.045), **bo)
     if entry.get('beard'):
         style = entry.get('beard_style', 'full')       # full, mustache, goatee, chin, long
         G.beard(mesh, B.hex_color(c.get('beard', c['hair'])), length=entry.get('beard_length_short', 0.018),
@@ -294,7 +329,7 @@ def dress(entry, mesh, arm):
                       length=entry.get('spike_length', 0.07))
     if entry.get('shackles'):
         G.shackles(mesh, arm, B.material('iron', B.hex_color(c.get('iron', '#3e3e40')), roughness=0.5, metallic=0.85),
-                   ankles=entry['shackles'] != 'wrists')
+                   ankles=entry['shackles'] != 'wrists', thick=entry.get('shackle_thick', 1.0))
     if entry.get('topknot'):
         # 'topknot' or 'ponytail' on a shaven head (set 'hair_asset': None)
         G.topknot(mesh, arm, G.hide('knot', B.hex_color(c['hair']), tuple(v * 0.6 for v in B.hex_color(c['hair']))),
@@ -366,6 +401,10 @@ def dress(entry, mesh, arm):
         G.shoulder_rolls(mesh, arm, _hem_mat(entry, c, sr, 'rolls'), size=entry.get('roll_size', 0.09))
     if entry.get('trouser_flare'):
         G.flare_legs('Bottom', amount=entry['trouser_flare'])
+    if entry.get('yoroi'):
+        # Japanese armour (yoroi.py): do, kusazuri, sode, kote, hakama, kabuto ...
+        import yoroi
+        yoroi.dress(entry, mesh, arm)
     fp = entry.get('face_prop')
     if fp:
         name, params = (fp, {}) if isinstance(fp, str) else (fp[0], fp[1] if len(fp) > 1 else {})
@@ -414,7 +453,8 @@ def dress_posed(entry, mesh, arm):
         G.cape(mesh, arm, _mat(entry, 'cape', G.cloth, weave=0.6),     # (the plain maker: patterns reach capes)
                length=entry.get('cape_length', 0.75), width=entry.get('cape_width', 0.5),
                flare=entry.get('cape_flare', 0.15), wrap=entry.get('cape_wrap', 0.0),
-               train=entry.get('cape_train', 0.0))
+               train=entry.get('cape_train', 0.0), folds=entry.get('cape_folds', 6), depth=entry.get('cape_depth'),
+               hem_curve=entry.get('cape_hem_curve', 0.0))
         _hems(entry, _colors(entry), lambda part: part == 'cape')
         cape = bpy.data.objects.get('Cape')
         if cape is not None and entry.get('cape_lining'):
@@ -431,6 +471,9 @@ def dress_posed(entry, mesh, arm):
         if ce:
             G.cape_emblem(arm, _hem_mat(entry, _colors(entry), ce[1], 'cape_emblem'), kind=ce[0],
                           size=ce[2] if len(ce) > 2 else 0.22, at=ce[3] if len(ce) > 3 else 0.35)
+    if entry.get('cape_drape') and bpy.data.objects.get('Cape') is not None:
+        # (off by default) the cape hung by simulation onto the posed body too
+        hanging.append(bpy.data.objects['Cape'])
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -675,6 +718,15 @@ STANCES['fist_hip_l'] = _ROYAL_BASE + [('upperarm_l', (1.0, 0.15, -0.8)), ('lowe
                                        ('upperarm_r', (-0.18, -0.05, -1)), ('lowerarm_r', (-0.1, -0.35, -1))]
 STANCES['fist_hip_r'] = _ROYAL_BASE + [('upperarm_r', (-1.0, 0.15, -0.8)), ('lowerarm_r', (0.66, 0.1, -0.75)),
                                        ('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l', (0.08, -0.12, -1))]
+# a sword held forward in both hands, the fists before the navel (chudan-no-kamae)
+STANCES['chudan'] = _ROYAL_BASE + [('upperarm_l', (0.12, -0.45, -1)), ('lowerarm_l', (-0.45, -1.0, 0.1)),
+                                   ('upperarm_r', (-0.2, -0.45, -1)), ('lowerarm_r', (0.3, -1.0, 0.15))]
+# hasso: the fists before the right shoulder, the blade up and out over it
+STANCES['hasso'] = _ROYAL_BASE + [('upperarm_l', (0.1, -0.6, -0.8)), ('lowerarm_l', (-0.6, -0.6, 0.5)),
+                                  ('upperarm_r', (-0.45, -0.35, -0.82)), ('lowerarm_r', (0.3, -0.55, 0.78))]
+# high chudan (seigan): the fists at the chest, the blade up and out
+STANCES['seigan'] = _ROYAL_BASE + [('upperarm_l', (0.15, -0.65, -0.75)), ('lowerarm_l', (-0.35, -0.75, 0.55)),
+                                   ('upperarm_r', (-0.25, -0.65, -0.75)), ('lowerarm_r', (0.15, -0.75, 0.6))]
 STANCES['royal'] = _ROYAL_BASE + [('upperarm_l', (0.25, -0.1, -1)), ('lowerarm_l', (0.15, -0.6, -0.9)),
                                   ('upperarm_r', (-0.3, -0.2, -1)), ('lowerarm_r', (-0.1, -1.0, 0.45))]
 
@@ -709,6 +761,34 @@ STANCES['shoulder_arms'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)
                             ('thigh_r', (-0.14, 0.0, -1)), ('calf_r', (-0.08, 0.03, -1)), ('foot_r', (-0.4, -1, -0.3)),
                             ('upperarm_l', (0.18, -0.02, -1)), ('lowerarm_l', (0.1, -0.15, -1)),
                             ('upperarm_r', (-0.22, -0.35, -1)), ('lowerarm_r', (0.05, -0.45, 1.0))]
+# a short sword ready at the hip behind a braced shield (the Legionary): the
+# right elbow bent at the side, the fist in front of the right hip, the blade
+# forward and out (`sword_dir`); the left forearm level and forward, its fist on
+# the shield's grip behind the boss (`shield_at` 'grip')
+STANCES['shield_ready'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.32, 1)),
+                           ('thigh_l', (0.16, -0.16, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.4, -1, -0.3)),
+                           ('thigh_r', (-0.2, 0.1, -1)), ('calf_r', (-0.12, 0.06, -1)), ('foot_r', (-0.55, -1, -0.3)),
+                           ('upperarm_l', (0.16, -0.12, -1)), ('lowerarm_l', (-0.55, -0.8, -0.12)),
+                           ('upperarm_r', (-0.35, 0.35, -1)), ('lowerarm_r', (-0.32, -0.92, 0.08))]
+# a bow at the ready (the Archer): the bow arm out forward and down, the bow
+# upright in the fist, an arrow nocked and the string hand at its nock, the
+# arrow pointing forward and down at the ground ahead
+STANCES['bow_ready'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.32, 1)),
+                        ('thigh_l', (0.18, -0.14, -1)), ('calf_l', (0.12, 0.02, -1)), ('foot_l', (0.5, -1, -0.3)),
+                        ('thigh_r', (-0.2, 0.1, -1)), ('calf_r', (-0.12, 0.06, -1)), ('foot_r', (-0.6, -1, -0.3)),
+                        ('upperarm_l', (0.45, -0.85, -0.08)), ('lowerarm_l', (0.4, -0.9, 0.04)),
+                        ('upperarm_r', (-0.2, 0.1, -1)), ('lowerarm_r', (0.2, -1.0, 0.1))]
+# a weapon held ready (the melee family's realism pass): the legs a half step apart, the
+# hands placed by the entry: `hand_r_at` / `hand_l_at` (metres from that shoulder, for a
+# 1.75 m man; the figure faces -y, its right is -x) reached with `elbow_r` / `elbow_l`
+# (0 down, 1 out); the weapon through the right fist along `weapon_dir`, its front (+Y:
+# an axe's edge, a blade's flat) toward `edge_dir`; `two_hands`: the left fist on the
+# haft `grip2` metres below the right
+STANCES['ready'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.32, 1)),
+                    ('thigh_l', (0.16, -0.14, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.4, -1, -0.3)),
+                    ('thigh_r', (-0.2, 0.08, -1)), ('calf_r', (-0.12, 0.06, -1)), ('foot_r', (-0.55, -1, -0.3)),
+                    ('upperarm_l', (0.25, -0.2, -1)), ('lowerarm_l', (-0.3, -0.9, -0.3)),
+                    ('upperarm_r', (-0.35, -0.1, -1)), ('lowerarm_r', (-0.2, -0.9, 0.3))]
 GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
 
 # The torso of every standing stance (the owner, 2026-10-16: the units were
@@ -734,6 +814,30 @@ def stance_aims(entry, stance):
     extra = [(b, (d[0], max(d[1], MAX_LEAN), d[2])) if b in TORSO else (b, d) for b, d in extra]
     return UPRIGHT + [a for a in STANCES[stance] if a[0] not in TORSO] + extra
 
+# The posture (human.posture: the weight on one leg, the pelvis rolled over it,
+# the shoulders counter-rolled, the chest and head turned a little) of each
+# standing stance; an entry's 'posture' dict is laid over it ('posture': False:
+# none, the aims alone). Riding, digging and stooping keep their own bodies.
+STANCE_POSTURE = {
+    'shield_ready': {'hip': 6.0, 'shoulder': 4.0, 'hip_turn': -6.0, 'chest_turn': 4.0, 'head_turn': 10.0,
+                     'free_fwd': 0.04},
+    'bow_ready': {'hip': 6.0, 'shoulder': 5.0, 'hip_turn': -8.0, 'chest_turn': -4.0, 'head_turn': 6.0},
+    'ready': {'hip': 6.0, 'shoulder': 4.0, 'hip_turn': -6.0, 'chest_turn': 4.0, 'head_turn': 8.0, 'free_fwd': 0.04},
+    # feet close and a level bearing (rulers, standards): a lighter weight shift
+    'stand': {'hip': 3.5, 'shoulder': 2.5, 'chest_turn': 4.0, 'head_turn': 5.0},
+    'royal': {'hip': 3.5, 'shoulder': 2.5, 'chest_turn': 4.0, 'head_turn': 5.0},
+}
+
+
+def posture_of(entry, stance):
+    """The human.posture settings for `entry` in `stance` (False: none)."""
+    if stance in LEANING or entry.get('stoop') or entry.get('posture') is False:
+        return False
+    settings = dict(STANCE_POSTURE.get(stance, {}))
+    settings.update(entry.get('posture') or {})
+    return settings
+
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
@@ -753,12 +857,27 @@ def equip(entry, arm):
     offhand = entry.get('offhand')
     props = entry.get('props', {})
     stance = entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
-    H.pose(arm, stance_aims(entry, stance))
+    H.posture(arm, stance_aims(entry, stance), posture_of(entry, stance), scale=G._scale)
     H.fists(arm, sides='lr')
     bulk = entry.get('upper_bulk')
     if bulk:
         H.bulk(arm, bulk)
+    if stance == 'ready':
+        # the hands where the entry puts them, from each shoulder
+        for side in ('r', 'l'):
+            off = entry.get(f'hand_{side}_at')
+            if off:
+                sh = arm.matrix_world @ arm.pose.bones['upperarm_' + side].head
+                H.reach(arm, side, sh + Vector(off) * G._scale, elbow_out=entry.get(f'elbow_{side}', 0.6))
+        H.fists(arm, sides='lr')
+    if stance == 'bow_ready' and entry.get('hand_l_at'):
+        # (ranged family, off by default) the bow fist placed from the left shoulder, as 'ready'
+        # places its hands: a low forward ready hold that shows the bow from every side
+        sh = arm.matrix_world @ arm.pose.bones['upperarm_l'].head
+        H.reach(arm, 'l', sh + Vector(entry['hand_l_at']) * G._scale, elbow_out=entry.get('elbow_l', 0.3))
+        H.fists(arm, sides='l')
     made = []
+    nocked = None          # the arrow of 'bow_ready', nocked once the bow is in the left hand
     if weapon:
         name, params = props.get(weapon, (weapon, {}))
         params = dict(params)
@@ -768,6 +887,8 @@ def equip(entry, arm):
             import clubs
             obj = clubs.war_club(c, **params)
         else:
+            if name not in P.BUILDERS:
+                import yoroi    # noqa: F401  (registers katana_drawn, katana_saya)
             obj = P.make(name, c, **params)
         at = H.grip_point(arm, 'hand_r')
         if stance == 'order_arms':
@@ -793,6 +914,19 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, -1, 0.2))
             H.reach(arm, 'l', at + d * entry.get('fore_end', 0.42) * G._scale + Vector((0, -0.03, 0)))
             H.fists(arm, sides='l')
+        elif stance == 'shield_ready':
+            # ready at the hip: the point forward and out, a little up; the edges up
+            # and down (a thrusting grip), so the blade's flat shows from the side
+            d = Vector(entry.get('sword_dir', (-0.62, -0.75, -0.12))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=tuple(entry.get('edge_dir', (0, 0, 1))))
+        elif stance == 'bow_ready':
+            nocked = obj
+        elif stance == 'ready':
+            d = Vector(entry.get('weapon_dir', (-0.25, 0.1, 0.96))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=tuple(entry.get('edge_dir', (0, -1, 0))))
+            if entry.get('two_hands'):
+                H.reach(arm, 'l', at - d * entry.get('grip2', 0.3) * G._scale, elbow_out=entry.get('elbow_l', 0.5))
+                H.fists(arm, sides='l')
         elif stance == 'bow_low':
             # a loose arrow in the right hand, point down and forward
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.15, -0.55, -0.8))))
@@ -820,6 +954,13 @@ def equip(entry, arm):
                 # the left hand higher up the pole (a standard held in both hands)
                 H.reach(arm, 'l', at + up * 0.28 * G._scale + Vector((0.02, 0, 0)), elbow_out=0.5)
                 H.fists(arm, sides='l')
+        elif stance in ('chudan', 'seigan', 'hasso'):
+            # a two-handed sword held forward (chudan-no-kamae): the right fist at the
+            # guard, the left below it at the pommel, the blade up and forward
+            d = Vector(entry.get('blade_dir', (0.0, -0.72, 0.7))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=tuple(entry.get('edge_dir', (0, 0.3, -1))))
+            H.reach(arm, 'l', at - d * entry.get('grip2', 0.17) * G._scale, elbow_out=0.45)
+            H.fists(arm, sides='l')
         elif stance == 'royal':
             # a scepter, cane or standard upright in the raised right fist
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (0.0, -0.15, 1.0))))
@@ -888,21 +1029,51 @@ def equip(entry, arm):
             if entry.get('shield_at') == 'back':
                 # on the back: facing out behind (+y), held by the chest
                 H.hold(obj, arm, 'spine_03', at, up=(sr, 0.0, cr), forward=(0, 1, 0), center=True)
+            elif entry.get('shield_at') == 'grip':
+                # held by the grip behind the boss (a scutum): the left fist closed on
+                # the grip bar (`grip_depth` behind the prop's origin), the board
+                # upright in front of it, tipped back by `shield_tilt` degrees
+                back = Vector((sy, cy, 0.0))
+                tilt = math.radians(entry.get('shield_tilt', 0.0))
+                up = Vector((sr * cy, -sr * sy, cr)) * math.cos(tilt) + back * math.sin(tilt)
+                at = H.grip_point(arm, 'hand_l', along=0.5) - back * entry.get('grip_depth', 0.04)
+                H.hold(obj, arm, 'hand_l', at, up=tuple(up), forward=tuple(back))
             else:
                 H.hold(obj, arm, 'lowerarm_l', at, up=(sr * cy, -sr * sy, cr), forward=(sy, cy, 0.0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':
                 # thicker limbs, so the bow reads at 1x
-                obj.scale = (1.8, 1.8, 1.0)
+                k = entry.get('bow_thick', 1.8)
+                obj.scale = (k, entry.get('bow_depth', k), 1.0)   # (depth: the bend and the draw scale with it)
                 bpy.context.view_layer.update()
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.transform_apply(scale=True)
-            # held low and level across the front of the hips, pointing forward-left,
-            # its grip deep in the fist
             at = H.grip_point(arm, 'hand_l', along=0.35)
-            H.hold(obj, arm, 'hand_l', at, up=tuple(entry.get('offhand_dir', (1.0, -0.35, 0.05))))
+            if offhand == 'bow' and stance == 'bow_ready':
+                # upright in the fist, the back of the bow toward where the arrow points
+                aim_dir = Vector(entry.get('arrow_dir', (0.12, -1.0, -0.5))).normalized()
+                up = Vector(entry.get('bow_up', (0.2, -0.1, 1.0)))
+                up = (up - aim_dir * up.dot(aim_dir)).normalized()
+                H.hold(obj, arm, 'hand_l', at, up=tuple(up), forward=tuple(aim_dir))
+                if nocked is not None:
+                    _nock(entry, arm, obj, nocked, up, aim_dir)
+            else:
+                # held low and level across the front of the hips, pointing forward-left,
+                # its grip deep in the fist
+                H.hold(obj, arm, 'hand_l', at, up=tuple(entry.get('offhand_dir', (1.0, -0.35, 0.05))))
+        made.append(obj)
+    if entry.get('ankle_chain'):
+        # (off by default; the Enslaved Worker) a short sagging chain between the ankles' irons
+        H._update()
+        la = arm.matrix_world @ arm.pose.bones['calf_l'].tail
+        ra = arm.matrix_world @ arm.pose.bones['calf_r'].tail
+        mid = (la + ra) / 2 + Vector((0.0, 0.0, 0.05 * G._scale))
+        span = (la - ra).length
+        obj = P.make('shackles', c, span=span, **(entry['ankle_chain'] if isinstance(entry['ankle_chain'], dict) else {}))
+        xdir = (la - ra).normalized()
+        H.hold(obj, arm, 'calf_l', mid, up=(0, 0, 1), forward=tuple(Vector((0, 0, 1)).cross(xdir)))
         made.append(obj)
     back = entry.get('back')
     if back and back not in ('quiver', 'backpack', 'pelt') and back in P.BUILDERS:
@@ -926,10 +1097,11 @@ def equip(entry, arm):
         # shoulder blades; a quiver slung diagonally, arrows up over the right shoulder
         sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
         if back == 'quiver':
-            at = sp + Vector((-0.06, 0.17 * G._scale, 0.3 * G._scale))
+            qa = entry.get('quiver_at')   # (the realism pass) a unit's own place for it (a hip quiver), offset from spine_03
+            at = sp + (Vector(qa) * G._scale if qa else Vector((-0.06, 0.17 * G._scale, 0.3 * G._scale)))
             obj.scale = (1.3, 1.3, 1.3)
             bpy.context.view_layer.update()
-            H.hold(obj, arm, 'spine_03', at, up=(-0.4, 0.1, 1), forward=(0, -1, 0))
+            H.hold(obj, arm, 'spine_03', at, up=tuple(entry.get('quiver_up', (-0.4, 0.1, 1))), forward=(0, -1, 0))
         else:
             k = entry.get('pack_scale', 1.0)
             if k != 1.0:
@@ -971,7 +1143,8 @@ def equip(entry, arm):
         name, params = hip
         obj = P.make(name, c, **params)
         pv = arm.matrix_world @ arm.pose.bones['pelvis'].head
-        at = pv + Vector((0.17 * G._scale, -0.04 * G._scale, 0.05 * G._scale))
+        hx, hy, hz = entry.get('hip_at', (0.17, -0.04, 0.05))     # the scabbard's mouth from the pelvis
+        at = pv + Vector((hx * G._scale, hy * G._scale, hz * G._scale))
         if entry.get('hand_on_hilt'):
             # ready to draw: the sword sloped lower (the hilt forward and up at
             # the belt), the right hand across the body on the grip, the left
@@ -984,9 +1157,30 @@ def equip(entry, arm):
             H.reach(arm, 'l', mouth, elbow_out=0.8)
             H.fists(arm, sides='lr')
         else:
-            H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.45, -0.88), forward=(1, 0, 0))
+            H.hold(obj, arm, 'pelvis', at, up=tuple(entry.get('hip_dir', (0.15, 0.45, -0.88))), forward=(1, 0, 0))
         made.append(obj)
     return made
+
+
+def _nock(entry, arm, bow, arrow, up, aim_dir):
+    """Nocks `arrow` (nock at its origin, along +Z) on `bow`'s string: the
+    shaft resting on the bow hand, pointing along `aim_dir`; the right fist
+    brought to the nock, holding it."""
+    H._update()
+    # the string at the grip's height: the bow's vertices furthest behind its grip (-Y)
+    near = [v.co for v in bow.data.vertices if abs(v.co.z) < 0.06]
+    brace = -min(c.y for c in near)
+    grip = bow.matrix_world.translation.copy()
+    side = up.cross(aim_dir).normalized()          # across the bow, toward the archer's left
+    rest = grip + up * entry.get('arrow_rest', 0.04) + side * 0.012
+    nock = rest - aim_dir * brace
+    # the right fist on the nock (twice: reaching moves the wrist, the fist is past it)
+    for _ in range(3):
+        g = H.grip_point(arm, 'hand_r')
+        wrist = arm.matrix_world @ arm.pose.bones['hand_r'].head
+        H.reach(arm, 'r', nock - (g - wrist), elbow_out=entry.get('draw_elbow', 0.85))
+    H.fists(arm, sides='r')
+    H.hold(arrow, arm, 'hand_r', nock, up=tuple(aim_dir), forward=tuple(up))
 
 
 def build_footman(entry, seated=False):
@@ -995,6 +1189,9 @@ def build_footman(entry, seated=False):
     origin is then at the pelvis (put it on the saddle's 'rider' empty)."""
     if seated:
         entry = dict(entry, stance_name='ride')
+    for kit in entry.get('kits', []):
+        # modules of props and hats the entry uses (e.g. 'mdj_kit'), registered on import
+        __import__(kit)
     c = _colors(entry)
     build = entry.get('build', 'normal')
     if isinstance(build, dict):
@@ -1020,6 +1217,8 @@ def build_footman(entry, seated=False):
                        # 'physique' 0..1: broad shoulders, a V torso, big chest and shoulder muscles
                        physique=entry.get('physique', 0.0))
     H.grime(mesh, amount=entry.get('grime', 0.4))
+    if entry.get('face_glow'):   # (the realism pass) the face lit under a brim or turban
+        H.skin_glow(mesh, B.hex_color(c['skin']), entry['face_glow'])
     hs = entry.get('hair_scale')
     if hs and hair:
         # a bigger head of hair (Einstein's mop): the hair asset scaled about the head's centre
@@ -1035,6 +1234,28 @@ def build_footman(entry, seated=False):
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
     G.store_rest()                 # garments made after posing (capes, flaps): as they are
+    ff = entry.get('face_fill')
+    if ff:
+        # (realism infantry) a soft point light before the face, on the head bone: lifts a face shaded by a
+        # brim (a morion, a broad hat) so it never renders as a black blob. Watts; invisible to the camera.
+        from mathutils import Vector
+        H._update()
+        hb = arm.pose.bones['head']
+        head = arm.matrix_world @ hb.head
+        ld = bpy.data.lights.new('FaceFill', 'POINT')
+        ld.energy = ff
+        ld.shadow_soft_size = 0.2
+        ld.use_shadow = False
+        lo = bpy.data.objects.new('FaceFill', ld)
+        bpy.context.collection.objects.link(lo)
+        lo.visible_camera = False
+        lo.location = head + Vector((0.0, -entry.get('face_fill_at', 0.4) * G._scale, 0.08 * G._scale))
+        H._update()
+        world = lo.matrix_world.copy()
+        lo.parent = arm
+        lo.parent_type = 'BONE'
+        lo.parent_bone = 'head'
+        lo.matrix_world = world
     root = H.rooted(arm)
     if seated:
         # the pelvis on the root's origin

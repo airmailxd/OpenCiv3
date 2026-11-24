@@ -407,18 +407,64 @@ def _gun_fortify():
 FORTIFIES = {'melee': _melee_fortify, 'spear': _spear_fortify, 'bow': _bow_fortify, 'gun': _gun_fortify}
 
 
+def _samurai():
+    """The Samurai (notes/realism/Samurai.md): his still holds the katana two-handed in
+    chudan (units' 'chudan' stance); he cuts from it (raised overhead, a lunging
+    downward cut, the follow-through, back to chudan), fortifies in hasso (the blade
+    upright by the right shoulder, a crouch), runs in his guard and falls. His own
+    katana throughout ('own'). Poses may say 'drawn' (False: the hip sword shown
+    sheathed and the tool hidden; see units' 'hip_drawn'), unused by him now."""
+    g2 = 0.17      # the left fist on the grip, toward the pommel
+    jodan = K(WIDE, bend(-0.05, head=0.4), R_((-0.3, -0.45, 0.85), (0.2, 0.15, 1.0)),
+              tool=((0.05, 0.5, 0.86), (0, -1, 0)), grip2=g2)
+    cut = K(LUNGE, bend(0.35, head=0.4), R_((-0.15, -0.95, -0.15), (0.12, -0.9, -0.4)),
+            tool=((0.0, -0.8, -0.55), (0, 0, -1)), grip2=g2)
+    follow = K(LUNGE, bend(0.45, head=0.4), R_((-0.1, -0.75, -0.65), (0.15, -0.6, -0.8)),
+               tool=((0.12, -0.45, -0.88), (0, 0, -1)), grip2=g2)
+    hasso = K(GUARD_LEGS, bend(0.08, head=0.35), R_((-0.45, -0.35, -0.82), (0.55, -0.6, 0.6)),
+              tool=((-0.08, 0.2, 0.97), (0, -1, 0)), grip2=g2)
+    return {
+        'SamuraiAttackA': {'frames': CAP, 'loop': False, 'tool': 'own',
+                           'keys': [(0, {}), (2, jodan), (3, jodan), (4, cut), (5, follow), (7, {})]},
+        'SamuraiFortify': {'frames': CAP, 'loop': False, 'tool': 'own',
+                           'keys': [(0, {}), (3, K(bend(0.04), WIDE)), (5, hasso), (7, hasso)]},
+        'SamuraiRun': _run(),
+        'SamuraiDeath': _death(),
+    }
+
+
+ACTIONS['Samurai'] = _samurai()
+OWN_BASE = ('Samurai',)     # ACTIONS units whose actions start from their own still stance
+
+
 def weapon_class(entry):
     """The template class of a foot unit: from the stance units.equip gives it."""
     stance = units.stance_of(entry)
     if entry.get('weapon') in units.GUNS:
         return 'gun'
-    if stance == 'bow_low':
+    if stance in ('bow_low', 'bow_ready'):
         return 'bow'
     if stance in ('upright', 'stand_staff') and entry.get('weapon') in ('spear', 'pike', 'cav_spear', 'partisan', 'glaive'):
         return 'spear'
-    if stance in ('hang', 'guard'):
+    if stance == 'ready':
+        return 'spear' if entry.get('weapon') in ('spear', 'pike', 'cav_spear', 'partisan', 'glaive') else 'melee'
+    if stance in ('hang', 'guard', 'shield_ready'):
         return 'melee'
     return None
+
+
+def _own_still(actions, entry, calibration):
+    """(Off by default; the realism pass's workers) the entry's 'still_default': the flics that
+    play DEFAULT keep the built still (its own pose and tool) instead of an animated idle;
+    'anim_tool': the prop spec that stands in for the Worker's SHOVEL in every other action."""
+    if entry.get('still_default'):
+        still = {ff.rsplit('.', 1)[0] for ff, f in calibration['flics'].items() if 'DEFAULT' in f['actions']}
+        actions = {n: a for n, a in actions.items() if n not in still}
+    tool = entry.get('anim_tool')
+    if tool:
+        tool = (tool[0], dict(tool[1]))
+        actions = {n: (dict(a, tool=tool) if a.get('tool') == SHOVEL else a) for n, a in actions.items()}
+    return actions
 
 
 def unit_actions(unit, entry, calibration, here):
@@ -427,7 +473,7 @@ def unit_actions(unit, entry, calibration, here):
     import json
     import os
     if unit in ACTIONS:
-        return ACTIONS[unit], False
+        return _own_still(ACTIONS[unit], entry, calibration), unit in OWN_BASE
     if unit in WORKER_LIKE:
         worker = json.load(open(os.path.join(here, 'calibration', 'Worker.json')))
         by_action = {}
@@ -440,7 +486,7 @@ def unit_actions(unit, entry, calibration, here):
                 if act in by_action:
                     out[flic_file.rsplit('.', 1)[0]] = by_action[act]
                     break
-        return out, False
+        return _own_still(out, entry, calibration), False
     return template_actions(entry, calibration), True
 
 
@@ -459,7 +505,25 @@ def template_actions(entry, calibration):
             acts.remove('FORTIFY')   # a flic shared with DEFAULT stays a still
         for act in acts:
             if act in made:
-                out[flic_file.rsplit('.', 1)[0]] = made[act]()
+                action = made[act]()
+                # FORTIFY from a stance that already holds the guard: the arms stay as the
+                # stance has them, the body crouches. A shield braced by its grip (brought
+                # forward on the forearm it tipped over like a tray); a bow at the ready
+                # (the template's hands pulled the nocked arrow off the string)
+                keep = (('upperarm_l', 'lowerarm_l') if entry.get('shield_at') == 'grip' else
+                        ('upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r') if units.stance_of(entry) == 'bow_ready'
+                        else ())
+                if act == 'FORTIFY' and keep:
+                    action['keys'] = [(f, {b: v for b, v in k.items() if b not in keep}) for f, k in action['keys']]
+                # the entry's 'fortify_tool' (off by default): the lowered weapon's (up, forward)
+                # instead of the template's, e.g. a pike angled off the line to the camera
+                if act == 'FORTIFY' and entry.get('fortify_tool'):
+                    action['keys'] = [(f, dict(k, tool=entry['fortify_tool']) if 'tool' in k else k)
+                                      for f, k in action['keys']]
+                # the entry's 'muzzle' False (off by default): no flash or smoke (a crossbow's shot)
+                if entry.get('muzzle') is False:
+                    action.pop('muzzle', None)
+                out[flic_file.rsplit('.', 1)[0]] = action
     return out
 
 
@@ -512,6 +576,7 @@ def pose_at(action, frame, base=None):
     pose['reach_l'] = Vector(ra).lerp(Vector(rb), t) if ra and rb else (ra or rb)
     pose['tilt'] = a.get('tilt', 0.0) * (1 - t) + b.get('tilt', 0.0) * t
     pose['hide_tool'] = a.get('hide_tool', False) if t < 0.5 else b.get('hide_tool', False)
+    pose['drawn'] = a.get('drawn') if t < 0.5 else b.get('drawn')
     pose['drop'] = False
     for f, p in action['keys']:      # the last key at or before the frame that says
         if f <= frame and 'drop' in p:
@@ -526,6 +591,7 @@ class Context:
         self.base = None          # the unit's own stance aims (templates), or BASE
         self.weapon = None        # its own weapon in the right fist, and how it sits there
         self.weapon_hold = None
+        self.hip = None           # (the sheathed sword at the hip, its empty scabbard) for 'drawn'
         # every pose bone's own transform as built, restored before each frame: aiming
         # turns a bone by the least rotation from where it was, so without this the
         # twist of the arms (and the weapon in the fist) would drift from frame to frame
@@ -562,6 +628,17 @@ def setup(entry, own_gear=False):
                            and o.type == 'MESH'), None)
         if ctx.weapon is not None:
             ctx.weapon_hold = (ctx.weapon.matrix_basis.copy(), ctx.weapon.matrix_parent_inverse.copy())
+    if entry.get('hip') and entry.get('hip_drawn'):
+        # the sword at the hip and, in its place, its scabbard empty (shown while it is drawn)
+        full = next((o for o in bpy.data.objects if o.name == entry['hip'][0] and o.parent == arm), None)
+        if full is not None:
+            name, params = entry['hip_drawn']
+            empty = P.make(name, ctx.colors, **params)
+            empty.parent, empty.parent_type, empty.parent_bone = arm, 'BONE', full.parent_bone
+            empty.matrix_parent_inverse = full.matrix_parent_inverse.copy()
+            empty.matrix_basis = full.matrix_basis.copy()
+            empty.hide_render = True
+            ctx.hip = (full, empty)
     return root, ctx
 
 
@@ -626,6 +703,12 @@ def apply(ctx, action, frame):
         tool = ctx.weapon
     else:
         tool = _prop(ctx, 'r', action['tool']) if action.get('tool') else None
+    if ctx.hip is not None:
+        ctx.hip[0].hide_render = bool(pose.get('drawn'))
+        ctx.hip[1].hide_render = not pose.get('drawn')
+    if tool is not None and pose.get('drawn') is False:
+        tool.hide_render = True          # still in its scabbard
+        tool = None
     if tool is not None and not pose['drop'] and 'tool' in pose:
         up, face = (to_world @ v for v in pose['tool'])
         up.normalize()
@@ -671,6 +754,10 @@ def apply(ctx, action, frame):
     if pose['tilt']:
         arm.rotation_euler.x = -math.radians(pose['tilt'])
         H.plant(root, ctx.mesh)
+    for o in bpy.data.objects:
+        if o.get('fall_hide'):
+            # gear standing tall off the back (a sashimono): gone once he is down, not through the ground
+            o.hide_render = pose['tilt'] > 50
     if tool is not None and pose['drop']:
         tool.parent = root
         x, y, yaw = action.get('drop_at', (0.3, 0.6, 0))
@@ -678,3 +765,11 @@ def apply(ctx, action, frame):
         tool.rotation_euler = (math.radians(-90), 0.0, math.radians(yaw))
     H._update()
     return pose
+
+
+# MDJ (remaster_mdj.py): the Minamoto Samurai holds the Samurai's hasso with a drawn katana,
+# so he plays the Samurai's actions under his own flic names (x_Samurai...)
+ACTIONS['Minamoto Samurai'] = {'x_' + k: v for k, v in _samurai().items()}
+OWN_BASE = OWN_BASE + ('Minamoto Samurai',)
+# the Medieval Japanese Worker works as the Worker does
+WORKER_LIKE = WORKER_LIKE + ('Medieval Japanese Worker',)

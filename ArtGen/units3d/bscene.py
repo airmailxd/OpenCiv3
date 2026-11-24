@@ -74,7 +74,14 @@ def reset_scene():
 
 
 def use_gpu(scene):
-    """Render on the GPU when there is one (OptiX, CUDA, Metal), else the CPU."""
+    """Render on the GPU when there is one (OptiX, CUDA, Metal), else the CPU.
+    REALISM_DEVICE=CPU forces the CPU (threads from REALISM_CPU_THREADS); unset, unchanged."""
+    if os.environ.get('REALISM_DEVICE') == 'CPU':
+        scene.cycles.device = 'CPU'
+        if os.environ.get('REALISM_CPU_THREADS'):
+            scene.render.threads_mode = 'FIXED'
+            scene.render.threads = int(os.environ['REALISM_CPU_THREADS'])
+        return 'CPU'
     prefs = bpy.context.preferences.addons['cycles'].preferences
     for kind in ('OPTIX', 'CUDA', 'METAL', 'HIP', 'ONEAPI'):
         try:

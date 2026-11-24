@@ -1,0 +1,252 @@
+{
+  "unit": "Shoni no Kagesuke",
+  "source": "the installed NumPy-generator sheet (C7/ModernArt), DEFAULT frame 0 (no Civ3 original on PC2)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.7,
+    124.0
+  ],
+  "anchor_override": null,
+  "standing_height": 55.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.91,
+        124
+      ],
+      "top": 72,
+      "height": 53,
+      "bbox": [
+        103,
+        72,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.54,
+        124
+      ],
+      "top": 72,
+      "height": 53,
+      "bbox": [
+        109,
+        72,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        125.33,
+        124
+      ],
+      "top": 71,
+      "height": 54,
+      "bbox": [
+        102,
+        71,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.94,
+        121
+      ],
+      "top": 66,
+      "height": 56,
+      "bbox": [
+        96,
+        66,
+        141,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.38,
+        124
+      ],
+      "top": 60,
+      "height": 65,
+      "bbox": [
+        103,
+        60,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.69,
+        124
+      ],
+      "top": 59,
+      "height": 66,
+      "bbox": [
+        109,
+        59,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.41,
+        124
+      ],
+      "top": 61,
+      "height": 64,
+      "bbox": [
+        103,
+        61,
+        136,
+        124
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.71,
+        121
+      ],
+      "top": 67,
+      "height": 55,
+      "bbox": [
+        97,
+        67,
+        142,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": null,
+    "fit": null,
+    "archetype": "mdj_horse_rider"
+  },
+  "default_flic": "x_Shoni no Kagesuke default.flc",
+  "flics": {
+    "x_Shoni no Kagesuke attack_A.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 132,
+      "height": 89,
+      "offset_left": 46,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Shoni no Kagesuke death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 99,
+      "offset_left": 62,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Shoni no Kagesuke default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 74,
+      "offset_left": 75,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Shoni no Kagesuke fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 79,
+      "height": 76,
+      "offset_left": 73,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 100
+    },
+    "x_Shoni no Kagesuke fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 76,
+      "height": 77,
+      "offset_left": 75,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Shoni no Kagesuke run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 75,
+      "height": 76,
+      "offset_left": 75,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Shoni no Kagesuke victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 84,
+      "offset_left": 68,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    }
+  }
+}

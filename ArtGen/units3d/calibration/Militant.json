@@ -1,0 +1,207 @@
+{
+  "unit": "Militant",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.38,
+    123.0
+  ],
+  "anchor_override": null,
+  "standing_height": 50.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.59,
+        124
+      ],
+      "top": 74,
+      "height": 50,
+      "bbox": [
+        103,
+        74,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.34,
+        123
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        107,
+        74,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.58,
+        124
+      ],
+      "top": 74,
+      "height": 51,
+      "bbox": [
+        108,
+        74,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.57,
+        123
+      ],
+      "top": 74,
+      "height": 50,
+      "bbox": [
+        112,
+        74,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.08,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        109,
+        74,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.4,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        107,
+        73,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.39,
+        123
+      ],
+      "top": 71,
+      "height": 53,
+      "bbox": [
+        109,
+        71,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.35,
+        123
+      ],
+      "top": 73,
+      "height": 51,
+      "bbox": [
+        105,
+        73,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 56.4972,
+    "archetype": "numpy"
+  },
+  "default_flic": "Mujahidin_Default.flc",
+  "flics": {
+    "Mujahidin_Default.flc": {
+      "actions": [
+        "DEFAULT",
+        "FORTIFY",
+        "FIDGET",
+        "VICTORY"
+      ],
+      "kind": "still",
+      "width": 43,
+      "height": 59,
+      "offset_left": 89,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Mujahidin_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 61,
+      "offset_left": 91,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Mujahidin_AttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 73,
+      "height": 52,
+      "offset_left": 85,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Mujahidin_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 118,
+      "height": 80,
+      "offset_left": 61,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

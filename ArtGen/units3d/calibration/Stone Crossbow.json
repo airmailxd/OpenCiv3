@@ -1,0 +1,237 @@
+{
+  "unit": "Stone Crossbow",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.93,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.62,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        105,
+        80,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.59,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        109,
+        80,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.44,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        114,
+        80,
+        137,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        122.5,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        115,
+        80,
+        139,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.96,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        111,
+        78,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        120
+      ],
+      "top": 78,
+      "height": 43,
+      "bbox": [
+        108,
+        78,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.55,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        102,
+        78,
+        125,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.86,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        100,
+        80,
+        124,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.7322,
+    "fit": 0.9372,
+    "archetype": "mdj_footman"
+  },
+  "default_flic": "x_JapanCrossbowman default.flc",
+  "flics": {
+    "x_JapanCrossbowman attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 70,
+      "offset_left": 62,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_JapanCrossbowman death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 71,
+      "offset_left": 59,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_JapanCrossbowman default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 55,
+      "height": 49,
+      "offset_left": 86,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_JapanCrossbowman fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 65,
+      "height": 54,
+      "offset_left": 82,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 83
+    },
+    "x_JapanCrossbowman run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 57,
+      "height": 54,
+      "offset_left": 85,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_JapanCrossbowman victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 71,
+      "height": 64,
+      "offset_left": 81,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

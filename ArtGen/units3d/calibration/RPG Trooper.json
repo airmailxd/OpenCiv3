@@ -1,0 +1,279 @@
+{
+  "unit": "RPG Trooper",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.37,
+    125.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.71,
+        126
+      ],
+      "top": 86,
+      "height": 40,
+      "bbox": [
+        104,
+        86,
+        127,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.34,
+        125
+      ],
+      "top": 86,
+      "height": 40,
+      "bbox": [
+        109,
+        86,
+        127,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.37,
+        126
+      ],
+      "top": 86,
+      "height": 41,
+      "bbox": [
+        111,
+        86,
+        126,
+        126
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.74,
+        126
+      ],
+      "top": 86,
+      "height": 40,
+      "bbox": [
+        109,
+        86,
+        133,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.64,
+        125
+      ],
+      "top": 82,
+      "height": 43,
+      "bbox": [
+        112,
+        82,
+        135,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.26,
+        124
+      ],
+      "top": 78,
+      "height": 47,
+      "bbox": [
+        112,
+        78,
+        130,
+        124
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.95,
+        125
+      ],
+      "top": 77,
+      "height": 49,
+      "bbox": [
+        113,
+        77,
+        128,
+        125
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.4,
+        126
+      ],
+      "top": 81,
+      "height": 46,
+      "bbox": [
+        105,
+        81,
+        130,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 47.4576,
+    "archetype": "numpy"
+  },
+  "default_flic": "RPGde.flc",
+  "flics": {
+    "RPGde.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "RPGrun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 52
+    },
+    "RPGata.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 85
+    },
+    "RPGatb.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "still",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 84
+    },
+    "RPGatc.flc": {
+      "actions": [
+        "ATTACK3"
+      ],
+      "kind": "still",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 84
+    },
+    "RPGdie.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 63
+    },
+    "RPGfo.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 80
+    },
+    "RPGfi.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "RPGvi.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 80
+    }
+  }
+}

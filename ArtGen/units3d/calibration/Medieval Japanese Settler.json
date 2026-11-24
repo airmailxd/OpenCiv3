@@ -1,0 +1,192 @@
+{
+  "unit": "Medieval Japanese Settler",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.21,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.38,
+        124
+      ],
+      "top": 75,
+      "height": 50,
+      "bbox": [
+        106,
+        75,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.0,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        106,
+        81,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.6,
+        125
+      ],
+      "top": 82,
+      "height": 44,
+      "bbox": [
+        108,
+        82,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.93,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        108,
+        83,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.14,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        108,
+        80,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.43,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        110,
+        75,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.25,
+        121
+      ],
+      "top": 71,
+      "height": 51,
+      "bbox": [
+        108,
+        71,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.5,
+        123
+      ],
+      "top": 71,
+      "height": 53,
+      "bbox": [
+        112,
+        71,
+        131,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.5326,
+    "fit": 0.9141,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Japanese Settler default.flc",
+  "flics": {
+    "x_Japanese Settler death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 105,
+      "height": 77,
+      "offset_left": 67,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Japanese Settler default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 49,
+      "height": 58,
+      "offset_left": 87,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Japanese Settler run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 61,
+      "height": 65,
+      "offset_left": 80,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

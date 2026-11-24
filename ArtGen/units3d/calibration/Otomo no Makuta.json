@@ -1,0 +1,237 @@
+{
+  "unit": "Otomo no Makuta",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.66,
+    120.0
+  ],
+  "anchor_override": null,
+  "standing_height": 46.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.47,
+        123
+      ],
+      "top": 76,
+      "height": 48,
+      "bbox": [
+        89,
+        76,
+        137,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.09,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        102,
+        75,
+        139,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.84,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        111,
+        74,
+        136,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.16,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        111,
+        75,
+        145,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        118.36,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        102,
+        78,
+        150,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.56,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        101,
+        80,
+        137,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        120.12,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        103,
+        79,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.62,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        94,
+        77,
+        128,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.2785,
+    "fit": 0.9092,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Otomo default.flc",
+  "flics": {
+    "x_Otomo attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 107,
+      "height": 86,
+      "offset_left": 60,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Otomo death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 111,
+      "height": 96,
+      "offset_left": 65,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Otomo default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 61,
+      "offset_left": 80,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Otomo fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 88,
+      "height": 77,
+      "offset_left": 69,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Otomo run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 79,
+      "height": 62,
+      "offset_left": 75,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Otomo victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 81,
+      "height": 80,
+      "offset_left": 72,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    }
+  }
+}

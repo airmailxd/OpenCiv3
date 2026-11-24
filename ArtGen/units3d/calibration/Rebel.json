@@ -1,0 +1,264 @@
+{
+  "unit": "Rebel",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.78,
+    125.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.43,
+        126
+      ],
+      "top": 85,
+      "height": 41,
+      "bbox": [
+        100,
+        85,
+        128,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.78,
+        125
+      ],
+      "top": 85,
+      "height": 41,
+      "bbox": [
+        109,
+        85,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.71,
+        126
+      ],
+      "top": 85,
+      "height": 42,
+      "bbox": [
+        110,
+        85,
+        128,
+        126
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.27,
+        126
+      ],
+      "top": 85,
+      "height": 41,
+      "bbox": [
+        114,
+        85,
+        138,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.2,
+        125
+      ],
+      "top": 85,
+      "height": 40,
+      "bbox": [
+        110,
+        85,
+        138,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.63,
+        124
+      ],
+      "top": 85,
+      "height": 40,
+      "bbox": [
+        108,
+        85,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.4,
+        125
+      ],
+      "top": 85,
+      "height": 41,
+      "bbox": [
+        110,
+        85,
+        128,
+        125
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.78,
+        126
+      ],
+      "top": 85,
+      "height": 41,
+      "bbox": [
+        100,
+        85,
+        124,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 46.3277,
+    "archetype": "numpy"
+  },
+  "default_flic": "OldTimerDefault.flc",
+  "flics": {
+    "OldTimerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "OldTimerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 76
+    },
+    "OldTimerAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 94
+    },
+    "OldTimerAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "OldTimerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 40,
+      "frameMs": 75
+    },
+    "OldTimerFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "OldTimerFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "OldTimerVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 30,
+      "frameMs": 100
+    }
+  }
+}

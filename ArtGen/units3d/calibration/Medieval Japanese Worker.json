@@ -1,0 +1,297 @@
+{
+  "unit": "Medieval Japanese Worker",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.08,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.15,
+        125
+      ],
+      "top": 82,
+      "height": 44,
+      "bbox": [
+        109,
+        82,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        125.91,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        109,
+        82,
+        140,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.54,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        112,
+        82,
+        142,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.2,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        114,
+        81,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.0,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        110,
+        80,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        123.71,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        99,
+        80,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.55,
+        120
+      ],
+      "top": 81,
+      "height": 40,
+      "bbox": [
+        97,
+        81,
+        127,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        114.4,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        107,
+        82,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.5597,
+    "fit": 0.9531,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Japanese Worker default.flc",
+  "flics": {
+    "x_Japanese Worker death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 62,
+      "offset_left": 77,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Japanese Worker default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 57,
+      "height": 50,
+      "offset_left": 87,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Japanese Worker forest.flc": {
+      "actions": [
+        "FOREST"
+      ],
+      "kind": "loop",
+      "width": 64,
+      "height": 61,
+      "offset_left": 82,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Japanese Worker fortress.flc": {
+      "actions": [
+        "FORTRESS"
+      ],
+      "kind": "loop",
+      "width": 56,
+      "height": 53,
+      "offset_left": 86,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Japanese Worker irrigate.flc": {
+      "actions": [
+        "IRRIGATE"
+      ],
+      "kind": "loop",
+      "width": 86,
+      "height": 63,
+      "offset_left": 72,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_Japanese Worker jungle.flc": {
+      "actions": [
+        "JUNGLE"
+      ],
+      "kind": "loop",
+      "width": 66,
+      "height": 61,
+      "offset_left": 81,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_Japanese Worker mine.flc": {
+      "actions": [
+        "MINE"
+      ],
+      "kind": "loop",
+      "width": 77,
+      "height": 71,
+      "offset_left": 75,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_Japanese Worker plant.flc": {
+      "actions": [
+        "PLANT"
+      ],
+      "kind": "loop",
+      "width": 83,
+      "height": 56,
+      "offset_left": 79,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_Japanese Worker road.flc": {
+      "actions": [
+        "ROAD"
+      ],
+      "kind": "loop",
+      "width": 77,
+      "height": 59,
+      "offset_left": 77,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_Japanese Worker run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 54,
+      "offset_left": 81,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

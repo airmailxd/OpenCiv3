@@ -1,0 +1,249 @@
+{
+  "unit": "Battalion",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    121.69,
+    133.5
+  ],
+  "anchor_override": null,
+  "standing_height": 37.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        137.99,
+        134
+      ],
+      "top": 97,
+      "height": 38,
+      "bbox": [
+        104,
+        97,
+        145,
+        134
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.66,
+        134
+      ],
+      "top": 97,
+      "height": 38,
+      "bbox": [
+        110,
+        97,
+        150,
+        134
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        134.24,
+        132
+      ],
+      "top": 97,
+      "height": 35,
+      "bbox": [
+        101,
+        97,
+        143,
+        132
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        110.62,
+        129
+      ],
+      "top": 94,
+      "height": 36,
+      "bbox": [
+        101,
+        94,
+        144,
+        129
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        117.14,
+        133
+      ],
+      "top": 94,
+      "height": 39,
+      "bbox": [
+        99,
+        94,
+        139,
+        133
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        129.29,
+        133
+      ],
+      "top": 97,
+      "height": 37,
+      "bbox": [
+        93,
+        97,
+        133,
+        133
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        107.45,
+        135
+      ],
+      "top": 101,
+      "height": 34,
+      "bbox": [
+        100,
+        101,
+        142,
+        135
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.73,
+        137
+      ],
+      "top": 99,
+      "height": 38,
+      "bbox": [
+        100,
+        99,
+        142,
+        137
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 42.3729,
+    "archetype": "numpy"
+  },
+  "default_flic": "x_americanHMG default.flc",
+  "flics": {
+    "x_americanHMG default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 66,
+      "offset_left": 82,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_americanHMG run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 73,
+      "height": 69,
+      "offset_left": 83,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_americanHMG attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 172,
+      "height": 84,
+      "offset_left": 33,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanHMG death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 101,
+      "height": 66,
+      "offset_left": 69,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanHMG fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 97,
+      "height": 77,
+      "offset_left": 70,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "x_americanHMG fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 73,
+      "height": 66,
+      "offset_left": 82,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "x_americanHMG victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 99,
+      "height": 78,
+      "offset_left": 69,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

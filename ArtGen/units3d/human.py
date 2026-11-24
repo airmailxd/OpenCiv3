@@ -217,6 +217,29 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse', desat=1.0):
             visit(slot.material.node_tree)
 
 
+def skin_glow(basemesh, color, strength):
+    """(the realism pass) A faint emission in the skin's own tone on every skin
+    shader, so a face under a brim or turban reads lit at 1x (a unit's
+    'face_glow'; off by default)."""
+    import bscene as B
+    lin = B.srgb_to_linear(color)
+    done = set()
+
+    def visit(tree):
+        if tree is None or tree.name in done:
+            return
+        done.add(tree.name)
+        for node in list(tree.nodes):
+            if node.type == 'GROUP':
+                visit(node.node_tree)
+            if node.type == 'BSDF_PRINCIPLED' and 'Emission Color' in node.inputs:
+                node.inputs['Emission Color'].default_value = tuple(lin) + (1.0,)
+                node.inputs['Emission Strength'].default_value = strength
+    for slot in basemesh.material_slots:
+        if slot.material and slot.material.use_nodes:
+            visit(slot.material.node_tree)
+
+
 def assets(basemesh):
     """The body's MPFB assets (hair, brows, lashes, eyes): MPFB parents them to
     the rig, not to the body, and names them '<body>.<asset>'."""
@@ -473,3 +496,147 @@ def reach(arm, side, target, elbow_out=0.35):
     aim(arm, 'upperarm_' + side, inv @ (elbow - sh))
     eb = arm.matrix_world @ arm.pose.bones['lowerarm_' + side].head
     aim(arm, 'lowerarm_' + side, inv @ (t - eb))
+
+
+# ------------------------------------------------------------ posture
+# `aim` only points a bone (the least rotation that points it); it never rolls or
+# twists one. `turn` turns a bone about any axis, and `posture` below uses it for a
+# standing figure's weight shift (contrapposto): the pelvis rolled over the weight
+# leg, the shoulders counter-rolled, the chest and head turned a little, the free
+# knee soft, both feet on the ground. The torso stays upright (never tipped
+# forward: the owner, 2026-10-16).
+
+def turn(arm, bone, axis, degrees):
+    """Turns pose bone `bone` by `degrees` about `axis` (armature space) through
+    its head; its children follow."""
+    if not degrees:
+        return
+    pb = arm.pose.bones[bone]
+    m = pb.matrix.copy()
+    head = m.translation.copy()
+    rot = Matrix.Rotation(math.radians(degrees), 4, Vector(axis).normalized())
+    new = rot @ Matrix.Translation(-head) @ m
+    new.translation = head
+    pb.matrix = new
+    _update()
+
+
+def twist(arm, bone, degrees):
+    """Twists pose bone `bone` about its own length by `degrees`; its children follow."""
+    pb = arm.pose.bones[bone]
+    turn(arm, bone, pb.matrix.to_3x3() @ Vector((0, 1, 0)), degrees)
+
+
+def leg_to(arm, side, target, knee=(0.0, -1.0, 0.0)):
+    """Bends leg `side` ('l'/'r') so its ankle (the foot bone's head) comes to
+    world point `target`: a two-bone solve, the knee bending toward `knee` (a
+    world direction; forward is -y for a human not yet rooted). The foot keeps
+    the way it pointed. Returns how far the ankle stays short of the target."""
+    _update()
+    mw = arm.matrix_world
+    inv = mw.inverted().to_3x3()
+    th, ca, ft = (arm.pose.bones[f'{b}_{side}'] for b in ('thigh', 'calf', 'foot'))
+    foot_dir = (ft.tail - ft.head).normalized()
+    hip = mw @ th.head
+    l1 = ((mw @ ca.head) - hip).length
+    l2 = ((mw @ ft.head) - (mw @ ca.head)).length
+    t = Vector(target)
+    d = t - hip
+    reach_len = (l1 + l2) * 0.9995
+    short = max(0.0, d.length - reach_len)
+    dist = max(min(d.length, reach_len), abs(l1 - l2) + 1e-4)
+    u = d.normalized()
+    k = Vector(knee).normalized()
+    v = k - u * k.dot(u)
+    if v.length < 1e-6:
+        v = Vector((0.0, -1.0, 0.0))
+    v.normalize()
+    cos_a = max(-1.0, min(1.0, (l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist)))
+    knee_pt = hip + u * l1 * cos_a + v * l1 * math.sqrt(max(0.0, 1 - cos_a * cos_a))
+    aim(arm, f'thigh_{side}', inv @ (knee_pt - hip))
+    kh = mw @ arm.pose.bones[f'calf_{side}'].head
+    aim(arm, f'calf_{side}', inv @ (hip + u * dist - kh))
+    aim(arm, f'foot_{side}', foot_dir)
+    return short
+
+
+POSTURE = {
+    'weight': 'r',       # the leg that bears the weight: 'r', 'l', or None (even: the aims alone)
+    'hip': 5.0,          # degrees the pelvis rolls, the weight leg's hip up
+    'hip_turn': -4.0,    # degrees the pelvis turns about the vertical (+: toward the figure's left)
+    'chest_turn': 6.0,   # degrees the chest turns, from the front (+: toward the figure's left)
+    'shoulder': 4.0,     # degrees the shoulder line rolls against the hips (the weight side down)
+    'head_turn': 8.0,    # degrees the head turns, from the front (+: toward the figure's left); never tipped
+    'weight_in': 0.03,   # meters the weight foot comes in under the body
+    'free_out': 0.02,    # meters the free foot goes out to the side
+    'free_fwd': 0.0,     # meters the free foot steps forward
+    'free_lift': 0.0,    # meters the free ankle rises (the heel off the ground)
+}
+
+TORSO_BONES = ('spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'neck_01', 'head')
+
+
+def posture(arm, aims, settings=None, scale=1.0):
+    """Poses a standing figure: `aims` (as `pose`) with a weight shift.
+
+    `settings`: a dict over POSTURE's defaults (None: the defaults); False, or a
+    'weight' of None, poses the aims alone (as `pose`). In order:
+    1. the pelvis rolls (`hip`), the weight leg's hip up, and turns (`hip_turn`);
+    2. the torso takes its aims, then the shoulder line counter-rolls
+       (`shoulder`: the weight side down) and the chest turns (`chest_turn`),
+       both about the chest: the spine is never tipped forward;
+    3. the neck and head take their aims again (the head level, over the hips),
+       then the head turns (`head_turn`);
+    4. the arms and legs take their aims (armature space: a weapon's carry, set
+       by the arms, is as before);
+    5. both ankles come to one height: the weight foot in under the body
+       (`weight_in`), its leg near straight; the free foot set out (`free_out`)
+       and forward (`free_fwd`), its knee bending forward and out to reach the
+       ground (its hip hangs lower). `scale` is the figure's meters (garments._scale)."""
+    s = dict(POSTURE)
+    if settings is False:
+        s['weight'] = None
+    else:
+        s.update(settings or {})
+    w = s['weight']
+    if w not in ('l', 'r'):
+        pose(arm, aims)
+        return
+    free = 'l' if w == 'r' else 'r'
+    side = 1.0 if w == 'l' else -1.0          # +x is the figure's left
+    _update()
+    mw = arm.matrix_world
+    # 1. the pelvis: rolled about the forward axis, the weight hip up
+    if s['hip']:
+        th = arm.pose.bones['thigh_' + w]
+        z0 = (mw @ th.head).z
+        turn(arm, 'pelvis', (0, 1, 0), s['hip'])
+        if (mw @ th.head).z < z0:
+            turn(arm, 'pelvis', (0, 1, 0), -2 * s['hip'])
+    turn(arm, 'pelvis', (0, 0, 1), s['hip_turn'])
+    # 2. the torso upright as its aims say, then counter-rolled and turned at the chest
+    torso = [(b, d) for b, d in aims if b in TORSO_BONES]
+    rest = [(b, d) for b, d in aims if b not in TORSO_BONES]
+    pose(arm, torso)
+    if s['shoulder']:
+        cl = arm.pose.bones['clavicle_' + w]
+        z0 = (mw @ cl.tail).z
+        turn(arm, 'spine_03', (0, 1, 0), s['shoulder'])
+        if (mw @ cl.tail).z > z0:
+            turn(arm, 'spine_03', (0, 1, 0), -2 * s['shoulder'])
+    # (the spine took the pelvis's turn with it: the chest turns `chest_turn` from the front)
+    turn(arm, 'spine_03', (0, 0, 1), s['chest_turn'] - s['hip_turn'])
+    # 3. the neck and head upright again, then the head turned from the front
+    pose(arm, [(b, d) for b, d in torso if b in ('neck_01', 'head')])
+    turn(arm, 'head', (0, 0, 1), s['head_turn'] - s['chest_turn'])
+    # 4. the limbs
+    pose(arm, rest)
+    # 5. the feet: both ankles at one height, the free knee soft
+    wa = mw @ arm.pose.bones['foot_' + w].head
+    fa = mw @ arm.pose.bones['foot_' + free].head
+    leg_to(arm, w, wa + Vector((-side * s['weight_in'] * scale, 0.0, 0.0)), knee=(0.0, -1.0, 0.0))
+    wa = mw @ arm.pose.bones['foot_' + w].head
+    ft = Vector((fa.x - side * s['free_out'] * scale, fa.y - s['free_fwd'] * scale, wa.z + s['free_lift'] * scale))
+    short = leg_to(arm, free, ft, knee=(-side * 0.35, -1.0, 0.0))
+    if short > 0.003 * scale:
+        print(f'posture: the free foot stays {short / scale:.3f} m above its mark')

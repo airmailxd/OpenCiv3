@@ -1,0 +1,252 @@
+{
+  "unit": "Nakamaro Horseman",
+  "source": "the installed NumPy-generator sheet (C7/ModernArt), DEFAULT frame 0 (no Civ3 original on PC2)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.12,
+    124.0
+  ],
+  "anchor_override": null,
+  "standing_height": 56.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.48,
+        124
+      ],
+      "top": 69,
+      "height": 56,
+      "bbox": [
+        102,
+        69,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.98,
+        125
+      ],
+      "top": 70,
+      "height": 56,
+      "bbox": [
+        92,
+        70,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.86,
+        124
+      ],
+      "top": 69,
+      "height": 56,
+      "bbox": [
+        99,
+        69,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.15,
+        121
+      ],
+      "top": 68,
+      "height": 54,
+      "bbox": [
+        96,
+        68,
+        141,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.88,
+        124
+      ],
+      "top": 68,
+      "height": 57,
+      "bbox": [
+        102,
+        68,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.09,
+        125
+      ],
+      "top": 68,
+      "height": 58,
+      "bbox": [
+        108,
+        68,
+        145,
+        125
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        124.87,
+        124
+      ],
+      "top": 68,
+      "height": 57,
+      "bbox": [
+        102,
+        68,
+        139,
+        124
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.6,
+        121
+      ],
+      "top": 68,
+      "height": 54,
+      "bbox": [
+        96,
+        68,
+        141,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": null,
+    "fit": null,
+    "archetype": "mdj_horse_rider"
+  },
+  "default_flic": "x_Horse Samuri default.flc",
+  "flics": {
+    "x_Horse Samuri attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 75,
+      "offset_left": 71,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Horse Samuri death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 128,
+      "height": 86,
+      "offset_left": 57,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Horse Samuri default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 64,
+      "offset_left": 75,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Horse Samuri fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 78,
+      "height": 70,
+      "offset_left": 74,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "x_Horse Samuri fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 67,
+      "offset_left": 74,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Horse Samuri run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 85,
+      "height": 70,
+      "offset_left": 71,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Horse Samuri victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 76,
+      "height": 87,
+      "offset_left": 75,
+      "offset_top": 46,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    }
+  }
+}

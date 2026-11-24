@@ -1,0 +1,220 @@
+{
+  "unit": "Super Trooper",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    117.72,
+    126.0
+  ],
+  "anchor_override": null,
+  "standing_height": 39.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.35,
+        126
+      ],
+      "top": 87,
+      "height": 40,
+      "bbox": [
+        98,
+        87,
+        126,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.76,
+        125
+      ],
+      "top": 86,
+      "height": 40,
+      "bbox": [
+        107,
+        86,
+        128,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.88,
+        127
+      ],
+      "top": 86,
+      "height": 42,
+      "bbox": [
+        110,
+        86,
+        128,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.91,
+        126
+      ],
+      "top": 87,
+      "height": 40,
+      "bbox": [
+        110,
+        87,
+        137,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.53,
+        125
+      ],
+      "top": 88,
+      "height": 38,
+      "bbox": [
+        110,
+        88,
+        137,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.69,
+        124
+      ],
+      "top": 87,
+      "height": 38,
+      "bbox": [
+        108,
+        87,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.47,
+        126
+      ],
+      "top": 88,
+      "height": 39,
+      "bbox": [
+        108,
+        88,
+        125,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.69,
+        126
+      ],
+      "top": 88,
+      "height": 39,
+      "bbox": [
+        98,
+        88,
+        126,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 44.6328,
+    "archetype": "numpy"
+  },
+  "default_flic": "XAirborneDefault.flc",
+  "flics": {
+    "XAirborneDefault.flc": {
+      "actions": [
+        "DEFAULT",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 110,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "XAirborneRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 140,
+      "height": 110,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "XAirborneAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 140,
+      "height": 110,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 51
+    },
+    "XAirborneDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 140,
+      "height": 110,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 51
+    },
+    "XAirborneDrop.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 110,
+      "offset_left": 50,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 30,
+      "frameMs": 66
+    }
+  }
+}

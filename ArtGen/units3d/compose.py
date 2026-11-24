@@ -137,7 +137,7 @@ def anim_frames(anim_dir, name):
     return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.startswith('f')]
 
 
-def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2, anim_dir=None):
+def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2, anim_dir=None, declared_rows=False):
     """Writes the unit's sheets and metadata into out_dir/<unit>/.
     `calibration` is the unit's calibration JSON (its flics, with headers);
     `anim_dir` holds render_anim.py's frames of the animated flics."""
@@ -151,6 +151,9 @@ def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2, anim_dir
             meta['actions'][action] = name
         dirs = anim_frames(anim_dir, name)
         frames = [[compose(d, row, desat) for row in range(8)] for d in dirs] if dirs else still
+        # declared_rows (opt-in; off = the old 8 rows): a flic declaring fewer directions gets only rows 0..n-1
+        nrows = min(8, f['directions']) if declared_rows else 8
+        frames = [layers[:nrows] for layers in frames]
         x0, y0, x1, y1 = _extent(frames, margin)
         # the flic's cell, grown (in whole 1x pixels) to hold the still
         l, t = f['offset_left'], f['offset_top']
@@ -166,9 +169,9 @@ def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2, anim_dir
         w, h = R - L, Bm - T
         box = (L * SCALE, T * SCALE, R * SCALE, Bm * SCALE)
         for kind, idx in (('', 0), ('_tint', 1)):
-            sheet = Image.new('RGBA', (w * SCALE * len(frames), h * SCALE * 8))
+            sheet = Image.new('RGBA', (w * SCALE * len(frames), h * SCALE * nrows))
             for col, layers in enumerate(frames):
-                for row in range(8):
+                for row in range(nrows):
                     cell = Image.fromarray(layers[row][idx], 'RGBA').crop(box)
                     sheet.paste(cell, (col * w * SCALE, row * h * SCALE))
             sheet.save(os.path.join(out_dir, f'{name}{kind}.png'), optimize=True)

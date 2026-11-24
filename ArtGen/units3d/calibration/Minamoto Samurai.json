@@ -1,0 +1,237 @@
+{
+  "unit": "Minamoto Samurai",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.43,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        124.58,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        111,
+        79,
+        134,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.53,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        111,
+        79,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        115.93,
+        124
+      ],
+      "top": 77,
+      "height": 48,
+      "bbox": [
+        112,
+        77,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.0,
+        124
+      ],
+      "top": 75,
+      "height": 50,
+      "bbox": [
+        105,
+        75,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        124.68,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        105,
+        75,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.86,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        111,
+        76,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.68,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        110,
+        75,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        121.12,
+        124
+      ],
+      "top": 76,
+      "height": 49,
+      "bbox": [
+        112,
+        76,
+        134,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.4289,
+    "fit": 0.8929,
+    "archetype": "footman"
+  },
+  "default_flic": "x_SamuraiDefault.flc",
+  "flics": {
+    "x_SamuraiAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 138,
+      "height": 106,
+      "offset_left": 49,
+      "offset_top": 47,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 66
+    },
+    "x_SamuraiDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 125,
+      "height": 86,
+      "offset_left": 56,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 83
+    },
+    "x_SamuraiDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 41,
+      "height": 53,
+      "offset_left": 96,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 125
+    },
+    "x_SamuraiFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 102,
+      "height": 81,
+      "offset_left": 64,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 83
+    },
+    "x_SamuraiRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 57,
+      "offset_left": 92,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_SamuraiVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 68,
+      "offset_left": 63,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 66
+    }
+  }
+}

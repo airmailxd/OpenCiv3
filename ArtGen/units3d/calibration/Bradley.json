@@ -1,0 +1,219 @@
+{
+  "unit": "Bradley",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    116.83,
+    133.0
+  ],
+  "anchor_override": null,
+  "standing_height": 45.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        110.92,
+        133
+      ],
+      "top": 88,
+      "height": 46,
+      "bbox": [
+        84,
+        88,
+        150,
+        133
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.82,
+        132
+      ],
+      "top": 88,
+      "height": 44,
+      "bbox": [
+        100,
+        88,
+        133,
+        132
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        122.76,
+        133
+      ],
+      "top": 89,
+      "height": 45,
+      "bbox": [
+        83,
+        89,
+        149,
+        133
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.4,
+        129
+      ],
+      "top": 91,
+      "height": 39,
+      "bbox": [
+        83,
+        91,
+        152,
+        129
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        108.62,
+        135
+      ],
+      "top": 89,
+      "height": 47,
+      "bbox": [
+        83,
+        89,
+        149,
+        135
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        116.84,
+        134
+      ],
+      "top": 83,
+      "height": 52,
+      "bbox": [
+        100,
+        83,
+        133,
+        134
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.08,
+        135
+      ],
+      "top": 87,
+      "height": 49,
+      "bbox": [
+        84,
+        87,
+        150,
+        135
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.37,
+        129
+      ],
+      "top": 88,
+      "height": 42,
+      "bbox": [
+        81,
+        88,
+        151,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "LightTank_default.flc",
+  "flics": {
+    "LightTank_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 56,
+      "offset_left": 77,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 100
+    },
+    "LightTank_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 206,
+      "height": 112,
+      "offset_left": 18,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "LightTank_attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 126,
+      "height": 137,
+      "offset_left": 58,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "LightTank_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 145,
+      "height": 134,
+      "offset_left": 48,
+      "offset_top": 3,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "LightTank_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 78,
+      "height": 56,
+      "offset_left": 77,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

@@ -1,0 +1,234 @@
+{
+  "unit": "Convoy",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.34,
+    137.0
+  ],
+  "anchor_override": null,
+  "standing_height": 50.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        109.88,
+        137
+      ],
+      "top": 84,
+      "height": 54,
+      "bbox": [
+        84,
+        84,
+        152,
+        137
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.25,
+        137
+      ],
+      "top": 82,
+      "height": 56,
+      "bbox": [
+        101,
+        82,
+        136,
+        137
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        128.86,
+        137
+      ],
+      "top": 87,
+      "height": 51,
+      "bbox": [
+        81,
+        87,
+        154,
+        137
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.59,
+        132
+      ],
+      "top": 87,
+      "height": 45,
+      "bbox": [
+        78,
+        87,
+        157,
+        132
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.71,
+        138
+      ],
+      "top": 89,
+      "height": 50,
+      "bbox": [
+        86,
+        89,
+        154,
+        138
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.42,
+        136
+      ],
+      "top": 87,
+      "height": 50,
+      "bbox": [
+        102,
+        87,
+        137,
+        136
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.8,
+        137
+      ],
+      "top": 89,
+      "height": 49,
+      "bbox": [
+        84,
+        89,
+        158,
+        137
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.17,
+        132
+      ],
+      "top": 87,
+      "height": 45,
+      "bbox": [
+        81,
+        87,
+        162,
+        132
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "HumveeDefault.flc",
+  "flics": {
+    "HumveeDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 6,
+      "frameMs": 80
+    },
+    "HumveeRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 6,
+      "frameMs": 111
+    },
+    "HumveeAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 70
+    },
+    "HumveeDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 18,
+      "frameMs": 105
+    },
+    "HumveeFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 4,
+      "frameMs": 170
+    },
+    "HumveeVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 135,
+      "height": 101,
+      "offset_left": 52,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 170
+    }
+  }
+}

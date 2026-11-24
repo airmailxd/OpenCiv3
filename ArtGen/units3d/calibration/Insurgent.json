@@ -1,0 +1,280 @@
+{
+  "unit": "Insurgent",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.55,
+    125.0
+  ],
+  "anchor_override": null,
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.84,
+        126
+      ],
+      "top": 83,
+      "height": 44,
+      "bbox": [
+        96,
+        83,
+        125,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.57,
+        125
+      ],
+      "top": 83,
+      "height": 43,
+      "bbox": [
+        107,
+        83,
+        127,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.96,
+        126
+      ],
+      "top": 83,
+      "height": 44,
+      "bbox": [
+        110,
+        83,
+        128,
+        126
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.39,
+        125
+      ],
+      "top": 83,
+      "height": 43,
+      "bbox": [
+        114,
+        83,
+        141,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.42,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        112,
+        83,
+        142,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.53,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        111,
+        83,
+        130,
+        124
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.71,
+        125
+      ],
+      "top": 83,
+      "height": 43,
+      "bbox": [
+        110,
+        83,
+        128,
+        125
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.21,
+        125
+      ],
+      "top": 83,
+      "height": 43,
+      "bbox": [
+        97,
+        83,
+        124,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 48.5876,
+    "archetype": "numpy"
+  },
+  "default_flic": "FCoDe.flc",
+  "flics": {
+    "FCoDe.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "FCoRu.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 50
+    },
+    "FCoAtB.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 90
+    },
+    "FCoAtA.flc": {
+      "actions": [
+        "ATTACK2",
+        "ATTACK3"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 80
+    },
+    "FCoDie.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 59
+    },
+    "FCoFo.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 65
+    },
+    "FCoFi.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 90
+    },
+    "FCoVi.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 100,
+      "height": 100,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 85
+    },
+    "FCoDrop.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "still",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 20,
+      "frameMs": 95
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "unit": "Wildcat",
+  "source": "installed NumPy sheet (art-base), DEFAULT frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.36,
+    102.0
+  ],
+  "anchor_override": null,
+  "standing_height": 25.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        126.41,
+        101
+      ],
+      "top": 77,
+      "height": 25,
+      "bbox": [
+        100,
+        77,
+        140,
+        101
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.47,
+        103
+      ],
+      "top": 75,
+      "height": 29,
+      "bbox": [
+        94,
+        75,
+        146,
+        103
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        111.78,
+        102
+      ],
+      "top": 77,
+      "height": 26,
+      "bbox": [
+        100,
+        77,
+        140,
+        102
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.12,
+        104
+      ],
+      "top": 77,
+      "height": 28,
+      "bbox": [
+        100,
+        77,
+        134,
+        104
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.96,
+        101
+      ],
+      "top": 80,
+      "height": 22,
+      "bbox": [
+        100,
+        80,
+        140,
+        101
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.25,
+        102
+      ],
+      "top": 79,
+      "height": 24,
+      "bbox": [
+        94,
+        79,
+        146,
+        102
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.54,
+        101
+      ],
+      "top": 80,
+      "height": 22,
+      "bbox": [
+        100,
+        80,
+        140,
+        101
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.51,
+        104
+      ],
+      "top": 77,
+      "height": 28,
+      "bbox": [
+        106,
+        77,
+        140,
+        104
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null
+  },
+  "default_flic": "x_WildcatDefault.flc",
+  "flics": {
+    "x_WildcatAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 109,
+      "height": 84,
+      "offset_left": 67,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_WildcatBomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 138,
+      "height": 103,
+      "offset_left": 52,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "x_WildcatDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 89,
+      "height": 115,
+      "offset_left": 76,
+      "offset_top": 31,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 66
+    },
+    "x_WildcatDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 62,
+      "height": 72,
+      "offset_left": 90,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 66
+    },
+    "x_WildcatRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "combat",
+      "width": 110,
+      "height": 85,
+      "offset_left": 66,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    }
+  }
+}

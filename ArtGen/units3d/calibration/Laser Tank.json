@@ -1,0 +1,250 @@
+{
+  "unit": "Laser Tank",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.9,
+    127.0
+  ],
+  "anchor_override": null,
+  "standing_height": 46.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        110.41,
+        127
+      ],
+      "top": 82,
+      "height": 46,
+      "bbox": [
+        84,
+        82,
+        155,
+        127
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.94,
+        126
+      ],
+      "top": 82,
+      "height": 45,
+      "bbox": [
+        101,
+        82,
+        136,
+        126
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        127.27,
+        127
+      ],
+      "top": 82,
+      "height": 46,
+      "bbox": [
+        82,
+        82,
+        153,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.84,
+        121
+      ],
+      "top": 85,
+      "height": 36,
+      "bbox": [
+        83,
+        85,
+        154,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        108.9,
+        128
+      ],
+      "top": 77,
+      "height": 52,
+      "bbox": [
+        82,
+        77,
+        153,
+        128
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.86,
+        127
+      ],
+      "top": 73,
+      "height": 55,
+      "bbox": [
+        101,
+        73,
+        136,
+        127
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        128.84,
+        128
+      ],
+      "top": 77,
+      "height": 52,
+      "bbox": [
+        84,
+        77,
+        155,
+        128
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.79,
+        121
+      ],
+      "top": 85,
+      "height": 37,
+      "bbox": [
+        83,
+        85,
+        154,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "LaserTankDefault.flc",
+  "flics": {
+    "LaserTankDefault.flc": {
+      "actions": [
+        "DEFAULT",
+        "RUN"
+      ],
+      "kind": "still",
+      "width": 79,
+      "height": 69,
+      "offset_left": 80,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 8,
+      "frameMs": 131
+    },
+    "LaserTankAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 139,
+      "height": 109,
+      "offset_left": 50,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 8,
+      "frameMs": 145
+    },
+    "LaserTankAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "still",
+      "width": 139,
+      "height": 109,
+      "offset_left": 50,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 7,
+      "frameMs": 144
+    },
+    "LaserTankDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 99,
+      "height": 89,
+      "offset_left": 70,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 109
+    },
+    "LaserTankFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 79,
+      "height": 69,
+      "offset_left": 80,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 170
+    },
+    "LaserTankFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 79,
+      "height": 69,
+      "offset_left": 80,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 8,
+      "frameMs": 170
+    },
+    "LaserTankVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 79,
+      "height": 89,
+      "offset_left": 80,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 8,
+      "frameMs": 136
+    }
+  }
+}

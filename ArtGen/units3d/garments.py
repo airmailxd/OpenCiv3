@@ -255,7 +255,7 @@ def _pattern(tree, coord, base, pattern, tinted=False):
         hard.inputs[1].default_value = nums[0] if nums else 0.9     # higher: a narrower stripe
         tree.links.new(outn.outputs['Value'], hard.inputs[0])
         return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
-    if kind in ('frogging', 'gazyri'):
+    if kind in ('frogging', 'gazyri', 'plastron'):
         # chest decoration on the front (the unposed body faces -y), z in metres:
         # 'frogging' (a hussar's dolman): ('frogging', color, rows) horizontal cords
         #   across the chest between z 1.16 and 1.44, |x| < 0.12;
@@ -276,10 +276,15 @@ def _pattern(tree, coord, base, pattern, tinted=False):
         ax = m('ABSOLUTE', sep3.outputs['X'], 0.0)
         z, sc = sep3.outputs['Z'], _scale
         front = m('LESS_THAN', sep3.outputs['Y'], 0.0)
-        if kind == 'frogging':
+        if kind == 'plastron':   # a dragoon's facing-coloured plastron (lapels buttoned back) down the chest front
+            zone = m('MULTIPLY', m('LESS_THAN', ax, 0.105 * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.17 * sc), m('LESS_THAN', z, 1.47 * sc)))
+            band = 1.0
+        elif kind == 'frogging':
             rows = nums[0] if nums else 6.0
-            zone = m('MULTIPLY', m('LESS_THAN', ax, 0.14 * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.14 * sc), m('LESS_THAN', z, 1.46 * sc)))
-            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', m('SUBTRACT', z, 1.14 * sc), rows / (0.32 * sc)), 0.0), 0.5)
+            hw = nums[1] if len(nums) > 1 else 0.14     # (the realism pass) the cords' half width: wider carries them round the sides
+            duty = nums[2] if len(nums) > 2 else 0.5    # lower: thicker cords
+            zone = m('MULTIPLY', m('LESS_THAN', ax, hw * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.14 * sc), m('LESS_THAN', z, 1.46 * sc)))
+            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', m('SUBTRACT', z, 1.14 * sc), rows / (0.32 * sc)), 0.0), duty)
         else:
             zone = m('MULTIPLY', m('MULTIPLY', m('GREATER_THAN', ax, 0.04 * sc), m('LESS_THAN', ax, 0.13 * sc)),
                      m('MULTIPLY', m('GREATER_THAN', z, 1.26 * sc), m('LESS_THAN', z, 1.4 * sc)))
@@ -306,6 +311,20 @@ def _pattern(tree, coord, base, pattern, tinted=False):
         hard.operation = 'GREATER_THAN'
         hard.inputs[1].default_value = 0.6
         tree.links.new(fr.outputs['Value'], hard.inputs[0])
+        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
+    if kind == 'rows':
+        # (the realism pass) horizontal rows (lamellar: dark lacing bands between the plates' rows), bands up Z
+        wave = n.new('ShaderNodeTexWave')
+        wave.wave_type = 'BANDS'
+        wave.inputs['Detail'].default_value = 0.0
+        wave.inputs['Distortion'].default_value = 0.0
+        wave.bands_direction = 'Z'
+        wave.inputs['Scale'].default_value = nums[0] if nums else 6.0
+        tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+        hard = n.new('ShaderNodeMath')
+        hard.operation = 'GREATER_THAN'
+        hard.inputs[1].default_value = nums[1] if len(nums) > 1 else 0.8
+        tree.links.new(wave.outputs['Fac'], hard.inputs[0])
         return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
     if kind == 'stripes':
         # vertical stripes (trouser stripes, slashing): dark bands across X
@@ -620,11 +639,13 @@ def shell(basemesh, arm, name, bones, mat, *, zmin=None, zmax=None, offset=0.006
     return new
 
 
-def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False, panels=None, folds=0.06, drop=0.0):
+def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False, panels=None, folds=0.06, drop=0.0,
+          troughs=None):
     """Hanging cloth from MakeHuman's skirt helper (waist to knee): cut to
     `length` of the helper's height, widened by `flare` toward the hem.
     `panels` = (front, back) half-widths (radians) keeps only flaps in front
-    and behind: a loincloth."""
+    and behind: a loincloth. `troughs` (off by default): (n, depth, seed), a few deep, irregular
+    vertical troughs of heavy wool (a friar's habit) laid over the folds, spaced and sized at random."""
     me = basemesh.data
     grp = basemesh.vertex_groups.get('helper-skirt')
     idx = {v.index for v in me.vertices if any(g.group == grp.index and g.weight > 0.5 for g in v.groups)}
@@ -649,6 +670,22 @@ def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False,
             front, back = panels
             return abs(a) <= front or abs(abs(a) - math.pi) <= back
         return True
+    if troughs:
+        import random
+        n_t, depth_t, seed_t = troughs
+        rnd = random.Random(seed_t)
+        # n troughs at uneven angles, each its own width and depth: a sharp inward crease
+        # between soft, broad ridges (heavy cloth falls in a few pipes, not ripples)
+        spots = [(2 * math.pi * (i + rnd.uniform(-0.3, 0.3)) / n_t, rnd.uniform(0.18, 0.4), rnd.uniform(0.6, 1.0))
+                 for i in range(n_t)]
+
+        def trough(a):
+            out = 0.0
+            for c0, w, dk in spots:
+                d = math.atan2(math.sin(a - c0), math.cos(a - c0))
+                out -= depth_t * dk * math.exp(-(d / (0.35 * w)) ** 2)   # the crease
+                out += 0.35 * depth_t * dk * math.exp(-((abs(d) - w) / (0.5 * w)) ** 2)   # its two ridges
+            return out
     cut = [f for f in bm.faces if not all(keep(v) for v in f.verts)]
     bmesh.ops.delete(bm, geom=cut, context='FACES')
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
@@ -658,6 +695,8 @@ def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False,
         # folds: radial ripples around the legs, deepening toward the hem
         a = math.atan2(v.co.x - cx, v.co.y - cy)
         k += folds * t * (0.6 * math.sin(a * 9.0) + 0.4 * math.sin(a * 23.0 + 1.3))
+        if troughs:
+            k += trough(a) * t ** 1.3
         v.co.x = cx + (v.co.x - cx) * k
         v.co.y = cy + (v.co.y - cy) * k
         # a robe or surcoat: stretched down toward the ankles
@@ -908,7 +947,7 @@ def roughen_hair(basemesh, color, length=0.022, density=4000):
 
 
 def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1, torn=True,
-         flare=0.15, wrap=0.0, train=0.0):
+         flare=0.15, wrap=0.0, train=0.0, hem_curve=0.0):
     """A hanging cloth or hide flap (a loincloth panel, a tabard): a grid
     hanging down from its top edge at the origin, in the X-Z plane, facing
     -Y; with vertical folds deepening toward the hem, a ragged, uneven hem,
@@ -933,6 +972,10 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
         for c in range(a, b + 1):
             u = (c - a) / max(1, b - a)
             hem[c] = max(hem[c], base + tilt * (u - 0.5) * 2 + rnd.uniform(-0.012, 0.012))
+    if hem_curve:   # (the realism pass) an uneven, curved hem: longer at one fold, shorter at the other
+        for c in range(nx + 1):
+            u = c / nx
+            hem[c] *= 1.0 + hem_curve * (0.5 * math.sin(math.pi * u) - 0.25 + 0.3 * math.sin(3.1 * math.pi * u + 0.7))
     for j in range(nz + 1):
         row = []
         for i in range(nx + 1):
@@ -1224,6 +1267,43 @@ def mail_nodes(tree, bsdf):
     tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
 
 
+def mail_rows_nodes(tree, bsdf):
+    """Ring mail that reads at game size (the realism pass): the fine ring bump, plus
+    rows of rings as a value pattern, light ring tops over dark gaps in horizontal
+    courses, so the mail never renders as a smooth suit."""
+    mail_nodes(tree, bsdf)
+    n = tree.nodes
+    coord = n.new('ShaderNodeTexCoord')
+    wave = n.new('ShaderNodeTexWave')
+    wave.wave_type = 'BANDS'
+    wave.bands_direction = 'Z'
+    wave.inputs['Scale'].default_value = 26.0
+    wave.inputs['Distortion'].default_value = 1.5
+    wave.inputs['Detail'].default_value = 1.0
+    tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+    vor = n.new('ShaderNodeTexVoronoi')
+    vor.inputs['Scale'].default_value = 70.0
+    vor.feature = 'DISTANCE_TO_EDGE'
+    tree.links.new(coord.outputs['Object'], vor.inputs['Vector'])
+    mix = n.new('ShaderNodeMath')
+    mix.operation = 'MULTIPLY'
+    tree.links.new(wave.outputs['Fac'], mix.inputs[0])
+    tree.links.new(vor.outputs['Distance'], mix.inputs[1])
+    ramp = n.new('ShaderNodeMapRange')
+    ramp.inputs['From Min'].default_value = 0.0
+    ramp.inputs['From Max'].default_value = 0.12
+    ramp.inputs['To Min'].default_value = 0.3
+    ramp.inputs['To Max'].default_value = 1.2
+    tree.links.new(mix.outputs['Value'], ramp.inputs['Value'])
+    tint = n.new('ShaderNodeMix')
+    tint.data_type = 'RGBA'
+    tint.blend_type = 'MULTIPLY'
+    tint.inputs['Factor'].default_value = 1.0
+    tint.inputs['A'].default_value = tuple(bsdf.inputs['Base Color'].default_value)
+    tree.links.new(ramp.outputs['Result'], tint.inputs['B'])
+    tree.links.new(tint.outputs['Result'], bsdf.inputs['Base Color'])
+
+
 def band(basemesh, arm, name, bones, mat, z, width=0.06, offset=0.022):
     """A band around a limb or the body: at height `z` (for a 1.75 m man), or
     with `z` = (bone, t), at fraction t along both sides' `bone`_l/_r in the
@@ -1273,18 +1353,20 @@ BANDS = {
     'ankle': (['calf_l', 'calf_r', 'foot_l', 'foot_r'], 0.11),
     'waist': (['pelvis', 'spine_01'], 1.0),
     'neck': (['neck_01', 'spine_03', 'clavicle_l', 'clavicle_r'], 1.5),
+    # (realism infantry) high on the thigh: a parachute harness's leg straps
+    'thigh': (['thigh_l', 'thigh_r'], ('thigh', 0.12)),
 }
 
 
-def cape(basemesh, arm, mat, length=0.75, width=0.5, flare=0.15, wrap=0.0, train=0.0, folds=6):
+def cape(basemesh, arm, mat, length=0.75, width=0.5, flare=0.15, wrap=0.0, train=0.0, folds=6, depth=None, hem_curve=0.0):
     """A cape hanging from the shoulders down the back: a flap pinned along
     the shoulder line, behind the body, falling to `length`."""
     import human as H
     from mathutils import Matrix
     H._update()
     nk = arm.matrix_world @ arm.pose.bones['neck_01'].head
-    f = flap('Cape', mat, width=width * _scale, length=length * _scale, curve=0.14 * _scale, folds=folds, depth=0.03,
-             torn=False, ragged=0.01, flare=flare, wrap=wrap * _scale, train=train * _scale)
+    f = flap('Cape', mat, width=width * _scale, length=length * _scale, curve=0.14 * _scale, folds=folds, depth=0.03 if depth is None else depth * _scale,   # (a unit's depth scales; the default as before)
+             torn=False, ragged=0.01, flare=flare, wrap=wrap * _scale, train=train * _scale, hem_curve=hem_curve)
     f.matrix_world = Matrix.Translation((nk.x, nk.y + 0.1 * _scale, nk.z - 0.02 * _scale)) @ Matrix.Rotation(math.pi, 4, 'Z')
     world = f.matrix_world.copy()
     f.parent = arm
@@ -1879,7 +1961,7 @@ def spiked_hair(basemesh, arm, mat, n=26, length=0.07, seed=3):
     return made
 
 
-def shackles(basemesh, arm, mat, ankles=True):
+def shackles(basemesh, arm, mat, ankles=True, thick=1.0):
     """Iron cuffs round both wrists (and ankles), each on its bone, 90% along
     the forearm (and the shin)."""
     import human as H
@@ -1893,7 +1975,7 @@ def shackles(basemesh, arm, mat, ankles=True):
         h, tl = inv @ b.head_local, inv @ b.tail_local
         p = h.lerp(tl, t)
         d = (tl - h).normalized()
-        bpy.ops.mesh.primitive_torus_add(major_radius=r * _scale, minor_radius=0.011 * _scale,
+        bpy.ops.mesh.primitive_torus_add(major_radius=(r + 0.006 * (thick - 1.0)) * _scale, minor_radius=0.011 * thick * _scale,
                                          major_segments=20, minor_segments=8, location=tuple(p))
         o = bpy.context.active_object
         o.rotation_mode = 'QUATERNION'

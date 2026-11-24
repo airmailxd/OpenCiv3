@@ -1,0 +1,192 @@
+{
+  "unit": "Medieval Japanese Leader",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.33,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 48.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.93,
+        123
+      ],
+      "top": 76,
+      "height": 48,
+      "bbox": [
+        108,
+        76,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.04,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        109,
+        77,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.33,
+        123
+      ],
+      "top": 76,
+      "height": 48,
+      "bbox": [
+        112,
+        76,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.12,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        114,
+        75,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.96,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        110,
+        74,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.62,
+        120
+      ],
+      "top": 74,
+      "height": 47,
+      "bbox": [
+        109,
+        74,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.19,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        107,
+        74,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.73,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        109,
+        75,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.8653,
+    "fit": 0.9013,
+    "archetype": "mdj_royal"
+  },
+  "default_flic": "x_JapanLeader default.flc",
+  "flics": {
+    "x_JapanLeader death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 87,
+      "height": 71,
+      "offset_left": 76,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_JapanLeader default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 43,
+      "height": 53,
+      "offset_left": 93,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_JapanLeader run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 62,
+      "height": 56,
+      "offset_left": 83,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

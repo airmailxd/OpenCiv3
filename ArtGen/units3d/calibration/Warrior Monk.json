@@ -1,0 +1,237 @@
+{
+  "unit": "Warrior Monk",
+  "source": "Civ3 original art (Sengoku / Medieval Japan scenario folders), DEFAULT flic frame 0 (numbers only); flic headers as installed (the NumPy sheets in C7/ModernArt)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.08,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.69,
+        124
+      ],
+      "top": 81,
+      "height": 44,
+      "bbox": [
+        96,
+        81,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.71,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        107,
+        82,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.77,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        93,
+        82,
+        136,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.29,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        94,
+        81,
+        148,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.48,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        110,
+        80,
+        143,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        124.07,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        110,
+        79,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.92,
+        120
+      ],
+      "top": 80,
+      "height": 41,
+      "bbox": [
+        103,
+        80,
+        146,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.26,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        91,
+        80,
+        145,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.6995,
+    "fit": 0.9173,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Monk default.flc",
+  "flics": {
+    "x_Monk attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 133,
+      "height": 104,
+      "offset_left": 48,
+      "offset_top": 45,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Monk death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 131,
+      "height": 89,
+      "offset_left": 54,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Monk default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 69,
+      "height": 54,
+      "offset_left": 81,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Monk fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 94,
+      "height": 82,
+      "offset_left": 65,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Monk run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 65,
+      "height": 61,
+      "offset_left": 86,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Monk victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 76,
+      "height": 57,
+      "offset_left": 79,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

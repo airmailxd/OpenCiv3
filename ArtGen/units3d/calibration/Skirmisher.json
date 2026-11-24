@@ -1,0 +1,249 @@
+{
+  "unit": "Skirmisher",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.13,
+    123.0
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.19,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        111,
+        83,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.97,
+        124
+      ],
+      "top": 84,
+      "height": 41,
+      "bbox": [
+        108,
+        84,
+        130,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.07,
+        123
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        112,
+        83,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.16,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        113,
+        83,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.78,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        113,
+        82,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        124.05,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        110,
+        82,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.16,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        103,
+        82,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.33,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        105,
+        83,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 46.3277,
+    "archetype": "numpy"
+  },
+  "default_flic": "x_americanRM default.flc",
+  "flics": {
+    "x_americanRM default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 32,
+      "height": 49,
+      "offset_left": 101,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanRM run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 51,
+      "height": 57,
+      "offset_left": 92,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_americanRM attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 84,
+      "height": 68,
+      "offset_left": 78,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanRM death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 112,
+      "height": 81,
+      "offset_left": 64,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanRM fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 71,
+      "height": 77,
+      "offset_left": 81,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_americanRM fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 39,
+      "height": 51,
+      "offset_left": 97,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_americanRM victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 66,
+      "height": 68,
+      "offset_left": 84,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

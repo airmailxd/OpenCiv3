@@ -1,0 +1,249 @@
+{
+  "unit": "Siege Crossbow",
+  "source": "the installed NumPy remake (ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.7,
+    128.0
+  ],
+  "anchor_override": null,
+  "standing_height": 41.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        117.38,
+        128
+      ],
+      "top": 81,
+      "height": 48,
+      "bbox": [
+        96,
+        81,
+        145,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.83,
+        126
+      ],
+      "top": 81,
+      "height": 46,
+      "bbox": [
+        97,
+        81,
+        142,
+        126
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        122.15,
+        128
+      ],
+      "top": 81,
+      "height": 48,
+      "bbox": [
+        94,
+        81,
+        143,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.83,
+        125
+      ],
+      "top": 90,
+      "height": 35,
+      "bbox": [
+        85,
+        90,
+        144,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        101.48,
+        131
+      ],
+      "top": 93,
+      "height": 39,
+      "bbox": [
+        94,
+        93,
+        143,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.58,
+        135
+      ],
+      "top": 92,
+      "height": 44,
+      "bbox": [
+        97,
+        92,
+        142,
+        135
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        138.34,
+        131
+      ],
+      "top": 93,
+      "height": 39,
+      "bbox": [
+        96,
+        93,
+        145,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.55,
+        125
+      ],
+      "top": 90,
+      "height": 36,
+      "bbox": [
+        95,
+        90,
+        151,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": null,
+    "archetype": "numpy"
+  },
+  "default_flic": "x_SiegeDefault.flc",
+  "flics": {
+    "x_SiegeDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 68,
+      "height": 56,
+      "offset_left": 84,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_SiegeRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 87,
+      "height": 59,
+      "offset_left": 76,
+      "offset_top": 83,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_SiegeAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 115,
+      "height": 75,
+      "offset_left": 60,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_SiegeDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 96,
+      "height": 122,
+      "offset_left": 73,
+      "offset_top": 20,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_SiegeFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 68,
+      "height": 56,
+      "offset_left": 84,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_SiegeFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 79,
+      "height": 57,
+      "offset_left": 79,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_SiegeVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 68,
+      "height": 56,
+      "offset_left": 84,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

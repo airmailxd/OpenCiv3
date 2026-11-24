@@ -1,0 +1,264 @@
+{
+  "unit": "Combat Engineer",
+  "source": "the installed NumPy remake (art-base, ArtGen/units), DEFAULT sheet frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.77,
+    122.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.02,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        97,
+        81,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.82,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        107,
+        81,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.86,
+        124
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        107,
+        81,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.23,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        108,
+        82,
+        137,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.26,
+        122
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        107,
+        81,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.45,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        111,
+        81,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.14,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        110,
+        81,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.72,
+        123
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        98,
+        81,
+        130,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "ppm_2x": 47.4576,
+    "archetype": "numpy"
+  },
+  "default_flic": "x_americanFT default.flc",
+  "flics": {
+    "x_americanFT default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 41,
+      "height": 49,
+      "offset_left": 97,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_americanFT run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 50,
+      "height": 53,
+      "offset_left": 92,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_americanFT attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 184,
+      "height": 117,
+      "offset_left": 29,
+      "offset_top": 12,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_americanFT attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "still",
+      "width": 201,
+      "height": 125,
+      "offset_left": 21,
+      "offset_top": 37,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_americanFT death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 143,
+      "height": 118,
+      "offset_left": 49,
+      "offset_top": 39,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanFT fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 46,
+      "height": 49,
+      "offset_left": 94,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_americanFT fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 75,
+      "height": 62,
+      "offset_left": 83,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_americanFT victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 85,
+      "height": 65,
+      "offset_left": 78,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

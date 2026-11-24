@@ -20,6 +20,13 @@ OUT = os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json')
 
 def main():
     units = catalog.load()
+    # units made only by units3d (no NumPy catalog entry here, e.g. MDJ's Hojo General): their
+    # remaster entry stands alone, over an empty footman
+    sys.path.insert(0, HERE)
+    import remaster
+    for name, e in remaster.REMASTER.items():
+        if e.get('units3d_only'):
+            units.setdefault(name, {'archetype': 'footman'})
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, 'w') as f:
         json.dump(units, f, indent=1, default=repr, sort_keys=True)
