@@ -105,7 +105,7 @@ namespace C7Engine.AI {
 			}
 			// Switch prey-war: the attackers a campaign on the plan's prey is
 			// short of are wanted too (see PreyWar).
-			if (unit.attack > unit.defense && PreyWar.On(stats.player) && WarCampaign.HasPreyCampaign(stats.player)
+			if (unit.attack > unit.defense && PreyWar.Hunts(stats.player) && WarCampaign.HasPreyCampaign(stats.player)
 					&& WarCampaign.WantsAttackers(stats.player)) {
 				return 0;
 			}
@@ -372,6 +372,9 @@ namespace C7Engine.AI {
 		// Why a unit is worth hurrying, least urgent first.
 		private enum RushReason {
 			None,
+			// Any soldier, bought with gold the civ has far more of than it
+			// keeps back (see Rich).
+			Surplus,
 			Improvement,
 			Worker,
 			Settler,
@@ -414,6 +417,7 @@ namespace C7Engine.AI {
 			// soldiers in the field.
 			int warReserve = atWar ? reserve / 2 : reserve;
 			int workers = player.units.Count(u => u.unitType.isWorker);
+			bool rich = player.gold > RichReserveMultiple * reserve + RichMargin;
 
 			List<(City city, RushReason reason, int cost)> candidates = new();
 			foreach (City city in player.cities) {
@@ -423,6 +427,10 @@ namespace C7Engine.AI {
 				RushReason reason = UnitRushReason(player, city, staging, workers);
 				if (reason == RushReason.None && IsHurriableImprovement(city.itemBeingProduced)) {
 					reason = RushReason.Improvement;
+				}
+				if (reason == RushReason.None && rich && city.itemBeingProduced is UnitPrototype soldier && soldier.attack + soldier.defense > 0
+						&& !soldier.isArmy && soldier.populationCost == 0) {
+					reason = RushReason.Surplus;
 				}
 				if (reason == RushReason.None) {
 					continue;
@@ -462,6 +470,14 @@ namespace C7Engine.AI {
 				AiExperiments.onHurry?.Invoke(city, cost);
 			}
 		}
+
+		// HEURISTIC: a treasury above this many times the reserve, and
+		// RichMargin more, is far more than the civ keeps back: it buys
+		// soldiers too. In headless games of the League's mods civs sat on
+		// thousands of gold (Future's up to 12,580) with nothing they would
+		// hurry.
+		private const int RichReserveMultiple = 3;
+		private const int RichMargin = 100;
 
 		// Civ3's AI also rushes improvements, never letting its treasury
 		// fall below the stock reserve (see StockGoldReserve): "it won't

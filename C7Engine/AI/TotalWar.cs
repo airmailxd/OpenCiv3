@@ -99,7 +99,7 @@ namespace C7Engine.AI {
 
 		private static double Ratio_(Player player) => AdvancedTuning.Get(player, Ratio);
 
-		private static double AttackOf(IEnumerable<MapUnit> units) {
+		internal static double AttackOf(IEnumerable<MapUnit> units) {
 			return units.Where(WarCampaign.IsAttacker).Sum(u => (double)u.unitType.attack);
 		}
 

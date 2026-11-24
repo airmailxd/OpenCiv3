@@ -145,7 +145,8 @@ namespace C7Engine {
 		public static IProducible Choose(City city, Player player) {
 			IProducible best = null;
 			float bestScore = int.MinValue;
-			foreach ((IProducible option, float score) in ScoredOptions(city, player)) {
+			var allScored = ScoredOptions(city, player);
+			foreach ((IProducible option, float score) in allScored) {
 				if (score > bestScore) {
 					bestScore = score;
 					best = option;
@@ -184,6 +185,11 @@ namespace C7Engine {
 				float score = (GovernorProduction.AdjustScore(governor, player, option, ScoreProducible(stats, city, player, option))
 					+ C7Engine.AI.Advanced.PlanEffects.ProductionAdjustment(player, option))
 					* (GameData.rng.Next(90, 110) / 100.0f);
+				// No great wonder yet while the civ has land to settle (see
+				// ExpandsFirst).
+				if (option is Building b && b.IsGreatWonder() && !player.isHuman && ExpandsFirst(stats, player)) {
+					score = -1000f;
+				}
 				scored.Add((option, score));
 				if (debugLogging) {
 					log.Debug("\t{Option}: {Score}", option, score);
@@ -266,9 +272,12 @@ namespace C7Engine {
 
 			// On trial: the productive cities arm a war campaign that needs it.
 			if (AiExperiments.Has(player, "war-production") || TotalWar.On(player) || ((EarlyRush.On(player) || ArcherRush.On(player) || PhasePlan.On(player)) && WarCampaign.HasRush(player))
-					|| (PreyWar.On(player) && WarCampaign.HasPreyCampaign(player))) {
+					|| (PreyWar.Hunts(player) && WarCampaign.HasPreyCampaign(player))) {
 				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack, stats.bestDefense);
 			}
+			// A war of opportunity's stack, from more of the cities (see
+			// OpportunityWar.ProductionBonus).
+			score += OpportunityWar.ProductionBonus(city, player, unit, stats.bestAttack);
 			// Switch horde-war: the most productive cities build the horde
 			// (see HordeWar).
 			if (HordeWar.On(player)) {
@@ -484,6 +493,29 @@ namespace C7Engine {
 			return Math.Max(1, (int)Math.Ceiling(player.cities.Count * perCity));
 		}
 
+		// Whether the civ has a single city and no land unit but its workers
+		// and settlers, so nothing to explore with: with nothing explored,
+		// the AI finds no site for a settler, and a lone city that starts a
+		// great wonder first (as the Maya's did, starting QC's cheap
+		// Pyramids on its first turn) may never build one, nor found a
+		// second city. Civ3's AI explores first.
+		internal static bool HasNoOneToExplore(Player player) {
+			return player.cities.Count <= 1
+				&& !player.units.Any(u => u.IsLandUnit() && !u.unitType.isWorker && !u.unitType.isSettler && !u.unitType.isLeader);
+		}
+
+		// HEURISTIC: no great wonder before this many cities while there is
+		// land to settle. A city starting a wonder keeps at it until done
+		// (production is chosen again only when an item is finished): under
+		// Future's rules every Standard AI civ started the Pyramids in its
+		// capital on the first turn and had one city at turn 60 in 3 games
+		// of 6; under MP Tournament's, one city to about turn 32.
+		internal const int CitiesBeforeWonders = 3;
+
+		internal static bool ExpandsFirst(ProducibleStats stats, Player player) {
+			return player.cities.Count < CitiesBeforeWonders && !TideAI.IsOn() && stats.NumberOfReachableOpenCitySpots > 0;
+		}
+
 		internal static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
 			bool atWar = stats.atWar;
 
@@ -501,6 +533,9 @@ namespace C7Engine {
 			// terms below.
 			bool valuedWonder = false;
 			if (building.IsGreatWonder()) {
+				if (!player.isHuman && HasNoOneToExplore(player)) {
+					return -1000f;
+				}
 				if (AiExperiments.Has(player, WonderPlanner.Timing) && !WonderPlanner.TimingAllows(stats, city, building)) {
 					return -1000f;
 				}
@@ -703,7 +738,33 @@ namespace C7Engine {
 				score += FastExpand.BuildingAdjustment(building);
 			}
 
+			score += GovernmentBuildingBonus(stats, player, building);
+
 			return score;
+		}
+
+		// HEURISTIC: a building or wonder only the player's government may
+		// build (Modern's T, F, O and E buildings) is what the government
+		// was chosen for (see GovernmentAI.OwnBuildingsWorth): it scores
+		// this much more, half while expanding. One that adds nothing a
+		// city can use (no content faces, gold, production, culture or
+		// science) gets none.
+		internal const float GovernmentImprovementBonus = 12;
+		internal const float GovernmentWonderBonus = 18;
+
+		internal static float GovernmentBuildingBonus(ProducibleStats stats, Player player, Building building) {
+			if (building.requiredGovernment == null || player.government?.id != building.requiredGovernment.id) {
+				return 0;
+			}
+			bool wonder = building.IsGreatWonder() || building.isSmallWonder;
+			bool useful = wonder || building.contentFacesInCity > 0 || building.goldPerTurn > 0 || building.maintenanceCost < 0
+				|| building.productionBonusPercent > 0 || building.culturePerTurn > 0 || building.reducesCorruption
+				|| building.increasesResearch || building.doublesResearch || building.increasesTax || building.increasesLuxury;
+			if (!useful) {
+				return 0;
+			}
+			float bonus = wonder ? GovernmentWonderBonus : GovernmentImprovementBonus;
+			return stats.InExpansionPhase ? bonus / 2 : bonus;
 		}
 
 		// The extra score of a small wonder for its effect, or null if it isn't

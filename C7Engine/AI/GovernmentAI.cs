@@ -20,7 +20,12 @@ namespace C7Engine.AI {
 		// anarchy for it, so small swings (a few units more or less to
 		// support) don't make it change back and forth.
 		internal const float RevolutionMargin = 10;
-		internal const float FavoriteGovernmentWeight = .125f;
+		// The favourite government's tilt: a quarter of the score, and at
+		// least FavoriteGovernmentMinimum. Civ3's eighth (see Score) was too
+		// little to tell apart governments that score alike, so under
+		// Modern's rules every AI chose Freedom.
+		internal const float FavoriteGovernmentWeight = .25f;
+		internal const float FavoriteGovernmentMinimum = 6;
 
 		// Suede (notes #23, #73) leaves Despotism as early as he can: the
 		// research goes to the best government within reach, and the AI
@@ -191,8 +196,24 @@ namespace C7Engine.AI {
 			}
 		}
 
+		// HEURISTIC: the civ's favourite government is the one it picks
+		// whenever it scores within this much of the best (as well as the
+		// tilt in Score). Civ3's tilt alone (see Score) never outweighed
+		// Freedom's trade bonus and minimal corruption under Modern's rules:
+		// in 12 headless games every AI chose Freedom (owner's request,
+		// 2026-11-22: "respect the civ's favourite government more").
+		internal const float FavoriteGovernmentBand = 20;
+
 		internal static Government BestGovernment(Player player, GameData gameData, int warPressure = 0) {
-			return player.GetAvailableGovernments(gameData).OrderByDescending(g => Score(player, g, warPressure)).FirstOrDefault();
+			List<Government> available = player.GetAvailableGovernments(gameData);
+			Government best = available.OrderByDescending(g => Score(player, g, warPressure)).FirstOrDefault();
+			string favorite = player.civilization?.favoriteGovernment;
+			Government liked = favorite == null ? null : available.Find(g => g.name == favorite && !g.transitionType);
+			if (best != null && liked != null && liked != best && !liked.hasTilePenalty
+					&& Score(player, liked, warPressure) >= Score(player, best, warPressure) - FavoriteGovernmentBand) {
+				return liked;
+			}
+			return best;
 		}
 
 		// After a long war the Civ3 AI "switches to Comm or Monarchy", which
@@ -287,6 +308,20 @@ namespace C7Engine.AI {
 			// upkeep for an army raised under Despotism can be ruinous.
 			score -= UnitSupportCost(player, government) / 2f;
 
+			// The buildings and wonders only this government may build
+			// (Modern's T, F, O and E buildings).
+			score += OwnBuildingsWorth(player, government);
+
+			// Workers that work faster (Modern's Order works at 6, Freedom at
+			// 4; Civ3's governments all at 1).
+			score += Math.Min(5, Math.Max(0, government.workerRate - 1));
+
+			// A civ going to war (or in one) values free units and the
+			// draft more.
+			if (OpportunityWar.Victim(player, EngineStorage.gameData) != null || PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players)) {
+				score += Math.Min(10, (government.freeUnitsPerCity + government.freeUnitsPerTown) / 2f + government.draftLimit);
+			}
+
 			// "Shunned/favorite government is worth 12.5%" of the score
 			// (Flintlock reading the stock code, C3X thread post-16217016;
 			// doc/civ3-compendium/05 section 5.8). Whether it is added or
@@ -295,12 +330,66 @@ namespace C7Engine.AI {
 			// being shunned.
 			string name = government.name;
 			if (name != null && name == player.civilization?.favoriteGovernment) {
-				score += Math.Abs(score) * FavoriteGovernmentWeight;
+				score += Math.Max(FavoriteGovernmentMinimum, Math.Abs(score) * FavoriteGovernmentWeight);
 			} else if (name != null && name == player.civilization?.shunnedGovernment) {
-				score -= Math.Abs(score) * FavoriteGovernmentWeight;
+				score -= Math.Max(FavoriteGovernmentMinimum, Math.Abs(score) * FavoriteGovernmentWeight);
 			}
 
 			return score;
+		}
+
+		// HEURISTIC: what the buildings and wonders only this government may
+		// build are worth to the player, roughly in gold a turn: an
+		// improvement for what it adds to each city (content faces, gold,
+		// production, culture, corruption, research, taxes), counted for up
+		// to OwnBuildingCities cities; a wonder for what it adds once or to
+		// every city. One whose advance is far off counts for less; one
+		// needing an advance of no era the player lacks (another civ's part
+		// of a wonder) not at all. A government whose buildings stand in for
+		// another's (all four of Modern's have a granary and a harbour)
+		// gains about what it loses, so what tells them apart is what only
+		// one has: Tradition's temples, Freedom's banks, Order's CCTV,
+		// Equality's airports. The League's notes on Modern's buildings
+		// (CivPlayersCiv3League.github.io/modern/buildings.psv) give the
+		// same effects.
+		internal const int OwnBuildingCities = 8;
+		internal const float OwnBuildingWeight = .1f;
+		internal const float OwnBuildingsCap = 15;
+
+		internal static float OwnBuildingsWorth(Player player, Government government) {
+			GameData gameData = EngineStorage.gameData;
+			if (gameData == null || government?.id == null) {
+				return 0;
+			}
+			int cities = Math.Clamp(player.cities.Count, 1, OwnBuildingCities);
+			float worth = 0;
+			foreach (Building b in gameData.Buildings) {
+				if (b.requiredGovernment?.id != government.id) {
+					continue;
+				}
+				if (b.renderedObsoleteBy != null && player.HasTech(b.renderedObsoleteBy.id)) {
+					continue;
+				}
+				float reach = 1;
+				if (b.requiredTech != null && !player.HasTech(b.requiredTech.id)) {
+					if (b.requiredTech.EraCivilopediaName == EraUtils.HIDDEN_CVLPD) {
+						continue;
+					}
+					reach = b.requiredTech.Prerequisites.All(t => player.HasTech(t.id)) ? .5f : .25f;
+				}
+				float perCity = b.contentFacesInCity + b.goldPerTurn - b.maintenanceCost + b.productionBonusPercent / 12.5f
+					+ b.culturePerTurn / 4f + (b.reducesCorruption ? 1.5f : 0) + (b.increasesResearch || b.doublesResearch ? 1.5f : 0)
+					+ (b.increasesTax ? 1.5f : 0) + (b.increasesLuxury ? 1 : 0);
+				float value;
+				if (b.IsGreatWonder() || b.isSmallWonder) {
+					value = 3 + b.contentFacesAllCities * cities / 2f + perCity + (b.unitProducedName != null ? 3 : 0)
+						+ (b.doublesCityGrowthEverywhere ? 3 : 0) + (b.twoFreeAdvances ? 4 : 0);
+				} else {
+					value = Math.Max(0, perCity) * cities;
+				}
+				worth += Math.Max(0, value) * reach;
+			}
+			return Math.Min(OwnBuildingsCap, worth * OwnBuildingWeight);
 		}
 
 		// The gold per turn the player's units would cost under the

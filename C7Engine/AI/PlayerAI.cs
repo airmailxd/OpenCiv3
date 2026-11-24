@@ -93,6 +93,9 @@ namespace C7Engine {
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			// Airlift defenders to threatened cities (see AirliftAI).
 			AirliftAI.PlayTurn(player);
+			// Airdrop settlers to distant sites, and paratroopers next to
+			// enemy cities they can take (see AirdropAI).
+			AirdropAI.PlayTurn(player, gameData);
 			await DoUnitActions(player);
 			// Units in enemy land pillage its improvements (see PillageAI).
 			await PillageAI.PlayTurn(player, gameData);

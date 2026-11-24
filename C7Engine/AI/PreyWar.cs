@@ -44,7 +44,14 @@ namespace C7Engine.AI {
 	public static class PreyWar {
 		public const string Switch = "prey-war";
 
-		public static bool On(Player player) => player != null && player.IsAdvancedAi && AiExperiments.Has(player, Switch);
+		public static bool On(Player player) => SwitchOn(player);
+
+		private static bool SwitchOn(Player player) => player != null && player.IsAdvancedAi && AiExperiments.Has(player, Switch);
+
+		// Whether a campaign on prey may be under way: one the plan named
+		// (the switch), or OpportunityWar's, which names it for every AI.
+		// Its cities then build the attackers it is short of.
+		public static bool Hunts(Player player) => On(player) || OpportunityWar.On(player);
 
 		// HEURISTIC: turns of gathering at peace after which the stack goes
 		// with two thirds of the attackers it wants (WarCampaign gives up a
@@ -58,8 +65,13 @@ namespace C7Engine.AI {
 
 		// The rival the plan names as prey: one we are at peace with, may
 		// declare on, and have no protection pact with. Null if none.
+		// Failing that, the victim OpportunityWar picks.
 		public static Player Prey(Player player, GameData gameData) {
-			if (!On(player)) {
+			return PlannedPrey(player, gameData) ?? OpportunityWar.Victim(player, gameData);
+		}
+
+		private static Player PlannedPrey(Player player, GameData gameData) {
+			if (!SwitchOn(player)) {
 				return null;
 			}
 			return gameData.players.FirstOrDefault(p => p != player && !p.IsIndependent && !p.defeated && p.cities.Count > 0
@@ -78,8 +90,23 @@ namespace C7Engine.AI {
 					|| Pacts.HasDeal(player, enemy, DealSubType.MutualProtectionPact)) {
 				return false;
 			}
-			Player named = Prey(player, gameData);
-			return named == null || named == enemy;
+			Player named = PlannedPrey(player, gameData);
+			if (named != null || SwitchOn(player)) {
+				return named == null || named == enemy;
+			}
+			// OpportunityWar's victim, while it still is one.
+			return OpportunityWar.Victim(player, gameData) == enemy;
+		}
+
+		// The fewest attackers the stack gathers at peace: MinAttackers for
+		// the plan's prey, fewer for a small civ's war of opportunity.
+		public static int MinAttackersFor(Player player) {
+			return SwitchOn(player) ? MinAttackers : OpportunityWar.MinAttackers(player);
+		}
+
+		// And the turns it gathers before going with two thirds of them.
+		public static int GoAfterTurnsFor(Player player) {
+			return SwitchOn(player) ? GoAfterTurns : OpportunityWar.GoAfterTurns;
 		}
 
 		// Whether a war on the prey is going badly enough to stop pressing it.

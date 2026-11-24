@@ -42,6 +42,9 @@ namespace C7Engine.AI {
 		// global pollution.
 		private const float PollutionIconWorth = 2;
 
+		// HEURISTIC: what an airport to drop from is worth, in yield a turn.
+		private const float AirBaseWorth = 5;
+
 		// HEURISTIC: how near (in tiles) enemy aircraft or warships must be
 		// for a city to want SAM batteries or a coastal fortress.
 		private const int AirThreatDistance = 12;
@@ -167,14 +170,19 @@ namespace C7Engine.AI {
 				gain += 3 + city.residents.Count / 3f;
 			}
 
-			// An airport is for air units: veterans, and airlifting them.
+			// An airport is for air units: veterans, and airlifting them;
+			// and in a city the civ would drop from, a base for its
+			// paratroopers and airdropped settlers (see AirdropAI). One
+			// with an effect of its own (Modern's E Airport, +25%
+			// production) is valued for that too.
 			if (building.allowsAirTrade || building.providesVeteranAirUnits) {
 				valued = true;
 				int aircraft = player.units.Count(u => u.IsAirUnit());
-				if (aircraft == 0) {
+				bool airBase = building.providesVeteranAirUnits && city.Airport() == null && UnitAI.AirdropAI.WantsAirBase(player, city);
+				if (aircraft == 0 && !airBase && building.productionBonusPercent == 0 && building.contentFacesInCity == 0) {
 					return null;
 				}
-				gain += Math.Min(aircraft, 6) * 0.5f;
+				gain += Math.Min(aircraft, 6) * 0.5f + (airBase ? AirBaseWorth : 0);
 			}
 
 			if (!valued) {

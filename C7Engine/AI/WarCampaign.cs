@@ -120,6 +120,10 @@ namespace C7Engine.AI {
 		private const int CooldownTurns = 20;
 		// HEURISTIC: how long to wait for the attackers to gather.
 		private const int MaxGatherTurns = 25;
+		// The conquest script's army: when it may go with four fifths, and
+		// when it gives up. HEURISTIC (UNVERIFIED).
+		private const int ConquestGoAfterTurns = 20;
+		private const int ConquestMaxGatherTurns = 80;
 		// HEURISTIC: under Rising Tide, the turns a civ fighting for the
 		// heart waits for its attackers before going with most of them.
 		private const int HeartGatherTurns = 3;
@@ -1126,7 +1130,7 @@ namespace C7Engine.AI {
 			// after taking one, it waits in its new city for the stack to
 			// fill up again, which holds the city meanwhile.
 			if (c.prey) {
-				needed = Math.Max(needed, PreyWar.MinAttackers + armyMembers);
+				needed = Math.Max(needed, PreyWar.MinAttackersFor(player) + armyMembers);
 			}
 			// A horde masses its full size before it first sets out, and
 			// then presses on, waiting in each city it takes for
@@ -1135,7 +1139,7 @@ namespace C7Engine.AI {
 				needed = Math.Max(needed, (c.massed ? HordeWar.PressAttackers : HordeWar.HordeSize(player, c.enemy)) + armyMembers);
 				return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, HordeWar.MaxHorde);
 			}
-			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : MaxAttackers);
+			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, c.rush ? EarlyRush.Attackers : c.script && PhasePlan.Conquest(player) ? PhasePlan.ConquestMostAttackers : MaxAttackers);
 		}
 
 		// HEURISTIC: the most attackers a campaign gathers.
@@ -1271,8 +1275,21 @@ namespace C7Engine.AI {
 			// fewer are needed.
 			int enough = Math.Max(3, needed * 2 / 3);
 			bool go = readyAttackers >= needed || (atWar && waited >= MaxGatherTurns / 2 && readyAttackers >= enough);
+			// The conquest script's large army is given longer to gather, and
+			// goes with four fifths of it after a while (see PhasePlan).
+			bool conquest = c.script && PhasePlan.Conquest(player);
+			if (conquest && !atWar && waited >= ConquestGoAfterTurns && readyAttackers >= needed * 4 / 5) {
+				go = true;
+			}
+			// And it declares only when its best attacker has the odds of a
+			// round against their best defender fortified in the city (20
+			// Archers, attack 2, lost the first war, then two more, against
+			// fortified Spearmen of an AI with Emperor's bonuses).
+			if (conquest && !atWar && go && PhasePlan.ConquestOdds(player, c.target) < AdvancedTuning.Get(player, "ConquestOdds")) {
+				go = false;
+			}
 			// The plan's prey, likewise before the war (see PreyWar).
-			if (c.prey && !atWar && waited >= PreyWar.GoAfterTurns && readyAttackers >= enough) {
+			if (c.prey && !atWar && waited >= PreyWar.GoAfterTurnsFor(player) && readyAttackers >= enough) {
 				go = true;
 			}
 			// A horde, before its war (see HordeWar).
@@ -1286,7 +1303,7 @@ namespace C7Engine.AI {
 			}
 			// The plan's prey, before the war: the stack waits a while for
 			// its siege engines on their way, rather than leave them behind.
-			if (c.prey && !atWar && go && waited < PreyWar.GoAfterTurns
+			if (c.prey && !atWar && go && waited < PreyWar.GoAfterTurnsFor(player)
 					&& c.units.Any(u => IsBombarder(u) && u.location != staging.location && PlayerAI.IsStillOurs(u, player))) {
 				go = false;
 			}
@@ -1311,6 +1328,10 @@ namespace C7Engine.AI {
 				}
 			}
 			if (!go) {
+				if (c.prey && waited % 5 == 0) {
+					log.Information("{Player} gathers against {Enemy} at {Staging}: {Ready} of {Needed} attackers ready, {Members} units in all, turn {Waited}",
+						player, c.enemy, staging.name, readyAttackers, needed, c.units.Count, waited);
+				}
 				foreach (MapUnit u in c.units) {
 					if (u.location == staging.location && !u.isFortified) {
 						u.Fortify();
@@ -1320,7 +1341,7 @@ namespace C7Engine.AI {
 				// needs in that time gives up for a while, so its attackers
 				// fight on their own (see CombatAI) rather than wait in the
 				// city all war.
-				return waited < (c.horde && !atWar ? HordeWar.MaxGatherTurns : MaxGatherTurns);
+				return waited < (c.horde && !atWar ? HordeWar.MaxGatherTurns : conquest ? ConquestMaxGatherTurns : MaxGatherTurns);
 			}
 			c.massed = true;
 

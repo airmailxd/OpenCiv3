@@ -8,7 +8,6 @@ using Serilog.Events;
 namespace C7Engine.AI {
 	public class CityTileAssignmentAI {
 		public static int DesiredFoodSurplusPerTurn = 2;
-		private static readonly int FOOD_PER_CITIZEN = 2;   //eventually will be configured by rules
 
 
 		private static int foodPriorityRate = 40;
@@ -95,7 +94,7 @@ namespace C7Engine.AI {
 			// a size 12 French capital worked flood plains for 1 shield a
 			// turn and could barely build anything.
 			bool foodIsWasted = context?.foodIsWasted ?? FoodIsWasted(gameData, city);
-			int desiredFoodRate = city.residents.Count * FOOD_PER_CITIZEN
+			int desiredFoodRate = city.residents.Count * City.FoodPerCitizen(city.owner?.rules)
 				+ (foodIsWasted ? 0 : DevelopmentAI.DesiredFoodSurplus(city, DesiredFoodSurplusPerTurn));
 			int targetTileFoodAmount = desiredFoodRate - foodYield;
 
