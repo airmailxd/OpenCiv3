@@ -207,7 +207,21 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Assert.False(spearman.GetProducibleUpgrade(amsterdam, new HashSet<Resource>() { iron, saltpeter }) == swiss);
 
 		Assert.False(spearman.CanProduce(amsterdam, new HashSet<Resource>() { iron, saltpeter }));
+		// The Swiss Mercenary is the Dutch unique unit, which starts a golden
+		// age: it stays buildable beside the Rifleman until the Dutch have had
+		// theirs, and only then goes obsolete ("a UU stays buildable only if
+		// your UU is the last link in an upgrade-chain, or if you haven't
+		// fulfilled the requirements" to build the upgrade, after its golden
+		// age: tjs282, C3X thread post-16978459, page-187 #3732; compendium
+		// 01-combat-and-units.md). See UnitPrototype.IsUnitObsolete. (The
+		// .json fixture predates unit flags, so its Swiss Mercenary starts no
+		// golden age and goes obsolete at once; the .SAV's, Conquests' own,
+		// does.)
+		Assert.False(nether.hadGoldenAge);
+		Assert.Equal(swiss.startsGoldenAge, swiss.CanProduce(amsterdam, new HashSet<Resource>() { iron, saltpeter }));
+		nether.hadGoldenAge = true;
 		Assert.False(swiss.CanProduce(amsterdam, new HashSet<Resource>() { iron, saltpeter }));
+		nether.hadGoldenAge = false;
 		Assert.True(swiss.GetProducibleUpgrade(amsterdam, new HashSet<Resource>() { iron, saltpeter }) == rifleman);
 		Assert.True(rifleman.CanProduce(amsterdam, new HashSet<Resource>() { iron, saltpeter }));
 		#endregion
@@ -318,7 +332,12 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Assert.False(trebuchet.GetProducibleUpgrade(seoul, new HashSet<Resource>() { saltpeter }) == cannon);
 
 		kor.knownTechs.Add(replaceableParts.id);
+		// The Hwach'a, Korea's unique unit, stays buildable beside the
+		// Artillery until Korea's golden age (see the Swiss Mercenary above).
+		Assert.Equal(hwacha.startsGoldenAge, hwacha.CanProduce(seoul, new HashSet<Resource>() { saltpeter }));
+		kor.hadGoldenAge = true;
 		Assert.False(hwacha.CanProduce(seoul, new HashSet<Resource>() { saltpeter }));
+		kor.hadGoldenAge = false;
 		Assert.True(artillery.CanProduce(seoul, new HashSet<Resource>() { }));
 		Assert.True(hwacha.GetProducibleUpgrade(seoul, new HashSet<Resource>() { }) == artillery);
 
@@ -377,6 +396,10 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Assert.Null(immortals.GetProducibleUpgrade(persepolis, noResources));
 
 		per.knownTechs.Add(replaceableParts.id);
+		// The Immortals stay buildable until Persia's golden age (see the
+		// Swiss Mercenary above).
+		Assert.Equal(immortals.startsGoldenAge, immortals.CanProduce(persepolis, new HashSet<Resource>() { iron }));
+		per.hadGoldenAge = true;
 		Assert.False(immortals.CanProduce(persepolis, new HashSet<Resource>() { iron }));
 		Assert.True(guerilla.CanProduce(persepolis, noResources));
 		Assert.True(guerilla.CanProduce(persepolis, new HashSet<Resource>() { iron }));
@@ -426,7 +449,12 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Assert.False(warrior.CanProduce(sumer, noResources));
 		Assert.False(spearman.CanProduce(sumer, noResources));
 		Assert.True(enkidu.CanProduce(sumer, noResources));
+		// The Enkidu Warrior stays buildable until Sumer's golden age (see the
+		// Swiss Mercenary above).
+		Assert.Equal(enkidu.startsGoldenAge, enkidu.CanProduce(sumer, new HashSet<Resource>() { iron }));
+		sum.hadGoldenAge = true;
 		Assert.False(enkidu.CanProduce(sumer, new HashSet<Resource>() { iron }));
+		sum.hadGoldenAge = false;
 		Assert.True(pikeman.CanProduce(sumer, new HashSet<Resource>() { iron }));
 		Assert.False(pikeman.CanProduce(sumer, noResources));
 

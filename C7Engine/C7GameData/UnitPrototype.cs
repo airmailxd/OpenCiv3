@@ -814,11 +814,18 @@ namespace C7GameData {
 		///
 		/// "AllowLesserUnitProduction" removes unit obsolescence.
 		private bool IsUnitObsolete(City city, HashSet<Resource> accessibleResources) {
-			// TODO: Consider golden ages when determining whether a unit is obsolete.
-			// If a golden age has not yet been triggered and a unit can trigger one,
-			// it shouldn't be marked as obsolete, even if its upgrade is available.
-
 			if (EngineStorage.gameData.rules.AllowLesserUnitProduction) return false;
+
+			// A unit that starts a golden age doesn't go obsolete before the
+			// civ has had its golden age: "a UU stays buildable only if your UU
+			// is the last link in an upgrade-chain, or if you haven't
+			// fulfilled the requirements" to build the upgrade, once the
+			// golden age is over (tjs282, C3X thread post-16978459, page-187
+			// #3732, agreed by timerover51 from the stock BIQ; see the
+			// compendium, 01-combat-and-units.md). The League's Future mod
+			// rests on it: each tribe's unique unit of any era stays
+			// buildable, the Musketeer beside the Rifleman.
+			if (this.startsGoldenAge && !city.owner.hadGoldenAge) return false;
 
 			if (this.GetProducibleUpgrade(city, accessibleResources) == null) return false;
 
