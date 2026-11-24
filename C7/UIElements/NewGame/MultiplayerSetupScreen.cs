@@ -672,7 +672,7 @@ public partial class MultiplayerSetupScreen : Control {
 	// in hotseat the other players at this computer; people joining bring
 	// their own names.
 	private bool CanRename(int row) {
-		return (row == -1 && !LanSession.NamedByAccount) || (row < slots.Count && slots[row].kind == SlotKind.Open && MultiplayerSlots.SeatsSetUpHere(GameType));
+		return (row == -1 && !LanSession.NamedByAccount) || (row >= 0 && row < slots.Count && slots[row].kind == SlotKind.Open && MultiplayerSlots.SeatsSetUpHere(GameType));
 	}
 
 	private void Rename() {
