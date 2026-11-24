@@ -223,6 +223,10 @@ public static class LanGameList {
 			GameScenario.RisingTide => "Rising Tide",
 			GameScenario.KingsAndNomads => "Kings & Nomads",
 			GameScenario.Mdj => "MDJ",
+			GameScenario.MpTournament => "MP Tournament",
+			GameScenario.Qc => "QC",
+			GameScenario.Modern => "Modern",
+			GameScenario.Future => "Future",
 			_ => "Standard",
 		};
 	}
@@ -242,6 +246,12 @@ public static class LanGameList {
 		}
 		if (rules.PermanentWar) {
 			return GameTypeName(GameScenario.EternalWar);
+		}
+		// The League's mods, by the name their rules are saved with (see
+		// GameSetup.BundledRules.cs); before MDJ, as they have tech trees of
+		// their own too.
+		if (GameSetup.BundledRulesOf(save) is GameSetup.BundledRules bundled) {
+			return GameTypeName(bundled.Scenario);
 		}
 		if (rules.GovernmentLocked || rules.OwnTechTree) {
 			return GameTypeName(GameScenario.Mdj);

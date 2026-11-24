@@ -28,6 +28,7 @@
         "Saltpeter",
         "Jade",
         "Incense",
+        "Cattle",
         "Precious Stones",
         "Wheat 2",
         "Precious Stones 2"
@@ -194,8 +195,7 @@
         "Iron",
         "Saltpeter",
         "Jade",
-        "Sake",
-        "Incense"
+        "Sake"
       ],
       "height": 2,
       "allowedFoliageAction": "none"
@@ -746,7 +746,7 @@
     {
       "key": "Incense",
       "icon": 11,
-      "foodBonus": 0,
+      "foodBonus": 2,
       "shieldsBonus": 0,
       "commerceBonus": 1,
       "category": "luxury",
@@ -1505,29 +1505,17 @@
     },
     {
       "name": "Scout",
-      "civilopediaEntry": "PRTO_Leader",
+      "civilopediaEntry": "PRTO_Horseman",
       "art": {
         "mainArt": {
-          "defaultName": "Medieval Japanese Leader",
-          "variations": {
-            "ERAS_Ancient_Times": "Medieval Japanese Leader",
-            "ERAS_Middle_Ages": "Medieval Japanese Leader",
-            "ERAS_Industrial_Age": "Medieval Japanese Leader",
-            "ERAS_Modern_Era": "Medieval Japanese Leader",
-            "SCI": "SciLeader"
-          }
+          "defaultName": "Horseman"
         },
         "thumbnailArt": {
-          "defaultIndex": 126,
-          "variations": {
-            "ERAS_Middle_Ages": 66,
-            "ERAS_Industrial_Age": 67,
-            "ERAS_Modern_Era": 68
-          }
+          "defaultIndex": 11
         },
         "pediaArt": {
-          "small": "art\\civilopedia\\icons\\units\\47leadersmall.pcx",
-          "large": "art\\civilopedia\\icons\\units\\47leaderlarge.pcx"
+          "small": "art\\civilopedia\\icons\\units\\11Horsemansmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\11horsemanlarge.pcx"
         }
       },
       "shieldCost": 12,
@@ -2108,8 +2096,8 @@
       "shieldCost": 40,
       "populationCost": 0,
       "requiredTech": "tech-13",
-      "attack": 6,
-      "defense": 4,
+      "attack": 7,
+      "defense": 3,
       "bombard": 0,
       "bombardRange": 0,
       "rateOfFire": 0,
@@ -2247,6 +2235,9 @@
         "Uesugi (Sci/Ag)",
         "Date (Ag/Sea)",
         "Tokugawa (Ag/Com)"
+      ],
+      "upgradesTo": [
+        "Myoshi Ronin (Amphib)"
       ],
       "unproducible": false,
       "flags": [
@@ -2805,18 +2796,30 @@
       ]
     },
     {
-      "name": "Mori Ninja (Amphib)",
-      "civilopediaEntry": "PRTO_Ninja",
+      "name": "Infiltrator (Amphib)",
+      "civilopediaEntry": "PRTO_Leader",
       "art": {
         "mainArt": {
-          "defaultName": "Ninja"
+          "defaultName": "Medieval Japanese Leader",
+          "variations": {
+            "ERAS_Ancient_Times": "Medieval Japanese Leader",
+            "ERAS_Middle_Ages": "Medieval Japanese Leader",
+            "ERAS_Industrial_Age": "Medieval Japanese Leader",
+            "ERAS_Modern_Era": "Medieval Japanese Leader",
+            "SCI": "SciLeader"
+          }
         },
         "thumbnailArt": {
-          "defaultIndex": 131
+          "defaultIndex": 126,
+          "variations": {
+            "ERAS_Middle_Ages": 66,
+            "ERAS_Industrial_Age": 67,
+            "ERAS_Modern_Era": 68
+          }
         },
         "pediaArt": {
-          "small": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia sm.pcx",
-          "large": "art\\civilopedia\\icons\\units\\X2_Ninja_civpedia lg.pcx"
+          "small": "art\\civilopedia\\icons\\units\\47leadersmall.pcx",
+          "large": "art\\civilopedia\\icons\\units\\47leaderlarge.pcx"
         }
       },
       "shieldCost": 50,
@@ -4492,6 +4495,7 @@
       "isBarbarian": true,
       "isCityStates": false,
       "aggressionLevel": 0,
+      "buildFlagCount": 0,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4556,6 +4560,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4621,6 +4630,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4685,6 +4699,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 1,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4749,6 +4768,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 1,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4814,6 +4838,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4879,6 +4908,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -4945,6 +4979,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5010,6 +5049,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5076,6 +5120,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 1,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5141,6 +5190,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5206,6 +5260,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5270,6 +5329,11 @@
       "isBarbarian": false,
       "isCityStates": false,
       "aggressionLevel": 2,
+      "buildOften": [
+        "offense",
+        "naval"
+      ],
+      "buildFlagCount": 2,
       "adjustments": {
         "distancePenaltyRadius": 4,
         "rivalCityRadius": 4,
@@ -5376,7 +5440,7 @@
     "governmentLocked": true,
     "ownTechTree": true,
     "teamVictory": false,
-    "aiBuildingMaintenancePercent": 0,
+    "aiBuildingMaintenancePercent": 100,
     "aiExtraFreeUnitsPerCity": 0,
     "aiCorruptionPercent": 100,
     "aiExtraContentCitizens": 0,
@@ -5385,6 +5449,10 @@
     "acceleratedProduction": true,
     "allowCultureFlips": false,
     "scientificLeaders": false,
+    "retainCultureOnCapture": false,
+    "multiplayerTurnTimerBase": 22,
+    "multiplayerTurnTimerPerCity": 2,
+    "multiplayerTurnTimerPerUnit": 1,
     "citiesNeededToSupportAnArmy": 4,
     "spaceshipPartsRequired": [
       0
@@ -5394,6 +5462,14 @@
     "upgradeCostPerShield": 4,
     "startingTreasury": 10,
     "volcanoEruptionPeriod": 5000,
+    "permitPlagues": false,
+    "plagueName": "Black Death",
+    "plagueEarliestStart": 0,
+    "plagueVariance": 0,
+    "plagueDuration": 0,
+    "plagueStrength": 0,
+    "plagueGracePeriod": 1,
+    "plagueMaxOccurrences": 1,
     "firstEraCivilopediaName": "ERAS_Ancient_Times",
     "eraResearcherNames": {
       "ERAS_Ancient_Times": [
@@ -5588,7 +5664,7 @@
       ]
     },
     {
-      "name": "Double Worker Speed",
+      "name": "2x Worker Speed",
       "civilopediaEntry": "TECH_The_Wheel",
       "eraCivilopediaName": "ERAS_Ancient_Times",
       "id": "tech-5",
@@ -6401,7 +6477,7 @@
       "name": "Plant Forest",
       "civilopediaEntry": "TFRM_Plant_Forest",
       "turnsToComplete": 18,
-      "requiredTech": "tech-32",
+      "requiredTech": "tech-24",
       "validators": [
         "terraforms.validators.plant_forest"
       ],
@@ -6775,7 +6851,7 @@
     {
       "name": "7 Player",
       "width": 64,
-      "height": 66,
+      "height": 64,
       "optimalNumberOfCities": 9,
       "techRate": 240,
       "distanceBetweenCivs": 20,
@@ -6784,8 +6860,8 @@
     },
     {
       "name": "8 Player",
-      "width": 70,
-      "height": 70,
+      "width": 66,
+      "height": 66,
       "optimalNumberOfCities": 9,
       "techRate": 240,
       "distanceBetweenCivs": 22,

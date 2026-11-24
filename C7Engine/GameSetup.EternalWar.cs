@@ -14,6 +14,12 @@ public enum GameScenario {
 	KingsAndNomads,
 	// MPTournamentMDJ.biq's rules on a generated map (see GameSetup.Mdj.cs).
 	Mdj,
+	// The Civ Players League's ladder mods' rules on a generated map (see
+	// GameSetup.BundledRules.cs): MP Tournament, QC, Modern and Future.
+	MpTournament,
+	Qc,
+	Modern,
+	Future,
 }
 
 // Eternal War, a custom scenario (owner's design, 2026-10-21): on one

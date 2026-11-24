@@ -2009,9 +2009,18 @@ namespace C7GameData {
 			}
 		}
 
-		// Resisters don't eat (see StartResistance).
+		// Resisters don't eat (see StartResistance). Each citizen eats the
+		// rules' food consumption per citizen (the BIQ RULE's: 2 in
+		// conquests.biq, 4 in Quick Civ.biq, which doubles the land's food).
 		public int FoodConsumedPerTurn() {
-			return (residents.Count - ResistersInCity()) * 2;
+			return (residents.Count - ResistersInCity()) * FoodPerCitizen(owner?.rules);
+		}
+
+		// The food each citizen eats a turn under the rules: 2, as in Civ3,
+		// unless they say otherwise.
+		public static int FoodPerCitizen(Rules rules) {
+			int food = rules?.FoodConsumptionPerCitizen ?? 2;
+			return food > 0 ? food : 2;
 		}
 
 		// Civ3's resistance in a city taken by force, after
@@ -2954,6 +2963,13 @@ namespace C7GameData {
 				}
 				if (wonder.contentFacesAllCities != 0 && c != this
 					&& (!wonder.continentalMoodEffects || c.location.continent == location.continent)) {
+					result += wonder.contentFacesAllCities;
+				}
+			}
+			// A small wonder's, likewise (see Player.GetBuildingSnapshot).
+			foreach ((City c, CityBuilding cb) in owner.GetBuildingSnapshot().allCitiesMoodBuildings) {
+				Building wonder = cb.building;
+				if (c != this && (!wonder.continentalMoodEffects || c.location.continent == location.continent)) {
 					result += wonder.contentFacesAllCities;
 				}
 			}

@@ -84,6 +84,11 @@ public partial class PlayerSetup : Control {
 	CheckBox cultureFlips;
 	CheckBox scientificLeaders;
 
+	// Whether the game is a League mod played under rules of its own (MP
+	// Tournament, QC, Modern, Future; see GameSetup.BundledRules.cs), whose
+	// victory conditions and game rules start as it sets them.
+	private bool BundledScenario => GameSetup.BundledRulesFor(GetNode<GlobalSingleton>("/root/GlobalSingleton").Scenario) != null;
+
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
 
@@ -212,6 +217,13 @@ public partial class PlayerSetup : Control {
 		// The victory types allowed last time (or by default), with the
 		// thresholds (domination, culture) the scenario or ruleset sets.
 		victoryConditions = choices.ChosenVictoryConditions(save.VictoryConditions);
+		// A League mod (see GameSetup.BundledRules.cs) starts with its own
+		// victory conditions and game rules.
+		if (BundledScenario) {
+			NewGameChoices mod = new();
+			mod.SetVictoryConditions(save.VictoryConditions);
+			victoryConditions = mod.ChosenVictoryConditions(save.VictoryConditions);
+		}
 		rulesContainer.Columns = 3;
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 		rulesContainer.AddThemeConstantOverride("h_separation", 12);
@@ -310,8 +322,8 @@ public partial class PlayerSetup : Control {
 			// like in Civ3. Rising Tide always starts with it on (owner's
 			// ruling, 2026-10-24).
 			ButtonPressed = GetNode<GlobalSingleton>("/root/GlobalSingleton").Scenario == GameScenario.RisingTide
-				|| (choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
-			TooltipText = "Cities need half the food to grow and half the shields to build, as in Civ3.",
+				|| (BundledScenario ? save.Rules.AcceleratedProduction : choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction),
+			TooltipText = "Cities need half the food to grow and half the shields to build.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
 
@@ -320,7 +332,7 @@ public partial class PlayerSetup : Control {
 			FontSize = 14,
 			// As chosen last time, or as the scenario or ruleset sets it,
 			// like in Civ3.
-			ButtonPressed = choices.CultureFlips ?? save.Rules.AllowCultureFlips,
+			ButtonPressed = BundledScenario ? save.Rules.AllowCultureFlips : choices.CultureFlips ?? save.Rules.AllowCultureFlips,
 			TooltipText = "Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.",
 		};
 		rulesContainer.AddChild(cultureFlips);
@@ -330,7 +342,7 @@ public partial class PlayerSetup : Control {
 			FontSize = 14,
 			// As chosen last time, or as the scenario or ruleset sets it,
 			// like in Civ3.
-			ButtonPressed = choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
+			ButtonPressed = BundledScenario ? save.Rules.ScientificLeaders : choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
 			TooltipText = "The first civilization to discover an advance may gain a scientific leader (3% chance, 5% for scientific civilizations), who can complete anything a city is building, wonders included.",
 		};
 		rulesContainer.AddChild(scientificLeaders);
@@ -394,7 +406,7 @@ public partial class PlayerSetup : Control {
 	// (Rules.CorruptionRate), starting at the rate chosen last time or the
 	// one the ruleset gives.
 	private void AddCorruptionRate(Container box) {
-		const string tooltip = "Scales every city's corruption and waste. 1.00 is Civ3's rate; "
+		const string tooltip = "Scales every city's corruption and waste. 1.00 is the standard rate; "
 			+ "the default, 0.90, goes slightly easier on everyone.";
 		// The label above the slider, to fit the box.
 		VBoxContainer row = new() { TooltipText = tooltip };
@@ -936,15 +948,23 @@ public partial class PlayerSetup : Control {
 				}
 			}
 
-			choices.SetVictoryConditions(gameSetup.victoryConditions);
+			// Not the victory conditions and game rules a League mod set (see
+			// BundledScenario), which aren't the player's choice for the next
+			// game.
+			bool bundled = GameSetup.BundledRulesFor(gameSetup.scenario) != null;
+			if (!bundled) {
+				choices.SetVictoryConditions(gameSetup.victoryConditions);
+			}
 			choices.ShowScoreboard = gameSetup.showScoreboard;
 			choices.CoreCitiesFreeOfCorruption = gameSetup.coreCitiesFreeOfCorruption;
 			// Not Rising Tide's, which has it on by default.
-			if (gameSetup.scenario != GameScenario.RisingTide) {
+			if (gameSetup.scenario != GameScenario.RisingTide && !bundled) {
 				choices.AcceleratedProduction = gameSetup.acceleratedProduction;
 			}
-			choices.CultureFlips = gameSetup.allowCultureFlips;
-			choices.ScientificLeaders = gameSetup.scientificLeaders;
+			if (!bundled) {
+				choices.CultureFlips = gameSetup.allowCultureFlips;
+				choices.ScientificLeaders = gameSetup.scientificLeaders;
+			}
 			choices.CorruptionRate = gameSetup.corruptionRate;
 
 			choices.Save();

@@ -90,17 +90,37 @@ namespace RegenerateRuleset {
 			// --mdj: MDJ's rules (see C7Engine/GameSetup.Mdj.cs), from
 			// Conquests/Scenarios/MPTournamentMDJ.biq, into
 			// C7/Lua/mdj/ruleset.json.
-			bool mdj = args.Contains("--mdj");
-			args = args.Where(a => a != "--mdj").ToArray();
+			// --mpt, --qc, --modern and --future <BIQ>: the Civ Players
+			// League's ladder mods (see C7Engine/GameSetup.BundledRules.cs),
+			// from the BIQ given, wherever it is, into C7/Lua/mptournament,
+			// qc, modern and future.
+			Scenario scenario = Scenarios.FirstOrDefault(s => args.Contains(s.Option));
+			if (args.Count(a => Scenarios.Any(s => s.Option == a)) > 1) {
+				Console.Error.WriteLine("Pass one of " + string.Join(", ", Scenarios.Select(s => s.Option)) + " at a time.");
+				return 1;
+			}
+			string modBiq = null;
+			if (scenario != null && scenario.BiqGiven) {
+				int at = Array.IndexOf(args, scenario.Option);
+				if (at + 1 >= args.Length || args[at + 1].StartsWith("--")) {
+					Console.Error.WriteLine($"{scenario.Option} needs the path of the mod's BIQ ({scenario.BiqName}).");
+					return 1;
+				}
+				modBiq = Path.GetFullPath(args[at + 1]);
+				args = args.Where((_, i) => i != at + 1).ToArray();
+			}
+			args = args.Where(a => !Scenarios.Any(s => s.Option == a)).ToArray();
 			if (args.Length > 2 || args.Any(a => a == "-h" || a == "--help")) {
-				Console.WriteLine("usage: RegenerateRuleset [--mdj] [Civ3 install path] [ruleset.json path]");
+				Console.WriteLine("usage: RegenerateRuleset [--mdj | (--mpt | --qc | --modern | --future) <BIQ path>] [Civ3 install path] [ruleset.json path]");
 				Console.WriteLine("the Civ3 install path defaults to the one Civ3Location finds, and the ruleset to C7/Lua/civ3/ruleset.json in the repository");
-				Console.WriteLine("(with --mdj, MPTournamentMDJ.biq's rules into C7/Lua/mdj/ruleset.json, laid out as C7/Lua/civ3/ruleset.json)");
+				foreach (Scenario s in Scenarios) {
+					Console.WriteLine($"(with {s.Option}, {s.BiqName}'s rules into C7/Lua/{s.RulesetDir}/ruleset.json, laid out as C7/Lua/civ3/ruleset.json)");
+				}
 				return args.Length > 2 ? 1 : 0;
 			}
-			if (mdj) {
-				return RegenerateMdj(args.Length > 0 ? args[0] : Civ3Location.GetCiv3Path(),
-					Path.GetFullPath(args.Length > 1 ? args[1] : Path.Combine(RepositoryRoot, "C7", "Lua", C7Engine.GameSetup.MdjRulesetDir, "ruleset.json")));
+			if (scenario != null) {
+				return RegenerateScenario(scenario, modBiq, args.Length > 0 ? args[0] : Civ3Location.GetCiv3Path(),
+					Path.GetFullPath(args.Length > 1 ? args[1] : Path.Combine(RepositoryRoot, "C7", "Lua", scenario.RulesetDir, "ruleset.json")));
 			}
 			string civ3Path = args.Length > 0 ? args[0] : Civ3Location.GetCiv3Path();
 			string conquests = Path.Combine(civ3Path, "Conquests");
@@ -164,34 +184,61 @@ namespace RegenerateRuleset {
 			Console.WriteLine($"\tkept: {string.Join(", ", kept ?? Kept)}");
 		}
 
-		// The sections of Civ3's bundled ruleset that MDJ's takes from the
-		// MDJ import as well: its own civilizations (Medieval Japan's clans)
-		// and world sizes (by player count, 1v1 to 8 Player).
-		static readonly string[] MdjAlsoFromBiq = { "civilizations", "worldSizes" };
+		// A scenario whose rules are bundled: its option, its BIQ, the folder
+		// under C7/Lua its ruleset.json goes in, how it is imported (as the
+		// game does: from the BIQ path given, or for MDJ from the Civ3
+		// install, and the Civ3 install path), the sections of Civ3's
+		// bundled ruleset it takes from its import as well as those all take
+		// (a section of C7's defaults among them takes the BIQ's instead),
+		// and whether the BIQ's path must be given.
+		record Scenario(string Option, string BiqName, string RulesetDir, Func<string, string, SaveGame> Import, string[] AlsoFromBiq, bool BiqGiven);
 
-		// MDJ's ruleset: Civ3's bundled ruleset's sections, in its order,
-		// those from the BIQ (and the civilizations) from MPTournamentMDJ.biq
-		// as GameSetup.ImportMdjBiq imports it, and the rest as Civ3's. Also
+		// What a League mod takes from its BIQ besides the usual sections:
+		// its civilizations (Future's own, Modern's with their own advances),
+		// world sizes (by player count), time scale and turn limit, and
+		// victory conditions (each mod sets its own).
+		static readonly string[] ModAlsoFromBiq = { "civilizations", "worldSizes", "timeOptions", "victoryConditions" };
+
+		static Scenario Mod(string option, C7Engine.GameSetup.BundledRules rules) =>
+			new(option, rules.BiqName, rules.RulesetDir, (biq, civ3) => C7Engine.GameSetup.ImportBundledBiq(biq, civ3, rules), ModAlsoFromBiq, true);
+
+		static readonly Scenario[] Scenarios = {
+			// MDJ (C7Engine/GameSetup.Mdj.cs): its own civilizations
+			// (Medieval Japan's clans) and world sizes (by player count, 1v1
+			// to 8 Player).
+			new("--mdj", C7Engine.GameSetup.MdjBiqName, C7Engine.GameSetup.MdjRulesetDir, (_, civ3) => C7Engine.GameSetup.ImportMdjBiq(civ3),
+				new[] { "civilizations", "worldSizes" }, false),
+			Mod("--mpt", C7Engine.GameSetup.MpTournamentRules),
+			Mod("--qc", C7Engine.GameSetup.QcRules),
+			Mod("--modern", C7Engine.GameSetup.ModernRules),
+			Mod("--future", C7Engine.GameSetup.FutureRules),
+		};
+
+		// A scenario's ruleset: Civ3's bundled ruleset's sections, in its
+		// order, those from the BIQ (and the scenario's own) from the
+		// scenario's BIQ as the game imports it, and the rest as Civ3's. Also
 		// the scenario's search folders, where Civ3's own art for it is
-		// (used when playing with Civ3's art, not in standalone mode).
-		static int RegenerateMdj(string civ3Path, string outPath) {
-			SaveGame imported = C7Engine.GameSetup.ImportMdjBiq(civ3Path);
+		// (used when playing with Civ3's art, not in standalone mode), and a
+		// mod's start for every civ (Rules.ScenarioStart, in its rules).
+		static int RegenerateScenario(Scenario scenario, string biqPath, string civ3Path, string outPath) {
+			SaveGame imported = scenario.Import(biqPath, civ3Path);
 			if (imported == null) {
-				Console.Error.WriteLine($"No {C7Engine.GameSetup.MdjBiqName} in {civ3Path}/Conquests/Scenarios; pass the Civ3 install path as the first argument.");
+				Console.Error.WriteLine(scenario.BiqGiven ? $"No BIQ at {biqPath}."
+					: $"No {scenario.BiqName} in {civ3Path}/Conquests/Scenarios; pass the Civ3 install path as the first argument.");
 				return 1;
 			}
 			JsonObject biq = JsonNode.Parse(imported.ToCompactJSON()).AsObject();
 			string templatePath = Path.Combine(RepositoryRoot, "C7", "Lua", "civ3", "ruleset.json");
 			JsonObject template = JsonNode.Parse(File.ReadAllText(templatePath)).AsObject();
 			Dictionary<string, JsonNode> defaults = FromC7Defaults();
-			string[] fromBiq = FromBiq.Concat(MdjAlsoFromBiq).ToArray();
-			string[] kept = Kept.Except(MdjAlsoFromBiq).ToArray();
+			string[] fromBiq = FromBiq.Concat(scenario.AlsoFromBiq).ToArray();
+			string[] kept = Kept.Except(scenario.AlsoFromBiq).ToArray();
 			JsonObject merged = new();
 			foreach ((string key, JsonNode value) in template.ToList()) {
-				if (defaults.TryGetValue(key, out JsonNode fromDefaults)) {
+				if (defaults.TryGetValue(key, out JsonNode fromDefaults) && !scenario.AlsoFromBiq.Contains(key)) {
 					merged[key] = fromDefaults.DeepClone();
 				} else if (fromBiq.Contains(key)) {
-					merged[key] = (biq[key] ?? throw new InvalidDataException($"The import of the MDJ BIQ has no {key}")).DeepClone();
+					merged[key] = (biq[key] ?? throw new InvalidDataException($"The import of {scenario.BiqName} has no {key}")).DeepClone();
 				} else if (kept.Contains(key)) {
 					merged[key] = value.DeepClone();
 				} else {
@@ -199,26 +246,28 @@ namespace RegenerateRuleset {
 					return 1;
 				}
 			}
-			// The terrain improvements are kept as Civ3's, but with MDJ's
-			// bonuses (its TERR: desert irrigation +2, mountain mines +3).
+			// The terrain improvements are kept as Civ3's, but with the
+			// scenario's bonuses (MDJ's TERR: desert irrigation +2, mountain
+			// mines +3; QC's: irrigation +2).
 			foreach (JsonNode improvement in merged["terrainImprovements"].AsArray()) {
 				string improvementKey = improvement["key"].GetValue<string>();
 				JsonNode ours = biq["terrainImprovements"].AsArray().FirstOrDefault(i => i["key"].GetValue<string>() == improvementKey)
-					?? throw new InvalidDataException($"The import of the MDJ BIQ has no terrain improvement {improvementKey}");
+					?? throw new InvalidDataException($"The import of {scenario.BiqName} has no terrain improvement {improvementKey}");
 				if (ours["bonusYields"] is JsonObject yields && yields.Count > 0) {
 					improvement["bonusYields"] = yields.DeepClone();
 				} else {
 					improvement.AsObject().Remove("bonusYields");
 				}
 			}
-			// The terraforms too are kept as Civ3's, but with MDJ's own
-			// advances, resources and turns: Civ3's would name advances of
-			// Civ3's tree by number, which are others in MDJ's, and Coal for
-			// the railroad, which MDJ hasn't got.
+			// The terraforms too are kept as Civ3's, but with the scenario's
+			// own advances, resources and turns: Civ3's would name advances of
+			// Civ3's tree by number, which are others in MDJ's and the League
+			// mods', and Coal for the railroad, which MDJ hasn't got; QC's
+			// jobs take a quarter of the turns.
 			foreach (JsonNode terraform in merged["terraForms"].AsArray()) {
 				string id = terraform["id"].GetValue<string>();
 				JsonNode ours = biq["terraForms"].AsArray().FirstOrDefault(t => t["id"].GetValue<string>() == id)
-					?? throw new InvalidDataException($"The import of the MDJ BIQ has no terraform {id}");
+					?? throw new InvalidDataException($"The import of {scenario.BiqName} has no terraform {id}");
 				foreach (string field in new[] { "requiredTech", "requiredResources", "turnsToComplete" }) {
 					if (ours[field] is JsonNode value && !(value is JsonArray { Count: 0 })) {
 						terraform[field] = value.DeepClone();
@@ -226,6 +275,13 @@ namespace RegenerateRuleset {
 						terraform.AsObject().Remove(field);
 					}
 				}
+			}
+			// A time scale from the BIQ is padded, as Civ3's in ruleset.json
+			// is, to 10000 turns in its last era, not the import's 50000.
+			if (scenario.AlsoFromBiq.Contains("timeOptions")
+					&& merged["timeOptions"]?["timeScale"]?[0] is JsonArray turns && turns.Count > 0
+					&& template["timeOptions"]?["timeScale"]?[0] is JsonArray civ3Turns && civ3Turns.Count == turns.Count) {
+				turns[turns.Count - 1] = civ3Turns[civ3Turns.Count - 1].DeepClone();
 			}
 			foreach (string key in new[] { "scenarioSearchPath", "scenarioName" }) {
 				if (biq[key] is JsonNode node) {
@@ -238,8 +294,8 @@ namespace RegenerateRuleset {
 			}).Replace("\r\n", "\n") + "\n";
 			Directory.CreateDirectory(Path.GetDirectoryName(outPath));
 			File.WriteAllText(outPath, json, new UTF8Encoding(false));
-			Console.WriteLine($"wrote {outPath} from {C7Engine.GameSetup.MdjBiqName}");
-			PrintSections(defaults.Keys, fromBiq, kept);
+			Console.WriteLine($"wrote {outPath} from {scenario.BiqName}");
+			PrintSections(defaults.Keys.Except(scenario.AlsoFromBiq), fromBiq, kept);
 			return 0;
 		}
 	}

@@ -188,6 +188,35 @@ namespace C7GameData {
 		// leaders" flag.
 		public bool ScientificLeaders = true;
 
+		// Scenario rule from Civ3: a city taken by force keeps the culture
+		// it has built up, now its captor's, so its borders don't shrink
+		// back to its first ring (see CityInteractions.CaptureCity). Off, a
+		// captor starts the city's culture from what it had of its own, as
+		// under Civ3's default rules. The BIQ GAME section's "retain
+		// culture" (on in MPTournament.biq), read only when the scenario has
+		// rules of its own.
+		public bool RetainCultureOnCapture = false;
+
+		// How every civ starts a new game on a generated map, when a
+		// scenario's BIQ says so in its first LEAD (the League's Modern and
+		// Future, whose players all start alike; see
+		// GameSetup.BundledRules.cs). Null for the usual start: the civ's
+		// own advances, the first era, StartUnitType1 and 2, the starting
+		// treasury and the default government.
+		public ScenarioStart ScenarioStart = null;
+
+		// Civ3's multiplayer turn timer, from the BIQ's GAME section (the
+		// editor's turn timer for multiplayer games): a turn lasts
+		// MultiplayerTurnTimerBase seconds, MultiplayerTurnTimerPerCity
+		// more for each city a player has and MultiplayerTurnTimerPerUnit
+		// more for each unit. Imported only: nothing times turns by it yet.
+		// The defaults are conquests.biq's; the League's mods have their own
+		// (MP Tournament 16/2/1, QC 42/3/0, Modern 37/2/1, Future 29/3/1,
+		// MDJ 22/2/1).
+		public int MultiplayerTurnTimerBase = 24;
+		public int MultiplayerTurnTimerPerCity = 3;
+		public int MultiplayerTurnTimerPerUnit = 1;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;
@@ -334,6 +363,18 @@ namespace C7GameData {
 			new() { Name = "dismissive of", Numerator = 1, Denominator = 2 },
 			new() { Name = "disdainful of", Numerator = 1, Denominator = 3 },
 		];
+	}
+
+	// A scenario's start for every civ (see Rules.ScenarioStart), by name.
+	public class ScenarioStart {
+		// The era's civilopedia name, as Rules.FirstEraCivilopediaName.
+		public string Era;
+		public int Gold;
+		public string Government;
+		// The advances every civ knows, besides its own starting ones.
+		public List<string> Techs = [];
+		// The units every civ starts with, a name for each unit.
+		public List<string> Units = [];
 	}
 
 	// An opinion one civ's people hold of another civ's culture when the other

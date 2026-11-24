@@ -174,8 +174,11 @@ namespace C7GameData {
 		}
 
 		// Whether this unit can carry other units: transports and armies.
+		// A unit that carries tactical missiles needs no unload action: its
+		// missiles are launched from it. Modern's Cruiser "Holds up to one
+		// tactical missile" (the League's notes) with none.
 		public bool CanCarryUnits() {
-			return this.unitType.capacity > 0 && (this.unitType.HasUnloadAction() || IsArmy());
+			return this.unitType.capacity > 0 && (this.unitType.HasUnloadAction() || IsArmy() || this.unitType.canCarryTacticalMissiles);
 		}
 
 		// Whether this unit is a transport its passengers can be unloaded
@@ -1364,7 +1367,11 @@ namespace C7GameData {
 			// Foot unit Flag" (the Helicopter;
 			// https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/)
 			// take only foot soldiers. Other transports take any land unit
-			// for now.
+			// for now, but a tactical missile, which goes only in a unit that
+			// carries tactical missiles: the League's notes on Modern's Sub
+			// Cruise (a tactical missile) say it "Loads into offensive boats
+			// (Nuke sub, cruiser, etc) instead of into galleons/transports",
+			// where its Mini Cruise (not one) goes.
 			bool suitableUnit;
 			if (IsArmy())
 				suitableUnit = mapUnit.unitType.CanJoinArmy();
@@ -1375,7 +1382,7 @@ namespace C7GameData {
 			else if (unitType.canCarryAircraft)
 				suitableUnit = mapUnit.IsAirUnit();
 			else
-				suitableUnit = mapUnit.IsLandUnit();
+				suitableUnit = mapUnit.IsLandUnit() && !mapUnit.unitType.isTacticalMissile;
 			return hasRoom && suitableUnit;
 		}
 

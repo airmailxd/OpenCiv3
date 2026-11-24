@@ -663,8 +663,12 @@ namespace C7Engine {
 		}
 
 		// The techs the actor could steal from the target.
+		// Not an advance of no era, which can only be given (see
+		// EraUtils.HIDDEN_CVLPD): QC's Satellites, its civs' own advances,
+		// MDJ's clans'.
 		public static List<Tech> StealableTechs(GameData gameData, Player actor, Player target) {
 			return gameData.techs.Where(t => target.knownTechs.Contains(t.id) && !actor.knownTechs.Contains(t.id)
+				&& t.EraCivilopediaName != EraUtils.HIDDEN_CVLPD
 				&& t.Prerequisites.All(p => actor.knownTechs.Contains(p.id))).ToList();
 		}
 

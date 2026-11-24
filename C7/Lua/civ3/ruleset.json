@@ -2895,7 +2895,8 @@
       ],
       "requiredResources": [
         "Oil",
-        "Rubber"
+        "Rubber",
+        "Aluminum"
       ]
     },
     {
@@ -7315,7 +7316,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "immobile"
+        "immobile",
+        "flagUnit"
       ],
       "categories": [
         "Land"
@@ -7357,7 +7359,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7402,7 +7405,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7447,7 +7451,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7492,7 +7497,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7537,7 +7543,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7582,7 +7589,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7627,7 +7635,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7672,7 +7681,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7717,7 +7727,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7762,7 +7773,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7807,7 +7819,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7852,7 +7865,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7897,7 +7911,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7942,7 +7957,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -7987,7 +8003,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8032,7 +8049,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8077,7 +8095,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8122,7 +8141,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8167,7 +8187,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8212,7 +8233,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8257,7 +8279,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8302,7 +8325,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8347,7 +8371,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8392,7 +8417,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8555,7 +8581,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8600,7 +8627,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8645,7 +8673,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8809,7 +8838,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8940,7 +8970,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -8985,7 +9016,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -9030,7 +9062,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "king"
+        "king",
+        "noSupportRequired"
       ],
       "categories": [
         "Land"
@@ -9860,6 +9893,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 0,
       "numberOfArmiesRequired": 0,
@@ -9885,6 +9921,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 1,
       "numberOfArmiesRequired": 0,
@@ -9917,6 +9956,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 2,
       "numberOfArmiesRequired": 0,
@@ -9943,6 +9985,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 3,
       "numberOfArmiesRequired": 0,
@@ -9969,6 +10014,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 4,
       "numberOfArmiesRequired": 0,
@@ -9999,6 +10047,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 5,
       "numberOfArmiesRequired": 0,
@@ -10028,6 +10079,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 6,
       "numberOfArmiesRequired": 0,
@@ -10055,6 +10109,9 @@
       "combatDefenseBonus": 0.5,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 7,
       "numberOfArmiesRequired": 0,
@@ -10088,6 +10145,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 8,
       "numberOfArmiesRequired": 0,
@@ -10121,6 +10181,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 9,
       "numberOfArmiesRequired": 0,
@@ -10151,6 +10214,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 10,
       "numberOfArmiesRequired": 0,
@@ -10178,6 +10244,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 11,
       "numberOfArmiesRequired": 0,
@@ -10207,6 +10276,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 12,
       "numberOfArmiesRequired": 0,
@@ -10230,6 +10302,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 50,
       "iconRowIndex": 13,
       "numberOfArmiesRequired": 0,
@@ -10257,6 +10332,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 50,
       "iconRowIndex": 14,
       "numberOfArmiesRequired": 0,
@@ -10280,6 +10358,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 15,
       "numberOfArmiesRequired": 0,
@@ -10310,6 +10391,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 50,
       "iconRowIndex": 16,
       "numberOfArmiesRequired": 0,
@@ -10340,6 +10424,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 50,
       "iconRowIndex": 17,
       "numberOfArmiesRequired": 0,
@@ -10371,6 +10458,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 100,
       "iconRowIndex": 18,
       "numberOfArmiesRequired": 0,
@@ -10405,6 +10495,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 19,
       "numberOfArmiesRequired": 0,
@@ -10435,6 +10528,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 20,
       "numberOfArmiesRequired": 0,
@@ -10464,6 +10560,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 21,
       "numberOfArmiesRequired": 0,
@@ -10493,6 +10592,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 22,
       "numberOfArmiesRequired": 0,
@@ -10522,6 +10624,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0.5,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 23,
       "numberOfArmiesRequired": 0,
@@ -10560,6 +10665,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 50,
       "iconRowIndex": 24,
       "numberOfArmiesRequired": 0,
@@ -10589,6 +10697,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 25,
       "numberOfArmiesRequired": 0,
@@ -10632,6 +10743,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 26,
       "numberOfArmiesRequired": 0,
@@ -10668,6 +10782,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 27,
       "numberOfArmiesRequired": 0,
@@ -10702,6 +10819,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 28,
       "numberOfArmiesRequired": 0,
@@ -10732,6 +10852,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 30,
       "numberOfArmiesRequired": 0,
@@ -10764,6 +10887,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 31,
       "renderedObsoleteBy": "tech-45",
@@ -10796,6 +10922,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 32,
       "renderedObsoleteBy": "tech-59",
@@ -10837,6 +10966,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 33,
       "renderedObsoleteBy": "tech-42",
@@ -10876,6 +11008,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 34,
       "renderedObsoleteBy": "tech-30",
@@ -10908,6 +11043,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 35,
       "renderedObsoleteBy": "tech-25",
@@ -10942,6 +11080,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 36,
       "renderedObsoleteBy": "tech-39",
@@ -10977,6 +11118,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 37,
       "numberOfArmiesRequired": 0,
@@ -11004,6 +11148,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 38,
       "numberOfArmiesRequired": 0,
@@ -11035,6 +11182,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 39,
       "numberOfArmiesRequired": 0,
@@ -11071,6 +11221,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 40,
       "numberOfArmiesRequired": 0,
@@ -11102,6 +11255,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 41,
       "numberOfArmiesRequired": 0,
@@ -11133,6 +11289,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 42,
       "numberOfArmiesRequired": 0,
@@ -11164,6 +11323,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 43,
       "numberOfArmiesRequired": 0,
@@ -11195,6 +11357,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 44,
       "numberOfArmiesRequired": 0,
@@ -11226,6 +11391,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 45,
       "numberOfArmiesRequired": 0,
@@ -11257,6 +11425,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 46,
       "numberOfArmiesRequired": 0,
@@ -11289,6 +11460,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 47,
       "numberOfArmiesRequired": 0,
@@ -11324,6 +11498,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 48,
       "numberOfArmiesRequired": 0,
@@ -11354,6 +11531,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 49,
       "numberOfArmiesRequired": 0,
@@ -11385,6 +11565,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 50,
       "numberOfArmiesRequired": 0,
@@ -11419,6 +11602,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 51,
       "numberOfArmiesRequired": 0,
@@ -11447,6 +11633,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 52,
       "numberOfArmiesRequired": 0,
@@ -11477,6 +11666,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 53,
       "numberOfArmiesRequired": 0,
@@ -11505,6 +11697,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 54,
       "numberOfArmiesRequired": 0,
@@ -11535,6 +11730,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 100,
       "iconRowIndex": 55,
       "numberOfArmiesRequired": 0,
@@ -11564,6 +11762,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 56,
       "numberOfArmiesRequired": 0,
@@ -11593,6 +11794,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 57,
       "numberOfArmiesRequired": 0,
@@ -11623,6 +11827,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 58,
       "numberOfArmiesRequired": 3,
@@ -11652,6 +11859,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 59,
       "numberOfArmiesRequired": 0,
@@ -11678,6 +11888,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 60,
       "numberOfArmiesRequired": 0,
@@ -11711,6 +11924,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 61,
       "numberOfArmiesRequired": 0,
@@ -11740,6 +11956,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 62,
       "numberOfArmiesRequired": 0,
@@ -11770,6 +11989,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 63,
       "numberOfArmiesRequired": 0,
@@ -11799,6 +12021,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 64,
       "numberOfArmiesRequired": 0,
@@ -11826,6 +12051,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 65,
       "numberOfArmiesRequired": 0,
@@ -11853,6 +12081,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 66,
       "numberOfArmiesRequired": 0,
@@ -11880,6 +12111,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 67,
       "numberOfArmiesRequired": 0,
@@ -11907,6 +12141,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 68,
       "numberOfArmiesRequired": 0,
@@ -11934,6 +12171,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 69,
       "numberOfArmiesRequired": 0,
@@ -11961,6 +12201,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 70,
       "numberOfArmiesRequired": 0,
@@ -11989,6 +12232,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 71,
       "numberOfArmiesRequired": 0,
@@ -12016,6 +12262,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 72,
       "numberOfArmiesRequired": 0,
@@ -12043,6 +12292,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 73,
       "numberOfArmiesRequired": 0,
@@ -12074,6 +12326,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 74,
       "numberOfArmiesRequired": 0,
@@ -12108,6 +12363,9 @@
       "combatDefenseBonus": 0.5,
       "navalDefenseBonus": 0,
       "maintenanceCost": 1,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 75,
       "numberOfArmiesRequired": 0,
@@ -12135,6 +12393,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 3,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 76,
       "numberOfArmiesRequired": 0,
@@ -12165,6 +12426,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 2,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 77,
       "numberOfArmiesRequired": 0,
@@ -12201,6 +12465,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 78,
       "renderedObsoleteBy": "tech-30",
@@ -12232,6 +12499,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 79,
       "renderedObsoleteBy": "tech-39",
@@ -12268,6 +12538,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 80,
       "numberOfArmiesRequired": 0,
@@ -12299,6 +12572,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 81,
       "renderedObsoleteBy": "tech-45",
@@ -12328,6 +12604,9 @@
       "combatDefenseBonus": 0,
       "navalDefenseBonus": 0,
       "maintenanceCost": 0,
+      "goldPerTurn": 0,
+      "goldPerWorkedCoastTile": 0,
+      "doublesBuildingGold": false,
       "productionBonusPercent": 0,
       "iconRowIndex": 56,
       "numberOfArmiesRequired": 0,
@@ -14279,7 +14558,41 @@
     "coreCitiesFreeOfCorruption": false,
     "citiesFreeOfCorruption": 5,
     "corruptionRate": 0.9,
+    "noCorruption": false,
+    "permanentWar": false,
+    "bornUnhappyPercent": 100,
+    "sizeWithoutAqueduct": 0,
+    "sizeWithoutHospital": 0,
+    "tileCommerceBonus": 0,
+    "tundraForestFoodBonus": 0,
+    "desertShieldBonus": 0,
+    "defeatedWorkersBecomeSlaves": false,
+    "coastalBuildingRange": 1,
+    "stagingUnits": false,
+    "marketOffersPerTurn": 3,
+    "risingTide": false,
+    "newCitySize": 1,
+    "cityCenterFood": 2,
+    "settlersOnlyInConqueredCities": false,
+    "fallenCitiesGoIndependent": false,
+    "allTechsAtStart": false,
+    "persistentResources": false,
+    "governmentLocked": false,
+    "ownTechTree": false,
+    "teamVictory": false,
+    "aiBuildingMaintenancePercent": 100,
+    "aiExtraFreeUnitsPerCity": 0,
+    "aiCorruptionPercent": 100,
+    "aiExtraContentCitizens": 0,
+    "aiCostPercent": 100,
+    "aiUnitsStartVeteran": false,
     "acceleratedProduction": false,
+    "allowCultureFlips": true,
+    "scientificLeaders": true,
+    "retainCultureOnCapture": false,
+    "multiplayerTurnTimerBase": 24,
+    "multiplayerTurnTimerPerCity": 3,
+    "multiplayerTurnTimerPerUnit": 1,
     "citiesNeededToSupportAnArmy": 4,
     "buildArmyUnit": "Army",
     "battleCreatedUnit": "Leader",
@@ -14300,7 +14613,39 @@
     "upgradeCostPerShield": 3,
     "startingTreasury": 10,
     "volcanoEruptionPeriod": 5000,
+    "permitPlagues": false,
+    "plagueName": "Plague",
+    "plagueEarliestStart": -700,
+    "plagueVariance": 5,
+    "plagueDuration": 100,
+    "plagueStrength": 80,
+    "plagueGracePeriod": 1000,
+    "plagueMaxOccurrences": 3,
     "firstEraCivilopediaName": "ERAS_Ancient_Times",
+    "eraResearcherNames": {
+      "ERAS_Ancient_Times": [
+        "Mystics",
+        "Sages",
+        "Prophets"
+      ],
+      "ERAS_Middle_Ages": [
+        "Wise-Men",
+        "Alchemists",
+        "Sooth Sayers"
+      ],
+      "ERAS_Industrial_Age": [
+        "Scientists",
+        "Scholars",
+        "Inventors"
+      ],
+      "ERAS_Modern_Era": [
+        "Engineers",
+        "Committees",
+        "Think-Tanks",
+        "Researchers",
+        "Contractors"
+      ]
+    },
     "foodConsumptionPerCitizen": 2,
     "movementAlongRoads": 3,
     "fortressDefensiveBonus": 50,
@@ -15873,7 +16218,15 @@
       "freeUnitsPerTown": 0,
       "freeUnitsPerCity": 0,
       "freeUnitsPerMetropolis": 0,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Revolutionary",
+        "Leader"
+      ],
+      "femaleRulerTitles": [
+        "",
+        ""
+      ]
     },
     {
       "hasTilePenalty": true,
@@ -15897,7 +16250,19 @@
       "freeUnitsPerTown": 4,
       "freeUnitsPerCity": 4,
       "freeUnitsPerMetropolis": 4,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Sir",
+        "Supreme Lord",
+        "Master",
+        "Great One"
+      ],
+      "femaleRulerTitles": [
+        "Madame",
+        "Supreme Lady",
+        "Mistress",
+        ""
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -15922,7 +16287,19 @@
       "freeUnitsPerTown": 2,
       "freeUnitsPerCity": 4,
       "freeUnitsPerMetropolis": 8,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Sire",
+        "Your Grace",
+        "Excellency",
+        "Lord"
+      ],
+      "femaleRulerTitles": [
+        "Madame",
+        "",
+        "",
+        "Lady"
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -15947,7 +16324,13 @@
       "freeUnitsPerTown": 6,
       "freeUnitsPerCity": 6,
       "freeUnitsPerMetropolis": 6,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Comrade"
+      ],
+      "femaleRulerTitles": [
+        ""
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -15972,7 +16355,15 @@
       "freeUnitsPerTown": 1,
       "freeUnitsPerCity": 3,
       "freeUnitsPerMetropolis": 4,
-      "unitCost": 2
+      "unitCost": 2,
+      "maleRulerTitles": [
+        "Sir",
+        "Prime Minister"
+      ],
+      "femaleRulerTitles": [
+        "Madame",
+        ""
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -15997,7 +16388,17 @@
       "freeUnitsPerTown": 0,
       "freeUnitsPerCity": 0,
       "freeUnitsPerMetropolis": 0,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Sir",
+        "President",
+        "Commander"
+      ],
+      "femaleRulerTitles": [
+        "Madame",
+        "",
+        ""
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -16022,7 +16423,15 @@
       "freeUnitsPerTown": 4,
       "freeUnitsPerCity": 7,
       "freeUnitsPerMetropolis": 10,
-      "unitCost": 1
+      "unitCost": 1,
+      "maleRulerTitles": [
+        "Great Leader",
+        "Emperor"
+      ],
+      "femaleRulerTitles": [
+        "",
+        "Empress"
+      ]
     },
     {
       "hasTilePenalty": false,
@@ -16047,7 +16456,17 @@
       "freeUnitsPerTown": 5,
       "freeUnitsPerCity": 2,
       "freeUnitsPerMetropolis": 1,
-      "unitCost": 3
+      "unitCost": 3,
+      "maleRulerTitles": [
+        "Baron",
+        "Your Lordship",
+        "King"
+      ],
+      "femaleRulerTitles": [
+        "Baroness",
+        "Your Ladyship",
+        "Queen"
+      ]
     }
   ],
   "difficulties": [
@@ -16264,6 +16683,7 @@
     "allowConquestVictory": true,
     "allowCulturalVictory": true,
     "allowWonderVictory": false,
+    "allowEmpireVictory": false,
     "cityElimination": false,
     "regicide": false,
     "massRegicide": false,
@@ -16272,8 +16692,17 @@
     "reverseCaptureTheFlag": false,
     "autoPlaceKings": true,
     "cityEliminationCount": 1,
+    "victoryPointLimit": 50000,
+    "wonderVictoryPoints": 10,
+    "defeatVictoryPoints": 5,
+    "advanceVictoryPoints": 5,
+    "cityConquestVictoryPoints": 100,
+    "autoPlaceVictoryLocations": true,
+    "victoryLocationPoints": 25,
     "useTurnLimit": false,
     "dominationTerritoryPercent": 66,
-    "dominationPopulationPercent": 66
+    "dominationPopulationPercent": 66,
+    "cultureOneCityWin": 20000,
+    "cultureAllCitiesWin": 100000
   }
 }

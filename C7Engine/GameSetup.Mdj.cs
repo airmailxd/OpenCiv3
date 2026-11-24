@@ -9,7 +9,8 @@ namespace C7Engine;
 
 // MDJ (owner's choice, 2026-10-28): the rules of MPTournamentMDJ.biq, a
 // multiplayer tournament scenario of Medieval Japan that ships with Civ3
-// Complete (Conquests/Scenarios), built on the Sengoku conquest: its units,
+// Complete (Conquests/Scenarios), built on the Sengoku conquest, in the Civ
+// Players League's newer version (owner's choice, 2026-11-22): its units,
 // advances, civilizations, resources and buildings, on a generated map.
 // Every civ starts knowing every advance, under Feudalism (the scenario's
 // only government but Anarchy), which no one can leave, and a resource a
@@ -54,16 +55,28 @@ public partial class GameSetup {
 	}
 
 	// The MDJ rules imported from the BIQ in the Civ3 install, or null if it
-	// isn't there: what RegenerateRuleset bundles. The scenario names its
-	// art folders (its search folders: the Sengoku conquest's, and PTW's
-	// Medieval Japan extras) relative to the Scenarios folder; its
-	// PediaIcons are the first of them that has one.
+	// isn't there. The scenario names its art folders (its search folders:
+	// the Sengoku conquest's, and PTW's Medieval Japan extras) relative to
+	// the Scenarios folder; its PediaIcons are the first of them that has
+	// one.
 	public static SaveGame ImportMdjBiq(string civ3Path) {
-		string biq = MdjBiqPath(civ3Path);
-		if (biq == null) {
+		return ImportMdjBiq(civ3Path, MdjBiqPath(civ3Path));
+	}
+
+	// The MDJ rules imported from the BIQ at the given path, wherever it is,
+	// or null if it isn't there; its art folders are looked for from the
+	// Civ3 install's Scenarios folder, where the scenario is played from.
+	// What RegenerateRuleset bundles is the Civ Players League's newer
+	// MPTournamentMDJ.biq (owner's choice, 2026-11-22), not the one Civ3
+	// ships: put in an install's Scenarios folder to regenerate (see
+	// _Console/RegenerateRuleset/readme.md), and found by
+	// MdjScenarioTest.TheBundledRulesAreTheBiqs where the League's other
+	// mods are.
+	public static SaveGame ImportMdjBiq(string civ3Path, string biq) {
+		if (string.IsNullOrEmpty(civ3Path) || biq == null || !File.Exists(biq)) {
 			return null;
 		}
-		string scenarios = Path.GetDirectoryName(biq);
+		string scenarios = Path.Join(civ3Path, "Conquests", "Scenarios");
 		string defaultBiq = Path.Join(civ3Path, "Conquests", "conquests.biq");
 		SaveGame save = ImportCiv3.ImportBiq(biq, defaultBiq, searchFolders => PediaIconsFor(civ3Path, scenarios, searchFolders));
 		SetUpMdjRules(save);

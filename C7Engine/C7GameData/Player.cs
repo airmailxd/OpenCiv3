@@ -1937,8 +1937,13 @@ namespace C7GameData {
 		}
 
 		// Whether there's no advance left to learn.
+		// Every advance there is to research: not those of no era, which
+		// can only be given (see EraUtils.HIDDEN_CVLPD), such as QC's
+		// Satellites, which only its Spectators know, so that past QC's
+		// "End Of Game" research goes on to future techs.
 		public bool KnowsEveryTech(GameData gameData) {
-			return gameData.techs.Count > 0 && gameData.techs.All(t => knownTechs.Contains(t.id));
+			return gameData.techs.Count > 0
+				&& gameData.techs.All(t => knownTechs.Contains(t.id) || t.EraCivilopediaName == EraUtils.HIDDEN_CVLPD);
 		}
 
 		// With every advance known, research goes on to future techs: "When
@@ -3072,6 +3077,9 @@ namespace C7GameData {
 			internal bool increasesLeaderChance;
 			// Longevity: cities grow by two citizens at a time.
 			internal bool doublesCityGrowthEverywhere;
+			// Small wonders and improvements whose content faces reach all
+			// the owner's cities (great wonders' are in activeWonders).
+			internal List<Tuple<City, CityBuilding>> allCitiesMoodBuildings = new();
 
 			internal bool IsValidFor(Player player) {
 				if (buildingsVersion != player.BuildingsVersion
@@ -3125,6 +3133,19 @@ namespace C7GameData {
 					// any of our buildings but an obsolete one.
 					AddCombatAndMovementEffects(snapshot, cb.building);
 					if (!isGreatWonder) {
+						// A small wonder's content faces in all cities and
+						// Longevity's growth reach the owner's whole empire
+						// too: Modern's "E Utopia (+4 Happy All Cities)" and
+						// "F Prosperity" (Longevity's effect, in the League's
+						// list of Modern's buildings) are small wonders.
+						// Gaining a building in every city does not: Modern's
+						// own notes say a wonder must be a great one for that.
+						if (cb.building.contentFacesAllCities != 0) {
+							snapshot.allCitiesMoodBuildings.Add(new Tuple<City, CityBuilding>(c, cb));
+						}
+						if (cb.building.doublesCityGrowthEverywhere) {
+							snapshot.doublesCityGrowthEverywhere = true;
+						}
 						continue;
 					}
 					snapshot.activeWonders.Add(new Tuple<City, CityBuilding>(c, cb));

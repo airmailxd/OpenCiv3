@@ -38,12 +38,16 @@ public class Inflow : IProducible {
 		return 0;
 	}
 
+	// An inflow may need an advance, as a Civ3 "capitalization" improvement
+	// may: QC's "Game Ends, Higher Score Wins" is its Wealth for those who
+	// know "End Of Game".
 	public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
-		// TODO: add the option to unlock after researching a tech, or have a certain building, or having a certain resource
+		// TODO: add the option to have a certain building, or having a certain resource
 		// as well as rendering it obsolete by a building/tech/resource. Basically make this as configurable as it can be
-		return true;
+		return city?.owner == null || city.owner.HasRequiredTechnology(this);
 	}
 
+	// The advance is set from the save's by SaveGame, which knows the techs.
 	public Inflow(SaveInflow saveInflow, BehaviorEngine luaRulesEngine) {
 		this.name = saveInflow.name;
 		this.iconRowIndex = saveInflow.iconRowIndex;
@@ -76,10 +80,15 @@ public class Inflow : IProducible {
 public struct LocalYield {
 	public InflowYield yieldType { get; set; }
 	public readonly Func<ScriptContext, int> yieldCalculation;
+	// The Lua path of the calculation, which a save keeps: an inflow's
+	// name needn't be the path's (a mod's second Wealth, such as QC's "Game
+	// Ends, Higher Score Wins", uses Wealth's).
+	public readonly string yieldCalculationPath;
 
 	public LocalYield() { }
 	public LocalYield(InflowYield type, BehaviorEngine rulesEngine, string yieldCalculation = null) {
 		this.yieldType = type;
+		this.yieldCalculationPath = yieldCalculation;
 		if (yieldCalculation != null) {
 			this.yieldCalculation = rulesEngine.ImportFunc<Func<ScriptContext, int>>(yieldCalculation);
 		}

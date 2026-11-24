@@ -4041,6 +4041,14 @@ vacuum tube, developed in the early 1900s, made radio broadcasting and long-dist
 ^
 ^Radio, radar and television followed, and electronics became part of nearly every aspect of modern life.
 
+#TECH_Radio
+^[Radio] lets cities build $LINK<Civil Defense=BLDG_Civil_Defense> and workers build
+$LINK<radar towers=TFRM_Radar_Tower>, and leads to $LINK<Advanced Flight=TECH_Advanced_Flight>.
+
+#DESC_TECH_Radio
+^Marconi sent the first radio signal across the Atlantic in 1901. By the 1920s broadcast stations reached millions of
+homes, and in the Second World War radio tied together armies, fleets and air forces spread over whole continents.
+
 #TECH_Motorized_Transportation
 ^[Motorized Transportation] brings the $LINK<Tank=PRTO_Tank>.
 
@@ -5320,7 +5328,7 @@ about AD 250 and 900. Cities such as Tikal and Copan had great stone pyramids an
 ^The Maya developed the most complete writing system of the ancient Americas, an advanced calendar and a mathematics
 that used zero. Many of their southern cities were abandoned in the ninth century, but the Maya people live on.
 
-; ---- MDJ (C7/Lua/mdj): Medieval Japan's entries that Civ3's rules haven't got.
+; ---- MDJ (C7/Lua/mdj): Medieval Japan's entries that the base rules haven't got.
 ; Several of MDJ's units and advances share an entry, and so a page.
 
 #PRTO_Settler2
@@ -5389,7 +5397,7 @@ whoever would pay, and the wars of the age gave them plenty of work.
 
 #PRTO_Ninja
 ^The [Ninja] (attack 11, defense 2, moves 2) strikes hardest of all, picks its target out of a stack and can
-attack from a boat. The Mori have their own.
+attack from a boat. The Mori have their own, the Infiltrator (attack 10).
 
 #DESC_PRTO_Ninja
 ^The shinobi of Iga and Koga were hired as spies, scouts and raiders, slipping into castles and camps by
@@ -5433,7 +5441,7 @@ own, which can attack from a boat and start a golden age.
 practised on foot and from the saddle.
 
 #PRTO_Samurai_Warrior
-^The [Myoshi Ronin] is the Miyoshi's own ronin (attack 6, defense 4), needing $LINK<Iron=GOOD_Iron>. It can
+^The [Myoshi Ronin] is the Miyoshi's own ronin (attack 7, defense 3), needing $LINK<Iron=GOOD_Iron>. It can
 attack from a boat and start a golden age.
 
 #DESC_PRTO_Samurai_Warrior
@@ -5449,7 +5457,8 @@ $LINK<Jade=GOOD_Jade>. It can attack from a boat and start a golden age.
 Nagashino in 1575.
 
 #PRTO_Footman
-^The [Ashigaru] (attack 2, defense 2) is the cheapest soldier, and the one every clan starts with.
+^The [Ashigaru] (attack 2, defense 2) is the cheapest soldier, and the one every clan starts with. The
+Miyoshi can upgrade it to their $LINK<Myoshi Ronin=PRTO_Samurai_Warrior>.
 
 #DESC_PRTO_Footman
 ^The ashigaru, "light feet", were foot soldiers raised from the peasantry. By the end of the Sengoku period
@@ -5619,7 +5628,7 @@ $LINK<Otomo Spearman=PRTO_Otomo_Spearman>.
 
 #RACE_MORI
 ^The [Mori] (militaristic, expansionist, religious), led by Mori Motonari, have the
-$LINK<Mori Ninja=PRTO_Ninja>.
+Infiltrator, a $LINK<Ninja=PRTO_Ninja> of their own.
 
 #DESC_RACE_MORI
 ^Mori Motonari rose from a small lord to master of western Honshu by war and cunning alliances.

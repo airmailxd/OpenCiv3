@@ -57,6 +57,17 @@ namespace C7GameData {
 		// Governments are imported after buildings, so their IDs are filled
 		// in once they exist.
 		private readonly List<(SaveBuilding building, int government)> buildingRequiredGovernments = new();
+		// The building made of each BLDG, by its BIQ index (null for Wealth,
+		// which is an inflow), and the references between buildings, by the
+		// BIQ index of the building referred to: filled in once the
+		// buildings have names of their own (MakeBuildingNamesUnique), so a
+		// reference to one of several alike names the right one.
+		private readonly List<SaveBuilding> buildingsByBiqIndex = new();
+		private readonly List<(int index, Action<string> set)> buildingReferences = new();
+		// Whether only the civs the BIQ's GAME section lists as playable are
+		// imported: for a BIQ with no map, whose players GameSetup.Populate
+		// picks from the civs (see KeepPlayableCivilizations).
+		private bool onlyPlayableCivilizations;
 		private SavData savData;
 		private PediaIcons pediaIcons;
 		private readonly ID.Factory ids;
@@ -109,6 +120,11 @@ namespace C7GameData {
 			ImportRaces();
 			ImportCultureGroups();
 			ImportTechs();
+			// After the techs, which give each civ its own by its BIQ index,
+			// and before the units, whose civs and upgrades are by name.
+			if (onlyPlayableCivilizations) {
+				KeepPlayableCivilizations();
+			}
 			ImportCiv3Resources();
 			ImportTerraforms();
 			ImportUnitPrototypes();
@@ -133,6 +149,12 @@ namespace C7GameData {
 				if (government < save.Governments.Count) {
 					building.requiredGovernment = save.Governments[government].id;
 				}
+			}
+			// Named apart by their governments, then the buildings they
+			// refer to by BIQ index named as they are now.
+			MakeBuildingNamesUnique();
+			foreach ((int index, Action<string> set) in buildingReferences) {
+				set(BuildingName(index));
 			}
 			ImportDifficulties();
 			ImportRules();
@@ -499,6 +521,10 @@ namespace C7GameData {
 			// generates.
 			save.Seed = hasMap ? biq.Wmap[0].MapSeed : Random.Shared.Next(int.MaxValue);
 
+			// With a map, the players are the BIQ's, by civ index; without,
+			// GameSetup.Populate picks them from the civs, which are then only
+			// those the BIQ lets play.
+			onlyPlayableCivilizations = !hasMap;
 			ImportSharedBiqData();
 			ImportBiqVictory();
 			if (hasMap) {
@@ -1837,7 +1863,7 @@ namespace C7GameData {
 
 				if (building.BuiltByPlayer != -1 && city.Bitm.IsBuildingUsable(buildingIndex)) {
 					BLDG bldg = theBiq.Bldg[buildingIndex];
-					string buildingName = bldg.Name;
+					string buildingName = BuildingName(buildingIndex);
 					res.Add(new SaveCityBuilding {
 						building = buildingName,
 						// Buildings the save doesn't say who built are
@@ -1863,7 +1889,7 @@ namespace C7GameData {
 
 			for (int buildingIndex = 0; buildingIndex < cityBuildings.Length; ++buildingIndex) {
 				BLDG building = bldgs[cityBuildings[buildingIndex]];
-				string buildingName = building.Name;
+				string buildingName = BuildingName(cityBuildings[buildingIndex]);
 
 				res.Add(new SaveCityBuilding {
 					building = buildingName,
@@ -1893,7 +1919,7 @@ namespace C7GameData {
 
 			return city.ConstructingType switch {
 				0 => (theBiq.Bldg[city.Constructing].Name, ProducibleType.INFLOW),
-				1 => (theBiq.Bldg[city.Constructing].Name, ProducibleType.BUILDING),
+				1 => (BuildingName(city.Constructing), ProducibleType.BUILDING),
 				2 => (unitPrototypes[city.Constructing].Name, ProducibleType.UNIT),
 				_ => throw new NotImplementedException()
 			};
@@ -2017,12 +2043,39 @@ namespace C7GameData {
 			int[] availableTo = prto.AvailableTo.GetAvailableCivIndexes().ToArray();
 			// The indexes are into the civs, which may come from the default BIQ.
 			RACE[] races = RaceBiq.Race;
+			// Only the civs imported (see KeepPlayableCivilizations).
+			HashSet<string> imported = save.Civilizations.Select(c => c.name).ToHashSet();
 			for (int i = 0; i < races.Length; ++i) {
-				if (availableTo.Contains(i))
+				if (availableTo.Contains(i) && imported.Contains(races[i].Name))
 					availableToCivs.Add(races[i].Name);
 			}
 
 			return availableToCivs;
+		}
+
+		// Leaves out the civs the BIQ's GAME section doesn't list as
+		// playable, but the barbarians (Civ3's editor, Scenario Properties,
+		// "Playable civs"; the GAME section's list, by RACE index). An empty
+		// list means all play. The League's mods leave out the civs they
+		// don't use (Modern's Rome and Vietnam, Future's Greeks), and their
+		// Spectators, a civ for watching a game (QC's, Modern's), which no
+		// player or random AI is to have.
+		private void KeepPlayableCivilizations() {
+			// The list is by index into the civs, so only of the BIQ's own,
+			// or of the default BIQ's civs with its game settings.
+			if (biq.Game is null && biq.Race is not null) {
+				return;
+			}
+			int[] playable = GameBiq?.GameCiv?[0];
+			if (playable == null || playable.Length == 0) {
+				return;
+			}
+			List<Civilization> left = save.Civilizations.Where((c, i) => !c.isBarbarian && !playable.Contains(i)).ToList();
+			if (left.Count == 0) {
+				return;
+			}
+			log.Information("Leaving out the civs the BIQ doesn't let play: {Civs}", string.Join(", ", left.Select(c => c.name)));
+			save.Civilizations.RemoveAll(left.Contains);
 		}
 
 		private void ImportUnitPrototypes() {
@@ -2148,6 +2201,12 @@ namespace C7GameData {
 
 				if (prto.RequiredResource2 != -1) {
 					prototype.requiredResources.Add(save.Resources[prto.RequiredResource2].Key);
+				}
+
+				// A unit may need three: Conquests' Modern Armor needs Oil,
+				// Rubber and Aluminum.
+				if (prto.RequiredResource3 != -1) {
+					prototype.requiredResources.Add(save.Resources[prto.RequiredResource3].Key);
 				}
 
 				prototype.producibleBy = ImportUnitAvailability(prto);
@@ -2306,12 +2365,16 @@ namespace C7GameData {
 				if (bldg.Capitalization) {
 					SaveInflow inflow = new () {
 						name = bldg.Name,
+						// Civ3's Wealth needs none; QC's second, "Game
+						// Ends, Higher Score Wins", needs "End Of Game".
+						requiredTech = bldg.RequiredAdvance >= 0 && bldg.RequiredAdvance < save.Techs.Count ? save.Techs[bldg.RequiredAdvance].id : null,
 						iconRowIndex = pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 						localYield = [
 							new SaveLocalYield(InflowYield.commerce, "inflows.result.wealth.commerce"),
 						],
 					};
 					save.Inflows.Add(inflow);
+					buildingsByBiqIndex.Add(null);
 					continue; // We don't consider Wealth as a building
 				}
 
@@ -2338,7 +2401,7 @@ namespace C7GameData {
 				}
 
 				if (bldg.RequiredBuilding != -1) {
-					building.requiredBuilding = Bldg[bldg.RequiredBuilding].Name;
+					buildingReferences.Add((bldg.RequiredBuilding, name => building.requiredBuilding = name));
 					building.requiredBuildingCount = bldg.NumberOfRequiredBuildings;
 				}
 
@@ -2355,7 +2418,7 @@ namespace C7GameData {
 					building.spaceshipPart = bldg.SpaceshipPart;
 				}
 				if (bldg.DoublesHappiness >= 0) {
-					building.doublesHappinessOf = Bldg[bldg.DoublesHappiness].Name;
+					buildingReferences.Add((bldg.DoublesHappiness, name => building.doublesHappinessOf = name));
 				}
 				if (bldg.CanBuildUnits && bldg.UnitProduced >= 0) {
 					PRTO[] prto = biq.Prto ?? defaultBiq.Prto;
@@ -2376,10 +2439,10 @@ namespace C7GameData {
 				}
 
 				if (bldg.GainInEveryCity >= 0) {
-					building.greatWonderProperties.buildingGainedInEveryCity = Bldg[bldg.GainInEveryCity].Name;
+					buildingReferences.Add((bldg.GainInEveryCity, name => building.greatWonderProperties.buildingGainedInEveryCity = name));
 				}
 				if (bldg.GainInEveryCityOnContinent >= 0) {
-					building.greatWonderProperties.buildingGainedInEveryCityOnContinent = Bldg[bldg.GainInEveryCityOnContinent].Name;
+					buildingReferences.Add((bldg.GainInEveryCityOnContinent, name => building.greatWonderProperties.buildingGainedInEveryCityOnContinent = name));
 				}
 
 				building.flags = LoadBuildingFlags(bldg).ToHashSet();
@@ -2403,6 +2466,43 @@ namespace C7GameData {
 				MapFlagsToLuaFunctions(building);
 
 				save.Buildings.Add(building);
+				buildingsByBiqIndex.Add(building);
+			}
+		}
+
+		// The name of the building made of the BIQ's BLDG of the given index,
+		// once MakeBuildingNamesUnique has named it (or the BLDG's own name,
+		// for Wealth).
+		private string BuildingName(int biqIndex) {
+			if (biqIndex >= 0 && biqIndex < buildingsByBiqIndex.Count && buildingsByBiqIndex[biqIndex] is SaveBuilding building) {
+				return building.name;
+			}
+			return (biq.Bldg ?? defaultBiq.Bldg)[biqIndex].Name;
+		}
+
+		// C7 knows a building by its name, but a BIQ may give several the
+		// same one: Modern_2.4.biq has a Barracks, Airport, Coal Plant and
+		// Hydro Plant for each of several governments, and hidden buildings
+		// repeated for each of its advances. The first that needs no
+		// government keeps the name (Modern's Barracks that only Sun Tzu's
+		// gives), or else the first; the others are told apart by the
+		// government they need ("Barracks (Tradition)"), or else numbered
+		// ("O Experiments 2"). References between buildings are by BIQ index,
+		// so they are filled in after this, with these names.
+		private void MakeBuildingNamesUnique() {
+			HashSet<string> taken = save.Buildings.Select(b => b.name).ToHashSet();
+			foreach (IGrouping<string, SaveBuilding> same in save.Buildings.GroupBy(b => b.name).Where(g => g.Count() > 1).ToList()) {
+				SaveBuilding keeper = same.FirstOrDefault(b => b.requiredGovernment == null) ?? same.First();
+				int n = 1;
+				foreach (SaveBuilding building in same.Where(b => b != keeper)) {
+					string government = save.Governments.Find(g => g.id == building.requiredGovernment)?.name;
+					string name = government != null ? $"{same.Key} ({government})" : null;
+					while (name == null || taken.Contains(name)) {
+						name = $"{same.Key} {++n}";
+					}
+					taken.Add(name);
+					building.name = name;
+				}
 			}
 		}
 
@@ -2909,6 +3009,17 @@ namespace C7GameData {
 			// Scientific leaders likewise (see Rules.ScientificLeaders).
 			save.Rules.ScientificLeaders = games == null || games.Length == 0 || games[0].DefaultGameRules != 0
 				|| games[0].AllowScientificLeaders;
+			// A captured city's culture is kept only under a scenario's own
+			// rules that say so (see Rules.RetainCultureOnCapture).
+			save.Rules.RetainCultureOnCapture = games != null && games.Length > 0 && games[0].DefaultGameRules == 0
+				&& games[0].RetainCulture != 0;
+			// The multiplayer turn timer (see Rules.MultiplayerTurnTimerBase),
+			// in the GAME section whatever its "use default rules" says.
+			if (games != null && games.Length > 0) {
+				save.Rules.MultiplayerTurnTimerBase = games[0].MPBasetime;
+				save.Rules.MultiplayerTurnTimerPerCity = games[0].MPCityTime;
+				save.Rules.MultiplayerTurnTimerPerUnit = games[0].MPUnitTime;
+			}
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
 			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;

@@ -497,6 +497,9 @@ public partial class GameSetup {
 		if (save.Rules.AllTechsAtStart) {
 			GiveAllTechs(save, player);
 		}
+		// A mod's own start, for every civ (see Rules.ScenarioStart); the
+		// barbarians keep theirs.
+		List<string> scenarioUnits = civ.isBarbarian ? null : ApplyScenarioStart(save, player);
 		save.Players.Add(player);
 
 		if (civ.IsIndependent) {
@@ -517,6 +520,10 @@ public partial class GameSetup {
 			AddRisingTideStart(save, player, civ, startingLocation);
 		} else if (scenario == GameScenario.KingsAndNomads) {
 			AddKingsHorde(save, player, startingLocation);
+		} else if (scenarioUnits != null) {
+			foreach (string unit in scenarioUnits) {
+				AddUnit(save, player, unit, startingLocation);
+			}
 		} else if (scenario != GameScenario.EternalWar) {
 			AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);
 			AddUnit(save, player, save.Rules.StartUnitType2, startingLocation);

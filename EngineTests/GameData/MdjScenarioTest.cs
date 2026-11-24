@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using C7Engine;
 using C7Engine.Lua;
@@ -10,10 +12,18 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-// MDJ's rules (see GameSetup.Mdj.cs), bundled from MPTournamentMDJ.biq,
-// which ships with Civ3 Complete.
+// MDJ's rules (see GameSetup.Mdj.cs), bundled from the Civ Players League's
+// MPTournamentMDJ.biq, a newer version of the one that ships with Civ3
+// Complete.
 public class MdjScenarioTest {
 	private static GameMode.Config Mode(bool standalone) => new("civ3", standalone ? ["standalone"] : []);
+
+	// Where the League's MPTournamentMDJ.biq is, to check the bundled rules
+	// against: with the League's other mods (see BundledScenariosTest), in
+	// the folder C7_LEAGUE_MODS names, or the user's Downloads/Scenarios.
+	// The game never reads it.
+	private static string LeagueBiqPath => Path.Combine(Environment.GetEnvironmentVariable("C7_LEAGUE_MODS")
+		?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Scenarios"), GameSetup.MdjBiqName);
 
 	private static C7GameData.GameData NewGame(GameScenario scenario, int seed, bool standalone = true) {
 		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone));
@@ -120,20 +130,58 @@ public class MdjScenarioTest {
 		Assert.Equal(4, save.Resources.First(r => r.Key == "Olive Oil").Icon);
 	}
 
-	// The bundled rules are what RegenerateRuleset --mdj makes of the BIQ
-	// today: its units, advances, buildings, clans and resources.
+	// The bundled rules are what RegenerateRuleset --mdj makes of the
+	// League's BIQ today: its units, advances, buildings, clans, resources,
+	// world sizes and AI rules (skipped without the BIQ, or without the Civ3
+	// install whose conquests.biq the import fills in from).
 	[SkippableFact]
 	public void TheBundledRulesAreTheBiqs() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
-		SaveGame biq = GameSetup.ImportMdjBiq(Civ3Location.GetCiv3Path());
-		Skip.If(biq == null, "No MPTournamentMDJ.biq");
+		Skip.If(!File.Exists(LeagueBiqPath), $"No {LeagueBiqPath}");
+		SaveGame biq = GameSetup.ImportMdjBiq(Civ3Location.GetCiv3Path(), LeagueBiqPath);
 		SaveGame bundled = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: false));
-		Assert.Equal(biq.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost)),
-			bundled.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost)));
+		Assert.Equal(biq.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost, u.civilopediaEntry, string.Join(",", u.upgradesTo ?? []))),
+			bundled.UnitPrototypes.Select(u => (u.name, u.attack, u.defense, u.movement, u.shieldCost, u.civilopediaEntry, string.Join(",", u.upgradesTo ?? []))));
 		Assert.Equal(biq.Techs.Select(t => t.Name), bundled.Techs.Select(t => t.Name));
 		Assert.Equal(biq.Buildings.Select(b => b.name), bundled.Buildings.Select(b => b.name));
-		Assert.Equal(biq.Civilizations.Select(c => c.name), bundled.Civilizations.Select(c => c.name));
-		Assert.Equal(biq.Resources.Select(r => r.Key), bundled.Resources.Select(r => r.Key));
+		Assert.Equal(biq.Civilizations.Select(c => (c.name, string.Join(",", c.buildOften.Order()))),
+			bundled.Civilizations.Select(c => (c.name, string.Join(",", c.buildOften.Order()))));
+		Assert.Equal(biq.Resources.Select(r => (r.Key, r.FoodBonus, r.ShieldsBonus, r.CommerceBonus)),
+			bundled.Resources.Select(r => (r.Key, r.FoodBonus, r.ShieldsBonus, r.CommerceBonus)));
+		Assert.Equal(biq.WorldSizes.Select(w => (w.name, w.width, w.height)), bundled.WorldSizes.Select(w => (w.name, w.width, w.height)));
+		Assert.Equal(biq.Rules.AiBuildingMaintenancePercent, bundled.Rules.AiBuildingMaintenancePercent);
+	}
+
+	// The League's MDJ, against the one Civ3 ships: the Myoshi Ronin
+	// stronger in attack (7/3, was 6/4) and the Ashigaru's upgrade; the
+	// Mori's Infiltrator for their Ninja; the Scout drawn and described as
+	// a Horseman; Incense that feeds (+2 food), found with Cattle on desert
+	// but no longer on hills; Double Worker Speed renamed 2x Worker Speed;
+	// Plant Forest with Bridge Building (was Contact : Ronin); the bigger
+	// maps 64 and 66 high; the AI paying all its buildings' upkeep; and
+	// every clan's AI building offense and navies often.
+	[Fact]
+	public void TheRulesAreTheLeagues() {
+		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: false));
+		SaveUnitPrototype ronin = save.UnitPrototypes.Single(u => u.name == "Myoshi Ronin (Amphib)");
+		Assert.Equal((7, 3), (ronin.attack, ronin.defense));
+		Assert.Equal(["Myoshi Ronin (Amphib)"], save.UnitPrototypes.Single(u => u.name == "Ashigaru").upgradesTo);
+		Assert.DoesNotContain(save.UnitPrototypes, u => u.name == "Mori Ninja (Amphib)");
+		SaveUnitPrototype infiltrator = save.UnitPrototypes.Single(u => u.name == "Infiltrator (Amphib)");
+		Assert.Equal((10, 2, 2), (infiltrator.attack, infiltrator.defense, infiltrator.movement));
+		Assert.Equal(["Mori (Mil/Exp)"], infiltrator.producibleBy);
+		Assert.Equal("PRTO_Horseman", save.UnitPrototypes.Single(u => u.name == "Scout").civilopediaEntry);
+		Resource incense = save.Resources.Single(r => r.Key == "Incense");
+		Assert.Equal(2, incense.FoodBonus);
+		Assert.Contains("Cattle", save.TerrainTypes.Single(t => t.Key == "desert").allowedResources);
+		Assert.DoesNotContain("Incense", save.TerrainTypes.Single(t => t.Key == "hills").allowedResources);
+		Assert.Contains(save.Techs, t => t.Name == "2x Worker Speed");
+		Assert.DoesNotContain(save.Techs, t => t.Name == "Double Worker Speed");
+		SaveTerraform plantForest = save.TerraForms.Single(t => t.Name == "Plant Forest");
+		Assert.Equal("Bridge Building", save.Techs.Single(t => t.id == plantForest.RequiredTech).Name);
+		Assert.Equal(100, save.Rules.AiBuildingMaintenancePercent);
+		Assert.All(save.Civilizations.Where(c => !c.isBarbarian),
+			c => Assert.Equal([PlanFocus.Offense, PlanFocus.Naval], c.buildOften.Order()));
 	}
 
 	// Standalone mode's own Civilopedia (C7/Civilopedia) has a page, with its
@@ -173,8 +221,10 @@ public class MdjScenarioTest {
 		SaveGame save = GameSetup.LoadMdjRules(PathUtils.GameModesDir, Mode(standalone: true));
 		Assert.Equal(["1v1", "4 Player", "6 Player", "7 Player", "8 Player"], save.WorldSizes.Select(w => w.name));
 		Assert.Equal("6 Player", Assert.Single(save.WorldSizes, w => w.isDefault).name);
+		WorldSize seven = save.WorldSizes[3];
+		Assert.Equal((64, 64, 7, 20, 9), (seven.width, seven.height, seven.numberOfCivs, seven.distanceBetweenCivs, seven.optimalNumberOfCities));
 		WorldSize eight = save.WorldSizes[4];
-		Assert.Equal((70, 70, 8, 22, 9), (eight.width, eight.height, eight.numberOfCivs, eight.distanceBetweenCivs, eight.optimalNumberOfCities));
+		Assert.Equal((66, 66, 8, 22, 9), (eight.width, eight.height, eight.numberOfCivs, eight.distanceBetweenCivs, eight.optimalNumberOfCities));
 	}
 
 	// The resources MDJ's units need are all on its maps: placed before its

@@ -289,7 +289,7 @@ public partial class WorldSetup : Control {
 
 	// The game types a new game may be, in the order they're listed.
 	internal static readonly (GameScenario scenario, string name, string description)[] GameTypes = [
-		(GameScenario.None, "Normal Game", "A standard game of Civilization III."),
+		(GameScenario.None, "Normal Game", "A standard game, from the founding of your first city to victory."),
 		(GameScenario.EternalWar, "Eternal War",
 			"A scenario: every civilization starts in the Middle Ages with cities scattered among its enemies', "
 			+ "at war with all the others for good. No one can build Settlers, so cities change hands only by conquest. "
@@ -306,28 +306,42 @@ public partial class WorldSetup : Control {
 		(GameScenario.Mdj, "MDJ",
 			"MPTournamentMDJ's rules, Medieval Japan's: its units, advances, clans and resources, on a generated map. "
 			+ "Everyone is under Feudalism, which no one can leave, and a resource once had is kept for good, though it be cut off."),
+		// The Civ Players League's ladder mods (see GameSetup.BundledRules.cs).
+		(GameScenario.MpTournament, "MP Tournament",
+			"The tournament ladder's rules: Accelerated Production, no scientific leaders or culture flips, "
+			+ "and maps traded from Map Making. Won by domination or by eliminating the rest, or scored at turn 90."),
+		(GameScenario.Qc, "QC",
+			"A quick ladder game, scored at turn 64. Everything costs half, the land makes twice the food and citizens eat twice as much, "
+			+ "Settlers take 3 citizens, workers are fast, and the tech tree is short."),
+		(GameScenario.Modern, "Modern",
+			"Start in the Industrial Age with two Settlers and two Workers, then choose one of four governments: "
+			+ "Equality, Tradition, Freedom or Order, each with buildings and wonders of its own. "
+			+ "Its own units and advances. Protect your King; scored at turn 64."),
+		(GameScenario.Future, "Future",
+			"Start in the Modern Era with nearly every advance, a Settler and a Worker. Civilizations have traits "
+			+ "and unique units of their own. Protect your King; scored at turn 90."),
 	];
 
 	// The rules a new game is played under: MDJ's (bundled, see
 	// GameSetup.Mdj.cs) for MDJ and Rising Tide (owner's choice,
-	// 2026-10-28), or else the usual ones. Loaded again only when that
-	// changes.
-	private bool mdjRulesLoaded;
+	// 2026-10-28), a League mod's own (see GameSetup.BundledRules.cs), or
+	// else the usual ones. Loaded again only when that changes.
+	private string loadedRulesetDir;
 
 	private void LoadRules(GameScenario scenario) {
-		bool mdj = scenario is GameScenario.Mdj or GameScenario.RisingTide;
-		if (_saveGame != null && mdj == mdjRulesLoaded) {
+		string rulesetDir = GameSetup.RulesetDirFor(scenario);
+		if (_saveGame != null && rulesetDir == loadedRulesetDir) {
 			return;
 		}
 		SaveGame rules = null;
-		if (mdj) {
+		if (rulesetDir != null) {
 			try {
-				rules = GameSetup.LoadMdjRules(GamePaths.GameModesDir, GamePaths.GameMode);
+				rules = GameSetup.LoadRulesFor(scenario, GamePaths.GameModesDir, GamePaths.GameMode);
 			} catch (Exception e) {
-				log.Error(e, "Could not load MPTournamentMDJ's rules; playing under the usual ones");
+				log.Error(e, "Could not load the rules in {RulesetDir}; playing under the usual ones", rulesetDir);
 			}
 		}
-		mdjRulesLoaded = rules != null;
+		loadedRulesetDir = rules != null ? rulesetDir : null;
 		_saveGame = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
 		// The player setup screen shows the civs' leaders, whose Civ3 art
 		// MDJ keeps in the scenario's folders (the Sengoku conquest's; none
@@ -412,6 +426,30 @@ public partial class WorldSetup : Control {
 			button.Modulate = noArchipelago ? new Color(1, 1, 1, 0.35f) : Colors.White;
 			button.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea."
 				: noArchipelago ? "This scenario is played on continents or a pangaea." : "";
+		}
+		ChooseLadderSettings(scenario);
+	}
+
+	// A League mod's world starts as the League plays it on its ladder
+	// (GameSetup.LadderSettings): its age, landform (if it has one), ocean
+	// and world size, all still free to change.
+	private int? ladderWorldSizeIndex;
+
+	private void ChooseLadderSettings(GameScenario scenario) {
+		if (GameSetup.BundledRulesFor(scenario)?.Ladder is not GameSetup.LadderSettings ladder) {
+			return;
+		}
+		Choose(LandformButton(ladder.Landform ?? landform, ladder.Ocean));
+		Choose(ladder.Age switch {
+			WorldCharacteristics.Age.Billion_3 => billion3,
+			WorldCharacteristics.Age.Billion_4 => billion4,
+			_ => billion5,
+		});
+		// The world size buttons are made after the first choice of game type.
+		if (worldSizeButtonsContainer != null && ladder.WorldSizeIndex < worldSizeButtonsContainer.GetChildCount() - 1) {
+			Choose(worldSizeButtonsContainer.GetChild<BaseButton>(ladder.WorldSizeIndex));
+		} else {
+			ladderWorldSizeIndex = ladder.WorldSizeIndex;
 		}
 	}
 
@@ -508,6 +546,12 @@ public partial class WorldSetup : Control {
 			if (!chooseRandom) {
 				initial = _choices.ChosenWorldSize(_saveGame.WorldSizes, sizeRandom);
 			}
+			// A League mod's ladder size (see ChooseLadderSettings).
+			if (ladderWorldSizeIndex is int ladder && ladder < _saveGame.WorldSizes.Count) {
+				chooseRandom = false;
+				initial = _saveGame.WorldSizes[ladder];
+			}
+			ladderWorldSizeIndex = null;
 
 			// Dynamically create a new button for each world size in the game
 			foreach (var ws in _saveGame.WorldSizes) {

@@ -87,10 +87,12 @@ public partial class MultiplayerSetupScreen : Control {
 	// The AI column is narrower than the other two.
 	private const float AiColumnRatio = 0.7f;
 	private List<PlayerSlot> slots = [];
-	// The scenario chosen (see WorldSetup.GameTypes), and whether MDJ's
-	// rules are loaded, which MDJ and Rising Tide are played under.
+	// The scenario chosen (see WorldSetup.GameTypes), and the folder of the
+	// rules loaded, if not the usual ones: MDJ's, which MDJ and Rising Tide
+	// are played under, or MP Tournament's or Quick Game's (see
+	// GameSetup.RulesetDirFor).
 	private GameScenario scenario = GameScenario.None;
-	private bool mdjRules;
+	private string loadedRulesetDir;
 	private OptionButton scenarioPicker;
 	private Label eternalWarCitiesLabel;
 	private OptionButton eternalWarCities;
@@ -409,9 +411,8 @@ public partial class MultiplayerSetupScreen : Control {
 
 	private void ChooseScenario(GameScenario chosen) {
 		scenario = chosen;
-		bool mdj = chosen is GameScenario.Mdj or GameScenario.RisingTide;
-		if (mdj != mdjRules) {
-			LoadRules(mdj);
+		if (GameSetup.RulesetDirFor(chosen) != loadedRulesetDir) {
+			LoadRules(chosen);
 		}
 		// Eternal War and Rising Tide are played on a pangaea, Kings &
 		// Nomads on continents or a pangaea.
@@ -427,7 +428,42 @@ public partial class MultiplayerSetupScreen : Control {
 		landMass.TooltipText = pangaeaOnly ? "This scenario is played on a pangaea."
 			: noArchipelago ? "This scenario is played on continents or a pangaea." : "";
 		// Rising Tide always starts with it on (owner's ruling, 2026-10-24).
-		acceleratedProduction.ButtonPressed = chosen == GameScenario.RisingTide;
+		// A League mod (see GameSetup.BundledRules.cs) starts with its own
+		// victory conditions and game rules, and its world as the League
+		// plays it on its ladder; all can still be changed.
+		GameSetup.BundledRules bundled = GameSetup.BundledRulesFor(chosen);
+		acceleratedProduction.ButtonPressed = chosen == GameScenario.RisingTide || (bundled != null && save.Rules.AcceleratedProduction);
+		if (bundled != null) {
+			scientificLeaders.ButtonPressed = save.Rules.ScientificLeaders;
+			cultureFlips.ButtonPressed = save.Rules.AllowCultureFlips;
+			VictoryConditions vc = save.VictoryConditions;
+			turnLimit.ButtonPressed = vc.UseTurnLimit;
+			dominationVictory.ButtonPressed = vc.AllowDominationVictory;
+			spaceRaceVictory.ButtonPressed = vc.AllowSpaceRaceVictory;
+			diplomaticVictory.ButtonPressed = vc.AllowDiplomaticVictory;
+			conquestVictory.ButtonPressed = vc.AllowConquestVictory;
+			culturalVictory.ButtonPressed = vc.AllowCulturalVictory;
+			wonderVictory.ButtonPressed = vc.AllowWonderVictory;
+			elimination.ButtonPressed = vc.CityElimination;
+			regicide.ButtonPressed = vc.Regicide;
+			massRegicide.ButtonPressed = vc.MassRegicide;
+			victoryPointScoring.ButtonPressed = vc.VictoryLocations;
+			GameSetup.LadderSettings ladder = bundled.Ladder;
+			if (ladder.Landform is WorldCharacteristics.Landform landform && Array.IndexOf(Landforms, landform) >= 0) {
+				landMass.Select(Array.IndexOf(Landforms, landform));
+			}
+			if (Array.IndexOf(Oceans, ladder.Ocean) >= 0) {
+				waterCoverage.Select(Array.IndexOf(Oceans, ladder.Ocean));
+			}
+			if (Array.IndexOf(Ages, ladder.Age) >= 0) {
+				age.Select(Array.IndexOf(Ages, ladder.Age));
+			}
+			if (ladder.WorldSizeIndex < save.WorldSizes.Count) {
+				worldSize.Select(ladder.WorldSizeIndex);
+			}
+		}
+		turnLimit.Text = $"Turn limit ({save.TimeOptions.turnLimit} turns)";
+		turnLimit.TooltipText = $"End the game after turn {save.TimeOptions.turnLimit}, scoring who leads. Without it, the game goes on until someone wins.";
 		ShowEternalWarCities();
 		MakeSlotRows();
 		var type = WorldSetup.GameTypes.First(g => g.scenario == chosen);
@@ -445,19 +481,22 @@ public partial class MultiplayerSetupScreen : Control {
 	}
 
 	// The rules a new game is played under: MDJ's for MDJ and Rising Tide
-	// (owner's choice, 2026-10-28), or else the usual ones, as the world
-	// setup screen loads them. The lists made from them are made again.
-	private void LoadRules(bool mdj) {
+	// (owner's choice, 2026-10-28), a League mod's own, or else the usual
+	// ones, as the world setup screen loads them. The
+	// lists made from them are made again.
+	private void LoadRules(GameScenario forScenario) {
 		SaveGame rules = null;
-		if (mdj) {
+		string rulesetDir = GameSetup.RulesetDirFor(forScenario);
+		if (rulesetDir != null) {
 			try {
-				rules = GameSetup.LoadMdjRules(GamePaths.GameModesDir, GamePaths.GameMode);
+				rules = GameSetup.LoadRulesFor(forScenario, GamePaths.GameModesDir, GamePaths.GameMode);
 			} catch (Exception e) {
-				log.Error(e, "Could not load MPTournamentMDJ's rules; playing under the usual ones");
-				AddMessage("MDJ's rules couldn't be loaded, so the usual ones are used.", ProblemColor);
+				log.Error(e, "Could not load the rules in {RulesetDir}; playing under the usual ones", rulesetDir);
+				string name = WorldSetup.GameTypes.FirstOrDefault(g => g.scenario == forScenario).name ?? "The scenario";
+				AddMessage($"{name}'s rules couldn't be loaded, so the usual ones are used.", ProblemColor);
 			}
 		}
-		mdjRules = rules != null;
+		loadedRulesetDir = rules != null ? rulesetDir : null;
 		save = rules ?? GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode).GetSave();
 		// MDJ keeps its leaders' Civ3 art in the scenario's folders.
 		Util.setModPath(save.ScenarioSearchPath);
