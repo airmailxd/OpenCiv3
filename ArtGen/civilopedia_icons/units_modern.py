@@ -22,7 +22,7 @@ import common as C  # noqa: E402
 UNITS = {
     'Super Trooper': 'Land', 'Laser Tank': 'Land', 'Bradley': 'Land', 'Convoy': 'Land',
     'Iron Dome': 'Land', 'Battalion': 'Land', 'Combat Engineer': 'Land', 'RPG Trooper': 'Land',
-    'Insurgent': 'Land', 'Rebel': 'Land', 'Militia': 'Land', 'Skirmisher': 'Land',
+    'Insurgent': 'Land', 'Rebel': 'Land', 'Militant': 'Land', 'Militia': 'Land', 'Skirmisher': 'Land',
     'Pirate': 'Sea', 'Troop Ship': 'Sea', 'Fighter Bomber': 'Air',
 }
 

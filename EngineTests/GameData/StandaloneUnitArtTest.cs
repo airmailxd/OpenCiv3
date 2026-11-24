@@ -192,7 +192,7 @@ public class StandaloneUnitArtTest {
 			Assert.Equal(art, unit.art.mainArt.defaultName);
 			Assert.NotNull(FindIgnoringCase(UnitsFolder, art));
 		}
-		Assert.Equal(15, C7Engine.GameSetup.ModernUnitArt.Values.Distinct().Count());
+		Assert.Equal(16, C7Engine.GameSetup.ModernUnitArt.Values.Distinct().Count());
 	}
 
 	[Fact]
