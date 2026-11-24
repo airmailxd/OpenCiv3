@@ -25,7 +25,7 @@ public partial class ConfirmationPopup : Popup {
 
 	public ConfirmationPopup(string message, string yesText, string noText, Action yesAction, Action noAction = null) {
 		alignment = BoxContainer.AlignmentMode.End;
-		margins = new Margins(right: 10);
+		margins = new Margins(right: -10); // 10px in from the right edge
 		this.message = message;
 		this.yesText = yesText;
 		this.noText = noText;

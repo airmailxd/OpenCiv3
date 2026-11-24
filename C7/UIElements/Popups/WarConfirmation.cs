@@ -10,7 +10,7 @@ public partial class WarConfirmation : Popup {
 
 	public WarConfirmation(Player opponent, Action action) {
 		alignment = BoxContainer.AlignmentMode.End;
-		margins = new Margins(right: 10);
+		margins = new Margins(right: -10); // 10px in from the right edge
 		this.opponent = opponent;
 		this.action = action;
 	}

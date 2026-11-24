@@ -9,7 +9,7 @@ public partial class CivilizationDestroyed : Popup {
 
 	public CivilizationDestroyed(Civilization civ) {
 		alignment = BoxContainer.AlignmentMode.End;
-		margins = new Margins(right: 10);
+		margins = new Margins(right: -10); // 10px in from the right edge
 		civNoun = civ.noun;
 	}
 
