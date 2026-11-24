@@ -44,6 +44,9 @@ project.lock.json
 *.sln.docstates
 C7.ini
 log.txt
+# A development run's numbered logs and its saves (run-dev.cmd)
+C7/log_*.txt
+C7/Saves/
 *.csproj.old
 *.csproj.old.*
 C7/.idea/.*
