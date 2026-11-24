@@ -280,7 +280,7 @@ public static class SetupStyle {
 
 		LineEdit chat = MakeDarkField();
 		chat.Editable = false;
-		chat.PlaceholderText = "Chat isn't in OpenCiv3 yet.";
+		chat.PlaceholderText = "Chat isn't in OpenCiv yet.";
 		chat.TooltipText = "Players can't chat before or during a game yet. Messages above show what happens on this screen.";
 		chat.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
 		strip.AddChild(chat);

@@ -139,43 +139,8 @@ public partial class SettingsMenu : Control {
 		column.AddChild(back);
 	}
 
-	// Standalone mode: playing with the game's own art and rules, without
-	// Civ3's files.
 	private void AddGameSettings(VBoxContainer column) {
-		GlobalSingleton global = GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton");
-		if (global == null) {
-			return;
-		}
 		column.AddChild(MakeHeading("Game"));
-
-		bool civ3Available = GamePaths.Civ3Available();
-		Civ3Checkbox standalone = new() {
-			Text = "Play without Civ3 (standalone)",
-			FontSize = 16,
-			ToggleMode = true,
-			ButtonPressed = C7Settings.UseStandaloneMode(),
-			// Without Civ3's files there's nothing else to play with.
-			Disabled = !civ3Available,
-			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
-		};
-		if (!civ3Available) {
-			standalone.Modulate = DisabledModulate;
-		}
-		standalone.Toggled += (bool on) => {
-			PlayClick();
-			// The same switch the game makes for a save of the other mode.
-			if (on != C7Settings.UseStandaloneMode()) {
-				global.ToggleStandaloneMode();
-			}
-			log.Information("Standalone mode turned {State}", on ? "on" : "off");
-		};
-		column.AddChild(standalone);
-		column.AddChild(MakeNote(civ3Available
-			? "Plays with the game's own art and rules. Off, it uses the art, sounds and rules of your " +
-				"Civilization III install instead. Takes effect for the next game you start; a saved game loads " +
-				"in the mode it was saved in, which switches this too."
-			: "No Civilization III install was found, so the game plays with its own art and rules. " +
-				"To play with Civ3's instead, install Civilization III."));
 
 		Civ3Checkbox intro = new() {
 			Text = "Play the intro movie on launch",
@@ -192,7 +157,7 @@ public partial class SettingsMenu : Control {
 		column.AddChild(intro);
 		column.AddChild(MakeNote(IntroVideo.FindFile() != null
 			? "Plays the intro movie when the game starts. Any key or click skips it."
-			: "Plays the intro movie when the game starts, once there is an Intro/" + IntroVideo.FileName + " in your OpenCiv3 " +
+			: "Plays the intro movie when the game starts, once there is an Intro/" + IntroVideo.FileName + " in the game's " +
 				"folder. Any key or click skips it."));
 	}
 

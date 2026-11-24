@@ -128,6 +128,11 @@ public partial class PreferencesPopup : Popup {
 	// the main menu (see C7GameData.TutorialState), and greys it out in a
 	// multiplayer game (FUN_00595aa0).
 	private static void AddTutorialMode(VBoxContainer column) {
+		// The game ships no tutorial text, so without one there is no
+		// tutorial to offer.
+		if (TutorialGuide.Text == null) {
+			return;
+		}
 		C7GameData.GameData gameData = C7Engine.EngineStorage.gameData;
 		string unavailable = TutorialGuide.Unavailable(gameData);
 		if (unavailable != null) {

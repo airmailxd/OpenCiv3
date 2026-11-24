@@ -358,7 +358,7 @@ public static class AdvisorUtils {
 
 		// The advice wraps within the box, leaving room for its border.
 		Label dialogBoxLabel = new();
-		dialogBoxLabel.Text = "You are running OpenCiv3!";
+		dialogBoxLabel.Text = "You are running OpenCiv!";
 		dialogBoxLabel.SetPosition(labelPosition);
 		dialogBoxLabel.Size = dialogBoxTexture.GetSize() - new Vector2(18, 18);
 		dialogBoxLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;

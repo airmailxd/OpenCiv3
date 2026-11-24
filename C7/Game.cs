@@ -533,9 +533,13 @@ public partial class Game : Node {
 				// is reasonable.
 				Util.setModPath(scenarioSearchPath);
 				log.Debug("RelativeModPath ", scenarioSearchPath);
-				return Util.Civ3MediaPath("Text/PediaIcons.txt");
+				// A save's caller only needs the mod path set; the game's own
+				// files may have no PediaIcons.txt, which isn't an error.
+				return Util.HasCiv3Media("Text/PediaIcons.txt") ? Util.Civ3MediaPath("Text/PediaIcons.txt") : null;
 			},
 			GameModeLoader = (config) => {
+				// Played with the game's own art whatever art the game was
+				// made with (see GlobalSingleton.ActivateGameMode).
 				Global.ActivateGameMode(config);
 				return Global.GameMode.behaviors;
 			},

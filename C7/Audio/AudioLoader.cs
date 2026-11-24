@@ -17,7 +17,7 @@ public static class AudioLoader {
 		// Initialize when running in the editor
 		// In game it is done by GlobalSingleton, but it's not accessible in the editor
 		if (Engine.IsEditorHint()) {
-			GameMode gameMode = GameMode.Load(GamePaths.GameModesDir, GamePaths.basic);
+			GameMode gameMode = GameMode.Load(GamePaths.GameModesDir, GamePaths.standalone);
 			var (script, table) = gameMode.audio;
 			AudioLoader.SetConfig(script, table);
 		}

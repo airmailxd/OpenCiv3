@@ -7,34 +7,15 @@ using C7Engine;
 using C7Engine.Lua;
 using ConvertCiv3Media;
 using Godot;
-using QueryCiv3;
 
 public partial class Util {
 	private static readonly Serilog.ILogger log = LogManager.ForContext<Util>();
-
-	private static string civ3Root = GetCiv3Path();
-
-	// Changing the root invalidates every path resolved against it.
-	static public string Civ3Root {
-		get => civ3Root;
-		set {
-			civ3Root = value;
-			ClearMediaPathCache();
-		}
-	}
-
-	static public string GetCiv3Path() {
-		string path = C7Settings.GetSettingValue("locations", "civ3InstallDir");
-		if (path != null) return path;
-
-		return Civ3Location.GetCiv3Path();
-	}
 
 	// Checks if a file exists ignoring case on the latter parts of its path. If the file is found, returns its full path re-capitalized as
 	// necessary, otherwise returns null. This function is needed for the game to work on Linux & Mac with the .NET Core runtime. It's not needed
 	// on Windows, which has a case insensitive filesystem, or when using the Mono runtime, which emulates case insensitivity out of the
 	// box. Arguments:
-	//   exactCaseRoot: The first part of the file path, not made case-insensitive. This is intended be the root Civ 3 path from GetCiv3Path().
+	//   exactCaseRoot: The first part of the file path, not made case-insensitive. This is intended to be the game's assets folder.
 	//   ignoredCaseExtension: The second part of the file path that will be searched ignoring case.
 	public static string FileExistsIgnoringCase(string exactCaseRoot, string ignoredCaseExtension) {
 		// In debug builds paths that are specified relative to the project directory
@@ -150,21 +131,16 @@ public partial class Util {
 	public static bool HasModPath => !string.IsNullOrEmpty(modPath);
 
 	// Civ3MediaPath results by media path. A null value means the media
-	// couldn't be found. The results are only valid for the current roots,
-	// mod path and standalone setting, so they're forgotten when any of those
-	// change.
+	// couldn't be found. They're forgotten when the mod path changes.
 	private static readonly Dictionary<string, string> mediaPathCache = new();
-	private static bool mediaPathCacheStandalone;
 
 	private static void ClearMediaPathCache() {
 		mediaPathCache.Clear();
-		scenarioReplacesStock.Clear();
 		directoryListings.Clear();
 	}
 
 	/// <summary>
-	/// Pass this function a relative path (e.g. Art/Terrain/xpgc.pcx) and it will grab the correct version
-	/// Assumes Conquests/Complete
+	/// Pass this function a relative path (e.g. Art/Terrain/xpgc.pcx) and it will grab the game's own file for it.
 	/// </summary>
 	/// <param name="mediaPath">The media path, e.g. Art/Units/units_32.pcx</param>
 	/// <returns>The path to the media on the file system, or an exception if it cannot be found</returns>
@@ -182,108 +158,35 @@ public partial class Util {
 	}
 
 	private static string CachedCiv3MediaPath(string mediaPath) {
-		bool standalone = C7Settings.UseStandaloneMode();
-		if (standalone != mediaPathCacheStandalone) {
-			ClearMediaPathCache();
-			mediaPathCacheStandalone = standalone;
-		}
-
 		if (!mediaPathCache.TryGetValue(mediaPath, out string result)) {
-			result = FindCiv3MediaPath(mediaPath, standalone);
+			result = FindCiv3MediaPath(mediaPath);
 			mediaPathCache[mediaPath] = result;
 		}
 		return result;
 	}
 
 	// The uncached search behind Civ3MediaPath. Returns null if the media can't
-	// be found.
-	private static string FindCiv3MediaPath(string mediaPath, bool standalone) {
-		//First, check if the file exists via a scenario's mod path
-		//For now this is only checked relative to Civ3, not relative to C7.
-		if (!string.IsNullOrEmpty(modPath)) {
-			string[] paths = modPath.Split(";");
-			foreach (string path in paths) {
-				string[] tryPaths = new string[] {
-					path,
-					// Needed for some reason as Steam version at least puts some mod art in Extras instead of Scenarios
-					//  Also, the case mismatch is intentional. C3C makes a capital C path, but it's lower-case on the filesystem
-					"Conquests/Conquests/" + path, "Conquests/Scenarios/" + path, "civ3PTW/Scenarios/" + path
-				};
-				for (int i = 0; i < tryPaths.Length; i++) {
-					string actualCasePath = CheckForCiv3Media(mediaPath, tryPaths[i]);
-					if (actualCasePath != null)
-						return actualCasePath;
-				}
-			}
+	// be found. This version is standalone only: the media is the game's own,
+	// packaged with it. A scenario's mod path names folders outside the game,
+	// so it isn't searched (the game ships no scenarios with art of their own).
+	private static string FindCiv3MediaPath(string mediaPath) {
+		if (string.IsNullOrEmpty(mediaPath)) {
+			return null;
 		}
-
-		// Next, before trying the base Civ paths, see if we have it packaged
-		// with C7 and are in standalone mode.
-		string c7BasePath = GetC7AssetsPath();
-		string c7Path = FileExistsIgnoringCase(c7BasePath, mediaPath);
-
-		if (standalone) {
-			return c7Path;
-		}
-
-		//Next, check the base Civ paths
-		string[] basePaths = new string[] {
-			"Conquests",
-			"civ3PTW",
-			""
-		};
-		for (int i = 0; i < basePaths.Length; i++) {
-			string actualCasePath = CheckForCiv3Media(mediaPath, basePaths[i]);
-			if (actualCasePath != null)
-				return actualCasePath;
-		}
-
-		// Finally, use a c7 path even if we aren't in standalone mode, but only
-		// if we can't find the path in civ3 graphics. This allows us to toggle
-		// to c7 art when we aren't in standalone mode.
-		return c7Path;
+		return FileExistsIgnoringCase(GetC7AssetsPath(), mediaPath);
 	}
 
 	// Whether the scenario being played has its own file for the media in
-	// place of one of the game's (as MDJ has its own resources.pcx, from the
-	// Sengoku conquest). The remade art of the Graphics Overhaul remakes the
-	// game's files, so it mustn't stand in for a scenario's (see
-	// ModernGraphics.UsedFor). Art only a scenario has, like its own units,
-	// may have been remade from it, and isn't replacing anything.
-	private static readonly Dictionary<string, bool> scenarioReplacesStock = new();
-
+	// place of one of the game's. A scenario's art isn't searched in this
+	// version (see FindCiv3MediaPath), so it never replaces the game's.
 	public static bool ScenarioReplacesStockArt(string mediaPath) {
-		if (string.IsNullOrEmpty(modPath)) {
-			return false;
-		}
-		if (!scenarioReplacesStock.TryGetValue(mediaPath, out bool result)) {
-			result = ScenarioHasArt(mediaPath) && new[] { "Conquests", "civ3PTW", "" }.Any(b => CheckForCiv3Media(mediaPath, b) != null);
-			scenarioReplacesStock[mediaPath] = result;
-		}
-		return result;
-	}
-
-	// Whether the scenario being played has its own file for the media,
-	// whether or not the game has one too.
-	public static bool ScenarioHasArt(string mediaPath) {
-		if (string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(mediaPath)) {
-			return false;
-		}
-		foreach (string path in modPath.Split(";")) {
-			foreach (string tryPath in new[] { path, "Conquests/Conquests/" + path, "Conquests/Scenarios/" + path, "civ3PTW/Scenarios/" + path }) {
-				if (CheckForCiv3Media(mediaPath, tryPath) != null) {
-					return true;
-				}
-			}
-		}
 		return false;
 	}
 
-	private static string CheckForCiv3Media(string relPath, string rootPath) {
-		// Combine TryPaths[i] and relPath. Make sure not to leave an erroneous forward slash at the start if TryPaths[i] is empty
-		string fullPath = rootPath != "" ? rootPath + "/" + relPath : relPath;
-
-		return FileExistsIgnoringCase(Civ3Root, fullPath);
+	// Whether the scenario being played has its own file for the media:
+	// never, in this version (see FindCiv3MediaPath).
+	public static bool ScenarioHasArt(string mediaPath) {
+		return false;
 	}
 
 	static public (ImageTexture, ImageTexture) LoadTextureFromFlicData(byte[] image, byte[,] pallete, int width, int height) {

@@ -10,12 +10,6 @@ public partial class MainMenu : Node {
 	[Export]
 	Civ3FileDialog LoadDialog;
 	[Export]
-	Control NoCiv3Options;
-	[Export]
-	FileDialog SetCiv3HomeDialog;
-	[Export]
-	Civ3FileDialog LoadScenarioDialog;
-	[Export]
 	MenuButtonContainer ButtonContainer;
 
 	GlobalSingleton Global;
@@ -56,25 +50,10 @@ public partial class MainMenu : Node {
 		}
 	}
 
-	// The title screen's version, "Air v0.8.2": the version the launcher
-	// installed (its installed.json beside the game), else the project's
-	// own ("Air dev" in the editor).
+	// The logo reads just OpenCiv: the label under it ("Air" in the scene,
+	// once the version) is hidden.
 	private void ShowVersion() {
-		string version = (string)ProjectSettings.GetSetting("application/config/version", "");
-		try {
-			string record = System.IO.Path.Combine(GamePaths.BaseDir, "installed.json");
-			if (System.IO.File.Exists(record)) {
-				using var json = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(record));
-				if (json.RootElement.TryGetProperty("version", out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String) {
-					version = v.GetString();
-				}
-			}
-		} catch (Exception ex) {
-			log.Warning(ex, "Could not read the installed version");
-		}
-		bool numbered = version.Length > 0 && char.IsDigit(version[0]);
-		GetNode<RichTextLabel>("Control/Background/RichTextLabel").Text =
-			numbered ? $"Air v{version}" : $"Air {version}".TrimEnd();
+		GetNode<RichTextLabel>("Control/Background/RichTextLabel").Visible = false;
 	}
 
 	private void DisplayTitleScreen() {
@@ -96,15 +75,6 @@ public partial class MainMenu : Node {
 		Global.Scenario = GameScenario.None;
 
 		LoadDialog.SetDirectoryForLoadingSaves();
-		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
-		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
-
-		// Without a Civ3 install, play in standalone mode rather than asking.
-		// The Settings page switches between the two.
-		if (!C7Settings.UseStandaloneMode() && !GamePaths.Civ3Available()) {
-			log.Information("No Civ3 install found, switching to standalone mode");
-			Global.ActivateGameMode(GamePaths.standalone);
-		}
 
 		ButtonContainer.Visible = true;
 		ButtonContainer.CreateButtons();
@@ -124,7 +94,9 @@ public partial class MainMenu : Node {
 		// with Tutorial Mode in the Preferences (see TutorialGuide).
 		ButtonContainer.Tutorial.Visible = false;
 		ButtonContainer.LoadGame.Pressed += LoadGame;
-		ButtonContainer.LoadScenario.Pressed += LoadScenario;
+		// The game ships no scenario files to load, so Load Scenario isn't
+		// offered; its scenarios are game types on the New Game screen.
+		ButtonContainer.LoadScenario.Visible = false;
 		ButtonContainer.HostLan.Pressed += HostLanGame;
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
 		ButtonContainer.BrowseOnline.Pressed += BrowseOnlineGames;
@@ -137,8 +109,6 @@ public partial class MainMenu : Node {
 		ButtonContainer.Credits.Pressed += showCredits;
 		ButtonContainer.Exit.Pressed += _on_Exit_pressed;
 
-		// Hide if valid path is present as proven by reaching this point in code
-		NoCiv3Options.Visible = false;
 	}
 
 	public void GoToWorldSetup() {
@@ -261,31 +231,17 @@ public partial class MainMenu : Node {
 		JoinLanGame();
 	}
 
-	public void LoadScenario() {
-		log.Information("load scenario button pressed");
-		PlayButtonPressedSound();
-		LoadScenarioDialog.Popup();
-	}
 
 	public void showCredits() {
 		log.Information("credits button pressed");
 		GetTree().ChangeSceneToFile("res://Credits.tscn");
 	}
 
-	// The main menu's Hall of Fame: as in Conquests, its Campaign Record
-	// first, from which the Hall of Fame itself is a button away (Civ3
-	// FUN_0055a5e0, menu item 6). Without Conquests' campaigns, straight to
-	// the Hall of Fame.
+	// The main menu's Hall of Fame. The game ships no campaigns, so there
+	// is no Campaign Record before it.
 	public void HallOfFame() {
 		PlayButtonPressedSound();
-		if (CampaignRecordScreen.LoadRecord().Count == 0) {
-			ShowHallOfFame();
-			return;
-		}
-		CampaignRecordScreen screen = new(fromMainMenu: true);
-		screen.HallOfFameRequested += ShowHallOfFame;
-		screen.NextCampaignRequested += PlayCampaign;
-		ShowOverMenu(screen, h => screen.Closed += h);
+		ShowHallOfFame();
 	}
 
 	// Civ3's Hall of Fame, over the menu until it's closed.
@@ -301,15 +257,6 @@ public partial class MainMenu : Node {
 		AddChild(layer);
 	}
 
-	// The Campaign Record's Next: the campaign's scenario, set up as Load
-	// Scenario would.
-	private void PlayCampaign(string path) {
-		log.Information($"playing the campaign {path}");
-		LanSession.HostNextGame = false;
-		Global.LoadGamePath = path;
-		GetTree().ChangeSceneToFile("res://UIElements/NewGame/scenario_setup.tscn");
-	}
-
 	public void ShowSettings() {
 		log.Information("settings button pressed");
 		PlayButtonPressedSound();
@@ -322,23 +269,6 @@ public partial class MainMenu : Node {
 
 	public void _on_Exit_pressed() {
 		GetTree().Quit(); // no need to notify the scene tree
-	}
-
-	private void _on_SetCiv3Home_pressed() {
-		SetCiv3HomeDialog.Popup();
-	}
-
-	private void _on_SetCiv3HomeDialog_dir_selected(string path) {
-		Util.Civ3Root = path;
-		C7Settings.SetValue("locations", "civ3InstallDir", path);
-		C7Settings.SaveSettings();
-		// This function should only be reachable if DisplayTitleScreen failed on previous runs, so should be OK to run here
-		DisplayTitleScreen();
-	}
-
-	private void UseStandaloneModePressed() {
-		Global.ActivateGameMode(GamePaths.standalone);
-		DisplayTitleScreen();
 	}
 
 	// The intro movie the first time the menu shows, if there is one and it

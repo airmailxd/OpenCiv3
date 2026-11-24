@@ -52,12 +52,10 @@ public partial class CampaignRecordScreen : Control {
 
 	public CampaignRecordScreen() : this(true) { }
 
-	// The record, made if there's none yet from the campaigns beside the
-	// game. Empty without Civ3's Conquests.
+	// The record of the campaigns. This version ships no campaigns, so it's
+	// empty, and a record kept by an earlier version isn't shown or added to.
 	public static List<CampaignRecordEntry> LoadRecord() {
-		Dictionary<string, string> scenarios = CampaignScenarios();
-		string civ3Record = Civ3File(Path.Combine("Conquests", CampaignRecord.Civ3FileName));
-		return CampaignRecord.LoadOrCreate(GlobalPath, civ3Record, scenarios.Keys, CampaignNames());
+		return [];
 	}
 
 	// Records the player's win, if the game is one of the campaigns.
@@ -108,13 +106,10 @@ public partial class CampaignRecordScreen : Control {
 		return result;
 	}
 
-	// A file or folder in the Civ3 install, or null without one.
+	// A file or folder of the campaigns' install. This version is
+	// standalone only and ships no campaigns, so there is none.
 	private static string Civ3File(string relativePath) {
-		if (C7Settings.UseStandaloneMode() || !GamePaths.Civ3Available()) {
-			return null;
-		}
-		string path = Path.Combine(Util.Civ3Root, relativePath);
-		return File.Exists(path) || Directory.Exists(path) ? path : null;
+		return null;
 	}
 
 	public override void _Ready() {

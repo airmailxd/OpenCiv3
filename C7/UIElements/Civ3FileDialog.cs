@@ -12,17 +12,8 @@ public partial class Civ3FileDialog : FileDialog {
 	// If true, go to scenario setup after loading, for scenarios.
 	public bool GoToScenarioSetupAfterLoading = false;
 
-	// Where the game saves, and looks first for saves to load. The Civ 3
-	// folder is often read-only, or missing in standalone mode.
+	// Where the game saves, and looks for saves to load.
 	public static string SavesDirectory => System.IO.Path.Combine(C7Settings.WritableDirectory, "Saves");
-
-	private string Civ3SavesDirectory => Util.Civ3Root + "/Conquests/Saves";
-
-	private const string ShowSavesAction = "show_saves";
-	private const string ShowCiv3SavesAction = "show_civ3_saves";
-
-	// The buttons that switch between our saves and Civ 3's, when loading.
-	private Button savesButton, civ3SavesButton;
 
 	public override void _Ready() {
 		base._Ready();
@@ -33,19 +24,6 @@ public partial class Civ3FileDialog : FileDialog {
 
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		FileSelected += OnFileSelected;
-
-		savesButton = AddButton("Our Saves", false, ShowSavesAction);
-		civ3SavesButton = AddButton("Civ3 Saves", false, ShowCiv3SavesAction);
-		savesButton.Visible = civ3SavesButton.Visible = false;
-		CustomAction += OnCustomAction;
-	}
-
-	private void OnCustomAction(StringName action) {
-		if (action == ShowSavesAction) {
-			CurrentDir = SavesDirectory;
-		} else if (action == ShowCiv3SavesAction) {
-			CurrentDir = Civ3SavesDirectory;
-		}
 	}
 
 	private static void EnsureSavesDirectory() {
@@ -56,21 +34,13 @@ public partial class Civ3FileDialog : FileDialog {
 		}
 	}
 
-	// Opens on our saves, with a button to browse Civ 3's for its .SAV files.
+	// Opens on our saves. Only the game's own saves, so a recorded game's
+	// play log (.jsonl) beside them isn't offered.
 	public void SetDirectoryForLoadingSaves() {
 		EnsureSavesDirectory();
 		CurrentDir = SavesDirectory;
 		FileMode = FileDialog.FileModeEnum.OpenFile;
-		// Only saves, so a recorded game's play log (.jsonl) beside them isn't offered.
-		Filters = new[] { "*.json, *.sav, *.SAV ; Saved Games" };
-		ShowSavesButtons(true);
-	}
-
-	public void SetDirectoryForLoading(string RelPath) {
-		CurrentDir = Util.Civ3Root + "/" + RelPath;
-		FileMode = FileDialog.FileModeEnum.OpenFile;
-		ClearFilters();
-		ShowSavesButtons(false);
+		Filters = new[] { "*.json ; Saved Games" };
 	}
 
 	// Opens on the saves folder, or on a recorded game's own folder (see
@@ -91,15 +61,6 @@ public partial class Civ3FileDialog : FileDialog {
 		if (!string.IsNullOrEmpty(fileName)) {
 			CurrentFile = fileName + ".json";
 		}
-		ShowSavesButtons(false);
-	}
-
-	private void ShowSavesButtons(bool show) {
-		if (savesButton == null) {
-			return;
-		}
-		savesButton.Visible = show;
-		civ3SavesButton.Visible = show && System.IO.Directory.Exists(Civ3SavesDirectory);
 	}
 
 	private void OnFileSelected(string path) {

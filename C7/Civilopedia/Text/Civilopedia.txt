@@ -1,6 +1,6 @@
-; Civilopedia.txt -- the Civilopedia's articles for OpenCiv3.
+; Civilopedia.txt -- the Civilopedia's articles for OpenCiv.
 ;
-; This text was written for OpenCiv3. It is not Civ3's Civilopedia.
+; This text was written for OpenCiv.
 ;
 ; Format:
 ;   #KEY starts an article. Game concepts (GCON_) have their name on the

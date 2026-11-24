@@ -37,7 +37,7 @@ namespace C7Engine {
 					string current = Directory.GetCurrentDirectory();
 					writableDirectory = IsWritable(current)
 						? current
-						: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenCiv3");
+						: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenCiv");
 					try {
 						Directory.CreateDirectory(writableDirectory);
 					} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
@@ -146,10 +146,11 @@ namespace C7Engine {
 			return Enum.TryParse(value, true, out T result) ? result : defaultValue;
 		}
 
-		// Whether to play with the game's own art and rules rather than a Civ3
-		// install's. Standalone is the default until the player chooses.
+		// Whether to play with the game's own art and rules. This version is
+		// standalone only: it always does, and an old settings file's
+		// locations/useStandaloneMode is ignored.
 		public static bool UseStandaloneMode() {
-			return GetSettingsValueOrDefault("locations", "useStandaloneMode", "true") == "true";
+			return true;
 		}
 	}
 }

@@ -393,7 +393,7 @@ public partial class LanGameBrowser : VBoxContainer {
 		}
 		if (reply != null && !compatible) {
 			item.SetCustomColor(9, Warning);
-			item.SetTooltipText(9, $"This host runs another version of OpenCiv3 (yours is {LanProtocol.Version}), so you can't join it.");
+			item.SetTooltipText(9, $"This host runs another version of OpenCiv (yours is {LanProtocol.Version}), so you can't join it.");
 		}
 		string tip = row.answered
 			? $"Hosted by {reply.hostName}" + (reply.started ? "" : ", waiting in its lobby")
@@ -445,7 +445,7 @@ public partial class LanGameBrowser : VBoxContainer {
 		joinButton.Disabled = row == null || !compatible || reply?.openSeats == 0;
 		watchButton.Disabled = row == null || !compatible || reply?.spectatorsAllowed == false;
 		joinButton.TooltipText = row == null ? "Choose a game first, or double-click one"
-			: !compatible ? "This host runs another version of OpenCiv3."
+			: !compatible ? "This host runs another version of OpenCiv."
 			: reply?.openSeats == 0 ? "Every seat is taken. You may still watch, if the host allows it." : "";
 		watchButton.TooltipText = reply?.spectatorsAllowed == false ? "The host doesn't let anyone watch this game." : "Watch without taking a seat";
 		rejoinButton.Visible = LastGameToken(row) != null;

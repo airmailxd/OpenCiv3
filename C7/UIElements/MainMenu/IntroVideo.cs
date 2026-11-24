@@ -8,7 +8,7 @@ using Godot;
 // The movie isn't part of the repo or the download: it's played if there's an
 // Ogg Theora file, Intro/OpenCiv3_Intro.ogv, in the game's folder (where the
 // launcher fetches it to), the folder the settings are saved in or the
-// per-user OpenCiv3 folder (%AppData%\OpenCiv3 on Windows). None of them is
+// per-user OpenCiv folder (%AppData%\OpenCiv on Windows). None of them is
 // touched by an update. It can be turned off in the settings, and
 // any key or click skips it.
 public partial class IntroVideo : CanvasLayer {
@@ -37,7 +37,7 @@ public partial class IntroVideo : CanvasLayer {
 		string[] folders = {
 			GamePaths.BaseDir,
 			C7Settings.WritableDirectory,
-			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "OpenCiv3"),
+			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "OpenCiv"),
 		};
 		foreach (string folder in folders) {
 			string path = Path.Combine(folder, "Intro", FileName);

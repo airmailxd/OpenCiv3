@@ -37,7 +37,7 @@ public static class TutorialGuide {
 			return "The tutorial is not available in multiplayer games.";
 		}
 		if (Text == null) {
-			return "The tutorial needs Civ3's tutorial text (Text/tutorial.txt), which wasn't found.";
+			return "The tutorial is not available in this version.";
 		}
 		return null;
 	}

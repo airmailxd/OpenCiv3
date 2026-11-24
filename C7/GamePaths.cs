@@ -27,32 +27,25 @@ public static class GamePaths {
 		}
 	}
 
+	// This version is standalone only: every game is played with the game's
+	// own art and rules.
 	public static GameMode.Config GameMode {
-		get => C7Engine.C7Settings.UseStandaloneMode() ? standalone : basic;
+		get => standalone;
 	}
 
 	public static string GameModesDir => Path.Combine(BaseDir, "Lua");
-	public static GameMode.Config basic = new("civ3");
 	public static GameMode.Config standalone = new("civ3", ["standalone"]);
 
-	// Whether a Civ3 install was found that the game can play with, rather
-	// than only in standalone mode.
-	public static bool Civ3Available() {
-		if (string.IsNullOrEmpty(Util.Civ3Root)) {
-			return false;
+	// The given game mode as this version plays it: with the standalone
+	// addon, which a game made elsewhere with other art may lack.
+	public static GameMode.Config AsStandalone(GameMode.Config config) {
+		if (config.addonPaths.Contains("standalone")) {
+			return config;
 		}
-
-		string[] basePaths = ["Conquests", "civ3PTW", ""];
-		foreach (string basePath in basePaths) {
-			string relPath = string.IsNullOrEmpty(basePath) ? "Art/buttonsFINAL.pcx" : $"{basePath}/Art/buttonsFINAL.pcx";
-			if (Util.FileExistsIgnoringCase(Util.Civ3Root, relPath) != null) {
-				return true;
-			}
-		}
-
-		return false;
+		return new(config.baseModeDir, [.. config.addonPaths, "standalone"], config.rulesetDir);
 	}
 
-	// For now this needs to get passed to QueryCiv3 when importing.
-	public static string DefaultBicPath { get => Util.GetCiv3Path() + "/Conquests/conquests.biq"; }
+	// The default rules file a .sav or .biq is imported against. This
+	// version loads only its own saves, so there is none.
+	public static string DefaultBicPath { get => null; }
 }

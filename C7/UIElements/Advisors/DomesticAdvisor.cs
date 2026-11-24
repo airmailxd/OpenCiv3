@@ -48,7 +48,7 @@ public partial class DomesticAdvisor : Control {
 	TextureRect advisorHead = new();
 	Label DialogBoxAdvise = new();
 	// What the advisor says without Civ3's script.txt to speak from.
-	private const string DefaultAdvice = "You are running OpenCiv3!";
+	private const string DefaultAdvice = "You are running OpenCiv!";
 
 	// The Y position of the two sliders.
 	private int scienceSliderY = 84;

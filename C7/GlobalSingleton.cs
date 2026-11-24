@@ -45,11 +45,7 @@ public partial class GlobalSingleton : Node {
 	public bool WatchNextGame;
 
 	public GlobalSingleton() {
-		if (C7Settings.UseStandaloneMode()) {
-			ActivateGameMode(GamePaths.standalone);
-		} else {
-			ActivateGameMode(GamePaths.basic);
-		}
+		ActivateGameMode(GamePaths.standalone);
 	}
 
 	public void ResetLoadGameFields() {
@@ -58,6 +54,10 @@ public partial class GlobalSingleton : Node {
 	}
 
 	public void ActivateGameMode(GameMode.Config config) {
+		// This version is standalone only: a game made with other art (a
+		// server's game, or one saved elsewhere) is played with the game's own.
+		config = GamePaths.AsStandalone(config);
+
 		// Ensure we clear out our image caches, as scenarios and games will
 		// use the same filenames but have different content for them.
 		Util.ClearCaches();
@@ -71,14 +71,6 @@ public partial class GlobalSingleton : Node {
 
 		var (audioLua, audioConfig) = GameMode.audio;
 		AudioLoader.SetConfig(audioLua, audioConfig);
-
-		if (config.addonPaths.Contains("standalone")) {
-			C7Settings.SetValue("locations", "useStandaloneMode", "true");
-		} else {
-			C7Settings.SetValue("locations", "useStandaloneMode", "false");
-		}
-
-		C7Settings.SaveSettings();
 	}
 
 	private void LuaTypeRegistrations() {
@@ -95,11 +87,5 @@ public partial class GlobalSingleton : Node {
 		// AdvisorHead.AdvisorGraphicsDetails because we access the nums
 		// in the class as well.
 		UserData.RegisterType<AdvisorHead>();
-	}
-
-	public void ToggleStandaloneMode() {
-		GameMode.Config newConfig = C7Settings.UseStandaloneMode() ? GamePaths.basic : GamePaths.standalone;
-
-		ActivateGameMode(newConfig);
 	}
 }

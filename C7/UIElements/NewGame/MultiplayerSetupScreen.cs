@@ -205,7 +205,7 @@ public partial class MultiplayerSetupScreen : Control {
 		// OpenCiv3's own game types, as the world setup screen offers them
 		// (owner's request, 2026-10-28).
 		scenarioPicker = AddSetting(settings, "Scenario:", WorldSetup.GameTypes.Select(g => g.name), 0,
-			"A normal game, or one of OpenCiv3's scenarios.");
+			"A normal game, or one of OpenCiv's scenarios.");
 		for (int i = 0; i < WorldSetup.GameTypes.Length; ++i) {
 			scenarioPicker.SetItemTooltip(i, WorldSetup.GameTypes[i].description);
 		}
@@ -294,7 +294,7 @@ public partial class MultiplayerSetupScreen : Control {
 			$"End the game after turn {save.TimeOptions.turnLimit}, scoring who leads. Without it, the game goes on until someone wins.");
 		box.AddChild(turnLimit);
 		Label note = new() {
-			Text = "Civ3's time and score limits aren't in OpenCiv3 yet.",
+			Text = "Time and score limits aren't in the game yet.",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			CustomMinimumSize = new Vector2(280, 0),
 		};
@@ -693,7 +693,7 @@ public partial class MultiplayerSetupScreen : Control {
 		// Culture Flipping and Scientific Leaders on (owner's ruling,
 		// 2026-10-28).
 		acceleratedProduction = MakeRule("Accelerated Production", false,
-			"Cities need half the food to grow and half the shields to build, as in Civ3.");
+			"Cities need half the food to grow and half the shields to build.");
 		elimination = MakeRule("Elimination", vc.CityElimination,
 			vc.CityEliminationCount == 1
 				? "A civilization that loses a city to an enemy is eliminated: its units and cities are destroyed."
@@ -711,10 +711,10 @@ public partial class MultiplayerSetupScreen : Control {
 			+ "advances, conquering cities and holding Victory Locations (each civilization's starting location) with a defending unit. "
 			+ "At the turn limit, the most victory points wins.");
 		// Civ3's rules OpenCiv3 doesn't have, shown as Civ3 lists them.
-		Civ3Checkbox linkedStarts = MakeRule("Culturally Linked Start Loc.", false, "Not in OpenCiv3 yet: civilizations start anywhere.", false);
+		Civ3Checkbox linkedStarts = MakeRule("Culturally Linked Start Loc.", false, "Not in OpenCiv yet: civilizations start anywhere.", false);
 		Civ3Checkbox noRestart = MakeRule("Don't Restart Eliminated Civilizations", true,
-			"OpenCiv3 never restarts an eliminated civilization.", false);
-		Civ3Checkbox noGoodyHuts = MakeRule("No Goody Huts", false, "Not in OpenCiv3 yet.", false);
+			"OpenCiv never restarts an eliminated civilization.", false);
+		Civ3Checkbox noGoodyHuts = MakeRule("No Goody Huts", false, "Not in OpenCiv yet.", false);
 		// OpenCiv3's own rules, which its player setup screen has too.
 		simultaneousMoves = MakeRule("Simultaneous Moves", true,
 			"Every human plays their turn at the same time, rather than waiting for each other. The computer's civilizations move after them.");
