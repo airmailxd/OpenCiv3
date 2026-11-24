@@ -30,6 +30,22 @@ export-c7.yml has 3 jobs:
     a file is opened from the load game button. The Mac build script is a little different
     than the others in that the copy save task uses `zip` to place the file into the export.
 
+## release.yml: making a release
+
+OpenCiv's version is the one line of `C7Engine/VERSION`. It's built into the
+game, which sends it to game servers; a game server requires the version its
+own engine has, and refuses an older game. To release:
+
+1. Set `C7Engine/VERSION` to the new version (`0.16.1`), with what's new, and
+   commit that on Development.
+2. Tag that commit `v0.16.1` and push the tag. release.yml builds the GitHub
+   release, and fails if the tag and `C7Engine/VERSION` differ.
+3. On the machine that publishes AirGames, run
+   `node tools/release-openciv.mjs --tag v0.16.1` in the AirGames repository
+   (`--dry-run` first). It builds AirGames' download from the tag, moves the
+   game server's engine to the same tag, and then lists the download (see
+   AirGames' `AIRGAMES.md`, "Releasing OpenCiv").
+
 ## Things I've learned about actions
 
 - To set an environment variable in a script, echo the setting into $GITHUB_ENV like `echo "MYVAR=my value" >> $GITHUB_ENV` https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#environment-files

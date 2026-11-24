@@ -46,6 +46,9 @@ builds with this one's engine. What's here is the game's side:
 
 - **The protocol**: `C7Engine/Network/GameServerProtocol.cs`, the HTTP API
   the game and the server speak, which the server takes from here.
+- **The version**: `C7Engine/VERSION` (`OpenCivVersion`), which the game sends
+  with each request; the server requires the version its own engine has and
+  refuses an older game, so the two are released together.
 - **The client**: `C7Engine/Network/GameServerClient.cs`, for signing up and
   logging in, My Games, Open Games, uploading a game, claiming a seat, and
   joining a game (`JoinGameAsync`), which connects through the relay with a
