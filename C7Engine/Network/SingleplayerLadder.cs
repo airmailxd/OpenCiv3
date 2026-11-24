@@ -108,8 +108,10 @@ public static class SingleplayerLadder {
 			return Outcome.Ranked;
 		}
 		// A session ended can be logged in again; a timeout or too many
-		// tries is the server busy, not the game's fault.
-		if (n >= 400 && n < 500 && code is not (HttpStatusCode.Unauthorized or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests)) {
+		// tries is the server busy, not the game's fault. A server without the
+		// ladder yet (404), or one wanting a newer game (426), may take it later.
+		if (n >= 400 && n < 500 && code is not (HttpStatusCode.Unauthorized or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
+				or HttpStatusCode.NotFound or HttpStatusCode.UpgradeRequired)) {
 			return Outcome.Refused;
 		}
 		return Outcome.TryAgain;

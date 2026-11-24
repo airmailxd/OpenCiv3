@@ -86,6 +86,8 @@ public class SingleplayerLadderTest : IDisposable {
 		Assert.Equal(SingleplayerLadder.Outcome.Refused, SingleplayerLadder.OutcomeOf(HttpStatusCode.RequestEntityTooLarge));
 		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.Unauthorized));
 		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.TooManyRequests));
+		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.NotFound));
+		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.UpgradeRequired));
 		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.InternalServerError));
 		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(HttpStatusCode.BadGateway));
 		Assert.Equal(SingleplayerLadder.Outcome.TryAgain, SingleplayerLadder.OutcomeOf(null));
