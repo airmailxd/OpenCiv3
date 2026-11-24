@@ -192,7 +192,7 @@ namespace C7Engine {
 			int tightTarget = TightTarget(player);
 			// Switch phase-plan: while expanding, sites toward the nearest rival
 			// are worth more (see PhasePlan).
-			(City ours, City theirs)? rival = PhasePlan.Expanding(player) ? PhasePlan.NearestRival(player) : null;
+			(City ours, City theirs)? rival = PhasePlan.Expanding(player) && !PhasePlan.Conquest(player) ? PhasePlan.NearestRival(player) : null;
 			TerrainImprovement irrigation = tightTarget > 0 ? EngineStorage.gameData?.terrainImprovements?.Find(i => i?.key == Tile.TileOverlays.IRRIGATION) : null;
 
 			foreach (Tile t in candidates) {

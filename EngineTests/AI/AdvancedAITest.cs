@@ -219,7 +219,7 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	[Fact]
 	public void AnAdvancedPlayerPlaysWithTheWinningSuedeTipsAndAStandardOneDoesNot() {
 		player.aiType = AiType.Advanced;
-		string[] tips = ["lux-slider-high", "site-food", "site-tight-7"];
+		string[] tips = ["lux-slider-high", "site-food", "site-tight-7", "fast-expand", "human-opening"];
 		AdvancedAI.PlayTurn(player, gameData);
 		foreach (string tip in tips) {
 			Assert.True(AiExperiments.Has(player, tip), tip);
@@ -232,7 +232,7 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 	[Fact]
 	public void AnAdvancedPlayerPlaysWithWorkersOneTwoAndTheTuningSpecCanTurnTheOthersOn() {
 		player.aiType = AiType.Advanced;
-		string[] on = [DevelopmentAI.WorkersOneTwo];
+		string[] on = [DevelopmentAI.WorkersOneTwo, FastExpand.Switch, HumanOpening.Switch];
 		try {
 			AdvancedAI.PlayTurn(player, gameData);
 			AdvancedAI.PlayTurn(rival, gameData);
@@ -249,7 +249,6 @@ public sealed class AdvancedAITest : IClassFixture<SaveGameFixture>, IDisposable
 			Assert.False(AiExperiments.Has(player, LeanGarrison.Switch));
 			Assert.False(AiExperiments.Has(player, GrowToSettle.Switch));
 			Assert.False(AiExperiments.Has(player, PreyWar.Switch));
-			Assert.False(AiExperiments.Has(player, FastExpand.Switch));
 
 			AdvancedTuning.Override("early-government=1,tech-swap=1");
 			Assert.Contains(GovernmentAI.EarlyGovernment, AdvancedTuning.BehavioursOn(player));

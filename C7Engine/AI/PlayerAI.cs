@@ -522,6 +522,10 @@ namespace C7Engine {
 			if (!unit.IsLandUnit() || !DevelopmentAI.IsMilitaryLandUnit(unit.unitType)) {
 				return false;
 			}
+			// human-opening (Advanced): the first soldiers scout.
+			if (HumanOpening.Loose(player) && CountExplorers(player, true) < C7Engine.AI.Advanced.AdvancedTuning.GetInt(player, HumanOpening.ScoutsKnob)) {
+				return false;
+			}
 			int wanted = player.cities.Count < EARLY_EXPANSION_CITIES ? 1 : 0;
 			int soldiers = 0;
 			foreach (MapUnit u in player.units) {
@@ -542,6 +546,14 @@ namespace C7Engine {
 		}
 
 		private const int EARLY_EXPANSION_CITIES = 4;
+
+		// human-opening (Advanced): a lone soldier in an early city goes
+		// scouting too, as the owner's first Warrior did, while there are
+		// fewer scouts out than the switch wants.
+		private static bool ScoutsInsteadOfGuarding(MapUnit unit, Player player) {
+			return HumanOpening.Loose(player) && DevelopmentAI.IsMilitaryLandUnit(unit.unitType)
+				&& CountExplorers(player, true) < C7Engine.AI.Advanced.AdvancedTuning.GetInt(player, HumanOpening.ScoutsKnob);
+		}
 
 		// While a player's units are acting, the units that might have an
 		// ExplorerAI: every unit that had one when the units started acting
@@ -1068,7 +1080,8 @@ namespace C7Engine {
 				return new FerryAI(ferryData);
 			} else if (NavalAI.MaybeMake(unit, player) is NavalAI naval) {
 				return naval;
-			} else if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {
+			} else if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0
+					&& !ScoutsInsteadOfGuarding(unit, player)) {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			} else if (HuntBarbarians(unit, player) is UnitAI hunt) {
 				return hunt;

@@ -501,11 +501,24 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			},
 			mapSeed = seed,
 		};
+		// C7_TRIAL_CIVNAMES: the civs, in start order, as "Celts,Portugal,..."
+		// (the first is the one the game is set up for): to replay a real
+		// game's civs on its map.
+		string[] civNames = (Environment.GetEnvironmentVariable("C7_TRIAL_CIVNAMES") ?? "")
+			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		// C7_TRIAL_STARTS: "x,y;x,y;...", the start of each of those civs.
+		string starts = Environment.GetEnvironmentVariable("C7_TRIAL_STARTS");
+		GameSetup.replayStarts = string.IsNullOrEmpty(starts) ? null
+			: starts.Split(';').Select(s => s.Split(',')).Select(a => (int.Parse(a[0]), int.Parse(a[1]))).ToList();
 		new GameSetup {
-			playerCivilization = save.Civilizations.First(c => !c.IsIndependent),
+			playerCivilization = civNames.Length > 0
+				? save.Civilizations.First(c => c.name == civNames[0])
+				: save.Civilizations.First(c => !c.IsIndependent),
 			difficulty = save.Difficulties[Math.Clamp(difficulty, 0, save.Difficulties.Count - 1)],
 			worldCharacteristics = wc,
-			opponents = Enumerable.Repeat(new SelectedOpponent { isRandom = true }, civs - 1).ToList(),
+			opponents = civNames.Length > 1
+				? civNames.Skip(1).Select(n => new SelectedOpponent { Name = n, drawRandomAnyway = true }).ToList()
+				: Enumerable.Repeat(new SelectedOpponent { isRandom = true }, civs - 1).ToList(),
 			victoryConditions = new VictoryConditions(),
 			scenario = scenario,
 		}.Populate(save);

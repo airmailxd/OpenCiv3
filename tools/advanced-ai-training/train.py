@@ -116,9 +116,10 @@ BEHAVIOURS = ["wonder-timing", "wonder-value", "war-production", "war-no-peace",
               "railroad-first", "philosophy-first", "early-rush", "archer-rush", "phase-plan",
               "workers-1-2", "early-government", "weights-by-state",
               "granary-pump", "republic-route", "tech-swap",
-              "lean-garrison", "grow-to-settle", "prey-war", "horde-war", "fast-expand"]
+              "lean-garrison", "grow-to-settle", "prey-war", "horde-war", "fast-expand",
+              "human-opening", "conquest-phases"]
 ON_BY_DEFAULT = {"lean-military", "lux-slider-high", "site-food", "site-tight-7",
-                  "workers-1-2"}
+                  "workers-1-2", "fast-expand", "human-opening"}
 DEFAULTS = {"FocusPoints": 15, "TargetStrengthRatio": 1.75, "ThreatStrengthRatio": 1.75,
             "BehindInTechShare": 0.9, "ExpandSettlers": 85, "ExpandAggression": -1,
             "BuildScience": 55, "BuildProduction": 65, "WinningOffense": 80,

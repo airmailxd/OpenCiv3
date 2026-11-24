@@ -15,6 +15,10 @@ public struct SelectedOpponent {
 	public int team;
 	// Which AI plays the civ; Standard unless chosen.
 	public AiType aiType;
+	// For replays: the civ is the named one, but the random draw a random
+	// civ would have made is still made, so the rest of the setup (the
+	// map's starting locations) comes out as in the game being replayed.
+	public bool drawRandomAnyway;
 }
 
 // An additional human player: sharing the computer in a hotseat game, or
@@ -313,11 +317,13 @@ public partial class GameSetup {
 
 			if (isRandom) {
 				selectedName = RandomCivilization(save, rand, taken);
+			} else if (opponent.drawRandomAnyway) {
+				RandomCivilization(save, rand, new HashSet<string>(taken));
 			}
 			taken.Add(selectedName);
 
 			Civilization civ = save.Civilizations.Find(x => x.name == selectedName);
-			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom, team = opponent.team, aiType = opponent.aiType });
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom, team = opponent.team, aiType = opponent.aiType, replay = opponent.drawRandomAnyway });
 		}
 
 		if (save.Map.startingLocations.Count < planned.Count) {
@@ -354,6 +360,10 @@ public partial class GameSetup {
 		SetUpTeams(save, teams);
 	}
 
+	// For replays (see SelectedOpponent.drawRandomAnyway): the start of each
+	// civ, in order.
+	public static List<(int x, int y)> replayStarts;
+
 	private class PlannedPlayer {
 		public Civilization civ;
 		public bool isHuman;
@@ -363,6 +373,8 @@ public partial class GameSetup {
 		public bool isRandom;
 		public int team;
 		public AiType aiType;
+		// A replay of a game's civs: the starts stay as listed.
+		public bool replay;
 	}
 
 	private static bool IsSeafaring(Civilization civ) {
@@ -376,6 +388,13 @@ public partial class GameSetup {
 	// that were picked at random are swapped for other civs first.
 	private static List<SaveTile> AssignStartingLocations(SaveGame save, Random rand, List<PlannedPlayer> planned, HashSet<string> taken) {
 		List<SaveTile> starts = save.Map.startingLocations.Take(planned.Count).ToList();
+		if (planned.Any(p => p.replay)) {
+			// The replayed game's starts, if given (x,y for each civ in order).
+			if (replayStarts != null) {
+				starts = replayStarts.Select(xy => save.Map.tiles.First(t => t.X == xy.x && t.Y == xy.y)).ToList();
+			}
+			return starts;
+		}
 		HashSet<SaveTile> coastal = starts.Where(t => IsNextToSea(save.Map, t)).ToHashSet();
 
 		int seafaring = planned.Take(starts.Count).Count(p => IsSeafaring(p.civ));

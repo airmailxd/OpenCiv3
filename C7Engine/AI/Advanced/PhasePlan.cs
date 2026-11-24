@@ -38,9 +38,44 @@ namespace C7Engine.AI.Advanced {
 		// Lets AiTrialTest log the phase changes. Null outside a trial.
 		internal static Action<Player, GamePhase?, GamePhase> onPhase;
 
+		// Switch "conquest-phases" (owner's call, 2026-11-10): the same
+		// script, played the owner's way. Expand until the land is full
+		// (not to a few cities); muster a large army, built by half the
+		// cities, with military first; send it at one civ to overload its
+		// defences; then consolidate: defence, science, courthouses,
+		// happiness and trade, before the next muster.
+		public const string ConquestSwitch = "conquest-phases";
+		public const int ConquestMostAttackers = 40;
+
 		public static bool On(Player player) {
-			return player != null && player.IsAdvancedAi && AiExperiments.Has(player, Switch);
+			return player != null && player.IsAdvancedAi && (AiExperiments.Has(player, Switch) || AiExperiments.Has(player, ConquestSwitch));
 		}
+
+		// What a muster city's attacker gains while the conquest script
+		// musters (and the lean-military cap is off for it): military first.
+		// HEURISTIC (UNVERIFIED).
+		internal static float ConquestUnitAdjustment(ChooseProducible.ProducibleStats stats, City city, Player player, UnitPrototype unit) {
+			if (!Conquest(player) || !Mustering(player) || !stats.CityGuarded || !IsMusterCity(player, city)
+					|| !unit.IsLandUnit() || unit.isArmy || unit.attack <= 0 || unit.attack < unit.defense) {
+				return 0;
+			}
+			return (float)AdvancedTuning.Get(player, "ConquestMusterBonus");
+		}
+
+		// The odds of a round of our best attacker's against the best
+		// defender their techs give them, fortified in the city (its size,
+		// walls and terrain, and the fortified bonus, added up as in
+		// HordeWar.EdgeOdds).
+		internal static double ConquestOdds(Player us, City city) {
+			double attack = EarlyRush.LandUnitsBuildable(us).Where(u => u.attack > u.defense).Select(u => (double)u.attack).DefaultIfEmpty(0).Max();
+			if (attack <= 0) {
+				return 0;
+			}
+			double defence = Math.Max(1, EarlyRush.BestDefense(city.owner)) * (PreyWar.DefenceFactor(city) + 0.25);
+			return attack / (attack + defence);
+		}
+
+		public static bool Conquest(Player player) => player != null && player.IsAdvancedAi && AiExperiments.Has(player, ConquestSwitch);
 
 		public static GamePhase? PhaseOf(Player player) {
 			return On(player) ? player.gamePhase?.phase : null;
@@ -61,6 +96,10 @@ namespace C7Engine.AI.Advanced {
 		public static int ArmySize(Player player, GameData gameData, int defenders) {
 			int knob = AdvancedTuning.GetInt(player, "PhaseArmy");
 			int levels = Math.Max(0, gameData.difficulties.IndexOf(gameData.gameDifficulty) - gameData.difficulties.IndexOf(gameData.AiRulesDifficulty()));
+			if (Conquest(player)) {
+				int army = AdvancedTuning.GetInt(player, "ConquestArmy");
+				return Math.Min(Math.Max(army, AttackersPerDefender * defenders), ConquestMostAttackers);
+			}
 			int size = Math.Min(knob + levels, Math.Max(ArmyCap, knob));
 			return Math.Min(Math.Max(size, AttackersPerDefender * defenders), MostAttackers);
 		}
@@ -81,6 +120,10 @@ namespace C7Engine.AI.Advanced {
 			}
 			List<City> result = [capital];
 			int more = player.cities.Count >= TwoMusterCitiesFrom ? 2 : 1;
+			if (Conquest(player)) {
+				// Half the cities arm the horde.
+				more = Math.Max(2, player.cities.Count / 2 - 1);
+			}
 			result.AddRange(player.cities.Where(c => c != capital && c.location.continent == capital.location.continent)
 				.OrderByDescending(c => c.CurrentProductionYield().useful).ThenBy(c => c.id.ToString()).Take(more));
 			return result;
@@ -161,7 +204,7 @@ namespace C7Engine.AI.Advanced {
 			bool losing = Losing(player, gameData);
 			switch (state.phase) {
 				case GamePhase.Expand:
-					if (player.cities.Count >= Cities(player) || (sites && player.cities.Count >= 2 && OpenSites(player) == 0)) {
+					if ((!Conquest(player) && player.cities.Count >= Cities(player)) || (sites && player.cities.Count >= 2 && OpenSites(player) == 0)) {
 						return !losing && HasTarget(player, gameData) ? GamePhase.Muster : GamePhase.Consolidate;
 					}
 					break;
@@ -224,6 +267,34 @@ namespace C7Engine.AI.Advanced {
 					plan.focus[PlanFocus.Workers] = 65;
 					plan.focus[PlanFocus.Growth] = 60;
 					why.Add("phase Expand: cities toward the nearest rival, with a road");
+					break;
+				case GamePhase.Muster when Conquest(player):
+					plan.focus[PlanFocus.Offense] = 90;
+					plan.focus[PlanFocus.Artillery] = 65;
+					plan.focus[PlanFocus.Defense] = 55;
+					plan.focus[PlanFocus.Production] = 65;
+					plan.focus[PlanFocus.Settlers] = 25;
+					plan.focus[PlanFocus.Workers] = 55;
+					plan.focus[PlanFocus.Growth] = 55;
+					plan.focus[PlanFocus.Science] = 40;
+					if (WarCampaign.TryGetCampaign(player, out Player prey, out _, out _, out _)) {
+						plan.stances[prey.id.ToString()] = RivalStance.Target;
+					}
+					why.Add("phase Muster (conquest): military first, a large army from half the cities");
+					break;
+				case GamePhase.Consolidate when Conquest(player):
+					plan.focus[PlanFocus.Defense] = 70;
+					plan.focus[PlanFocus.Science] = 85;
+					plan.focus[PlanFocus.Trade] = 65;
+					plan.focus[PlanFocus.Wealth] = 60;
+					plan.focus[PlanFocus.Happiness] = 60;
+					plan.focus[PlanFocus.Production] = 60;
+					plan.focus[PlanFocus.Culture] = 55;
+					plan.focus[PlanFocus.Growth] = 60;
+					plan.focus[PlanFocus.Workers] = 65;
+					plan.focus[PlanFocus.Offense] = 35;
+					plan.focus[PlanFocus.Settlers] = 45;
+					why.Add("phase Consolidate (conquest): defence, science, courthouses and happiness");
 					break;
 				case GamePhase.Muster:
 					// The muster cities build the army (see ChooseProducible);

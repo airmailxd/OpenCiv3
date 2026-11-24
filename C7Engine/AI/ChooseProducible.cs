@@ -101,6 +101,8 @@ namespace C7Engine {
 			// this decision, and the soldiers it wants.
 			private bool? fastExpandActive;
 			public bool FastExpandActive => fastExpandActive ??= FastExpand.Active(this, city, player);
+			private bool? humanOpeningActive;
+			public bool HumanOpeningActive => humanOpeningActive ??= HumanOpening.Active(this, city, player);
 			private (int have, int want)? fastExpandSoldiers;
 			public (int have, int want) FastExpandSoldiers => fastExpandSoldiers ??= FastExpand.Soldiers(player);
 
@@ -307,12 +309,12 @@ namespace C7Engine {
 			///
 
 			// Prioritize defending the city if it is unguarded.
-			if (!stats.CityGuarded && unit.defense == 0) {
+			if (!stats.CityGuarded && unit.defense == 0 && !HumanOpening.Loose(player)) {
 				return int.MinValue;
 			}
 
 			// Prioritize building settler escorts if we don't have one.
-			if (stats.HasUnescortedSettler && unit.defense == 0) {
+			if (stats.HasUnescortedSettler && unit.defense == 0 && !HumanOpening.Loose(player)) {
 				return int.MinValue;
 			}
 
@@ -340,7 +342,8 @@ namespace C7Engine {
 			// (fast-expand, Advanced only: a settler may be started a little
 			// before the city has grown enough for it; see FastExpand.)
 			if (CityIsTooSmall(stats, city, unit)
-					&& !(isSettler && FastExpand.On(player) && stats.FastExpandActive && FastExpand.MayPrebuild(stats, city, unit))) {
+					&& !(isSettler && FastExpand.On(player) && stats.FastExpandActive && FastExpand.MayPrebuild(stats, city, unit))
+					&& !(isSettler && stats.HumanOpeningActive && HumanOpening.MayStartSettler(stats, city, player, unit))) {
 				return int.MinValue;
 			}
 
@@ -358,12 +361,20 @@ namespace C7Engine {
 			if (FastExpand.On(player) && stats.FastExpandActive) {
 				score += FastExpand.UnitAdjustment(stats, player, unit);
 			} else {
-				score += StockGarrisonBonus(player, unit, stats);
+				if (!HumanOpening.Loose(player)) {
+					score += StockGarrisonBonus(player, unit, stats);
+				}
 				if (isSettler && FastExpand.On(player)) {
 					score += FastExpand.OverseasSettlerAdjustment(city, player);
 				}
 			}
 			score += LeanGarrison.DefenderAdjustment(stats, city, player, unit);
+			score += PhasePlan.ConquestUnitAdjustment(stats, city, player, unit);
+			// human-opening (Advanced only): shield-timed settlers and
+			// workers, a cheap garrison, early scouts (see HumanOpening).
+			if (stats.HumanOpeningActive) {
+				score += HumanOpening.UnitAdjustment(stats, city, player, unit);
+			}
 			// Kings & Nomads: defenders, settlers from captured cities, and
 			// attackers for the horde (see KingsAndNomadsAI.UnitBonus).
 			score += KingsAndNomadsAI.UnitBonus(city, player, unit);
