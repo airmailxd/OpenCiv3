@@ -13,6 +13,9 @@ using MoonSharp.Interpreter;
 ****/
 public partial class GlobalSingleton : Node {
 	public override void _Ready() {
+		// Run from the editor, not exported: game servers are told it's a
+		// development build, which the live one refuses.
+		C7GameServer.OpenCivVersion.Development = !OS.HasFeature("template");
 		MacShortcuts.Install();
 		TooltipWrap.Install(GetTree());
 	}

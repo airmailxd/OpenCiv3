@@ -41,6 +41,15 @@ jobs:
         ref: ${{ env.TAG }}
         lfs: true
         submodules: true
+    # The game tells game servers its version, which is C7Engine/VERSION:
+    # it must be the tag's, or players get a game that says it's another.
+    # (Tags before 0.16.1 have no VERSION.)
+    - name: Check the version
+      run: |
+        if [ -f C7Engine/VERSION ] && [ "$(tr -d ' \r\n' < C7Engine/VERSION)" != "${TAG#v}" ]; then
+          echo "::error::C7Engine/VERSION says $(cat C7Engine/VERSION), the tag ${TAG}"
+          exit 1
+        fi
     - uses: ./.github/workflows/composite/buildSetup
     - name: Export
       run: |

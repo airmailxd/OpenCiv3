@@ -150,6 +150,7 @@ public sealed class GameServerClient {
 		if (signedIn) {
 			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Session.Token);
 		}
+		request.Headers.TryAddWithoutValidation(OpenCivVersion.Header, OpenCivVersion.Sent);
 		try {
 			using HttpResponseMessage response = await http.SendAsync(request, cancel).ConfigureAwait(false);
 			if (!response.IsSuccessStatusCode) {
@@ -168,6 +169,10 @@ public sealed class GameServerClient {
 		}
 	}
 
+	// What the player is told when the server needs a newer OpenCiv (426)
+	// and doesn't say so itself.
+	public const string UpdateNeeded = "This version of OpenCiv is out of date. Update it in AirGames, then try again.";
+
 	private static async Task<string> ErrorOf(HttpResponseMessage response, CancellationToken cancel) {
 		if (response.StatusCode == HttpStatusCode.TooManyRequests) {
 			return "Too many tries from your address. Wait a minute, then try again.";
@@ -178,6 +183,9 @@ public sealed class GameServerClient {
 				return error.Error;
 			}
 		} catch (Exception e) when (e is JsonException or NotSupportedException or InvalidOperationException) {
+		}
+		if (response.StatusCode == HttpStatusCode.UpgradeRequired) {
+			return UpdateNeeded;
 		}
 		return $"The game server refused ({(int)response.StatusCode}).";
 	}

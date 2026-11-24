@@ -26,4 +26,9 @@
     <!-- What the game and the online relay say to each other. -->
     <Compile Include="..\Relay\Protocol\RelayProtocol.cs" Link="Network\RelayProtocol.cs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- OpenCiv's version, which a release bumps (Network/OpenCivVersion.cs). -->
+    <EmbeddedResource Include="VERSION" LogicalName="OpenCiv.VERSION" />
+  </ItemGroup>
 </Project>
