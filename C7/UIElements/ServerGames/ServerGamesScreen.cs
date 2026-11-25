@@ -59,6 +59,9 @@ public partial class ServerGamesScreen : Control {
 	private Tree othersTurnTable;
 	private Button playButton;
 	private Button viewButton;
+	// Plays or views the game chosen in either list, as double-clicking it
+	// does; dim until one is chosen.
+	private Button joinButton;
 	private readonly Dictionary<TreeItem, GameSummary> gameRows = new();
 
 	private Tree openTable;
@@ -416,6 +419,10 @@ public partial class ServerGamesScreen : Control {
 		footer.AddChild(newGame);
 		footer.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
 		footer.AddChild(LanGameBrowser.MakeButton("Refresh", () => RefreshAll()));
+		joinButton = LanGameBrowser.MakeButton("Join Game", JoinSelectedGame);
+		joinButton.CustomMinimumSize = new Vector2(140, 32);
+		Highlight(joinButton);
+		footer.AddChild(joinButton);
 		page.AddChild(footer);
 		return page;
 	}
@@ -588,7 +595,26 @@ public partial class ServerGamesScreen : Control {
 		playButton.TooltipText = yours?.WaitingForPlayers == true ? waiting : "Connect to the game and take your turn.";
 		viewButton.TooltipText = others?.WaitingForPlayers == true ? waiting
 			: "Connect to the game and look at your cities, units and advisors while another player moves.";
+		// Join Game is for My Games; Open Games has Claim Seat.
+		GameSummary chosen = yours ?? others;
+		if (joinButton == null) {
+			ShowSelectedOpenGame();
+			return;
+		}
+		joinButton.Visible = tabs.CurrentTab == 0;
+		joinButton.Disabled = chosen == null || chosen.WaitingForPlayers;
+		joinButton.TooltipText = chosen == null ? "Choose one of your games first."
+			: chosen.WaitingForPlayers ? waiting
+			: chosen == yours ? "Connect to the game and take your turn."
+			: "Connect to the game and look at it while another player moves.";
 		ShowSelectedOpenGame();
+	}
+
+	// The game chosen in either list, joined as double-clicking it would.
+	private void JoinSelectedGame() {
+		if (SelectedGame() is GameSummary game && !game.WaitingForPlayers) {
+			ServerGames.Join(game);
+		}
 	}
 
 	private void JoinSelected(Tree table) {
@@ -627,6 +653,7 @@ public partial class ServerGamesScreen : Control {
 
 		claimButton = LanGameBrowser.MakeButton("Claim Seat", Claim);
 		claimButton.CustomMinimumSize = new Vector2(140, 32);
+		Highlight(claimButton);
 		claimButton.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
 		side.AddChild(claimButton);
 		return page;
@@ -754,6 +781,35 @@ public partial class ServerGamesScreen : Control {
 	}
 
 	// ---- Looks ----
+
+	// A button that stands out once it can be pressed: dark, with light
+	// text, as a chosen row is; dim like the others while it can't.
+	private static void Highlight(Button button) {
+		Color border = new(0.33f, 0.25f, 0.15f);
+		button.AddThemeStyleboxOverride("normal", ButtonBox(new Color(0.45f, 0.30f, 0.12f), border));
+		button.AddThemeStyleboxOverride("hover", ButtonBox(new Color(0.55f, 0.37f, 0.15f), border));
+		button.AddThemeStyleboxOverride("pressed", ButtonBox(new Color(0.36f, 0.24f, 0.10f), border));
+		Color light = new(0.99f, 0.96f, 0.87f);
+		button.AddThemeColorOverride("font_color", light);
+		button.AddThemeColorOverride("font_hover_color", light);
+		button.AddThemeColorOverride("font_pressed_color", light);
+		button.AddThemeColorOverride("font_focus_color", light);
+	}
+
+	private static StyleBoxFlat ButtonBox(Color fill, Color border) {
+		return new StyleBoxFlat {
+			BgColor = fill,
+			BorderColor = border,
+			BorderWidthLeft = 1,
+			BorderWidthRight = 1,
+			BorderWidthTop = 1,
+			BorderWidthBottom = 1,
+			ContentMarginLeft = 10,
+			ContentMarginRight = 10,
+			ContentMarginTop = 3,
+			ContentMarginBottom = 3,
+		};
+	}
 
 	private void ShowStatus(string text, bool problem = false) {
 		status.Text = text ?? "";
