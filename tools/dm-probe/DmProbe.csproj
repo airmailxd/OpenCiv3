@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A test-only console: OpenCiv's own direct messages client (C7Engine/Network/DirectMessages.cs) against a running
+       game server, driven line by line on stdin, for the end-to-end check of CHAT.md. Not part of the game. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\C7Engine\C7Engine.csproj" />
+  </ItemGroup>
+</Project>
