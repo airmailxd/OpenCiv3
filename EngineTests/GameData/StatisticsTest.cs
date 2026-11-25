@@ -293,7 +293,8 @@ public class StatisticsTest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void OnlyTheEnginesOwnMessagesAreNotActions() {
 		HashSet<Type> notActions = [typeof(MsgShutdownEngine), typeof(MsgEndTurn), typeof(MsgSetAnimationsEnabled), typeof(MsgToggleAnimationsEnabled),
-			typeof(MsgDiplomacyCompleted), typeof(MsgSelectUnit), typeof(MsgAskWhatToResearch), typeof(MsgPickDefaultResearch)];
+			typeof(MsgDiplomacyCompleted), typeof(MsgSelectUnit), typeof(MsgAskWhatToResearch), typeof(MsgPickDefaultResearch),
+			typeof(MsgStandIn)];
 		List<Type> messages = typeof(MessageToEngine).Assembly.GetTypes()
 			.Where(t => t.IsSubclassOf(typeof(MessageToEngine)) && !t.IsAbstract && !t.IsSubclassOf(typeof(DebugMessage))).ToList();
 		Assert.True(messages.Count > 40);
