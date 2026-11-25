@@ -213,6 +213,8 @@ public class LanHost : IDisposable {
 		public readonly Stopwatch waiting = Stopwatch.StartNew();
 		public readonly FrameBudget frameBudget = new();
 		public readonly WholeSnapshotRequest wholeSnapshot = new();
+		// How many lines it may say in the game's chat now.
+		public readonly GameChat.Bucket chat = new();
 	}
 
 	private string hostName;
@@ -1783,6 +1785,9 @@ public class LanHost : IDisposable {
 					guest.wholeSnapshot.pending = true;
 				}
 				return true;
+			case FrameKind.ChatSay:
+				HearChat(guest, NetSerialization.DeserializeRequired<ChatSayInfo>(frame.payload));
+				return true;
 			case FrameKind.ChooseStandIn:
 				// Only the owner chooses.
 				StandInInfo choice = NetSerialization.DeserializeRequired<StandInInfo>(frame.payload);
@@ -1978,6 +1983,79 @@ public class LanHost : IDisposable {
 	// What a guest that gave no name is called. Never its address, which
 	// everyone else would see.
 	public const string UnnamedGuest = "Guest";
+
+	// The lines of the game's chat the host's own player hears; none on a
+	// dedicated host, which has no player of its own.
+	public event Action<ChatLineInfo> ChatReceived;
+
+	// The host's own player says a line in the game's chat (see GameChat).
+	public void Say(ChatChannel channel, string text) {
+		if (!IsDedicated) {
+			Speak(null, hostName, hostPlayerID, channel, text);
+		}
+	}
+
+	// A guest says a line, as one of their seats; a guest without one, not
+	// yet let in or only looking on, isn't heard.
+	private void HearChat(Guest guest, ChatSayInfo say) {
+		Seat seat = say.playerID == null ? SeatsOf(guest).FirstOrDefault()
+			: SeatsOf(guest).FirstOrDefault(s => s.info.playerID == say.playerID);
+		if (!guest.admitted || seat == null) {
+			return;
+		}
+		if (!guest.chat.Take()) {
+			guest.connection.Send(FrameKind.ChatLine, new ChatLineInfo(say.channel, null, GameChat.TooFast));
+			return;
+		}
+		Speak(guest, seat.takenBy ?? guest.name, seat.info.playerID, say.channel, say.text);
+	}
+
+	// Passes a line on to those who hear it: on All, every human player in
+	// the game at their machine, the host's own included; on Team, those
+	// with a seat on the speaker's team. Never the computer's players, who
+	// have nobody to read it, nor spectators. The speaker hears their own
+	// line back, which is how they know it went. What's said isn't logged.
+	private void Speak(Guest speaker, string name, ID playerID, ChatChannel channel, string text) {
+		string tidy = GameChat.Tidy(text);
+		if (tidy == null) {
+			return;
+		}
+		int team = 0;
+		if (channel == ChatChannel.Team) {
+			team = ChatTeamOf(playerID);
+			if (team == 0) {
+				ChatLineInfo notice = new(channel, null, GameChat.NotOnTeam);
+				if (speaker == null) {
+					ChatReceived?.Invoke(notice);
+				} else {
+					speaker.connection.Send(FrameKind.ChatLine, notice);
+				}
+				return;
+			}
+		}
+		ChatLineInfo line = new(channel, name, tidy, playerID, team);
+		if (!IsDedicated && (channel == ChatChannel.All || ChatTeamOf(hostPlayerID) == team)) {
+			ChatReceived?.Invoke(line);
+		}
+		foreach (Guest guest in SeatedGuests()) {
+			if (channel == ChatChannel.All || SeatsOf(guest).Any(s => ChatTeamOf(s.info.playerID) == team)) {
+				guest.connection.Send(FrameKind.ChatLine, line);
+			}
+		}
+	}
+
+	// The player's team, for the chat: in a game under way, their locked
+	// alliance's number (none for a team of one, which is no alliance);
+	// before that, the one their seat is on. 0 for none.
+	private int ChatTeamOf(ID playerID) {
+		if (Started && EngineStorage.gameData?.GetPlayer(playerID) is Player player) {
+			return player.alliance?.index ?? 0;
+		}
+		if (playerID == hostPlayerID) {
+			return hostTeam;
+		}
+		return seats.Find(s => s.info.playerID == playerID)?.info.team ?? 0;
+	}
 
 	// A guest gives back a seat before the game starts. Once it has, they
 	// leave a seat only by leaving the game.
