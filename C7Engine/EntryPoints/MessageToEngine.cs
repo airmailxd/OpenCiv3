@@ -1179,6 +1179,72 @@ namespace C7Engine {
 		}
 	}
 
+	// Who plays a server game's absent human until they're back, as its
+	// owner chose, or nobody once they are (see StandIn and
+	// LanHost.ChooseStandIn). Only the game server's host sends it, to
+	// itself; one from anyone else is refused.
+	public class MsgStandIn : MessageToEngine {
+		public StandIn standIn;
+
+		[JsonIgnore]
+		private bool fromHost;
+
+		public override bool IsGameAction => false;
+
+		public static MsgStandIn FromHost(ID playerID, StandIn standIn) {
+			return new MsgStandIn { playerID = playerID, standIn = standIn, fromHost = true };
+		}
+
+		protected override bool IsAllowed() {
+			return fromHost && Sender is Player { defeated: false } && !Sender.IsIndependent;
+		}
+
+		protected override async Task ProcessAllowedAsync() {
+			Player player = Sender;
+			GameData gameData = EngineStorage.gameData;
+			StandIn before = player.standIn;
+			if (before == standIn) {
+				return;
+			}
+			bool wasToMove = player.isHuman && TurnHandling.IsPlayersTurn(gameData, player.id);
+			player.standIn = standIn;
+			if (before == StandIn.Computer) {
+				// Human again: a turn the computer hasn't played for them
+				// yet is theirs.
+				player.isHuman = true;
+				TurnHandling.JoinTurnUnderWay(player, gameData);
+				return;
+			}
+			if (standIn != StandIn.Computer) {
+				// Whoever plays them, they're the same human.
+				return;
+			}
+			player.isHuman = false;
+			if (!wasToMove || TurnHandling.TurnInProgress) {
+				// The computer plays them with the other computer players.
+				return;
+			}
+			// The game was waiting on them: the computer plays their turn
+			// once the humans still to move are done, or now if none are.
+			if (gameData.simultaneousTurns) {
+				List<Player> stillToMove = TurnHandling.PlayersToMove(gameData);
+				if (stillToMove.Count > 0) {
+					if (EngineStorage.activePlayerID == player.id) {
+						EngineStorage.activePlayerID = stillToMove[0].id;
+					}
+					return;
+				}
+			}
+			// The turn loop stops at the active player, as if watching them,
+			// so a human is the active player, as when one ends their turn.
+			if (TurnHandling.FirstHumanToPlay(gameData) is Player human) {
+				EngineStorage.activePlayerID = human.id;
+			}
+			EngineStorage.processingSenderID = null;
+			await TurnHandling.AdvanceTurn();
+		}
+	}
+
 	public class MsgPerformUnitAction : MessageToEngine {
 		public MapUnit unit;
 		public MsgPerformUnitAction(MapUnit unit) {

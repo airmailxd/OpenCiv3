@@ -61,7 +61,7 @@ public partial class Scoreboard : PanelContainer {
 
 	// Everything a row shows, so the rows are only made again when it changes.
 	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool away, bool done, bool active,
-		string displayedName, bool isHuman, bool lanActive);
+		string displayedName, bool isHuman, bool lanActive, StandIn standIn);
 
 	// The style boxes every row uses, shared by all rows. They must not be
 	// changed.
@@ -200,7 +200,7 @@ public partial class Scoreboard : PanelContainer {
 		List<RowSummary> summary = new(rows.Count);
 		foreach (Row r in rows) {
 			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.away, r.done, r.active,
-				DisplayedName(r), r.player.isHuman, LanSession.IsActive));
+				DisplayedName(r), r.player.isHuman, LanSession.IsActive, r.player.standIn));
 		}
 		if (shownRows != null && summary.SequenceEqual(shownRows)) {
 			return;
@@ -356,7 +356,8 @@ public partial class Scoreboard : PanelContainer {
 	}
 
 	private static string DisplayedName(Row row) {
-		string who = row.player.isHuman ? NameOf(row.player) : row.player.civilization.leader;
+		// A player the computer plays while they're away is still theirs.
+		string who = row.player.isHuman || row.player.standIn != StandIn.None ? NameOf(row.player) : row.player.civilization.leader;
 		return $"{row.rank}. {who} ({row.player.civilization.name})";
 	}
 
@@ -389,8 +390,11 @@ public partial class Scoreboard : PanelContainer {
 		cells.AddChild(score);
 
 		// On a LAN, the squiggle shows a human is at their machine, and a z
-		// one the game goes on without.
-		Label link = MakeText(row.connected ? "~" : row.away ? "z" : "");
+		// one the game goes on without; in a server game, a c one the
+		// computer plays while they're away, and an h one the game's owner
+		// plays.
+		Label link = MakeText(row.connected ? "~" : row.away ? "z"
+			: row.player.standIn == StandIn.Computer ? "c" : row.player.standIn == StandIn.Hotseat ? "h" : "");
 		link.Visible = LanSession.IsActive;
 		link.CustomMinimumSize = new Vector2(16, 0);
 		link.HorizontalAlignment = HorizontalAlignment.Center;
@@ -398,6 +402,8 @@ public partial class Scoreboard : PanelContainer {
 		link.MouseFilter = MouseFilterEnum.Pass;
 		link.TooltipText = row.connected ? "Connected"
 			: row.away ? "Away: not connected, and their turns end by themselves"
+			: row.player.standIn == StandIn.Computer ? "Away: the computer plays for them until they're back"
+			: row.player.standIn == StandIn.Hotseat ? "Away: the game's owner plays their turns until they're back"
 			: row.player.isHuman ? "Not connected" : "";
 		cells.AddChild(link);
 

@@ -44,6 +44,27 @@ it, and the timer starts with turn 1, as in Civ3's multiplayer games.
 Between those, when nobody is connected, the game is at rest: "whose turn it
 is" is the first human in turn order who hasn't finished this turn.
 
+## A player who doesn't come back
+
+While the game waits on a human who isn't connected, whoever set the game up
+(its owner, if connected) is offered two choices in the waiting banner:
+
+- **Continue with AI**: the computer plays that civilization until its
+  player reconnects, then hands it back. A turn the game was waiting on is
+  played by the computer at once.
+- **Switch to hotseat**: the owner plays that civilization's turns at their
+  own machine, with the curtain between the two as in a hotseat game, until
+  its player reconnects and takes the seat back.
+
+The game server's host enforces it (`LanHost.ChooseStandIn`, frame
+`ChooseStandIn`): only the owner's choice counts, and only for a human who
+isn't connected. Everyone is told (the turn clock's `computerPlayers` and
+`hotseatPlayers`, and the scoreboard's c and h). The choice is kept in the
+save (`SavePlayer.standIn`), so a worker hosting the game again keeps to it;
+the save still has the player as human, so they keep their seat. A player
+the computer plays isn't waited for when deciding whether turns are played
+at once; one the owner plays counts as here while the owner is.
+
 ## In the game
 
 The game server itself is kept in a separate, private repository, which

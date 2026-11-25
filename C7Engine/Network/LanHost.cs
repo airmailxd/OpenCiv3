@@ -74,6 +74,10 @@ namespace C7Engine.Network;
 // so one whose turn it isn't views the game as their own civilization until
 // it is. It decides at the start of each turn whether the humans move at
 // once: they do when they're all connected (see ChooseTurnsFromWhoIsConnected).
+// Its game has an owner, who set it up: while the game waits on a human
+// who isn't connected, the owner may have the computer play them, or play
+// them at their own machine as in a hotseat game, until they're back (see
+// ChooseStandIn).
 public class LanHost : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanHost>();
 
@@ -164,6 +168,9 @@ public class LanHost : IDisposable {
 		// The host chose to go on without the player, so their turns end
 		// by themselves until someone is in the seat again.
 		public bool away;
+		// Who plays the player while they're away from a dedicated host's
+		// game, as its owner chose, until they're back (see ChooseStandIn).
+		public StandIn standIn;
 		// The messages for the player while they're disconnected, and the
 		// turn they're from.
 		public readonly List<byte[]> heldUiMessages = new();
@@ -684,6 +691,10 @@ public class LanHost : IDisposable {
 	// alone takes it, and the name of whoever plays it.
 	public sealed record DedicatedSeat(ID playerID, string token, string playerName);
 
+	// The player of whoever set up a dedicated host's game, who may choose
+	// who plays an absent player (see ChooseStandIn); null for nobody.
+	public ID OwnerPlayerID { get; private set; }
+
 	// Hosts a game that already exists with no player of its own, as a game
 	// server's worker does (see doc/server-games.md). Each human player
 	// who isn't defeated is a seat, held for whoever says hello with its
@@ -691,7 +702,8 @@ public class LanHost : IDisposable {
 	// may watch. The host listens only on this machine, since its guests
 	// come through the relay (HostOnline). The game is played with the
 	// humans moving at once whenever they're all connected as a turn begins.
-	public static LanHost Dedicated(string hostName, SaveGame save, IEnumerable<DedicatedSeat> seatTokens, int port = 0) {
+	public static LanHost Dedicated(string hostName, SaveGame save, IEnumerable<DedicatedSeat> seatTokens, int port = 0,
+		ID ownerPlayerID = null) {
 		Dictionary<ID, DedicatedSeat> tokens = seatTokens.ToDictionary(s => s.playerID);
 		List<Seat> seats = save.Players
 			.Where(p => p.human && !p.defeated)
@@ -701,6 +713,8 @@ public class LanHost : IDisposable {
 					info = new SeatInfo(p.id, p.civilization, p.name, false, null, team: TeamOf(save, p)),
 					token = string.IsNullOrEmpty(given?.token) ? null : given.token,
 					takenBy = TidyName(given?.playerName) ?? p.name,
+					// As the owner chose before the game was last saved.
+					standIn = p.standIn ?? StandIn.None,
 				};
 			})
 			.ToList();
@@ -714,6 +728,7 @@ public class LanHost : IDisposable {
 			TurnTimeLimit = save.TurnTimerSeconds is int seconds && seconds > 0 ? TimeSpan.FromSeconds(seconds) : null,
 			ScaledTurnTimer = save.ScaledTurnTimer,
 			TurnTimerRules = save.Rules,
+			OwnerPlayerID = seats.Any(s => s.info.playerID == ownerPlayerID) ? ownerPlayerID : null,
 		};
 		if (save.Map?.tilesWide > 0) {
 			host.MapSize = $"{save.Map.tilesWide}x{save.Map.tilesTall}";
@@ -994,7 +1009,7 @@ public class LanHost : IDisposable {
 	// The players whose view of the game a guest is sent (see
 	// SnapshotFilter): its own, or null for the whole game.
 	private List<ID> ViewPlayers(Guest guest) {
-		return hideUnseen ? SeatsOf(guest).Select(s => s.info.playerID).ToList() : null;
+		return hideUnseen ? PlayedSeatsOf(guest).Select(s => s.info.playerID).ToList() : null;
 	}
 
 	// And a spectator's: every civilization's, the one it chose, or null for
@@ -1121,10 +1136,7 @@ public class LanHost : IDisposable {
 			|| Staging.InProgress(gameData) || TurnHandling.PlayersToMove(gameData).Count == 0) {
 			return;
 		}
-		bool everyone = seats
-			.Where(s => gameData.GetPlayer(s.info.playerID) is Player { defeated: false })
-			.All(s => s.IsTaken);
-		if (!everyone) {
+		if (!EveryoneIsHere(gameData)) {
 			return;
 		}
 		log.Information("Everyone is connected: the rest of turn {Turn} is played simultaneously", gameData.turn);
@@ -1141,9 +1153,7 @@ public class LanHost : IDisposable {
 	// As a new turn begins, has the humans move at once if they're all
 	// connected, or else in turn (see ChooseTurnsFromWhoIsConnected).
 	private void ChooseTurns(GameData gameData) {
-		bool everyone = seats
-			.Where(s => gameData.GetPlayer(s.info.playerID) is Player { defeated: false })
-			.All(s => s.IsTaken);
+		bool everyone = EveryoneIsHere(gameData);
 		if (gameData.simultaneousTurns != everyone) {
 			log.Information("Turn {Turn} is played {How}", gameData.turn,
 				everyone ? "simultaneously, with everyone connected" : "in turn, since not everyone is connected");
@@ -1152,7 +1162,33 @@ public class LanHost : IDisposable {
 		SimultaneousTurns = everyone;
 	}
 
+	// Whether every human still in the game is at a machine: connected, or
+	// played by the owner, connected, at theirs. Those the computer plays
+	// for now aren't waited for.
+	private bool EveryoneIsHere(GameData gameData) {
+		return seats
+			.Where(s => gameData.GetPlayer(s.info.playerID) is Player { defeated: false })
+			.Where(s => s.standIn != StandIn.Computer)
+			.All(s => s.IsTaken || StandInGuest(s) != null);
+	}
+
 	private IEnumerable<Seat> SeatsOf(Guest guest) => seats.Where(s => s.guest == guest);
+
+	// The seats a guest plays: their own, and those of absent players the
+	// owner plays at their machine, if they're the owner.
+	private IEnumerable<Seat> PlayedSeatsOf(Guest guest) => seats.Where(s => s.guest == guest || StandInGuest(s) == guest);
+
+	// The owner's guest, playing the seat's absent player at their machine
+	// (see ChooseStandIn); null if they don't, or aren't connected.
+	private Guest StandInGuest(Seat seat) {
+		if (seat.standIn != StandIn.Hotseat || seat.IsTaken) {
+			return null;
+		}
+		Seat owner = OwnerSeat();
+		return owner is { IsTaken: true } ? owner.guest : null;
+	}
+
+	private Seat OwnerSeat() => OwnerPlayerID == null ? null : seats.Find(s => s.info.playerID == OwnerPlayerID);
 
 	// The guests with a seat, whose connections are still open.
 	private List<Guest> SeatedGuests() {
@@ -1162,7 +1198,7 @@ public class LanHost : IDisposable {
 	// Tells a guest which players are theirs, now or after taking another
 	// seat in a game in progress, and shows them the game.
 	private void SendStart(Guest guest, SnapshotRound round) {
-		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token));
+		guest.connection.Send(FrameKind.Start, new StartInfo(PlayedSeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token));
 		SendSnapshot(guest.connection, EncodeSnapshot(round, ViewPlayers(guest)), guest.pendingUiMessages);
 	}
 
@@ -1349,7 +1385,7 @@ public class LanHost : IDisposable {
 		if (!IsDedicated) {
 			return toMove;
 		}
-		return toMove.Where(id => seats.Any(s => s.info.playerID == id && s.IsTaken)).ToList();
+		return toMove.Where(id => seats.Any(s => s.info.playerID == id && (s.IsTaken || StandInGuest(s) != null))).ToList();
 	}
 
 	// Ends the turn of each away player still to move, once a turn, the way
@@ -1376,7 +1412,7 @@ public class LanHost : IDisposable {
 		foreach (Player player in gameData.players.Where(p => Staging.IsBidding(gameData, p)).ToList()) {
 			Seat seat = seats.Find(s => s.info.playerID == player.id);
 			string progress = $"{gameData.turn}";
-			if (seat == null || !seat.away || seat.IsTaken || player.cities.Count == 0
+			if (seat == null || !(seat.away || seat.standIn == StandIn.Computer) || seat.IsTaken || player.cities.Count == 0
 				|| (awayStaged.TryGetValue(player.id, out string staged) && staged == progress)) {
 				continue;
 			}
@@ -1433,12 +1469,13 @@ public class LanHost : IDisposable {
 	// The players with nobody at their machine whom the game would wait on:
 	// their guests lost the connection, or nobody has taken their seats, and
 	// the host hasn't chosen to go on without them.
-	public IReadOnlyList<ID> AbsentPlayers => seats.Where(s => !s.IsTaken && !s.away).Select(s => s.info.playerID).ToList();
+	public IReadOnlyList<ID> AbsentPlayers => seats.Where(s => !s.IsTaken && !s.away && s.standIn == StandIn.None)
+		.Select(s => s.info.playerID).ToList();
 
 	// Goes on without the absent players: from now on their turns end by
 	// themselves, until a guest is in their seat again.
 	public void ContinueWithoutAbsentPlayers() {
-		foreach (Seat seat in seats.Where(s => !s.IsTaken && !s.away)) {
+		foreach (Seat seat in seats.Where(s => !s.IsTaken && !s.away && s.standIn == StandIn.None)) {
 			log.Information("Going on without {Player}", seat.takenBy ?? seat.info.playerName ?? seat.info.playerID.ToString());
 			seat.away = true;
 		}
@@ -1576,7 +1613,10 @@ public class LanHost : IDisposable {
 		}
 		return new TurnClockInfo(clockPlayerID, clockTurn, turnClock.Elapsed.TotalSeconds,
 			CurrentTurnLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove,
-			seats.Where(s => s.away).Select(s => s.info.playerID).ToList());
+			seats.Where(s => s.away).Select(s => s.info.playerID).ToList(),
+			OwnerPlayerID,
+			seats.Where(s => s.standIn == StandIn.Computer).Select(s => s.info.playerID).ToList(),
+			seats.Where(s => s.standIn == StandIn.Hotseat).Select(s => s.info.playerID).ToList());
 	}
 
 	private List<ID> ConnectedPlayers() {
@@ -1741,6 +1781,15 @@ public class LanHost : IDisposable {
 			case FrameKind.RequestSnapshot:
 				if (Started && SeatsOf(guest).Any()) {
 					guest.wholeSnapshot.pending = true;
+				}
+				return true;
+			case FrameKind.ChooseStandIn:
+				// Only the owner chooses.
+				StandInInfo choice = NetSerialization.DeserializeRequired<StandInInfo>(frame.payload);
+				if (OwnerSeat() is Seat ownerSeat && ownerSeat.guest == guest && ownerSeat.IsTaken) {
+					ChooseStandIn(choice.playerID, choice.standIn);
+				} else {
+					log.Warning("Ignoring {Name}'s choice of who plays {Player}: only the game's owner chooses", guest.name, choice.playerID);
 				}
 				return true;
 			default:
@@ -1960,6 +2009,12 @@ public class LanHost : IDisposable {
 		guests.Remove(guest);
 		guest.connection.Dispose();
 		List<Seat> left = SeatsOf(guest).ToList();
+		// The owner leaving leaves those they played for absent again.
+		if (left.Contains(OwnerSeat())) {
+			foreach (Seat seat in seats.Where(s => s.standIn == StandIn.Hotseat && !s.IsTaken)) {
+				ReleaseDiplomacy(seat);
+			}
+		}
 		foreach (Seat seat in left) {
 			if (HoldsSeats) {
 				// They may well be back: the seat waits for them.
@@ -2000,9 +2055,16 @@ public class LanHost : IDisposable {
 		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
 		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		int turn = EngineStorage.gameData?.turn ?? -1;
+		bool ownerPlayedForThem = false;
 		foreach (Seat seat in theirs) {
 			seat.guest = guest;
 			seat.away = false;
+			if (seat.standIn != StandIn.None) {
+				// They play themselves again.
+				log.Information("{Name} is back: {Player} is theirs to play again", guest.name, seat.info.playerID);
+				ownerPlayedForThem |= seat.standIn == StandIn.Hotseat;
+				SetStandIn(seat, StandIn.None);
+			}
 			seat.banAddress = BanAddress(guest);
 			if (Started && seat.heldTurn == turn) {
 				guest.pendingUiMessages.AddRange(seat.heldUiMessages);
@@ -2022,9 +2084,61 @@ public class LanHost : IDisposable {
 			foreach (Seat seat in theirs) {
 				ResendTurnPrompts(seat);
 			}
+			// The owner no longer plays them.
+			if (ownerPlayedForThem && OwnerSeat() is { IsTaken: true } owner && owner.guest != guest) {
+				SendStart(owner.guest, new SnapshotRound());
+			}
 		}
 		BroadcastLobby();
 		return true;
+	}
+
+	// ---- Absent players (see ChooseStandIn) ----
+
+	// The owner of a dedicated host's game (see OwnerPlayerID), connected,
+	// chooses who plays an absent human until they're back: the computer
+	// (StandIn.Computer), the owner at their own machine, in turns as in a
+	// hotseat game (StandIn.Hotseat), or nobody, the game waiting for them
+	// (StandIn.None). Returns whether it was done: only for a human still
+	// in the game, other than the owner, who isn't connected. Everyone is
+	// told, with the clock (TurnClockInfo.computerPlayers and
+	// hotseatPlayers). Their coming back undoes it.
+	public bool ChooseStandIn(ID playerID, StandIn standIn) {
+		Seat owner = OwnerSeat();
+		Seat seat = seats.Find(s => s.info.playerID == playerID);
+		Player player = EngineStorage.gameData?.GetPlayer(playerID);
+		if (!IsDedicated || !Started || owner is not { IsTaken: true } || seat == null || seat == owner || seat.IsTaken
+			|| player == null || player.defeated || !Enum.IsDefined(standIn)) {
+			log.Information("Not letting {Player} be played by {StandIn}", playerID, standIn);
+			return false;
+		}
+		if (seat.standIn == standIn) {
+			return true;
+		}
+		log.Information("The owner, {Owner}, chose {StandIn} to play {Player} until they're back",
+			owner.takenBy, standIn, seat.takenBy ?? playerID.ToString());
+		bool hotseatBefore = seat.standIn == StandIn.Hotseat;
+		seat.away = false;
+		SetStandIn(seat, standIn);
+		if (hotseatBefore || standIn == StandIn.Hotseat) {
+			// The owner's machine plays them from now on, or no longer does.
+			SendStart(owner.guest, new SnapshotRound());
+			if (standIn == StandIn.Hotseat) {
+				ResendTurnPrompts(seat);
+			}
+		}
+		snapshotPending = true;
+		spectatorSnapshotPending = true;
+		sinceChange.Restart();
+		BroadcastLobby();
+		return true;
+	}
+
+	// Who plays the seat's player now: the host's at once, the game's once
+	// the engine has the message (see MsgStandIn).
+	private void SetStandIn(Seat seat, StandIn standIn) {
+		seat.standIn = standIn;
+		EngineStorage.ReceiveFromRemote(MsgStandIn.FromHost(seat.info.playerID, standIn));
 	}
 
 	private void Reject(Guest guest, string reason) {
@@ -2037,7 +2151,7 @@ public class LanHost : IDisposable {
 	// is connected.
 	private bool IsReachable(ID player) {
 		Seat seat = seats.Find(s => s.info.playerID == player);
-		return seat == null || seat.IsTaken;
+		return seat == null || seat.IsTaken || StandInGuest(seat) != null;
 	}
 
 	// The engine may be waiting on the seat's player to answer an AI, who
@@ -2059,9 +2173,10 @@ public class LanHost : IDisposable {
 	}
 
 	private void HandleCommand(Guest guest, Frame frame) {
-		// Guests act only as their own players, so one without a seat has
-		// nothing to say, and isn't listened to.
-		List<Seat> theirs = SeatsOf(guest).ToList();
+		// Guests act only as their own players (and the owner as those they
+		// play for; see ChooseStandIn), so one without a seat has nothing to
+		// say, and isn't listened to.
+		List<Seat> theirs = PlayedSeatsOf(guest).ToList();
 		if (!Started || theirs.Count == 0) {
 			return;
 		}
@@ -2333,6 +2448,9 @@ public class LanHost : IDisposable {
 			}
 		} else if (recipientSeat.IsTaken) {
 			QueueUiMessage(recipientSeat.guest, NetSerialization.Serialize(msg));
+		} else if (StandInGuest(recipientSeat) is Guest standIn) {
+			// The owner plays them at their machine.
+			QueueUiMessage(standIn, NetSerialization.Serialize(msg));
 		} else if (recipientSeat.IsHeld) {
 			HoldUiMessage(recipientSeat, NetSerialization.Serialize(msg));
 		}

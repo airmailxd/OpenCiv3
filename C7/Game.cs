@@ -674,12 +674,32 @@ public partial class Game : Node {
 		}
 	}
 
+	// The player at the screen is no longer ours to play: back to our own,
+	// waiting for whoever moves now.
+	private void HandBackAbsentPlayer() {
+		log.Information("{Player} is back, and plays on themselves", controller);
+		popupOverlay.OnHidePopup();
+		hotseatHandoff?.QueueFree();
+		hotseatHandoff = null;
+		queuedHandoffs.Clear();
+		ID ours = LanSession.Client.PlayerIDs[0];
+		EngineStorage.uiControllerID = ours;
+		controller = EngineStorage.gameData.GetPlayer(ours);
+		ResumeLanTurns();
+	}
+
 	// Rejoining with several seats can take them one at a time, so the
 	// player we were waiting on may turn out to be one of ours.
 	private void OnLanPlayersChanged() {
 		if (lanResyncPending) {
 			// Back after losing the host: the turns pick up once its game
 			// is shown.
+			return;
+		}
+		if (controller != null && !LanSession.IsLocalPlayer(controller) && LanSession.Client?.PlayerIDs.Count > 0) {
+			// A server game's player we played for (see
+			// LanHost.ChooseStandIn) is back, and plays on themselves.
+			HandBackAbsentPlayer();
 			return;
 		}
 		if (SimultaneousLanTurns) {
@@ -699,6 +719,9 @@ public partial class Game : Node {
 		LanClient client = LanSession.Client;
 		if (client != null && !PollLanConnection(client)) {
 			return;
+		}
+		if (lanGameStarted && client != null && !client.IsSpectator) {
+			NoteStandIns();
 		}
 
 		// With simultaneous turns, the host's game says when each of our
@@ -975,13 +998,20 @@ public partial class Game : Node {
 	}
 
 	// Shows who we wait on while other machines' players move. The host can
-	// go on without those who have lost their connection.
+	// go on without those who have lost their connection; in a server game,
+	// whoever set it up chooses who plays them until they're back.
 	private void ShowLanWaiting(List<Player> others) {
 		List<Player> absent = others.Where(p => !IsLanPlayerHere(p)).ToList();
+		TurnClockInfo clock = LanSession.TurnClock;
 		string text;
 		if (absent.Count > 0) {
 			string names = string.Join(", ", absent.Select(p => $"{p.name ?? p.civilization.leader} of the {p.civilization.noun}"));
 			text = $"Waiting for {names} to reconnect...";
+		} else if (others.Count == 1 && clock?.hotseatPlayers?.Contains(others[0].id) == true
+			&& EngineStorage.gameData.GetPlayer(clock.ownerPlayerID) is Player owner) {
+			Player played = others[0];
+			text = $"Waiting for {owner.name ?? owner.civilization.leader} to play the turn of "
+				+ $"{played.name ?? played.civilization.leader} of the {played.civilization.noun}...";
 		} else if (others.Count == 1) {
 			Player active = others[0];
 			string playerName = active.name ?? active.civilization.leader;
@@ -994,10 +1024,69 @@ public partial class Game : Node {
 		}
 		if (absent.Count > 0 && LanSession.Host != null) {
 			ShowLanBanner(text, "Continue without them", LanSession.Host.ContinueWithoutAbsentPlayers);
+		} else if (absent.Count > 0 && IsServerGameOwner(clock)) {
+			List<ID> ids = absent.Select(p => p.id).ToList();
+			ShowLanBanner(text, [
+				("Continue with AI", "The computer plays them until they reconnect.",
+					() => ChooseStandIn(ids, StandIn.Computer)),
+				("Switch to hotseat", "You play their turns here, as in a hotseat game, until they reconnect.",
+					() => ChooseStandIn(ids, StandIn.Hotseat)),
+			]);
 		} else {
 			ShowLanBanner(text);
 		}
 		lanWaitingOnOthers = true;
+	}
+
+	// Whether we set up the server game we're in, so choose who plays an
+	// absent player (see LanHost.ChooseStandIn).
+	private static bool IsServerGameOwner(TurnClockInfo clock) {
+		return clock?.ownerPlayerID != null && LanSession.Client?.PlayerIDs.Contains(clock.ownerPlayerID) == true;
+	}
+
+	private void ChooseStandIn(List<ID> players, StandIn standIn) {
+		foreach (ID id in players) {
+			log.Information("Choosing {StandIn} to play {Player} until they're back", standIn, id);
+			LanSession.Client?.ChooseStandIn(id, standIn);
+		}
+	}
+
+	// Who plays the server game's absent players, as last heard, to tell
+	// everyone when it changes.
+	private HashSet<ID> computerPlayersHeard = [];
+	private HashSet<ID> hotseatPlayersHeard = [];
+
+	private void NoteStandIns() {
+		TurnClockInfo clock = LanSession.TurnClock;
+		GameData gameData = EngineStorage.gameData;
+		if (clock == null || gameData == null) {
+			return;
+		}
+		HashSet<ID> computer = clock.computerPlayers?.ToHashSet() ?? [];
+		HashSet<ID> hotseat = clock.hotseatPlayers?.ToHashSet() ?? [];
+		if (computer.SetEquals(computerPlayersHeard) && hotseat.SetEquals(hotseatPlayersHeard)) {
+			return;
+		}
+		string ownerName = gameData.GetPlayer(clock.ownerPlayerID) is Player owner ? owner.name ?? owner.civilization.leader : "The owner";
+		bool ours = IsServerGameOwner(clock);
+		string NameOf(ID id) => gameData.GetPlayer(id) is Player p ? $"{p.name ?? p.civilization.leader} of the {p.civilization.noun}" : null;
+		foreach (ID id in computer.Except(computerPlayersHeard)) {
+			if (NameOf(id) is string name) {
+				ShowSpectatorNews($"The computer plays {name} until they reconnect.");
+			}
+		}
+		foreach (ID id in hotseat.Except(hotseatPlayersHeard)) {
+			if (NameOf(id) is string name) {
+				ShowSpectatorNews(ours ? $"You play {name} until they reconnect." : $"{ownerName} plays {name} until they reconnect.");
+			}
+		}
+		foreach (ID id in computerPlayersHeard.Union(hotseatPlayersHeard).Except(computer).Except(hotseat)) {
+			if (NameOf(id) is string name) {
+				ShowSpectatorNews($"{name} is back.");
+			}
+		}
+		computerPlayersHeard = computer;
+		hotseatPlayersHeard = hotseat;
 	}
 
 	// Whether the player is at their machine, or the host has gone on
@@ -1008,16 +1097,27 @@ public partial class Game : Node {
 		if (clock?.connectedPlayers == null || clock.connectedPlayers.Count == 0) {
 			return true;
 		}
-		return clock.connectedPlayers.Contains(player.id) || clock.awayPlayers?.Contains(player.id) == true;
+		// In a server game, the computer may play them, or its owner, at
+		// their machine, until they're back.
+		return clock.connectedPlayers.Contains(player.id) || clock.awayPlayers?.Contains(player.id) == true
+			|| clock.computerPlayers?.Contains(player.id) == true
+			|| (clock.hotseatPlayers?.Contains(player.id) == true && clock.connectedPlayers.Contains(clock.ownerPlayerID));
 	}
 
 	private void ShowLanBanner(string text, string buttonText = null, Action onPressed = null) {
+		ShowLanBanner(text, buttonText == null ? [] : [(buttonText, null, onPressed)]);
+	}
+
+	// The banner with a button for each choice: its text, tooltip and what
+	// it does.
+	private void ShowLanBanner(string text, List<(string text, string tooltip, Action onPressed)> buttons) {
 		CurrentState = GameState.ComputerTurn;
-		if (lanWaitingBanner != null && lanWaitingText == text + buttonText) {
+		string shown = text + string.Concat(buttons.Select(b => "|" + b.text));
+		if (lanWaitingBanner != null && lanWaitingText == shown) {
 			return;
 		}
 		HideLanWaiting();
-		lanWaitingText = text + buttonText;
+		lanWaitingText = shown;
 
 		Label label = new() {
 			Text = text,
@@ -1031,8 +1131,8 @@ public partial class Game : Node {
 		HBoxContainer row = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
 		row.AddThemeConstantOverride("separation", 12);
 		row.AddChild(label);
-		if (buttonText != null) {
-			Button button = new() { Text = buttonText };
+		foreach ((string buttonText, string tooltip, Action onPressed) in buttons) {
+			Button button = new() { Text = buttonText, TooltipText = tooltip ?? "" };
 			button.AddThemeFontSizeOverride("font_size", 16);
 			button.Pressed += onPressed;
 			row.AddChild(button);

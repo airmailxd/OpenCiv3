@@ -53,11 +53,15 @@ public enum FrameKind : byte {
 	// Client to host: the team for one of a seated guest's players in a game
 	// not created yet (see ChooseTeamInfo).
 	ChooseTeam = 19,
+
+	// Client to host: the game's owner chooses who plays an absent player
+	// of a server game until they're back (see StandInInfo).
+	ChooseStandIn = 20,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 19;
+	public const int Version = 20;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -341,6 +345,10 @@ public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 // for their first.
 public record ChooseTeamInfo(int team, ID playerID = null);
 
+// The owner's choice of who plays an absent player until they're back (see
+// LanHost.ChooseStandIn).
+public record StandInInfo(ID playerID, StandIn standIn);
+
 // The players this guest plays, in turn order; empty for a spectator. The
 // token is as in LobbyInfo.
 public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
@@ -376,6 +384,11 @@ public record PasswordInfo(string proof);
 // no time limit. playersToMove are the humans yet to finish their turn, in
 // turn order: with simultaneous turns, everyone the clock is running for, and
 // otherwise at most the active player. awayPlayers are those the host went on
-// without, whose turns end by themselves until they are back.
+// without, whose turns end by themselves until they are back. In a server
+// game, ownerPlayerID is the player of whoever set it up, who may choose who
+// plays an absent player until they're back: computerPlayers are those the
+// computer plays, and hotseatPlayers those the owner plays at their own
+// machine (see LanHost.ChooseStandIn).
 public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers,
-	List<ID> playersToMove = null, List<ID> awayPlayers = null);
+	List<ID> playersToMove = null, List<ID> awayPlayers = null, ID ownerPlayerID = null, List<ID> computerPlayers = null,
+	List<ID> hotseatPlayers = null);

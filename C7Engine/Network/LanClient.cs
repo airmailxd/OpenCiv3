@@ -267,6 +267,13 @@ public class LanClient : IDisposable {
 		connection.Send(FrameKind.ChooseTeam, new ChooseTeamInfo(team, playerID));
 	}
 
+	// As the owner of a server game, chooses who plays an absent player
+	// until they're back (see LanHost.ChooseStandIn). The host ignores
+	// anyone else's choice.
+	public void ChooseStandIn(ID playerID, StandIn standIn) {
+		connection.Send(FrameKind.ChooseStandIn, new StandInInfo(playerID, standIn));
+	}
+
 	// Watches the game instead of taking a seat.
 	public void Watch() {
 		IsSpectator = true;

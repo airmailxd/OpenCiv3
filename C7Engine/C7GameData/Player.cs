@@ -125,6 +125,10 @@ namespace C7GameData {
 		//TODO: Refactor front-end so it sends player GUID with requests.
 		//We should allow multiple humans, this is a temporary measure.
 		public bool isHuman = false;
+		// Who plays this human player while they're away from a server game
+		// (see StandIn). The computer playing them makes them not human for
+		// now (isHuman), until they're back.
+		public StandIn standIn = StandIn.None;
 		// Which AI plays this civ when the computer plays it (see AiType).
 		public AiType aiType = AiType.Standard;
 		// Whether the Advanced AI plays this civ. Never for a human (aiType is

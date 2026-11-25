@@ -348,6 +348,18 @@ namespace C7Engine {
 			}
 		}
 
+		// A human who has just become one again (a server game's player back
+		// from being played by the computer; see MsgStandIn) joins a turn the
+		// humans are playing at once, if they're yet to play it. In a turn
+		// played in turn, theirs comes in turn order.
+		internal static void JoinTurnUnderWay(Player player, GameData gameData) {
+			if (!gameData.simultaneousTurns || TurnInProgress || !PlayersToMove(gameData).Contains(player)) {
+				return;
+			}
+			BeginPlayersTurn(player, gameData);
+			StartHumanTurn(player, gameData);
+		}
+
 		// Hands the turn to a human, or to the player being observed.
 		// What happens to the player's units as its own turn begins, rather
 		// than at the end of the round (InitTurnData): their air missions

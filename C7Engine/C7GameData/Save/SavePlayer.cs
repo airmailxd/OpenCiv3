@@ -14,6 +14,10 @@ namespace C7GameData.Save {
 		// it's left out of the save; older saves have none, and load as
 		// Standard.
 		public AiType? aiType;
+		// Who plays the player while they're away from a server game (see
+		// StandIn); null for nobody, so it's left out of the save. While
+		// the computer does, human stays true, which Player.isHuman isn't.
+		public StandIn? standIn;
 		public bool hasPlayedCurrentTurn = false;
 		public bool defeated = false;
 		public bool isIncludedInGame = true;
@@ -183,7 +187,8 @@ namespace C7GameData.Save {
 				List<TerrainImprovement> terrainImprovements) {
 			Player player = new Player{
 				id = id,
-				isHuman = human,
+				isHuman = human && standIn != StandIn.Computer,
+				standIn = standIn ?? StandIn.None,
 				aiType = aiType ?? AiType.Standard,
 				isIncludedInGame = isIncludedInGame,
 				canBePicked = canBePicked,
@@ -324,7 +329,8 @@ namespace C7GameData.Save {
 			alliance = (player.IsIndependent || player.alliance == null) ? null : player.alliance.name;
 			primaryColorIndex = player.primaryColorIndex;
 			secondaryColorIndex = player.secondaryColorIndex;
-			human = player.isHuman;
+			human = player.isHuman || player.standIn == StandIn.Computer;
+			standIn = player.standIn == StandIn.None ? null : player.standIn;
 			aiType = player.aiType == AiType.Standard ? null : player.aiType;
 			hasPlayedCurrentTurn = player.hasPlayedThisTurn;
 			skipFirstTurn = player.skipFirstTurn;
