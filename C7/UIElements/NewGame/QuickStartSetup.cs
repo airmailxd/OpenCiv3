@@ -6,7 +6,8 @@ using C7Engine.Lua;
 using Serilog;
 
 // Quick Start: a new game set up as the player last set one up, on a new
-// map (see NewGameChoices.QuickStartGame).
+// map, always for one person on this computer (see
+// NewGameChoices.QuickStartGame).
 public partial class QuickStartSetup : Node {
 	private static ILogger log = LogManager.ForContext<QuickStartSetup>();
 
@@ -14,6 +15,8 @@ public partial class QuickStartSetup : Node {
 		log.Information("Setting up a QuickStart game");
 
 		global.ResetLoadGameFields();
+		// Played here, never hosted, whatever the last game was.
+		LanSession.HostNextGame = false;
 
 		var game = GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode);
 		var save = game.GetSave();

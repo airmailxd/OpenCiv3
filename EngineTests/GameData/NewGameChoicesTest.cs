@@ -206,7 +206,17 @@ public class NewGameChoicesTest {
 		Assert.True(save.WorldSizes[1].numberOfCivs >= 5);
 		choices.Difficulty = save.Difficulties[2].Name;
 
+		choices.TurnTimerMinutes = 5;
+		choices.ScaledTurnTimer = true;
+		save.TurnTimerSeconds = 300;
+		save.ScaledTurnTimer = true;
+		save.SimultaneousTurns = true;
 		GameSetup first = choices.QuickStartGame(save, 1111, new Random(1), "invalid maps");
+		// Quick Start is for one person, with no turn timer.
+		Assert.Null(save.TurnTimerSeconds);
+		Assert.False(save.ScaledTurnTimer);
+		Assert.False(save.SimultaneousTurns);
+		Assert.False(save.PlayByEmail);
 		GameSetup second = choices.QuickStartGame(Ruleset(), 2222, new Random(2));
 
 		foreach (GameSetup setup in new[] { first, second }) {
@@ -221,20 +231,18 @@ public class NewGameChoicesTest {
 			Assert.Equal("Rome", setup.playerCivilization.name);
 			Assert.Equal(save.Difficulties[2].Name, setup.difficulty.Name);
 
-			// Slots 0 and 1 were LAN seats, played by the computer now; the
-			// civ chosen for slot 1 was Random. Slots 2 and 3 are hotseat.
+			// Slots 0 and 1 were LAN seats and 2 and 3 hotseat: the computer
+			// plays them all now. The civ chosen for slot 1 was Random.
 			int slots = world.worldSize.numberOfCivs - 1;
-			Assert.Equal(slots - 2, setup.opponents.Count);
+			Assert.Equal(slots, setup.opponents.Count);
 			Assert.Equal("Babylon", setup.opponents[0].Name);
 			Assert.False(setup.opponents[0].isRandom);
 			Assert.True(setup.opponents[1].isRandom);
-			Assert.All(setup.opponents.Skip(2), o => Assert.True(o.isRandom));
-			Assert.Equal(2, setup.hotseatPlayers.Count);
-			Assert.Equal("Egypt", setup.hotseatPlayers[0].civilization.name);
-			Assert.Equal("Bob%20", setup.hotseatPlayers[0].name);
-			Assert.Equal("Greece", setup.hotseatPlayers[1].civilization.name);
-			Assert.Equal("Player 3", setup.hotseatPlayers[1].name);
-			Assert.Equal("Ann; #1 | the first", setup.playerName);
+			Assert.Equal("Egypt", setup.opponents[2].Name);
+			Assert.Equal("Greece", setup.opponents[3].Name);
+			Assert.All(setup.opponents.Skip(4), o => Assert.True(o.isRandom));
+			Assert.Empty(setup.hotseatPlayers);
+			Assert.Null(setup.playerName);
 
 			Assert.False(setup.victoryConditions.AllowConquestVictory);
 			Assert.True(setup.victoryConditions.AllowDominationVictory);
@@ -286,8 +294,9 @@ public class NewGameChoicesTest {
 
 		List<SavePlayer> players = save.Players.Where(p => !save.Civilizations.Find(c => c.name == p.civilization).isBarbarian).ToList();
 		Assert.Equal(smallest.numberOfCivs, players.Count);
-		Assert.Contains(players, p => p.human && p.civilization == "Rome");
-		Assert.Contains(players, p => p.human && p.civilization == "Egypt" && p.name == "Bob");
+		// The one human; Bob's hotseat slot of the last setup is the computer's.
+		Assert.Equal("Rome", Assert.Single(players, p => p.human).civilization);
+		Assert.Contains(players, p => !p.human && p.civilization == "Egypt");
 		Assert.Contains(players, p => !p.human && p.civilization == "Babylon");
 		Assert.Equal(12345, save.Seed);
 	}

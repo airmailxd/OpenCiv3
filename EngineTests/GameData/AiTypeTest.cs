@@ -147,10 +147,12 @@ public class AiTypeTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 		GameSetup setup = choices.QuickStartGame(save, 42, new Random(1));
 
-		// Slot 1 is a hotseat player, so the opponents are slots 0, 2, 3...
+		// Slot 1 was a hotseat player's, which the computer plays in Quick
+		// Start, with the Standard AI.
 		Assert.Equal(AiType.Advanced, setup.opponents[0].aiType);
-		Assert.Equal(AiType.Advanced, setup.opponents[1].aiType);
-		Assert.All(setup.opponents.Skip(2), o => Assert.Equal(AiType.Standard, o.aiType));
+		Assert.Equal(AiType.Standard, setup.opponents[1].aiType);
+		Assert.Equal(AiType.Advanced, setup.opponents[2].aiType);
+		Assert.All(setup.opponents.Skip(3), o => Assert.Equal(AiType.Standard, o.aiType));
 	}
 
 	[Fact]

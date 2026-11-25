@@ -307,9 +307,16 @@ public class NewGameChoices {
 	// The game to play from these choices on a map from the given seed,
 	// as Quick Start does: the same world, rivals and rules as chosen last
 	// time, with any random choices made again. Choices the ruleset
-	// doesn't have fall back to its defaults. People who joined over the
-	// LAN are played by the computer, and Closed slots aren't played.
+	// doesn't have fall back to its defaults. It's always a game for one
+	// person: the other people's slots of the last multiplayer setup
+	// (hotseat, LAN or server) are played by the computer, Closed slots
+	// aren't played, and there's no turn timer, nor play by email. The
+	// multiplayer choices stay as they are, for the setup screens.
 	public GameSetup QuickStartGame(SaveGame save, int mapSeed, System.Random random, string invalidMapsDirectory = null) {
+		save.TurnTimerSeconds = null;
+		save.ScaledTurnTimer = false;
+		save.PlayByEmail = false;
+		save.SimultaneousTurns = false;
 		WorldCharacteristics world = new(save) {
 			barbarianActivity = ChosenBarbarians(random),
 			landform = Landform,
@@ -326,28 +333,19 @@ public class NewGameChoices {
 		List<string> opponentCivs = ChosenOpponents(slots, save.Civilizations, player?.name);
 		player ??= RandomCivilization(save.Civilizations, opponentCivs, random);
 		List<SelectedOpponent> opponents = [];
-		List<HotseatPlayer> hotseatPlayers = [];
 		for (int i = 0; i < slots; ++i) {
 			string civ = opponentCivs[i];
 			if (ClosedSlots.Contains(i)) {
 				continue;
 			}
-			if (HotseatSlots.TryGetValue(i, out string name)) {
-				hotseatPlayers.Add(new HotseatPlayer {
-					civilization = civ == null ? null : save.Civilizations.Find(c => c.name == civ),
-					name = HotseatName(name, hotseatPlayers.Count + 2),
-				});
-			} else {
-				opponents.Add(civ == null
-					? new SelectedOpponent { isRandom = true, aiType = AiTypeOf(i) }
-					: new SelectedOpponent { Name = civ, aiType = AiTypeOf(i) });
-			}
+			opponents.Add(civ == null
+				? new SelectedOpponent { isRandom = true, aiType = AiTypeOf(i) }
+				: new SelectedOpponent { Name = civ, aiType = AiTypeOf(i) });
 		}
 
 		return new GameSetup {
 			playerCivilization = player,
-			playerName = hotseatPlayers.Count > 0 ? HotseatName(PlayerName, 1) : null,
-			hotseatPlayers = hotseatPlayers,
+			hotseatPlayers = [],
 			difficulty = ChosenDifficulty(save.Difficulties),
 			worldCharacteristics = world,
 			opponents = opponents,
