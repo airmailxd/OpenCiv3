@@ -61,7 +61,8 @@ public partial class GameChatBox : VBoxContainer {
 		GrowVertical = GrowDirection.Begin;
 		OffsetLeft = 6;
 		OffsetRight = 6 + Width;
-		OffsetBottom = -112;
+		// Above the minimap and its frame's knobs.
+		OffsetBottom = -152;
 		OffsetTop = OffsetBottom;
 		CustomMinimumSize = new Vector2(Width, 0);
 
@@ -91,7 +92,7 @@ public partial class GameChatBox : VBoxContainer {
 		inputRow = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		inputRow.AddThemeConstantOverride("separation", 6);
 		AddChild(inputRow);
-		channelLabel = new Label { VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(46, 0) };
+		channelLabel = new Label { VerticalAlignment = VerticalAlignment.Center, CustomMinimumSize = new Vector2(58, 0) };
 		channelLabel.AddThemeFontSizeOverride("font_size", FontSize);
 		channelLabel.AddThemeColorOverride("font_shadow_color", new Color(0, 0, 0, 0.9f));
 		inputRow.AddChild(channelLabel);
