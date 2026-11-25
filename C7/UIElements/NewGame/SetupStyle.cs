@@ -267,7 +267,7 @@ public static class SetupStyle {
 	}
 
 	// The chat line and the exit button, on the frame's bottom border. Chat
-	// isn't in OpenCiv3 yet, so the line can't be typed in.
+	// is in the game only (see GameChatBox), so the line can't be typed in.
 	public static void AddBottomStrip(Control frame, Action exit) {
 		HBoxContainer strip = new();
 		strip.AddThemeConstantOverride("separation", 12);
@@ -280,8 +280,8 @@ public static class SetupStyle {
 
 		LineEdit chat = MakeDarkField();
 		chat.Editable = false;
-		chat.PlaceholderText = "Chat isn't in OpenCiv yet.";
-		chat.TooltipText = "Players can't chat before or during a game yet. Messages above show what happens on this screen.";
+		chat.PlaceholderText = "Chat opens once the game starts: press Enter there.";
+		chat.TooltipText = "In the game, Enter opens the chat line. /team speaks to your team, /all to everyone. Messages above show what happens on this screen.";
 		chat.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
 		strip.AddChild(chat);
 
