@@ -421,6 +421,7 @@ public partial class ServerGamesScreen : Control {
 		footer.AddChild(LanGameBrowser.MakeButton("Refresh", () => RefreshAll()));
 		joinButton = LanGameBrowser.MakeButton("Join Game", JoinSelectedGame);
 		joinButton.CustomMinimumSize = new Vector2(140, 32);
+		joinButton.Disabled = true;
 		Highlight(joinButton);
 		footer.AddChild(joinButton);
 		page.AddChild(footer);
@@ -653,6 +654,7 @@ public partial class ServerGamesScreen : Control {
 
 		claimButton = LanGameBrowser.MakeButton("Claim Seat", Claim);
 		claimButton.CustomMinimumSize = new Vector2(140, 32);
+		claimButton.Disabled = true;
 		Highlight(claimButton);
 		claimButton.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
 		side.AddChild(claimButton);

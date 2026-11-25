@@ -1134,6 +1134,14 @@ public partial class Game : Node {
 		foreach ((string buttonText, string tooltip, Action onPressed) in buttons) {
 			Button button = new() { Text = buttonText, TooltipText = tooltip ?? "" };
 			button.AddThemeFontSizeOverride("font_size", 16);
+			// Drawn plainly, as the game's theme leaves buttons bare.
+			button.AddThemeStyleboxOverride("normal", BannerButtonBox(new Color(0.30f, 0.22f, 0.12f)));
+			button.AddThemeStyleboxOverride("hover", BannerButtonBox(new Color(0.42f, 0.31f, 0.16f)));
+			button.AddThemeStyleboxOverride("pressed", BannerButtonBox(new Color(0.22f, 0.16f, 0.09f)));
+			button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+			foreach (string color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color" }) {
+				button.AddThemeColorOverride(color, Colors.White);
+			}
 			button.Pressed += onPressed;
 			row.AddChild(button);
 		}
@@ -1161,6 +1169,21 @@ public partial class Game : Node {
 		};
 		viewport.SizeChanged += relayout;
 		panel.TreeExiting += () => viewport.SizeChanged -= relayout;
+	}
+
+	private static StyleBoxFlat BannerButtonBox(Color fill) {
+		return new StyleBoxFlat {
+			BgColor = fill,
+			BorderColor = new Color(0.85f, 0.72f, 0.45f),
+			BorderWidthLeft = 1,
+			BorderWidthRight = 1,
+			BorderWidthTop = 1,
+			BorderWidthBottom = 1,
+			ContentMarginLeft = 10,
+			ContentMarginRight = 10,
+			ContentMarginTop = 3,
+			ContentMarginBottom = 3,
+		};
 	}
 
 	// Keeps the banner clear of the toolbar on the left and the scoreboard on
