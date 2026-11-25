@@ -168,6 +168,20 @@ public sealed class DirectMessages : IDisposable {
 					Notice(error);
 				}
 				break;
+			case "ignore":
+				// The ignore list changed, as from another of the player's
+				// clients.
+				if (Text(root, "name") is string name && root.TryGetProperty("on", out JsonElement on)
+					&& on.ValueKind is JsonValueKind.True or JsonValueKind.False) {
+					lock (gate) {
+						if (on.GetBoolean()) {
+							ignored.Add(name);
+						} else {
+							ignored.Remove(name);
+						}
+					}
+				}
+				break;
 			case "ping":
 				_ = SendFrameAsync(new Dictionary<string, object> { ["t"] = "pong" });
 				break;

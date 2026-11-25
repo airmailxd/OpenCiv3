@@ -64,7 +64,7 @@ public class DirectMessagesTest {
 
 		public Task IgnoreAsync(string username, CancellationToken cancel = default) {
 			if (username == "nobody") {
-				throw new GameServerException("not found", HttpStatusCode.NotFound);
+				throw new GameServerException("The game server refused (404).", HttpStatusCode.NotFound);
 			}
 			ignores.Add(username);
 			return Task.CompletedTask;
@@ -211,12 +211,21 @@ public class DirectMessagesTest {
 			Assert.True(dms.IsIgnored("dave"));
 			Assert.Contains("dave", server.ignores);
 			socket.Push(Dm(6, "dave", "me", "also hidden"));
+			// Frames are handled in order, so once this shows, that was handled.
+			socket.Push(new { t = "error", text = "marker" });
+			Assert.Equal("marker", Next(dms).Text);
 
 			await dms.IgnoreAsync("dave", ignore: false);
 			Assert.Equal("You're no longer ignoring dave.", Next(dms).Text);
 			Assert.False(dms.IsIgnored("dave"));
 			socket.Push(Dm(7, "dave", "me", "shown"));
 			Assert.Equal("[From dave]: shown", Next(dms).Text);
+
+			// Another of my clients ignores frank.
+			socket.Push(new { t = "ignore", name = "frank", on = true });
+			socket.Push(new { t = "error", text = "marker 2" });
+			Assert.Equal("marker 2", Next(dms).Text);
+			Assert.True(dms.IsIgnored("frank"));
 
 			await dms.IgnoreAsync("nobody");
 			Assert.Equal("No one is called nobody.", Next(dms).Text);
