@@ -46,6 +46,26 @@ public static class GameServerProtocol {
 	public const string SingleplayerResultsPath = "/api/v1/singleplayer/results";
 	public const string VictoryQuery = "victory";
 
+	// Direct messages between accounts (see CHAT.md in Roma, and
+	// DirectMessages): POST MessagePath(name) with a MessageText sends one,
+	// answered with the DirectMessage as kept; IgnorePath(name) is PUT to
+	// ignore an account and DELETE to stop, and GET IgnoresPath lists them.
+	// MessagesLivePath is a WebSocket the server pushes them on as JSON text
+	// frames: { "t": "dm", "id", "from", "to", "text", "sent" } for each
+	// message to or from the account, { "t": "unread", "count" }, and
+	// { "t": "error", "text" }; the socket may send { "t": "read", "with" }.
+	public const string MessagesPath = "/api/v1/messages";
+	public const string MessagesLivePath = "/api/v1/messages/live";
+	public const string IgnoresPath = "/api/v1/ignores";
+
+	public static string MessagePath(string username) {
+		return $"{MessagesPath}/{Uri.EscapeDataString(username)}";
+	}
+
+	public static string IgnorePath(string username) {
+		return $"{IgnoresPath}/{Uri.EscapeDataString(username)}";
+	}
+
 	public static string ConnectPath(string gameId) {
 		return $"{GamesPath}/{Uri.EscapeDataString(gameId)}/connect";
 	}

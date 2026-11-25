@@ -55,6 +55,8 @@ public class GuestFrameSizeTest : IClassFixture<SaveGameFixture>, IDisposable {
 			Frame("Hello", NetSerialization.SerializeData(new HelloInfo(LanProtocol.Version, longName, new string('F', 32)))),
 			Frame("ClaimSeat", NetSerialization.SerializeData(new ClaimSeatInfo(humans[1].id, longName))),
 			Frame("ChooseCivilization", NetSerialization.SerializeData(new ChooseCivilizationInfo(longName, humans[1].id))),
+			// The longest line of chat, escaped as JSON writes it.
+			Frame("ChatSay", NetSerialization.SerializeData(new ChatSayInfo(ChatChannel.Team, new string('☃', GameChat.MaxLength), humans[1].id))),
 			// Far longer than any path a unit is given: one through every
 			// tile on the map.
 			Frame("SetUnitPath, every tile", NetSerialization.Serialize(new MsgSetUnitPath(unit.id,

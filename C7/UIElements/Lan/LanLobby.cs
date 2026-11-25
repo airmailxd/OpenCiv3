@@ -266,6 +266,10 @@ public partial class LanLobby : Control {
 		} else if (host.Seats.Count == 0) {
 			status.Text = "This game has only one human player. Start a new game and add players on the player setup screen, or load a game with more human players.";
 			startButton.Disabled = true;
+			// The developer option starts it anyway, alone, as for a picture.
+			if (LanSession.DevHostSave != null) {
+				CallDeferred(nameof(StartHostedGame));
+			}
 		} else if (!host.AllSeatsTakenOrHeld) {
 			int open = host.Seats.Count(s => s.takenBy == null);
 			status.Text = $"Waiting for {open} more {(open == 1 ? "player" : "players")} to join...";

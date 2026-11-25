@@ -57,11 +57,17 @@ public enum FrameKind : byte {
 	// Client to host: the game's owner chooses who plays an absent player
 	// of a server game until they're back (see StandInInfo).
 	ChooseStandIn = 20,
+
+	// Client to host: a line a seated guest says in the game's chat (see
+	// ChatSayInfo and GameChat).
+	ChatSay = 21,
+	// Host to client: a line of the game's chat to show (see ChatLineInfo).
+	ChatLine = 22,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 20;
+	public const int Version = 21;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -392,3 +398,19 @@ public record PasswordInfo(string proof);
 public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers,
 	List<ID> playersToMove = null, List<ID> awayPlayers = null, ID ownerPlayerID = null, List<ID> computerPlayers = null,
 	List<ID> hotseatPlayers = null);
+
+// Who hears a line of the game's chat: every human player in the game, or
+// the players on the speaker's team (see GameChat).
+public enum ChatChannel {
+	All,
+	Team,
+}
+
+// A line a guest says, as one of their seats (null for their first).
+public record ChatSayInfo(ChatChannel channel, string text, ID playerID = null);
+
+// A line of the game's chat, as the host passes it on: who said it (their
+// name in the game, and their player), on which channel, and for Team, the
+// team. from is null for a notice from the host to the one who spoke, like
+// "You aren't on a team.", which has no channel to speak of.
+public record ChatLineInfo(ChatChannel channel, string from, string text, ID playerID = null, int team = 0);

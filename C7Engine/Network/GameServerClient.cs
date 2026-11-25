@@ -28,7 +28,7 @@ public sealed record ServerGameJoin(GameConnection Connection, LanClient Client)
 // doc/server-games.md): signing up and logging in, the player's games, and
 // joining one to play or view it (JoinGameAsync). Every call throws a
 // GameServerException when the server can't be reached or refuses.
-public sealed class GameServerClient {
+public sealed class GameServerClient : IMessagesApi {
 	private static readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(60) };
 
 	public Uri ServerUrl { get; }
@@ -97,6 +97,74 @@ public sealed class GameServerClient {
 		return Send<LadderResult>(HttpMethod.Post, GameServerProtocol.SingleplayerResultsPath, content, cancel, query: query);
 	}
 
+	// Sends a direct message, answered with it as the server keeps it.
+	public Task<DirectMessage> SendMessageAsync(string username, string text, CancellationToken cancel = default) {
+		return Send<DirectMessage>(HttpMethod.Post, GameServerProtocol.MessagePath(username), JsonContent(new MessageText(text)), cancel);
+	}
+
+	// The accounts the player ignores, by username.
+	public async Task<List<string>> IgnoresAsync(CancellationToken cancel = default) {
+		JsonElement list = await Send<JsonElement>(HttpMethod.Get, GameServerProtocol.IgnoresPath, null, cancel).ConfigureAwait(false);
+		return IgnoredNames(list);
+	}
+
+	public Task IgnoreAsync(string username, CancellationToken cancel = default) {
+		return Send<JsonElement>(HttpMethod.Put, GameServerProtocol.IgnorePath(username), null, cancel);
+	}
+
+	public Task UnignoreAsync(string username, CancellationToken cancel = default) {
+		return Send<JsonElement>(HttpMethod.Delete, GameServerProtocol.IgnorePath(username), null, cancel);
+	}
+
+	// The usernames in the ignore list as the server answers it: a list of
+	// names, or of entries naming one (as "username" or "name"), bare or as
+	// a field of an object.
+	internal static List<string> IgnoredNames(JsonElement list) {
+		List<string> names = [];
+		if (list.ValueKind == JsonValueKind.Object) {
+			foreach (JsonProperty field in list.EnumerateObject()) {
+				if (field.Value.ValueKind == JsonValueKind.Array) {
+					return IgnoredNames(field.Value);
+				}
+			}
+			return names;
+		}
+		if (list.ValueKind != JsonValueKind.Array) {
+			return names;
+		}
+		foreach (JsonElement entry in list.EnumerateArray()) {
+			string name = entry.ValueKind switch {
+				JsonValueKind.String => entry.GetString(),
+				JsonValueKind.Object => FieldOf(entry, "username") ?? FieldOf(entry, "name") ?? FieldOf(entry, "ignored"),
+				_ => null,
+			};
+			if (!string.IsNullOrWhiteSpace(name)) {
+				names.Add(name.Trim());
+			}
+		}
+		return names;
+	}
+
+	private static string FieldOf(JsonElement entry, string name) {
+		foreach (JsonProperty field in entry.EnumerateObject()) {
+			if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase) && field.Value.ValueKind == JsonValueKind.String) {
+				return field.Value.GetString();
+			}
+		}
+		return null;
+	}
+
+	// Where the live socket for direct messages is: the server's address as
+	// ws:// or wss://, as it's http:// or https://.
+	public Uri MessagesLiveUri() {
+		UriBuilder uri = new(ServerUrl) {
+			Scheme = ServerUrl.Scheme == "https" ? "wss" : "ws",
+			Query = $"v={GameServerProtocol.Version}",
+		};
+		uri.Path = uri.Path.TrimEnd('/') + GameServerProtocol.MessagesLivePath;
+		return uri.Uri;
+	}
+
 	// Where and how to join the game, with its worker started if it wasn't
 	// running (see GameConnection). That can take a while, as the server
 	// loads the game.
@@ -156,7 +224,7 @@ public sealed class GameServerClient {
 			if (!response.IsSuccessStatusCode) {
 				throw new GameServerException(await ErrorOf(response, cancel).ConfigureAwait(false), response.StatusCode);
 			}
-			if (response.StatusCode == HttpStatusCode.NoContent) {
+			if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0) {
 				return default;
 			}
 			return await ReadJson<T>(response.Content, cancel).ConfigureAwait(false);

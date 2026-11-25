@@ -474,6 +474,11 @@ public partial class Game : Node {
 		if (EngineStorage.gameData?.rules?.RisingTide == true) {
 			ShowTidePanel();
 		}
+		// The game's chat, in a LAN or server game (see GameChatBox).
+		if (LanSession.IsActive) {
+			gameChat = new GameChatBox();
+			GetNode<Control>("CanvasLayer/Control").AddChild(gameChat);
+		}
 		if (CityStateTrade.IsOn(EngineStorage.gameData)) {
 			ShowCityStatesPanel();
 		}
@@ -3027,6 +3032,10 @@ public partial class Game : Node {
 		if (errorOnLoad) {
 			return;
 		}
+		if (OpensChat(@event)) {
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		// Don't handle if there's an open modal, if it's the AI's turn, or if
 		// the screen is being handed to the next hotseat player.
 		// A spectator may always look around.
@@ -3056,6 +3065,23 @@ public partial class Game : Node {
 		} else if (@event is InputEventMagnifyGesture magnifyGesture) {
 			HandleMagnifyGesture(magnifyGesture);
 		}
+	}
+
+	// The game's chat line, in a LAN or server game; null otherwise.
+	private GameChatBox gameChat;
+
+	// Enter opens the chat line, even while others move, unless a popup, a
+	// screen, the hotseat curtain or a text field has the keys. In a LAN or
+	// server game Enter then doesn't end the turn; Space still does.
+	private bool OpensChat(InputEvent @event) {
+		if (gameChat == null || @event is not InputEventKey key || CurtainIsUp || HasVisibleModal()) {
+			return false;
+		}
+		Control focused = GetViewport().GuiGetFocusOwner();
+		if (focused is LineEdit or TextEdit && focused.IsVisibleInTree()) {
+			return false;
+		}
+		return gameChat.TryOpen(key);
 	}
 
 	// While a popup that lets the map move (Staging) is in front, the mouse
@@ -3758,7 +3784,8 @@ public partial class Game : Node {
 
 		// Keys typed into a text field are text, not commands.
 		Control focused = GetViewport().GuiGetFocusOwner();
-		bool typing = focused is LineEdit or TextEdit && focused.IsVisibleInTree();
+		bool typing = focused is LineEdit or TextEdit && focused.IsVisibleInTree()
+			|| gameChat?.TookKeysThisFrame == true;
 
 		for (int i = 0; i < inputActions.Length; i++) {
 			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also

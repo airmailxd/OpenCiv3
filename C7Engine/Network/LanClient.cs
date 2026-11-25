@@ -195,6 +195,10 @@ public class LanClient : IDisposable {
 	// carried out on our game ahead of the host (see PredictMoves).
 	public Action OrderPredicted;
 
+	// Set by the game's chat line: called with each line of the game's chat
+	// the host passes on to us, our own included (see GameChat).
+	public Action<ChatLineInfo> ChatLineReceived;
+
 	private LanClient(LanTransport transport, LanEndpoint endpoint, string playerName, string reconnectToken, string password) {
 		connection = new LanConnection(transport);
 		Endpoint = endpoint;
@@ -313,6 +317,15 @@ public class LanClient : IDisposable {
 		} else {
 			connection.Send(FrameKind.Command, payload);
 		}
+	}
+
+	// Says a line in the game's chat, as one of our players (null for our
+	// first). A spectator isn't heard, so says nothing.
+	public void Say(ChatChannel channel, string text, ID playerID = null) {
+		if (IsSpectator || GameChat.Tidy(text) is not string tidy) {
+			return;
+		}
+		connection.Send(FrameKind.ChatSay, new ChatSayInfo(channel, tidy, playerID));
 	}
 
 	// The turn clock as it stands now, or null until the host sends it.
@@ -605,6 +618,12 @@ public class LanClient : IDisposable {
 				break;
 			case FrameKind.UiMessage:
 				UiMessageReceived?.Invoke(frame.payload);
+				break;
+			case FrameKind.ChatLine:
+				ChatLineInfo line = NetSerialization.DeserializeRequired<ChatLineInfo>(frame.payload);
+				if (GameChat.Tidy(line.text) is string text) {
+					ChatLineReceived?.Invoke(line with { text = text, from = LanHost.TidyName(line.from) });
+				}
 				break;
 			case FrameKind.TurnClock:
 				clock = NetSerialization.DeserializeRequired<TurnClockInfo>(frame.payload);
