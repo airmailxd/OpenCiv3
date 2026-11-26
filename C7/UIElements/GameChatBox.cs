@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7Engine.Network;
-using C7GameData;
 using Godot;
 using Serilog;
 
@@ -11,24 +9,20 @@ using Serilog;
 // (owner's design, 2026-11-25; see GameChat): the lines heard, which fade
 // when it's quiet, over a dark field to type in, the look of the lobby's
 // chat line. Enter opens it when nothing else has the keys (Game asks
-// TryOpen), Enter sends and closes it, Esc closes it. The channel open
-// sticks: /team alone makes Team the channel, /all All. Signed in to the
-// game server, direct messages to any account (/w, /r) show here too, in
-// their own colour, and /ignore hides a player's lines.
+// TryOpen), Enter sends and closes it, Esc closes it. What it says and does
+// is the game's ChatSession, which the lobby's chat line shares: the lines
+// said there show here at the start, the channel open sticks (/team alone
+// makes Team the channel, /all All), direct messages to any account (/w, /r)
+// when signed in to the game server, and /ignore.
 public partial class GameChatBox : VBoxContainer {
 	private static readonly ILogger log = Log.ForContext<GameChatBox>();
 
 	private const int Width = 470;
-	private const int MaxLines = 100;
 	private const int FontSize = 14;
 	// Seconds a line stays before the log fades, and the fade.
 	private const double ShowFor = 12;
 	private const double FadeFor = 1.5;
 
-	private static readonly Color AllColor = new(0.97f, 0.94f, 0.84f);
-	private static readonly Color TeamColor = new(0.55f, 0.82f, 1f);
-	private static readonly Color WhisperColor = new(0.96f, 0.6f, 0.86f);
-	private static readonly Color NoticeColor = new(1f, 0.83f, 0.42f);
 	private static readonly Color LogBackground = new(0.07f, 0.055f, 0.04f, 0.6f);
 
 	private RichTextLabel lines;
@@ -37,15 +31,9 @@ public partial class GameChatBox : VBoxContainer {
 	private Label channelLabel;
 	private LineEdit input;
 
-	private ChatChannel channel = ChatChannel.All;
+	private ChatSession chat;
 	private double quietFor;
 	private ulong keysTakenFrame = ulong.MaxValue;
-	private readonly List<(string text, Color color)> shown = [];
-
-	// Ignored by name for this game, when not signed in to the server.
-	private readonly HashSet<string> ignoredHere = new(StringComparer.OrdinalIgnoreCase);
-
-	private DirectMessages directMessages;
 
 	public bool IsOpen => inputRow?.Visible == true;
 
@@ -83,7 +71,7 @@ public partial class GameChatBox : VBoxContainer {
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 		lines.AddThemeFontSizeOverride("normal_font_size", FontSize);
-		lines.AddThemeColorOverride("default_color", AllColor);
+		lines.AddThemeColorOverride("default_color", ChatSession.OnDark(ChatSession.Kind.All));
 		lines.AddThemeColorOverride("font_shadow_color", new Color(0, 0, 0, 0.85f));
 		lines.AddThemeConstantOverride("shadow_offset_x", 1);
 		lines.AddThemeConstantOverride("shadow_offset_y", 1);
@@ -103,12 +91,22 @@ public partial class GameChatBox : VBoxContainer {
 		input.GuiInput += OnInputKey;
 		inputRow.AddChild(input);
 
+		chat = ChatSession.Current;
+		if (chat != null) {
+			chat.LineAdded += OnLineAdded;
+		}
 		ShowChannel();
 		Close();
-		logPanel.Visible = false;
-		HookUp();
+		// The lines said in the lobby show for a while, then fade.
+		logPanel.Visible = chat?.Lines.Count > 0;
 		if (Array.Find(OS.GetCmdlineUserArgs(), a => a.StartsWith("--chat-shot=")) is string shot) {
 			TakeShot(shot["--chat-shot=".Length..]);
+		}
+	}
+
+	public override void _ExitTree() {
+		if (chat != null) {
+			chat.LineAdded -= OnLineAdded;
 		}
 	}
 
@@ -120,12 +118,17 @@ public partial class GameChatBox : VBoxContainer {
 	private async void TakeShot(string path) {
 		SceneTree tree = GetTree();
 		await ToSignal(tree.CreateTimer(4), SceneTreeTimer.SignalName.Timeout);
+		if (chat == null) {
+			log.Warning("No chat to take a picture of: not in a LAN game");
+			tree.Quit();
+			return;
+		}
 		LanSession.Host?.Say(ChatChannel.All, "Good luck everyone, have fun");
-		Hear(new ChatLineInfo(ChatChannel.All, "Ann", "gl hf! no early rushes please"));
-		Hear(new ChatLineInfo(ChatChannel.Team, "Bob", "Their capital only has two spearmen, I can take it in 3 turns"));
-		Show(GameChat.FormatWhisper("carol", "are you coming to Rome after this game?", fromMe: false), WhisperColor);
-		Show(GameChat.FormatWhisper("carol", "yes, after turn 100", fromMe: true), WhisperColor);
-		channel = ChatChannel.Team;
+		chat.Hear(new ChatLineInfo(ChatChannel.All, "Ann", "gl hf! no early rushes please"));
+		chat.Hear(new ChatLineInfo(ChatChannel.Team, "Bob", "Their capital only has two spearmen, I can take it in 3 turns"));
+		chat.Show(GameChat.FormatWhisper("carol", "are you coming to Rome after this game?", fromMe: false), ChatSession.Kind.Whisper);
+		chat.Show(GameChat.FormatWhisper("carol", "yes, after turn 100", fromMe: true), ChatSession.Kind.Whisper);
+		chat.Channel = ChatChannel.Team;
 		ShowChannel();
 		Open();
 		input.Text = "Sending my knights to help, hold the river";
@@ -137,40 +140,9 @@ public partial class GameChatBox : VBoxContainer {
 		tree.Quit();
 	}
 
-	// Listens to the game's host or client, and to the server's messages if
-	// signed in.
-	private void HookUp() {
-		if (LanSession.Host is LanHost host) {
-			host.ChatReceived += Hear;
-		} else if (LanSession.Client is LanClient client) {
-			client.ChatLineReceived = Hear;
-		}
-		try {
-			if (GameServerSettings.SavedSession(GameServerSettings.Url) != null) {
-				directMessages = DirectMessages.For(ServerGames.Client());
-				directMessages.Start();
-			}
-		} catch (Exception e) {
-			log.Information("No direct messages in this game: {Error}", e.Message);
-			directMessages = null;
-		}
-	}
-
-	public override void _ExitTree() {
-		if (LanSession.Host is LanHost host) {
-			host.ChatReceived -= Hear;
-		} else if (LanSession.Client is LanClient client && client.ChatLineReceived == Hear) {
-			client.ChatLineReceived = null;
-		}
-		directMessages?.Dispose();
-		directMessages = null;
-	}
-
 	public override void _Process(double delta) {
-		while (directMessages != null && directMessages.TryTake(out DirectMessageEvent e)) {
-			Show(e.Text, e.Kind == DirectMessageEventKind.Message ? WhisperColor : NoticeColor);
-		}
-		if (IsOpen || shown.Count == 0) {
+		chat?.Pump();
+		if (IsOpen || chat == null || chat.Lines.Count == 0) {
 			return;
 		}
 		quietFor += delta;
@@ -194,7 +166,7 @@ public partial class GameChatBox : VBoxContainer {
 	public void Open() {
 		keysTakenFrame = Engine.GetProcessFrames();
 		inputRow.Visible = true;
-		logPanel.Visible = shown.Count > 0;
+		logPanel.Visible = chat?.Lines.Count > 0;
 		logPanel.Modulate = Colors.White;
 		Redraw();
 		input.GrabFocus();
@@ -221,102 +193,26 @@ public partial class GameChatBox : VBoxContainer {
 	private void Submit(string typed) {
 		keysTakenFrame = Engine.GetProcessFrames();
 		Close();
-		Act(GameChat.Parse(typed, channel));
-	}
-
-	private void Act(ChatCommand command) {
-		switch (command.Kind) {
-			case ChatCommandKind.Say:
-				channel = command.Channel;
-				ShowChannel();
-				Say(command.Channel, command.Text);
-				break;
-			case ChatCommandKind.OpenChannel:
-				channel = command.Channel;
-				ShowChannel();
-				// Straight back to typing on it.
-				Open();
-				break;
-			case ChatCommandKind.Whisper:
-				if (directMessages == null) {
-					Show(GameChat.NeedsServer, NoticeColor);
-				} else {
-					_ = directMessages.SendAsync(command.Name, command.Text);
-				}
-				break;
-			case ChatCommandKind.Reply:
-				if (directMessages == null) {
-					Show(GameChat.NeedsServer, NoticeColor);
-				} else {
-					_ = directMessages.ReplyAsync(command.Text);
-				}
-				break;
-			case ChatCommandKind.Ignore:
-			case ChatCommandKind.Unignore:
-				Ignore(command.Name, command.Kind == ChatCommandKind.Ignore);
-				break;
-			case ChatCommandKind.Unknown:
-				Show(GameChat.Unknown(command.Text), NoticeColor);
-				break;
-		}
-	}
-
-	private void Say(ChatChannel on, string text) {
-		if (LanSession.IsSpectator) {
-			Show("Spectators can't talk in the game.", NoticeColor);
-		} else if (LanSession.Host is LanHost host) {
-			host.Say(on, text);
-		} else if (LanSession.Client is LanClient client) {
-			// As the player at the screen, if several play at this machine.
-			ID speaker = client.PlayerIDs.Contains(EngineStorage.uiControllerID) ? EngineStorage.uiControllerID : null;
-			client.Say(on, text, speaker);
-		}
-	}
-
-	// Signed in, ignoring is the account's, kept on the server; otherwise it
-	// hides the player's lines in this game only.
-	private void Ignore(string name, bool ignore) {
-		if (directMessages != null) {
-			_ = directMessages.IgnoreAsync(name, ignore);
+		if (chat == null) {
 			return;
 		}
-		if (string.IsNullOrWhiteSpace(name)) {
-			Show(ignore ? "Who to ignore? Type /ignore and their name." : "Who to stop ignoring? Type /unignore and their name.", NoticeColor);
-			return;
+		bool keepOpen = chat.Submit(typed);
+		ShowChannel();
+		if (keepOpen) {
+			// Straight back to typing on the channel opened.
+			Open();
 		}
-		name = name.Trim();
-		if (ignore) {
-			ignoredHere.Add(name);
-			Show($"You're ignoring {name} in this game.", NoticeColor);
-		} else {
-			ignoredHere.Remove(name);
-			Show($"You're no longer ignoring {name}.", NoticeColor);
-		}
-	}
-
-	private bool IsIgnored(string name) {
-		return name != null && (ignoredHere.Contains(name) || directMessages?.IsIgnored(name) == true);
-	}
-
-	private void Hear(ChatLineInfo line) {
-		if (line.from != null && IsIgnored(line.from)) {
-			return;
-		}
-		Color color = line.from == null ? NoticeColor : line.channel == ChatChannel.Team ? TeamColor : AllColor;
-		Show(GameChat.Format(line), color);
 	}
 
 	private void ShowChannel() {
+		ChatChannel channel = chat?.Channel ?? ChatChannel.All;
 		channelLabel.Text = $"[{GameChat.ChannelName(channel)}]";
-		channelLabel.AddThemeColorOverride("font_color", channel == ChatChannel.Team ? TeamColor : AllColor);
+		channelLabel.AddThemeColorOverride("font_color",
+			ChatSession.OnDark(channel == ChatChannel.Team ? ChatSession.Kind.Team : ChatSession.Kind.All));
 	}
 
-	// Adds a line to the log, and shows it again.
-	public void Show(string text, Color color) {
-		shown.Add((text, color));
-		if (shown.Count > MaxLines) {
-			shown.RemoveRange(0, shown.Count - MaxLines);
-		}
+	// A line added to the log shows it again.
+	private void OnLineAdded(ChatSession.Line line) {
 		Redraw();
 		quietFor = 0;
 		logPanel.Visible = true;
@@ -326,18 +222,18 @@ public partial class GameChatBox : VBoxContainer {
 	// The last few lines, or more while the line is open.
 	private void Redraw() {
 		int count = IsOpen ? 14 : 8;
-		if (lines == null) {
+		if (lines == null || chat == null) {
 			return;
 		}
 		lines.Clear();
 		bool first = true;
-		foreach ((string text, Color color) in shown.Skip(Math.Max(0, shown.Count - count))) {
+		foreach (ChatSession.Line line in chat.Lines.Skip(Math.Max(0, chat.Lines.Count - count))) {
 			if (!first) {
 				lines.Newline();
 			}
 			first = false;
-			lines.PushColor(color);
-			lines.AddText(text);
+			lines.PushColor(ChatSession.OnDark(line.kind));
+			lines.AddText(line.text);
 			lines.Pop();
 		}
 	}

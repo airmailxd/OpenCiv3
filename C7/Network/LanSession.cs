@@ -254,6 +254,7 @@ public static class LanSession {
 	}
 
 	public static void End() {
+		ChatSession.End();
 		Host?.Dispose();
 		Client?.Dispose();
 		Host = null;

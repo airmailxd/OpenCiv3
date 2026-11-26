@@ -65,7 +65,7 @@ public partial class LanLobby {
 		right.AddChild(MakePlayersPanel());
 		right.AddChild(MakeRulesPanel());
 		right.AddChild(MakeMessagesPanel());
-		AddBottomStrip(setupFrame, BackToMenu);
+		AddBottomStrip(setupFrame, BackToMenu, messages);
 
 		GetViewport().SizeChanged += FitSetup;
 		FitSetup();

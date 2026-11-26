@@ -266,9 +266,9 @@ public static class SetupStyle {
 		messages.AppendText(color is Color c ? $"[color=#{c.ToHtml(false)}]{escaped}[/color]\n" : escaped + "\n");
 	}
 
-	// The chat line and the exit button, on the frame's bottom border. Chat
-	// is in the game only (see GameChatBox), so the line can't be typed in.
-	public static void AddBottomStrip(Control frame, Action exit) {
+	// The chat line (LobbyChat, whose lines go into the messages) and the
+	// exit button, on the frame's bottom border.
+	public static void AddBottomStrip(Control frame, Action exit, RichTextLabel messages) {
 		HBoxContainer strip = new();
 		strip.AddThemeConstantOverride("separation", 12);
 		strip.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
@@ -278,12 +278,7 @@ public static class SetupStyle {
 		strip.OffsetBottom = -22;
 		frame.AddChild(strip);
 
-		LineEdit chat = MakeDarkField();
-		chat.Editable = false;
-		chat.PlaceholderText = "Chat opens once the game starts: press Enter there.";
-		chat.TooltipText = "In the game, Enter opens the chat line. /team speaks to your team, /all to everyone. Messages above show what happens on this screen.";
-		chat.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-		strip.AddChild(chat);
+		strip.AddChild(new LobbyChat { Messages = messages });
 
 		TextureButton exitButton = new() {
 			TooltipText = "Back to the main menu",

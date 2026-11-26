@@ -160,7 +160,7 @@ public partial class MultiplayerSetupScreen : Control {
 		right.AddChild(MakePlayerSetup());
 		right.AddChild(MakeGameRules());
 		right.AddChild(MakeMessages());
-		AddBottomStrip(frame, BackToMenu);
+		AddBottomStrip(frame, BackToMenu, messages);
 		if (serverGame) {
 			SetUpForServerGame();
 		}
