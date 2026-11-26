@@ -1995,19 +1995,27 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	// A guest says a line, as one of their seats; a guest without one, not
-	// yet let in or only looking on, isn't heard.
+	// A guest says a line, as one of their seats. Before the game starts, a
+	// guest in the lobby without a seat yet is heard too, by the name it
+	// gave; once it has started, a guest without one isn't, nor one not yet
+	// let in. Spectators never are (see PollSpectator).
 	private void HearChat(Guest guest, ChatSayInfo say) {
 		Seat seat = say.playerID == null ? SeatsOf(guest).FirstOrDefault()
 			: SeatsOf(guest).FirstOrDefault(s => s.info.playerID == say.playerID);
-		if (!guest.admitted || seat == null) {
+		if (!guest.admitted || (seat == null && Started)) {
 			return;
 		}
 		if (!guest.chat.Take()) {
 			guest.connection.Send(FrameKind.ChatLine, new ChatLineInfo(say.channel, null, GameChat.TooFast));
 			return;
 		}
-		Speak(guest, seat.takenBy ?? guest.name, seat.info.playerID, say.channel, say.text);
+		Speak(guest, seat?.takenBy ?? guest.name ?? UnnamedGuest, seat?.info.playerID, say.channel, say.text);
+	}
+
+	// Who hears the chat at their machine: every guest with a seat; before
+	// the game starts, every guest let into the lobby.
+	private List<Guest> ChatListeners() {
+		return Started ? SeatedGuests() : guests.Where(g => g.admitted && !g.connection.IsClosed).ToList();
 	}
 
 	// Passes a line on to those who hear it: on All, every human player in
@@ -2037,7 +2045,7 @@ public class LanHost : IDisposable {
 		if (!IsDedicated && (channel == ChatChannel.All || ChatTeamOf(hostPlayerID) == team)) {
 			ChatReceived?.Invoke(line);
 		}
-		foreach (Guest guest in SeatedGuests()) {
+		foreach (Guest guest in ChatListeners()) {
 			if (channel == ChatChannel.All || SeatsOf(guest).Any(s => ChatTeamOf(s.info.playerID) == team)) {
 				guest.connection.Send(FrameKind.ChatLine, line);
 			}
@@ -2048,6 +2056,9 @@ public class LanHost : IDisposable {
 	// alliance's number (none for a team of one, which is no alliance);
 	// before that, the one their seat is on. 0 for none.
 	private int ChatTeamOf(ID playerID) {
+		if (playerID == null) {
+			return 0;
+		}
 		if (Started && EngineStorage.gameData?.GetPlayer(playerID) is Player player) {
 			return player.alliance?.index ?? 0;
 		}
